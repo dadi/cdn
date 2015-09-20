@@ -1,5 +1,5 @@
 {
-	"recipe": "example-recipe-here",
+	"recipe": "recipe-name",
 	"settings": {
 		"format": "jpg",
 		"quality": "80",
