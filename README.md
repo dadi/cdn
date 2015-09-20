@@ -21,7 +21,7 @@ Barbu is part of Bantam, a suite of components covering the full development sta
 ## Requirements
 
 * Node.js (latest)
-* 
+* ImageMagik (latest)
 
 ## Setup and installation
 
@@ -120,7 +120,7 @@ Convert from one format to another with quality control.
 
 **Converted to PNG**
 
-![Converted to PNG at 100%](examples/jpeg-to-png.png =600x)
+![Converted to PNG at 100%](examples/jpeg-to-png.png)
 
 #### Example #2: blur
 
