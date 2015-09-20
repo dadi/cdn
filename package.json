@@ -1,6 +1,6 @@
 {
   "name": "barbu",
-  "version": "0.1.0-beta",
+  "version": "0.1.6-beta",
   "dependencies": {
     "request": "*",
     "imagemagick-native": "*",
