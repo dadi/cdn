@@ -1,0 +1,26 @@
+{
+  "name": "barbu",
+  "version": "0.1.0-beta",
+  "dependencies": {
+    "request": "*",
+    "imagemagick-native": "*",
+    "router": "*",
+    "finalhandler": "*",
+    "underscore": "*",
+    "aws-sdk": "*",
+    "redis": "*",
+    "redis-wstream": "*",
+    "redis-rstream": "*",
+    "jsonwebtoken": "*",
+    "cloudfront": "*",
+    "body-parser": "*",
+    "fs-finder": "*"
+  },
+  "scripts": {
+    "start": "node bantam/main"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/bantam-framework/barbu.git"
+  }
+}
