@@ -10,14 +10,14 @@ For heavy compression, consider adding a gentle level of blur to the image.
 
 ## Performance examples
 
-The dimensions of the test image are 1920 x 1080px. The image has been scaled down to 600px width in page for display purposes.
+The dimensions of the test image and of all output images is 1920 x 1080px.
 
 | Output quality | Image weight | Compression % | Image |
 | :------------- | :----------- | :----------- | :---- |
-| Original image | 2.6MB | N/A | ![Original image](../examples/original.jpg =600x) |
-| 80% | 705KB | 73.52% | ![80%](../examples/80pc.jpg =600x) |
-| 60% | 498KB | 81.30% | ![60%](../examples/60pc.jpg =600x) |
-| 40% | 396KB | 85.13% | ![40%](../examples/40pc.jpg =600x) |
-| 20% | 283KB | 89.37% | ![20%](../examples/20pc.jpg =600x) |
-| 10% | 214KB | 91.96% | ![10%](../examples/10pc.jpg =600x) |
-| 5% | 174KB | 93.46% | ![5%](../examples/5pc.jpg =600x) |
+| Original image | 2.6MB | N/A | ![Original image](../examples/original.jpg) |
+| 80% | 705KB | 73.52% | ![80%](../examples/80pc.jpg) |
+| 60% | 498KB | 81.30% | ![60%](../examples/60pc.jpg) |
+| 40% | 396KB | 85.13% | ![40%](../examples/40pc.jpg) |
+| 20% | 283KB | 89.37% | ![20%](../examples/20pc.jpg) |
+| 10% | 214KB | 91.96% | ![10%](../examples/10pc.jpg) |
+| 5% | 174KB | 93.46% | ![5%](../examples/5pc.jpg) |
