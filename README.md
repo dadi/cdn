@@ -7,6 +7,12 @@
 * [Overview](#overview)
 * [Requirements](#requirements)
 * [Setup and installation](#setup-and-installation)
+* [Working with images](#working-with-images)
+* [Delviery recipes](#delviery-recipes)
+* [The invalidation API](#the-invalidation-api)
+* [Configuration notes](#configuration-notes)
+* [Further reading](#further-reading)
+* [Development](#development)
 
 ## Overview
 
@@ -272,6 +278,15 @@ POST http://{url}/api
 
 Invalidates all images fount within the directory `/some-path/to/images`, causing them to be renegerated at the point of next request.
 
+## Configuration notes
+
+The `server.host` config is passed to node's `server.listen` function
+http://nodejs.org/api/http.html#http_server_listen_port_hostname_backlog_callback
+
+You should be able to set it to your IP as well, but depending on your hosting, that may be tricky. For example, on AWS you would have to use your private IP instead of your public IP.
+
+The proper name should always resolve correctly. Alternately, you can set it to null, to accept connections on any IPv4 address.
+
 ## Further reading
 
 The `docs/` directory contains additional documentation on the component parts of the system:
@@ -302,6 +317,7 @@ Planned additions:
 * JavaScript support (obfuscation and compression)
 * Cloudfront invalidation chaining
 * Cluster support (master/slave API construct)
+* Integration of realtime analytics covering hits, bandwidth aggregates and throughput data
 
 ### Versioning
 
