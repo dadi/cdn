@@ -14,7 +14,10 @@
     "jsonwebtoken": "*",
     "cloudfront": "*",
     "body-parser": "*",
-    "fs-finder": "*"
+    "fs-finder": "*",
+    "color-thief": "*",
+    "length-stream": "*",
+    "sha1": "*"
   },
   "scripts": {
     "start": "node bantam/main"
