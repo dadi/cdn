@@ -1,4 +1,4 @@
-![Serama](../barbu.png)
+{BARBU LOGO HERE}
 
 # Installation guide: Ubuntu
 

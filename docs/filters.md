@@ -1,4 +1,4 @@
-![Barbu](../barbu.png)
+{BARBU LOGO HERE}
 
 # Filters
 
