@@ -27,24 +27,41 @@ var ColorThief = require('color-thief'),
     colorThief = new ColorThief();
 var lengthStream = require('length-stream');
 
+var monitor = require(__dirname + '/monitor');
+
 var configPath = path.resolve(__dirname + '/../../config.json');
 var config = require(configPath);
-
-var recipePath = path.resolve(__dirname + '/../../workspace/recipes/recipe.json');
-var recipe = require(recipePath);
 
 var Server = function() {
   this.s3 = null;
   this.client = null;
+  this.monitors = {};
 };
-
-if(config.cloudfront) {
-  var cf = cloudfront.createClient(config.cloudfront.accessKey, config.cloudfront.secretKey);
-}
-
 
 Server.prototype.start = function(options, done) {
   var self = this;
+
+  //Monitor config.json file
+  self.addMonitor(configPath, function(filename) {
+    delete require.cache[configPath];
+    config = require(configPath);
+
+    //Init S3 Instance
+    if(config.images.s3) {
+      self.initS3Bucket();
+    }
+
+    //Init Redis client
+    if(config.caching.redis) {
+      self.initRedisClient();
+    }
+  });
+
+  //Monitor recipes folders and files
+  var recipeDir = path.resolve(__dirname + '/../../workspace/recipes');
+  self.addMonitor(recipeDir, function(filename) {
+    delete require.cache[recipeDir + '/' + filename];
+  });
 
   //Init S3 Instance
   if(config.images.s3) {
@@ -112,12 +129,12 @@ Server.prototype.start = function(options, done) {
   router.post('/api', function(req, res) {
     if(req.body.invalidate) {
       var invalidate = req.body.invalidate.replace(/[\/.]/g, '');
+      
       if(config.caching.redis) {
         self.client.keys("*"+invalidate+"*", function(err, data) {
           for(var i = 0; i < data.length; i++) {
             self.client.del(data[i]);
           }
-          res.end('Success');
         });
       } else {
         var cacheDir = path.resolve(config.caching.directory);
@@ -125,6 +142,18 @@ Server.prototype.start = function(options, done) {
         _.each(files, function(file) {
           fs.unlinkSync(file);
         });
+      }
+      if(config.cloudfront) {
+        var cf = cloudfront.createClient(config.cloudfront.accessKey, config.cloudfront.secretKey);
+        cf.getDistribution(config.cloudfront.distribution, function(err, distribution) {
+          var callerReference = (new Date()).toString();
+          distribution.invalidate(callerReference, ['/'+req.body.invalidate], function(err, invalidation) {
+            if (err) console.log(err)
+            console.log(invalidation);
+            res.end('Success');
+          });
+        });
+      } else {
         res.end('Success');
       }
     }
@@ -135,18 +164,22 @@ Server.prototype.start = function(options, done) {
 
     var paramString = req.params[0].substring(1, req.params[0].length);
     var returnJSON = false;
-    if(paramString.split('/').length < 13 && paramString.split('/')[0] != recipe.recipe) {
+    if(paramString.split('/').length < 13 && !fs.existsSync(path.resolve(__dirname + '/../../workspace/recipes/'+paramString.split('/')[0]+'.json'))) {
       var errorMessage = '<p>Url path is invalid.</p><p>The valid url path format:</p><p>http://some-example-domain.com/{format}/{quality}/{trim}/{trimFuzz}/{width}/{height}/{resizeStyle}/{gravity}/{filter}/{blur}/{strip}/{rotate}/{flip}/Imagepath</p>';
       self.displayErrorPage(404, errorMessage, res);
     } else {
-      if(paramString.split('/')[0] == recipe.recipe) {
+      if(fs.existsSync(path.resolve(__dirname + '/../../workspace/recipes/'+paramString.split('/')[0]+'.json'))) {
+        var recipePath = path.resolve(__dirname + '/../../workspace/recipes/'+paramString.split('/')[0]+'.json');
+        var recipe = require(recipePath);
         var url = paramString.substring(paramString.split('/')[0].length+1);
         var fileName = url.split('/')[url.split('/').length-1];
         var fileExt = url.substring(url.lastIndexOf('.')+1);
+
         var newFileName = url.replace(/[\/.]/g, '') + recipe.settings.format + 
             recipe.settings.quality + recipe.settings.trim + recipe.settings.trimFuzz + recipe.settings.width + recipe.settings.height +  
             recipe.settings.resizeStyle + recipe.settings.gravity + recipe.settings.filter + recipe.settings.blur + 
             recipe.settings.strip + recipe.settings.rotate + recipe.settings.flip + '.' + recipe.settings.format;
+
         if(recipe.settings.format == 'json') {
           if(fileExt == fileName) {
             newFileName = url.replace(/[\/.]/g, '') + recipe.settings.format + 
@@ -167,7 +200,9 @@ Server.prototype.start = function(options, done) {
         var url = paramString.substring(optionsArray.join('/').length+1);
         var fileName = url.split('/')[url.split('/').length-1];
         var fileExt = url.substring(url.lastIndexOf('.')+1);
+        
         var newFileName = url.replace(/[\/.]/g, '') + optionsArray.join('')+ '.' + optionsArray[0];
+        
         if(optionsArray[0] == 'json') {
           if(fileExt == fileName) {
             newFileName = url.replace(/[\/.]/g, '') + optionsArray.join('')+ '.png';
@@ -472,6 +507,14 @@ Server.prototype.fetchImageInformation = function(readStream, originFileName, fi
       res.end(JSON.stringify(jsonData));
     });
   });
+};
+
+Server.prototype.addMonitor = function(filepath, callback) {
+  filepath = path.normalize(filepath);
+  if(this.monitors[filepath]) return;
+  var m = monitor(filepath);
+  m.on('change', callback);
+  this.monitors[filepath] = m;
 };
 
 module.exports = new Server();
