@@ -1,4 +1,4 @@
-{BARBU LOGO HERE}
+![Barbu](barbu.png)
 
 ![Build Status](http://img.shields.io/badge/Release-0.1.7_Beta-green.svg?style=flat-square)&nbsp;[![License](http://img.shields.io/:License-MIT-blue.svg?style=flat-square)](http://dadi.mit-license.org)
 
@@ -121,7 +121,7 @@ _Note: the format of the source image is automatically identified by Barbu_
 
 ### Examples
 
-All images outputin the examples below were created from this original image:
+All images output in the examples below were created from this original image:
 
 ![Original image](examples/original.jpg)
 
@@ -353,6 +353,7 @@ Planned additions:
 * Cloudfront invalidation chaining
 * Cluster support (master/slave API construct)
 * Integration of realtime analytics covering hits, bandwidth aggregates and throughput data
+* Audio and video support (we like a challenge)
 
 ### Versioning
 

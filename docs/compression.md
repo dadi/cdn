@@ -1,4 +1,4 @@
-{BARBU LOGO HERE}
+![Barbu](../barbu.png)
 
 # Compression
 
