@@ -353,6 +353,7 @@ Planned additions:
 * Cloudfront invalidation chaining
 * Cluster support (master/slave API construct)
 * Integration of realtime analytics covering hits, bandwidth aggregates and throughput data
+* Audio and video support (we like a challenge)
 
 ### Versioning
 
