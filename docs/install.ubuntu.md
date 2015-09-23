@@ -53,10 +53,19 @@ Start Barbu -
 
 ### Forever
 
-To background Barbu, install [Forever](https://github.com/nodejitsu/forever) -
+To run Barbu in the background, install [Forever](https://github.com/nodejitsu/forever) and [Forever-service](https://github.com/zapty/forever-service):
 
 `[sudo] npm install forever -g`
 
-You can then start Barbu using -
+`[sudo] npm install -g forever-service`
 
-`[sudo] forever start bantam/main.js`
+install barbu as a service and ensure it loads on boot:
+
+`[sudo] forever-service install -s bantam/main.js barbu --start`
+
+You can then interact with Barbu as a service using the following command:
+
+- Start: `[sudo] start barbu`
+- Stop: `[sudo] stop barbu`
+- Status: `[sudo] status barbu`
+- Restart `[sudo] restart barbu`
