@@ -27,6 +27,8 @@ var ColorThief = require('color-thief'),
     colorThief = new ColorThief();
 var lengthStream = require('length-stream');
 
+var compressor = require('node-minify');
+
 var monitor = require(__dirname + '/monitor');
 
 var configPath = path.resolve(__dirname + '/../../config.json');
@@ -72,26 +74,26 @@ Server.prototype.start = function(options, done) {
   if(config.caching.redis) {
     this.initRedisClient();
   }
-  
+
   //Authentication middleware
   function isAuthenticated(req, res, next) {
     // check header or url parameters or post parameters for token
     var query = url.parse( req.url, true ).query;
-    
+
     var token = query.token || req.headers['x-access-token'];
-    
+
 
     // decode token
     if (token) {
       // verifies secret and checks exp
-      jwt.verify(token, config.auth.secret, function(err, decoded) {      
+      jwt.verify(token, config.auth.secret, function(err, decoded) {
         if (err) {
           res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
           res.setHeader('Expires', '-1');
           self.displayErrorPage(403, 'Failed to authenticate token.', res);
         } else {
           // if everything is good, save to request for use in other routes
-          req.decoded = decoded;    
+          req.decoded = decoded;
           next();
         }
       });
@@ -102,7 +104,7 @@ Server.prototype.start = function(options, done) {
       res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
       res.setHeader('Expires', '-1');
       self.displayErrorPage(403, 'No token provided.', res);
-      
+
     }
   };
 
@@ -129,7 +131,7 @@ Server.prototype.start = function(options, done) {
   router.post('/api', function(req, res) {
     if(req.body.invalidate) {
       var invalidate = req.body.invalidate.replace(/[\/.]/g, '');
-      
+
       if(config.caching.redis) {
         self.client.keys("*"+invalidate+"*", function(err, data) {
           for(var i = 0; i < data.length; i++) {
@@ -164,145 +166,172 @@ Server.prototype.start = function(options, done) {
 
     var paramString = req.params[0].substring(1, req.params[0].length);
     var returnJSON = false;
-    if(paramString.split('/').length < 13 && !fs.existsSync(path.resolve(__dirname + '/../../workspace/recipes/'+paramString.split('/')[0]+'.json'))) {
-      var errorMessage = '<p>Url path is invalid.</p><p>The valid url path format:</p><p>http://some-example-domain.com/{format}/{quality}/{trim}/{trimFuzz}/{width}/{height}/{resizeStyle}/{gravity}/{filter}/{blur}/{strip}/{rotate}/{flip}/Imagepath</p>';
-      self.displayErrorPage(404, errorMessage, res);
-    } else {
-      if(fs.existsSync(path.resolve(__dirname + '/../../workspace/recipes/'+paramString.split('/')[0]+'.json'))) {
-        var recipePath = path.resolve(__dirname + '/../../workspace/recipes/'+paramString.split('/')[0]+'.json');
-        var recipe = require(recipePath);
-        var url = paramString.substring(paramString.split('/')[0].length+1);
-        var fileName = url.split('/')[url.split('/').length-1];
-        var fileExt = url.substring(url.lastIndexOf('.')+1);
-
-        var newFileName = url.replace(/[\/.]/g, '') + recipe.settings.format + 
-            recipe.settings.quality + recipe.settings.trim + recipe.settings.trimFuzz + recipe.settings.width + recipe.settings.height +  
-            recipe.settings.resizeStyle + recipe.settings.gravity + recipe.settings.filter + recipe.settings.blur + 
-            recipe.settings.strip + recipe.settings.rotate + recipe.settings.flip + '.' + recipe.settings.format;
-
-        if(recipe.settings.format == 'json') {
-          if(fileExt == fileName) {
-            newFileName = url.replace(/[\/.]/g, '') + recipe.settings.format + 
-            recipe.settings.quality + recipe.settings.trim + recipe.settings.trimFuzz + recipe.settings.width + recipe.settings.height +  
-            recipe.settings.resizeStyle + recipe.settings.gravity + recipe.settings.filter + recipe.settings.blur + 
-            recipe.settings.strip + recipe.settings.rotate + recipe.settings.flip + '.png';
-          } else {
-            newFileName = url.replace(/[\/.]/g, '') + recipe.settings.format + 
-            recipe.settings.quality + recipe.settings.trim + recipe.settings.trimFuzz + recipe.settings.width + recipe.settings.height +  
-            recipe.settings.resizeStyle + recipe.settings.gravity + recipe.settings.filter + recipe.settings.blur + 
-            recipe.settings.strip + recipe.settings.rotate + recipe.settings.flip + '.' + fileExt;
-          }
-        }
-
-        var options = recipe.settings;
+    if(paramString.split('/')[0]=='js' || paramString.split('/')[0]=='css') {
+      var fileExt = paramString.split('/')[0];
+      var compress = paramString.split('/')[1];
+      var url = paramString.substring(paramString.split('/')[0].length+3);
+      var fileName = url.split('/')[url.split('/').length-1];
+      var fileIn = path.resolve(url);
+      var fileOut = path.join(path.resolve(config.caching.directory), fileName);
+      if(compress != 0 && compress != 1) {
+        var error = '<p>Url path is invalid.</p><p>The valid url path format:</p><p>http://some-example-domain.com/{format-(js, css)}/{compress-(0, 1)}/JS,CSS file path</p>';
+        self.displayErrorPage(404, error, res);
       } else {
-        var optionsArray = paramString.split('/').slice(0, 13);
-        var url = paramString.substring(optionsArray.join('/').length+1);
-        var fileName = url.split('/')[url.split('/').length-1];
-        var fileExt = url.substring(url.lastIndexOf('.')+1);
-        
-        var newFileName = url.replace(/[\/.]/g, '') + optionsArray.join('')+ '.' + optionsArray[0];
-        
-        if(optionsArray[0] == 'json') {
-          if(fileExt == fileName) {
-            newFileName = url.replace(/[\/.]/g, '') + optionsArray.join('')+ '.png';
-          } else {
-            newFileName = url.replace(/[\/.]/g, '') + optionsArray.join('')+ '.' + fileExt;
-          }
-        }
-
-        var gravity = optionsArray[7].substring(0,1).toUpperCase() + optionsArray[7].substring(1);
-        var filter = optionsArray[8].substring(0,1).toUpperCase() + optionsArray[8].substring(1);
-        /*
-        Options list
-        format:[e.g. png, jpg]
-        quality: [integer, 0>100]
-        trim: [boolean 0/1]
-        trimFuzz: [boolean 0/1]
-        width: [integer]
-        height: [integer]
-        resizeStyle: [aspectfill/aspectfit/fill]
-        gravity: ['NorthWest', 'North', 'NorthEast', 'West', 'Center', 'East', 'SouthWest', 'South', 'SouthEast', 'None']
-        filter: [e.g. 'Lagrange', 'Lanczos', 'none']
-        blur: [integer 0>1, e.g. 0.8]
-        strip: [boolean 0/1]
-        rotate: [degrees]
-        flip: [boolean 0/1]
-        */
-        var options = {
-          format: optionsArray[0],
-          quality: optionsArray[1],
-          trim: optionsArray[2],
-          trimFuzz: optionsArray[3],
-          width: optionsArray[4],
-          height: optionsArray[5],
-          resizeStyle: optionsArray[6],
-          gravity: gravity,
-          filter:filter,
-          blur:optionsArray[9],
-          strip:optionsArray[10],
-          rotate:optionsArray[11],
-          flip:optionsArray[12]
-        };
-      }
-      
-      if(options.format == 'json') {
-        returnJSON = true;
-        if(fileExt == fileName) {
-          options.format = 'PNG';
-        } else {
-          options.format = fileExt;
-        }
-      }
-
-      var originFileName = fileName;
-      
-      if(config.security.maxWidth&&config.security.maxWidth<options.width) options.width = config.security.maxWidth;
-      if(config.security.maxHeight&&config.security.maxHeight<options.height) options.height = config.security.maxHeight;
-      
-      if(options.filter == 'None' || options.filter == 0) delete options.filter;
-      if(options.gravity == 0) delete options.gravity;
-      if(options.width == 0) delete options.width;
-      if(options.height == 0) delete options.height;
-      if(options.quality == 0) delete options.quality;
-      if(options.trim == 0) delete options.trim;
-      if(options.trimFuzz == 0) delete options.trimFuzz;
-      if(options.resizeStyle == 0) delete options.resizeStyle;
-      if(options.blur == 0) delete options.blur;
-      if(options.strip == 0) delete options.strip;
-      if(options.rotate == 0) delete options.rotate;
-      if(options.flip == 0) delete options.flip;
-
-      var encryptName = sha1(newFileName);
-
-      if(config.caching.redis) {
-        self.client.exists(encryptName, function(err, exists) {
-          if(exists>0) {
-            var readStream = redisRStream(self.client, encryptName);
-            if(returnJSON) {
-                self.fetchImageInformation(readStream, originFileName, newFileName, options, res);
-            } else {
-              // Set cache header
-              res.setHeader('X-Cache', 'HIT');
-              readStream.pipe(res);
+        if(fs.existsSync(fileIn)) {
+          if(compress == 1) {
+            if(fileExt == 'js') {
+              new compressor.minify({
+                  type: 'gcc',
+                  fileIn: fileIn,
+                  fileOut: fileOut,
+                  callback: function(err, min){
+                    console.log(err);
+                    res.end(min);
+                  }
+              });
+            } else if(fileExt == 'css') {
+              new compressor.minify({
+                  type: 'sqwish',
+                  fileIn: fileIn,
+                  fileOut: fileOut,
+                  callback: function(err, min){
+                    console.log(err);
+                    res.end(min);
+                  }
+              });
             }
           } else {
-            // Set cache header
-            res.setHeader('X-Cache', 'MISS');
-            self.createNewConvertImage(url, originFileName, newFileName, options, returnJSON, res);
+            var file = fs.createWriteStream(fileOut);
+            file.on('error', function (err) {
+              self.displayErrorPage(404, err, res);
+            });
+            var readStream = fs.createReadStream(fileIn);
+            readStream.pipe(file);
+            readStream.pipe(res);
           }
-        })
+        } else {
+          var error = 'No such file';
+          self.displayErrorPage(404, error, res);
+        }
+      }
+    } else {
+      if(paramString.split('/').length < 13 && !fs.existsSync(path.resolve(__dirname + '/../../workspace/recipes/'+paramString.split('/')[0]+'.json'))) {
+        var errorMessage = '<p>Url path is invalid.</p><p>The valid url path format:</p><p>http://some-example-domain.com/{format}/{quality}/{trim}/{trimFuzz}/{width}/{height}/{resizeStyle}/{gravity}/{filter}/{blur}/{strip}/{rotate}/{flip}/Imagepath</p>';
+        self.displayErrorPage(404, errorMessage, res);
       } else {
-        var cacheDir = path.resolve(config.caching.directory);
-        if(!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
-        var cachePath = path.join(cacheDir, encryptName);
-        if(fs.existsSync(cachePath)) {
-          fs.stat(cachePath, function(err, stats) {
-            var lastMod = stats && stats.mtime && stats.mtime.valueOf();
-            if(config.caching.ttl && lastMod && (Date.now() - lastMod)/1000<=config.caching.ttl){
-              var readStream = fs.createReadStream(cachePath);
+        if(fs.existsSync(path.resolve(__dirname + '/../../workspace/recipes/'+paramString.split('/')[0]+'.json'))) {
+          var recipePath = path.resolve(__dirname + '/../../workspace/recipes/'+paramString.split('/')[0]+'.json');
+          var recipe = require(recipePath);
+          var url = paramString.substring(paramString.split('/')[0].length+1);
+          var fileName = url.split('/')[url.split('/').length-1];
+          var fileExt = url.substring(url.lastIndexOf('.')+1);
+
+          var newFileName = url.replace(/[\/.]/g, '') + recipe.settings.format +
+              recipe.settings.quality + recipe.settings.trim + recipe.settings.trimFuzz + recipe.settings.width + recipe.settings.height +
+              recipe.settings.resizeStyle + recipe.settings.gravity + recipe.settings.filter + recipe.settings.blur +
+              recipe.settings.strip + recipe.settings.rotate + recipe.settings.flip + '.' + recipe.settings.format;
+
+          if(recipe.settings.format == 'json') {
+            if(fileExt == fileName) {
+              newFileName = url.replace(/[\/.]/g, '') + recipe.settings.format +
+              recipe.settings.quality + recipe.settings.trim + recipe.settings.trimFuzz + recipe.settings.width + recipe.settings.height +
+              recipe.settings.resizeStyle + recipe.settings.gravity + recipe.settings.filter + recipe.settings.blur +
+              recipe.settings.strip + recipe.settings.rotate + recipe.settings.flip + '.png';
+            } else {
+              newFileName = url.replace(/[\/.]/g, '') + recipe.settings.format +
+              recipe.settings.quality + recipe.settings.trim + recipe.settings.trimFuzz + recipe.settings.width + recipe.settings.height +
+              recipe.settings.resizeStyle + recipe.settings.gravity + recipe.settings.filter + recipe.settings.blur +
+              recipe.settings.strip + recipe.settings.rotate + recipe.settings.flip + '.' + fileExt;
+            }
+          }
+
+          var options = recipe.settings;
+        } else {
+          var optionsArray = paramString.split('/').slice(0, 13);
+          var url = paramString.substring(optionsArray.join('/').length+1);
+          var fileName = url.split('/')[url.split('/').length-1];
+          var fileExt = url.substring(url.lastIndexOf('.')+1);
+
+          var newFileName = url.replace(/[\/.]/g, '') + optionsArray.join('')+ '.' + optionsArray[0];
+
+          if(optionsArray[0] == 'json') {
+            if(fileExt == fileName) {
+              newFileName = url.replace(/[\/.]/g, '') + optionsArray.join('')+ '.png';
+            } else {
+              newFileName = url.replace(/[\/.]/g, '') + optionsArray.join('')+ '.' + fileExt;
+            }
+          }
+
+          var gravity = optionsArray[7].substring(0,1).toUpperCase() + optionsArray[7].substring(1);
+          var filter = optionsArray[8].substring(0,1).toUpperCase() + optionsArray[8].substring(1);
+          /*
+          Options list
+          format:[e.g. png, jpg]
+          quality: [integer, 0>100]
+          trim: [boolean 0/1]
+          trimFuzz: [boolean 0/1]
+          width: [integer]
+          height: [integer]
+          resizeStyle: [aspectfill/aspectfit/fill]
+          gravity: ['NorthWest', 'North', 'NorthEast', 'West', 'Center', 'East', 'SouthWest', 'South', 'SouthEast', 'None']
+          filter: [e.g. 'Lagrange', 'Lanczos', 'none']
+          blur: [integer 0>1, e.g. 0.8]
+          strip: [boolean 0/1]
+          rotate: [degrees]
+          flip: [boolean 0/1]
+          */
+          var options = {
+            format: optionsArray[0],
+            quality: optionsArray[1],
+            trim: optionsArray[2],
+            trimFuzz: optionsArray[3],
+            width: optionsArray[4],
+            height: optionsArray[5],
+            resizeStyle: optionsArray[6],
+            gravity: gravity,
+            filter:filter,
+            blur:optionsArray[9],
+            strip:optionsArray[10],
+            rotate:optionsArray[11],
+            flip:optionsArray[12]
+          };
+        }
+
+        if(options.format == 'json') {
+          returnJSON = true;
+          if(fileExt == fileName) {
+            options.format = 'PNG';
+          } else {
+            options.format = fileExt;
+          }
+        }
+
+        var originFileName = fileName;
+
+        if(config.security.maxWidth&&config.security.maxWidth<options.width) options.width = config.security.maxWidth;
+        if(config.security.maxHeight&&config.security.maxHeight<options.height) options.height = config.security.maxHeight;
+
+        if(options.filter == 'None' || options.filter == 0) delete options.filter;
+        if(options.gravity == 0) delete options.gravity;
+        if(options.width == 0) delete options.width;
+        if(options.height == 0) delete options.height;
+        if(options.quality == 0) delete options.quality;
+        if(options.trim == 0) delete options.trim;
+        if(options.trimFuzz == 0) delete options.trimFuzz;
+        if(options.resizeStyle == 0) delete options.resizeStyle;
+        if(options.blur == 0) delete options.blur;
+        if(options.strip == 0) delete options.strip;
+        if(options.rotate == 0) delete options.rotate;
+        if(options.flip == 0) delete options.flip;
+
+        var encryptName = sha1(newFileName);
+
+        if(config.caching.redis) {
+          self.client.exists(encryptName, function(err, exists) {
+            if(exists>0) {
+              var readStream = redisRStream(self.client, encryptName);
               if(returnJSON) {
-                self.fetchImageInformation(readStream, originFileName, newFileName, options, res);
+                  self.fetchImageInformation(readStream, originFileName, newFileName, options, res);
               } else {
                 // Set cache header
                 res.setHeader('X-Cache', 'HIT');
@@ -313,16 +342,39 @@ Server.prototype.start = function(options, done) {
               res.setHeader('X-Cache', 'MISS');
               self.createNewConvertImage(url, originFileName, newFileName, options, returnJSON, res);
             }
-          }); 
+          })
         } else {
-          // Set cache header
-          res.setHeader('X-Cache', 'MISS');
-          self.createNewConvertImage(url, originFileName, newFileName, options, returnJSON, res);
+          var cacheDir = path.resolve(config.caching.directory);
+          if(!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
+          var cachePath = path.join(cacheDir, encryptName);
+          if(fs.existsSync(cachePath)) {
+            fs.stat(cachePath, function(err, stats) {
+              var lastMod = stats && stats.mtime && stats.mtime.valueOf();
+              if(config.caching.ttl && lastMod && (Date.now() - lastMod)/1000<=config.caching.ttl){
+                var readStream = fs.createReadStream(cachePath);
+                if(returnJSON) {
+                  self.fetchImageInformation(readStream, originFileName, newFileName, options, res);
+                } else {
+                  // Set cache header
+                  res.setHeader('X-Cache', 'HIT');
+                  readStream.pipe(res);
+                }
+              } else {
+                // Set cache header
+                res.setHeader('X-Cache', 'MISS');
+                self.createNewConvertImage(url, originFileName, newFileName, options, returnJSON, res);
+              }
+            });
+          } else {
+            // Set cache header
+            res.setHeader('X-Cache', 'MISS');
+            self.createNewConvertImage(url, originFileName, newFileName, options, returnJSON, res);
+          }
         }
       }
     }
   });
-  
+
   var app = http.createServer(function(req, res) {
     res.setHeader('Server', 'Bantam / Barbu');
     if(config.clientCache.cacheControl) res.setHeader('Cache-Control', config.clientCache.cacheControl);
@@ -403,7 +455,7 @@ Server.prototype.convertAndSave = function(readStream, originFileName, fileName,
       if(config.caching.ttl) {
         self.client.expire(encryptName, config.caching.ttl);
       }
-    }); 
+    });
   } else {
     var cacheDir = path.resolve(config.caching.directory);
     var file = fs.createWriteStream(path.join(cacheDir, encryptName));
@@ -501,7 +553,7 @@ Server.prototype.fetchImageInformation = function(readStream, originFileName, fi
         rotate: options.rotate?options.rotate:0,
         flip: options.flip?options.flip:0
       }
-      
+
       res.setHeader('Content-Type', 'application/json');
       res.setHeader('X-Cache', 'HIT');
       res.end(JSON.stringify(jsonData));
