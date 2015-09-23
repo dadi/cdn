@@ -1,4 +1,4 @@
-![Serama](../../serama.png)
+![Barbu](../../barbu.png)
 
 # Compression
 
