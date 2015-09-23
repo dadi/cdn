@@ -1,4 +1,4 @@
-{BARBU LOGO HERE}
+![Serama](../serama.png)
 
 # Compression
 
