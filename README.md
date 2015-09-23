@@ -121,7 +121,7 @@ _Note: the format of the source image is automatically identified by Barbu_
 
 ### Examples
 
-All images outputin the examples below were created from this original image:
+All images output in the examples below were created from this original image:
 
 ![Original image](examples/original.jpg)
 
