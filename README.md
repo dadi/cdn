@@ -53,7 +53,7 @@ To start Barbu, issue the following command. This will start the server using th
 
 #### Running the server in the background and as a service
 
-Pro tip: to run Barbu in the background, install Forever and Forever-service
+Pro tip: to run Barbu in the background, install [Forever](https://github.com/nodejitsu/forever) and [Forever-service](https://github.com/zapty/forever-service)
 
 `[sudo] npm install forever -g`
 
@@ -63,7 +63,7 @@ install barbu as a service and ensure it loads on boot:
 
 `[sudo] forever-service install -s bantam/main.js barbu --start`
 
-You can then interact with Barbu as a servie using the following command:
+You can then interact with Barbu as a service using the following command:
 
 - Start: `[sudo] start barbu`
 - Stop: `[sudo] stop barbu`
