@@ -36,6 +36,7 @@ var config = require(configPath);
 
 var Server = function () {
     this.s3 = null;
+    this.assetsS3 = null;
     this.client = null;
     this.monitors = {};
 };
@@ -52,7 +53,9 @@ Server.prototype.start = function (options, done) {
         if (config.images.s3) {
             self.initS3Bucket();
         }
-
+        if (config.assets.s3) {
+            self.initS3AssettsBucket();
+        }
         //Init Redis client
         if (config.caching.redis) {
             self.initRedisClient();
@@ -69,7 +72,9 @@ Server.prototype.start = function (options, done) {
     if (config.images.s3) {
         this.initS3Bucket();
     }
-
+    if (config.assets.s3) {
+        self.initS3AssettsBucket();
+    }
     //Init Redis client
     if (config.caching.redis) {
         this.initRedisClient();
@@ -363,6 +368,14 @@ Server.prototype.initS3Bucket = function () {
     this.s3 = new AWS.S3();
 };
 
+Server.prototype.initS3AssettsBucket = function () {
+    AWS.config.update({
+        accessKeyId: config.assets.s3.accessKey,
+        secretAccessKey: config.assets.s3.secretKey
+    });
+    this.assetsS3 = new AWS.S3();
+};
+
 /**
  * Create a Redis Client with configuration
  */
@@ -545,6 +558,7 @@ Server.prototype.addMonitor = function (filepath, callback) {
  * Cache JS, CSS files to redis or local disk
  */
 Server.prototype.cacheJSCSSFiles = function(readStream, fileName, res) {
+    var self = this;
     if (config.caching.redis) {
         self.client.on("error", function (err) {
             self.displayErrorPage(404, err, res);
@@ -575,7 +589,7 @@ Server.prototype.compressJsCSSFiles = function (readStream, fileName, fileExt, c
             var fileOut = path.join(path.resolve('./tmp'), newFileName);
             if (fileExt == 'js') {
                 new compressor.minify({
-                    type: 'gcc',
+                    type: 'uglifyjs',
                     fileIn: fileIn,
                     fileOut: fileOut,
                     callback: function (err, min) {
@@ -631,11 +645,11 @@ Server.prototype.fetchOriginFileContent = function (url, fileName, fileExt, comp
             }
         })
     } else if (config.assets.s3) { //Load file from S3
-        self.s3.getObject({Bucket: config.assets.s3.bucketName, Key: url}, function (err, data) {
+        self.assetsS3.getObject({Bucket: config.assets.s3.bucketName, Key: url}, function (err, data) {
             if (err) {
                 self.displayErrorPage(404, err, res);
             } else {
-                var s3ReadStream = self.s3.getObject({
+                var s3ReadStream = self.assetsS3.getObject({
                     Bucket: config.assets.s3.bucketName,
                     Key: url
                 }).createReadStream();
