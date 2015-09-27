@@ -8,6 +8,7 @@
 * [Requirements](#requirements)
 * [Setup and installation](#setup-and-installation)
 * [Working with images](#working-with-images)
+* [Working with JavaScript and CSS](#working-with-javascript-and-css)
 * [Delviery recipes](#delviery-recipes)
 * [The invalidation API](#the-invalidation-api)
 * [Configuration notes](#configuration-notes)
@@ -88,7 +89,7 @@ Responsive images to the rescue! Right? Well, yes, but first we have to generate
 
 ### Request structure
 
-`http{s}://{domain}/{input-format}/{format}/{quality}/{trim}/{trimFuzz}/{width}/{height}/{resizeStyle}/{gravity}/{filter}/{blur}/{strip}/{rotate}/{flip}/{srcData}`
+`http{s}://{domain}/{format}/{quality}/{trim}/{trimFuzz}/{width}/{height}/{resizeStyle}/{gravity}/{filter}/{blur}/{strip}/{rotate}/{flip}/{srcData}`
 
 ### Image manipulation options
 
@@ -235,6 +236,98 @@ For example:
 		"flip": 0
 	}
 
+## Working with JavaScript and CSS
+
+After images, the second largest object of the average product screen is JavaScript and CSS. Minifying these assets alongside appropriately sized images ensures that your content reaches your audience in the fastest possible time.
+
+Minification refers to the process of removing unnecessary or redundant data without affecting how the resource is processed by the browser - e.g. code comments and formatting, removing unused code, using shorter variable and function names, and so on.
+
+### Request structure
+
+`http{s}://{domain}/{input-format}/{minify}/{srcData}`
+
+### Resource manipulation options
+
+| Parameter     | Type          | Description |
+| :------------ | :------------ | :---------- |
+| input-format | String | The input format. Can be 'js' or 'css' |
+| minify | Boolean | Default: 0. Minifys content for delivery |
+| srcData | String | Buffer with JavaScript or CSS data (including filepath) |
+
+### Examples
+
+#### Example #1: JavaScript
+
+Convert from one format to another with quality control.
+
+**Request**
+
+`http(s)://your-domain.media/js/1/path/to/javascript.js`
+
+**Input**
+
+	/**
+	 * Says hello
+	 */
+	
+	// display prompt box that ask for name and
+	// store result in a variable called who
+	var who = window.prompt("What is your name");
+	
+	// display prompt box that ask for favorite color and
+	// store result in a variable called favcolor
+	var favcolor = window.prompt("What is your favorite color");
+	
+	// write "Hello" followed by person' name to browser window
+	document.write("Hello " + who);
+	
+	// Change background color to their favorite color
+	document.bgColor = favcolor;
+
+**Output**
+
+	var who=window.prompt("What is your name");var favcolor=window.prompt("What is your favorite color");document.write("Hello "+who);document.bgColor=favcolor;
+
+#### Example #2: CSS
+
+**Request**
+
+`http(s)://your-domain.media/css/1/path/to/css.css`
+
+**Input**
+
+	body {
+	  background-color: silver;
+	  color: white;
+	  padding: 20px;
+	  font-family: Arial, Verdana, sans-serif;}
+	h1 {
+	  background-color: #ffffff;
+	  background-color: hsla(0,100%,100%,0.5);
+	  color: #64645A;
+	  padding: inherit;}
+	p {
+	  padding: 5px;
+	  margin: 0px;}
+	p.zero {
+	  background-color: rgb(238,62,128);}
+	p.one {
+	  background-color: rgb(244,90,139);}
+	p.two {
+	  background-color: rgb(243,106,152);}
+	p.three {
+	  background-color: rgb(244,123,166);}
+	p.four {
+	  background-color: rgb(245,140,178);}
+	p.five {
+	  background-color: rgb(246,159,192);}
+	p.six {
+	  background-color: rgb(245,176,204);}
+
+**Output**
+
+	body{background-color:silver;color:white;padding:20px;font-family:Arial,Verdana,sans-serif}h1{background-color:#fff;background-color:hsla(0,100%,100%,0.5);color:#64645A;padding:inherit}p{padding:5px;margin:0}p.zero{background-color:rgb(238,62,128)}p.one{background-color:rgb(244,90,139)}p.two{background-color:rgb(243,106,152)}p.three{background-color:rgb(244,123,166)}p.four{background-color:rgb(245,140,178)}p.five{background-color:rgb(246,159,192)}p.six{background-color:rgb(245,176,204)}
+
 ## Delviery recipes
 
 A Recipe is a predefined set of configuration options that are made avialble via a shortened URL, which hides the configuration options.
@@ -322,12 +415,15 @@ You should be able to set it to your IP as well, but depending on your hosting, 
 
 The proper name should always resolve correctly. Alternately, you can set it to null, to accept connections on any IPv4 address.
 
+Full information relating to the setting in `config.json` can be found [here](https://github.com/bantam-framework/barbu/blob/master/docs/configuration.md).
+
 ## Further reading
 
 The `docs/` directory contains additional documentation on the component parts of the system:
 
 * [Available filters](https://github.com/bantam-framework/barbu/blob/master/docs/filters.md)
 * [Compression](https://github.com/bantam-framework/barbu/blob/master/docs/compression.md)
+* [Configuration](https://github.com/bantam-framework/barbu/blob/master/docs/configuration.md)
 
 Feel free to contact the Bantam core development team on team@bant.am with questions.
 
