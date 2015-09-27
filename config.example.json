@@ -48,5 +48,6 @@
     "accessKey": "AKIAJJHIE6YB7FVGVL7Q",
     "secretKey": "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"
   },
+  "gzip": true,
   "feedback": false
 }

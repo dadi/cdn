@@ -1,4 +1,5 @@
 var request = require('request');
+var zlib = require('zlib');
 var _ = require('underscore');
 var http = require('http');
 var bodyParser = require('body-parser');
@@ -305,7 +306,12 @@ Server.prototype.start = function (options, done) {
                             } else {
                                 // Set cache header
                                 res.setHeader('X-Cache', 'HIT');
-                                readStream.pipe(res);
+                                if(config.gzip) {
+                                    res.setHeader('content-encoding', 'gzip');
+                                    readStream.pipe(zlib.createGzip()).pipe(res);
+                                } else {
+                                    readStream.pipe(res);
+                                }
                             }
                         } else {
                             // Set cache header
@@ -327,7 +333,12 @@ Server.prototype.start = function (options, done) {
                                 } else {
                                     // Set cache header
                                     res.setHeader('X-Cache', 'HIT');
-                                    readStream.pipe(res);
+                                    if(config.gzip) {
+                                        res.setHeader('content-encoding', 'gzip');
+                                        readStream.pipe(zlib.createGzip()).pipe(res);
+                                    } else {
+                                        readStream.pipe(res);
+                                    }
                                 }
                             } else {
                                 // Set cache header
@@ -349,6 +360,7 @@ Server.prototype.start = function (options, done) {
         res.setHeader('Server', 'Bantam / Barbu');
         if (config.clientCache.cacheControl) res.setHeader('Cache-Control', config.clientCache.cacheControl);
         if (config.clientCache.etag) res.setHeader('ETag', config.clientCache.etag);
+
         router(req, res, finalhandler(req, res));
     });
 
@@ -426,7 +438,12 @@ Server.prototype.convertAndSave = function (readStream, originFileName, fileName
     if (returnJSON) {
         self.fetchImageInformation(convertedStream, originFileName, fileName, options, res);
     } else {
-        convertedStream.pipe(res);
+        if(config.gzip) {
+            res.setHeader('content-encoding', 'gzip');
+            convertedStream.pipe(zlib.createGzip()).pipe(res);
+        } else {
+            convertedStream.pipe(res);
+        }
     }
     if (config.caching.redis) {
         self.client.on("error", function (err) {
@@ -573,7 +590,12 @@ Server.prototype.cacheJSCSSFiles = function(readStream, fileName, res) {
         });
         readStream.pipe(file);
     }
-    readStream.pipe(res);
+    if(config.gzip) {
+        res.setHeader('content-encoding', 'gzip');
+        readStream.pipe(zlib.createGzip()).pipe(res);
+    } else {
+        readStream.pipe(res);
+    }
 };
 
 /**
