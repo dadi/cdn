@@ -12,6 +12,7 @@
 * [Delviery recipes](#delviery-recipes)
 * [The invalidation API](#the-invalidation-api)
 * [Configuration notes](#configuration-notes)
+* [Testing](#testing)
 * [Further reading](#further-reading)
 * [Development](#development)
 
@@ -416,6 +417,14 @@ You should be able to set it to your IP as well, but depending on your hosting, 
 The proper name should always resolve correctly. Alternately, you can set it to null, to accept connections on any IPv4 address.
 
 Full information relating to the setting in `config.json` can be found [here](https://github.com/bantam-framework/barbu/blob/master/docs/configuration.md).
+
+## Testing
+
+Barbu outputs `X-Cache` headers, which are set to `HIT` for images/assets delivered from the cach and `MISS` for images/assets that are delivered directly from source.
+
+The first request to an uncached image or asset will always return `MISS`, as the image/asset has to be returned once in order for it to be cached.
+
+Make use of a [header check tool](http://www.webconfs.com/http-header-check.php) in order to check that your installation is properly caching and delivering your media.
 
 ## Further reading
 
