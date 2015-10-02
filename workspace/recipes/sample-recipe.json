@@ -1,5 +1,6 @@
 {
 	"recipe": "sample-recipe",
+	"path": "/test",
 	"settings": {
 		"format": "jpg",
 		"quality": "80",

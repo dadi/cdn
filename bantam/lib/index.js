@@ -18,6 +18,7 @@ var path = require('path');
 var Finder = require('fs-finder');
 
 var imagemagick = require('imagemagick-native');
+var sharp = require('sharp');
 var redis = require("redis");
 var redisWStream = require('redis-wstream');
 var redisRStream = require('redis-rstream');
@@ -193,7 +194,10 @@ Server.prototype.start = function (options, done) {
                 if (fs.existsSync(path.resolve(__dirname + '/../../workspace/recipes/' + paramString.split('/')[0] + '.json'))) {
                     var recipePath = path.resolve(__dirname + '/../../workspace/recipes/' + paramString.split('/')[0] + '.json');
                     var recipe = require(recipePath);
-                    var url = paramString.substring(paramString.split('/')[0].length + 1);
+
+                    var referencePath = recipe.path?recipe.path:'';
+                    var url = referencePath + '/' + paramString.substring(paramString.split('/')[0].length + 1);
+
                     var fileName = url.split('/')[url.split('/').length - 1];
                     var fileExt = url.substring(url.lastIndexOf('.') + 1);
 
@@ -434,7 +438,16 @@ Server.prototype.convertAndSave = function (readStream, originFileName, fileName
     magickVar.on('error', function (error) {
         self.displayErrorPage(404, error, res);
     });
+    var sharpStream = null;
+    if(options.quality >= 70 && options.format.toLowerCase() == 'png') {
+        sharpStream = sharp().png().compressionLevel(9);
+    } else if(options.quality >= 70 && (options.format.toLowerCase() == 'jpg' || options.format.toLowerCase() == 'jpeg')){
+        sharpStream = sharp().jpeg().compressionLevel(9);
+    }
     var convertedStream = readStream.pipe(magickVar);
+    if(sharpStream != null) {
+        convertedStream = convertedStream.pipe(sharpStream);
+    }
     if (returnJSON) {
         self.fetchImageInformation(convertedStream, originFileName, fileName, options, res);
     } else {
@@ -445,12 +458,13 @@ Server.prototype.convertAndSave = function (readStream, originFileName, fileName
             convertedStream.pipe(res);
         }
     }
+
     if (config.caching.redis) {
         self.client.on("error", function (err) {
             self.displayErrorPage(404, err, res);
         });
         //Save to redis
-        magickVar.pipe(redisWStream(self.client, encryptName)).on('finish', function () {
+        convertedStream.pipe(redisWStream(self.client, encryptName)).on('finish', function () {
             if (config.caching.ttl) {
                 self.client.expire(encryptName, config.caching.ttl);
             }
@@ -461,7 +475,7 @@ Server.prototype.convertAndSave = function (readStream, originFileName, fileName
         file.on('error', function (err) {
             self.displayErrorPage(404, err, res);
         });
-        magickVar.pipe(file);
+        convertedStream.pipe(file);
     }
 };
 

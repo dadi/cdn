@@ -1,6 +1,6 @@
 {
   "name": "barbu",
-  "version": "0.1.7-beta",
+  "version": "0.1.8-beta",
   "dependencies": {
     "request": "*",
     "imagemagick-native": "*",
@@ -18,7 +18,8 @@
     "color-thief": "*",
     "length-stream": "*",
     "sha1": "*",
-    "node-minify": "*"
+    "node-minify": "*",
+    "sharp": "*"
   },
   "scripts": {
     "start": "node bantam/main"
