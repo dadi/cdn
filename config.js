@@ -5,25 +5,36 @@ var conf = convict({
 
   server: {
     host: {
-      doc: "Rosecomb IP address",
+      doc: "Barbu server IP address to bind to",
       format: 'ipaddress',
       default: '0.0.0.0'
     },
     port: {
-      doc: "port to bind",
+      doc: "Barbu server port to bind to",
       format: 'port',
       default: 8080
     }
   },
 
-  // Either directory, s3 or remote should be set. Remove the unused options
   images: {
     directory: {
-      doc: "",
-      format: String,
-      default: "./images"
+      enabled: {
+        doc: "",
+        format: Boolean,
+        default: false
+      },
+      path: {
+        doc: "",
+        format: String,
+        default: "./images"
+      }
     },
     s3: {
+      enabled: {
+        doc: "",
+        format: Boolean,
+        default: false
+      },
       accessKey: {
         doc: "",
         format: String,
@@ -41,19 +52,38 @@ var conf = convict({
       }
     },
     remote: {
-      doc: "",
-      format: String,
-      default: "http://dh.dev.dadi.technology:3001"
+      enabled: {
+        doc: "",
+        format: Boolean,
+        default: false
+      },
+      path: {
+        doc: "",
+        format: String,
+        default: "http://dh.dev.dadi.technology:3001"
+      }
     }
   },
 
   assets: {
     directory: {
-      doc: "",
-      format: String,
-      default: "./public"
+      enabled: {
+        doc: "",
+        format: Boolean,
+        default: false
+      },
+      path: {
+        doc: "",
+        format: String,
+        default: "./public"
+      }
     },
     s3: {
+      enabled: {
+        doc: "",
+        format: Boolean,
+        default: false
+      },
       accessKey: {
         doc: "",
         format: String,
@@ -71,9 +101,16 @@ var conf = convict({
       }
     },
     remote: {
-      doc: "",
-      format: String,
-      default: "http://dh.dev.dadi.technology:3001"
+      enabled: {
+        doc: "",
+        format: Boolean,
+        default: false
+      },
+      path: {
+        doc: "",
+        format: String,
+        default: "http://dh.dev.dadi.technology:3001"
+      }
     }
   },
   
@@ -84,15 +121,27 @@ var conf = convict({
       default: 3600
     },
     directory: {
-      doc: "",
-      format: String,
-      default: "./cache/"
+      enabled: {
+        doc: "",
+        format: Boolean,
+        default: true
+      },
+      path: {
+        doc: "",
+        format: String,
+        default: "./cache/"
+      }      
     },
     redis: {
+      enabled: {
+        doc: "",
+        format: Boolean,
+        default: false
+      },
       host: {
-	doc: "",
-	format: String,
-	default: "tresting.qvhlji.ng.0001.euw1.cache.amazonaws.com"
+        doc: "",
+        format: String,
+        default: "tresting.qvhlji.ng.0001.euw1.cache.amazonaws.com"
       },
       port: {
         doc: "port to bind",
@@ -101,8 +150,8 @@ var conf = convict({
       },
       password: {
         doc: "",
-	format: String,
-	default: ""
+      	format: String,
+      	default: ""
       }
     }
   },
