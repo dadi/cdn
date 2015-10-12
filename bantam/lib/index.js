@@ -54,7 +54,7 @@ Server.prototype.start = function (options, done) {
             self.initS3AssettsBucket();
         }
         //Init Redis client
-        if (config.get('caching.redis')) {
+        if (config.get('caching.redis.enabled')) {
             self.initRedisClient();
         }
     });
@@ -73,7 +73,7 @@ Server.prototype.start = function (options, done) {
         self.initS3AssetsBucket();
     }
     //Init Redis client
-    if (config.get('caching.redis,enabled')) {
+    if (config.get('caching.redis.enabled')) {
         this.initRedisClient();
     }
 
@@ -134,14 +134,14 @@ Server.prototype.start = function (options, done) {
         if (req.body.invalidate) {
             var invalidate = req.body.invalidate.replace(/[\/.]/g, '');
 
-            if (config.get('caching.redis')) {
+            if (config.get('caching.redis.enabled')) {
                 self.client.keys("*" + invalidate + "*", function (err, data) {
                     for (var i = 0; i < data.length; i++) {
                         self.client.del(data[i]);
                     }
                 });
             } else {
-                var cacheDir = path.resolve(config.get('caching.directory'));
+                var cacheDir = path.resolve(config.get('caching.directory.path'));
                 var files = Finder.in(cacheDir).findFiles('*' + invalidate + '*');
                 _.each(files, function (file) {
                     fs.unlinkSync(file);
@@ -296,7 +296,7 @@ Server.prototype.start = function (options, done) {
 
                 var encryptName = sha1(newFileName);
 
-                if (config.get('caching.redis')) {
+                if (config.get('caching.redis.enabled')) {
                     self.client.exists(encryptName, function (err, exists) {
                         if (exists > 0) {
                             var readStream = redisRStream(self.client, encryptName);
@@ -319,7 +319,7 @@ Server.prototype.start = function (options, done) {
                         }
                     })
                 } else {
-                    var cacheDir = path.resolve(config.get('caching.directory'));
+                    var cacheDir = path.resolve(config.get('caching.directory.path'));
                     if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
                     var cachePath = path.join(cacheDir, encryptName);
                     if (fs.existsSync(cachePath)) {
@@ -454,7 +454,7 @@ Server.prototype.convertAndSave = function (readStream, originFileName, fileName
         }
     }
 
-    if (config.get('caching.redis')) {
+    if (config.get('caching.redis.enabled')) {
         self.client.on("error", function (err) {
             self.displayErrorPage(404, err, res);
         });
@@ -465,7 +465,7 @@ Server.prototype.convertAndSave = function (readStream, originFileName, fileName
             }
         });
     } else {
-        var cacheDir = path.resolve(config.get('caching.directory'));
+        var cacheDir = path.resolve(config.get('caching.directory.path'));
         var file = fs.createWriteStream(path.join(cacheDir, encryptName));
         file.on('error', function (err) {
             self.displayErrorPage(404, err, res);
@@ -591,14 +591,14 @@ Server.prototype.addMonitor = function (filepath, callback) {
  */
 Server.prototype.cacheJSCSSFiles = function(readStream, fileName, res) {
     var self = this;
-    if (config.get('caching.redis')) {
+    if (config.get('caching.redis.enabled')) {
         self.client.on("error", function (err) {
             self.displayErrorPage(404, err, res);
         });
         readStream.pipe(redisWStream(self.client, fileName));
 
     } else {
-        var fileOut = path.join(path.resolve(config.get('caching.directory')), fileName);
+        var fileOut = path.join(path.resolve(config.get('caching.directory.path')), fileName);
         var file = fs.createWriteStream(fileOut);
         file.on('error', function (err) {
             self.displayErrorPage(404, err, res);
