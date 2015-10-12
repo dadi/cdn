@@ -33,7 +33,7 @@ var compressor = require('node-minify');
 
 var monitor = require(__dirname + '/monitor');
 
-var configPath = path.resolve(__dirname + '/../../config.json');
+var configPath = path.resolve(__dirname + '/../../config.js');
 var config = require(configPath);
 
 var Server = function () {
@@ -52,14 +52,14 @@ Server.prototype.start = function (options, done) {
         config = require(configPath);
 
         //Init S3 Instance
-        if (config.images.s3) {
+        if (config.get('images.s3')) {
             self.initS3Bucket();
         }
-        if (config.assets.s3) {
+        if (config.get('assets.s3')) {
             self.initS3AssettsBucket();
         }
         //Init Redis client
-        if (config.caching.redis) {
+        if (config.get('caching.redis')) {
             self.initRedisClient();
         }
     });
@@ -71,14 +71,14 @@ Server.prototype.start = function (options, done) {
     });
 
     //Init S3 Instance
-    if (config.images.s3) {
+    if (config.get('images.s3')) {
         this.initS3Bucket();
     }
-    if (config.assets.s3) {
+    if (config.get('assets.s3')) {
         self.initS3AssettsBucket();
     }
     //Init Redis client
-    if (config.caching.redis) {
+    if (config.get('caching.redis')) {
         this.initRedisClient();
     }
 
@@ -93,7 +93,7 @@ Server.prototype.start = function (options, done) {
         // decode token
         if (token) {
             // verifies secret and checks exp
-            jwt.verify(token, config.auth.secret, function (err, decoded) {
+            jwt.verify(token, config.get('auth.secret'), function (err, decoded) {
                 if (err) {
                     res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
                     res.setHeader('Expires', '-1');
@@ -117,7 +117,7 @@ Server.prototype.start = function (options, done) {
 
     //Authentication router
     router.post('/authenticate', function (req, res) {
-        var token = jwt.sign({client: config.auth.clientId}, config.auth.secret, {
+        var token = jwt.sign({client: config.get('auth.clientId')}, config.get('auth.secret'), {
             expiresInMinutes: 1440 // expires in 24 hours
         });
 
@@ -139,22 +139,22 @@ Server.prototype.start = function (options, done) {
         if (req.body.invalidate) {
             var invalidate = req.body.invalidate.replace(/[\/.]/g, '');
 
-            if (config.caching.redis) {
+            if (config.get('caching.redis')) {
                 self.client.keys("*" + invalidate + "*", function (err, data) {
                     for (var i = 0; i < data.length; i++) {
                         self.client.del(data[i]);
                     }
                 });
             } else {
-                var cacheDir = path.resolve(config.caching.directory);
+                var cacheDir = path.resolve(config.get('caching.directory'));
                 var files = Finder.in(cacheDir).findFiles('*' + invalidate + '*');
                 _.each(files, function (file) {
                     fs.unlinkSync(file);
                 });
             }
-            if (config.cloudfront) {
-                var cf = cloudfront.createClient(config.cloudfront.accessKey, config.cloudfront.secretKey);
-                cf.getDistribution(config.cloudfront.distribution, function (err, distribution) {
+            if (config.get('cloudfront')) {
+                var cf = cloudfront.createClient(config.get('cloudfront.accessKey'), config.get('cloudfront.secretKey'));
+                cf.getDistribution(config.get('cloudfront.distribution'), function (err, distribution) {
                     var callerReference = (new Date()).toString();
                     distribution.invalidate(callerReference, ['/' + req.body.invalidate], function (err, invalidation) {
                         if (err) console.log(err)
@@ -283,8 +283,8 @@ Server.prototype.start = function (options, done) {
 
                 var originFileName = fileName;
 
-                if (config.security.maxWidth && config.security.maxWidth < options.width) options.width = config.security.maxWidth;
-                if (config.security.maxHeight && config.security.maxHeight < options.height) options.height = config.security.maxHeight;
+                if (config.get('security.maxWidth') && config.get('security.maxWidth') < options.width) options.width = config.get('security.maxWidth');
+                if (config.get('security.maxHeight') && config.get('security.maxHeight') < options.height) options.height = config.get('security.maxHeight');
 
                 if (options.filter == 'None' || options.filter == 0) delete options.filter;
                 if (options.gravity == 0) delete options.gravity;
@@ -301,7 +301,7 @@ Server.prototype.start = function (options, done) {
 
                 var encryptName = sha1(newFileName);
 
-                if (config.caching.redis) {
+                if (config.get('caching.redis')) {
                     self.client.exists(encryptName, function (err, exists) {
                         if (exists > 0) {
                             var readStream = redisRStream(self.client, encryptName);
@@ -310,7 +310,7 @@ Server.prototype.start = function (options, done) {
                             } else {
                                 // Set cache header
                                 res.setHeader('X-Cache', 'HIT');
-                                if(config.gzip) {
+                                if(config.get('gzip')) {
                                     res.setHeader('content-encoding', 'gzip');
                                     readStream.pipe(zlib.createGzip()).pipe(res);
                                 } else {
@@ -324,20 +324,20 @@ Server.prototype.start = function (options, done) {
                         }
                     })
                 } else {
-                    var cacheDir = path.resolve(config.caching.directory);
+                    var cacheDir = path.resolve(config.get('caching.directory'));
                     if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
                     var cachePath = path.join(cacheDir, encryptName);
                     if (fs.existsSync(cachePath)) {
                         fs.stat(cachePath, function (err, stats) {
                             var lastMod = stats && stats.mtime && stats.mtime.valueOf();
-                            if (config.caching.ttl && lastMod && (Date.now() - lastMod) / 1000 <= config.caching.ttl) {
+                            if (config.get('caching.ttl') && lastMod && (Date.now() - lastMod) / 1000 <= config.get('caching.ttl')) {
                                 var readStream = fs.createReadStream(cachePath);
                                 if (returnJSON) {
                                     self.fetchImageInformation(readStream, originFileName, newFileName, options, res);
                                 } else {
                                     // Set cache header
                                     res.setHeader('X-Cache', 'HIT');
-                                    if(config.gzip) {
+                                    if(config.get('gzip')) {
                                         res.setHeader('content-encoding', 'gzip');
                                         readStream.pipe(zlib.createGzip()).pipe(res);
                                     } else {
@@ -362,13 +362,13 @@ Server.prototype.start = function (options, done) {
 
     var app = http.createServer(function (req, res) {
         res.setHeader('Server', 'Bantam / Barbu');
-        if (config.clientCache.cacheControl) res.setHeader('Cache-Control', config.clientCache.cacheControl);
-        if (config.clientCache.etag) res.setHeader('ETag', config.clientCache.etag);
+        if (config.get('clientCache.cacheControl')) res.setHeader('Cache-Control', config.get('clientCache.cacheControl'));
+        if (config.get('clientCache.etag')) res.setHeader('ETag', config.get('clientCache.etag'));
 
         router(req, res, finalhandler(req, res));
     });
 
-    app.listen(config.server.port);
+    app.listen(config.get('server.port'));
 
     done && done();
 };
@@ -378,16 +378,16 @@ Server.prototype.start = function (options, done) {
  */
 Server.prototype.initS3Bucket = function () {
     AWS.config.update({
-        accessKeyId: config.images.s3.accessKey,
-        secretAccessKey: config.images.s3.secretKey
+        accessKeyId: config.get('images.s3.accessKey'),
+        secretAccessKey: config.get('images.s3.secretKey')
     });
     this.s3 = new AWS.S3();
 };
 
 Server.prototype.initS3AssettsBucket = function () {
     AWS.config.update({
-        accessKeyId: config.assets.s3.accessKey,
-        secretAccessKey: config.assets.s3.secretKey
+        accessKeyId: config.get('assets.s3.accessKey'),
+        secretAccessKey: config.get('assets.s3.secretKey')
     });
     this.assetsS3 = new AWS.S3();
 };
@@ -396,7 +396,7 @@ Server.prototype.initS3AssettsBucket = function () {
  * Create a Redis Client with configuration
  */
 Server.prototype.initRedisClient = function () {
-    this.client = redis.createClient(config.caching.redis.port, config.caching.redis.host, {
+    this.client = redis.createClient(config.get('caching.redis.port'), config.get('caching.redis.host'), {
         return_buffers: true,
         detect_buffers: true
     })
@@ -405,8 +405,8 @@ Server.prototype.initRedisClient = function () {
     }).on("connect", function () {
         console.log('Redis client Connected');
     })
-    if (config.caching.redis.password) {
-        this.client.auth(config.caching.redis.password, function () {
+    if (config.get('caching.redis.password')) {
+        this.client.auth(config.get('caching.redis.password'), function () {
             console.log('Redis client connected');
         })
     }
@@ -451,7 +451,7 @@ Server.prototype.convertAndSave = function (readStream, originFileName, fileName
     if (returnJSON) {
         self.fetchImageInformation(convertedStream, originFileName, fileName, options, res);
     } else {
-        if(config.gzip) {
+        if(config.get('gzip')) {
             res.setHeader('content-encoding', 'gzip');
             convertedStream.pipe(zlib.createGzip()).pipe(res);
         } else {
@@ -459,18 +459,18 @@ Server.prototype.convertAndSave = function (readStream, originFileName, fileName
         }
     }
 
-    if (config.caching.redis) {
+    if (config.get('caching.redis')) {
         self.client.on("error", function (err) {
             self.displayErrorPage(404, err, res);
         });
         //Save to redis
         convertedStream.pipe(redisWStream(self.client, encryptName)).on('finish', function () {
-            if (config.caching.ttl) {
-                self.client.expire(encryptName, config.caching.ttl);
+            if (config.get('caching.ttl')) {
+                self.client.expire(encryptName, config.get('caching.ttl'));
             }
         });
     } else {
-        var cacheDir = path.resolve(config.caching.directory);
+        var cacheDir = path.resolve(config.get('caching.directory'));
         var file = fs.createWriteStream(path.join(cacheDir, encryptName));
         file.on('error', function (err) {
             self.displayErrorPage(404, err, res);
@@ -485,8 +485,8 @@ Server.prototype.convertAndSave = function (readStream, originFileName, fileName
 Server.prototype.createNewConvertImage = function (url, originFileName, newFileName, options, returnJSON, res) {
     var self = this;
     if (url.length > 0) {
-        if (config.images.remote) { // Load image from http or https url
-            url = config.images.remote + '/' + url;
+        if (config.get('images.remote')) { // Load image from http or https url
+            url = config.get('images.remote') + '/' + url;
             request({url: url}, function (error, response, body) {
                 if (!error && response.statusCode == 200) {
                     self.convertAndSave(request({url: url}), originFileName, newFileName, options, returnJSON, res);
@@ -494,20 +494,20 @@ Server.prototype.createNewConvertImage = function (url, originFileName, newFileN
                     self.displayErrorPage(404, 'Image path not valid.', res);
                 }
             })
-        } else if (config.images.s3) { //Load image from S3
-            self.s3.getObject({Bucket: config.images.s3.bucketName, Key: url}, function (err, data) {
+        } else if (config.get('images.s3')) { //Load image from S3
+            self.s3.getObject({Bucket: config.get('images.s3.bucketName'), Key: url}, function (err, data) {
                 if (err) {
                     self.displayErrorPage(404, err, res);
                 } else {
                     var s3ReadStream = self.s3.getObject({
-                        Bucket: config.images.s3.bucketName,
+                        Bucket: config.get('images.s3.bucketName'),
                         Key: url
                     }).createReadStream();
                     self.convertAndSave(s3ReadStream, originFileName, newFileName, options, returnJSON, res);
                 }
             })
         } else { // Load image from local disk
-            var imageDir = path.resolve(config.images.directory);
+            var imageDir = path.resolve(config.get('images.directory'));
             url = path.join(imageDir, url);
             if (fs.existsSync(url)) {
                 var fsReadStream = fs.createReadStream(url);
@@ -559,8 +559,8 @@ Server.prototype.fetchImageInformation = function (readStream, originFileName, f
                 quality: options.quality ? options.quality : 75,
                 trim: options.trim ? options.trim : 0,
                 trimFuzz: options.trimFuzz ? options.trimFuzz : 0,
-                width: options.width ? options.width : config.security.maxWidth,
-                height: options.height ? options.height : config.security.maxHeight,
+                width: options.width ? options.width : config.get('security.maxWidth'),
+                height: options.height ? options.height : config.get('security.maxHeight'),
                 resizeStyle: options.resizeStyle ? options.resizeStyle : 'aspectfill',
                 gravity: options.gravity ? options.gravity : 'Center',
                 filter: options.filter ? options.filter : 'None',
@@ -590,21 +590,21 @@ Server.prototype.addMonitor = function (filepath, callback) {
  */
 Server.prototype.cacheJSCSSFiles = function(readStream, fileName, res) {
     var self = this;
-    if (config.caching.redis) {
+    if (config.get('caching.redis')) {
         self.client.on("error", function (err) {
             self.displayErrorPage(404, err, res);
         });
         readStream.pipe(redisWStream(self.client, fileName));
 
     } else {
-        var fileOut = path.join(path.resolve(config.caching.directory), fileName);
+        var fileOut = path.join(path.resolve(config.get('caching.directory')), fileName);
         var file = fs.createWriteStream(fileOut);
         file.on('error', function (err) {
             self.displayErrorPage(404, err, res);
         });
         readStream.pipe(file);
     }
-    if(config.gzip) {
+    if(config.get('gzip')) {
         res.setHeader('content-encoding', 'gzip');
         readStream.pipe(zlib.createGzip()).pipe(res);
     } else {
@@ -671,8 +671,8 @@ Server.prototype.compressJsCSSFiles = function (readStream, fileName, fileExt, c
  */
 Server.prototype.fetchOriginFileContent = function (url, fileName, fileExt, compress, res) {
     var self = this;
-    if (config.assets.remote) { // Load file from http or https url
-        url = config.assets.remote + '/' + url;
+    if (config.get('assets.remote')) { // Load file from http or https url
+        url = config.get('assets.remote') + '/' + url;
         request({url: url}, function (error, response, body) {
             if (!error && response.statusCode == 200) {
                 self.compressJsCSSFiles(request({url: url}), fileName, fileExt, compress, res);
@@ -680,20 +680,20 @@ Server.prototype.fetchOriginFileContent = function (url, fileName, fileExt, comp
                 self.displayErrorPage(404, 'File path not valid.', res);
             }
         })
-    } else if (config.assets.s3) { //Load file from S3
-        self.assetsS3.getObject({Bucket: config.assets.s3.bucketName, Key: url}, function (err, data) {
+    } else if (config.get('assets.s3')) { //Load file from S3
+        self.assetsS3.getObject({Bucket: config.get('assets.s3.bucketName'), Key: url}, function (err, data) {
             if (err) {
                 self.displayErrorPage(404, err, res);
             } else {
                 var s3ReadStream = self.assetsS3.getObject({
-                    Bucket: config.assets.s3.bucketName,
+                    Bucket: config.get('assets.s3.bucketName'),
                     Key: url
                 }).createReadStream();
                 self.compressJsCSSFiles(s3ReadStream, fileName, fileExt, compress, res);
             }
         })
     } else {
-        var resourceDir = path.resolve(config.assets.directory);
+        var resourceDir = path.resolve(config.get('assets.directory'));
         url = path.join(resourceDir, url);
         if (fs.existsSync(url)) {
             var readStream = fs.createReadStream(url);
