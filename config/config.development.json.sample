@@ -3,31 +3,53 @@
       "host": "0.0.0.0",
       "port": 3000
   },
+  
+  // Either directory, s3 or remote should be enabled
+
   "images": {
-    "//": "Either directory, s3 or remote should be set. Remove the unused options",
-    "directory": "./images",
+    "directory": {
+      "enabled": true,
+      "path": ./images"
+    },
     "s3": {
+      "enabled": false,
       "accessKey": "AKIAJJHIE6YB7FVGVL7Q",
       "secretKey": "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",
       "bucketName": "dadi-image-testing"
     },
-    "remote": "http://dh.dev.dadi.technology:3001"
+    "remote": {
+      "enabled": false,
+      "path": "http://dh.dev.dadi.technology:3001"
+    }
   },
+
+  // Either directory, s3 or remote should be enabled
   "assets": {
-    "//": "Either directory, s3 or remote should be set. Remove the unused options",
-    "directory": "./public",
+    "directory": {
+      "enabled": true,
+      "path": ./public"
+    },
     "s3": {
+      "enabled": false,
       "accessKey": "AKIAJJHIE6YB7FVGVL7Q",
       "secretKey": "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",
       "bucketName": "dadi-image-testing"
     },
-    "remote": "http://dh.dev.dadi.technology:3001"
+    "remote": {
+      "enabled": false,
+      "path": "http://dh.dev.dadi.technology:3001"
+    }
   },
+
+  // Either directory or redis should be enabled
   "caching": {
     "ttl": 3600,
-    "//": "Either directory or redis should be set. Remove the unused options",
-    "directory": "./cache/",
+    "directory": {
+      "enabled": true,
+      "path": ./cache/"
+    }
     "redis": {
+      "enabled": false,
       "host": "tresting.qvhlji.ng.0001.euw1.cache.amazonaws.com",
       "port": 6379
     }

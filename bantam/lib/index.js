@@ -1,35 +1,30 @@
-var request = require('request');
-var zlib = require('zlib');
 var _ = require('underscore');
-var http = require('http');
+var AWS = require('aws-sdk');
 var bodyParser = require('body-parser');
-var finalhandler = require('finalhandler');
+var cloudfront = require('cloudfront');
+var ColorThief = require('color-thief'),
+    colorThief = new ColorThief();
+var compressor = require('node-minify');
 var crypto = require('crypto');
-var sha1 = require('sha1');
-
-var Router = require('router');
-var router = Router();
-
-var jwt = require('jsonwebtoken'); // used to create, sign, and verify tokens
-var url = require('url');
-
-var fs = require('fs');
-var path = require('path');
+var finalhandler = require('finalhandler');
 var Finder = require('fs-finder');
-
+var fs = require('fs');
+var http = require('http');
 var imagemagick = require('imagemagick-native');
-var sharp = require('sharp');
+var jwt = require('jsonwebtoken'); // used to create, sign, and verify tokens
+var lengthStream = require('length-stream');
+var path = require('path');
 var redis = require("redis");
 var redisWStream = require('redis-wstream');
 var redisRStream = require('redis-rstream');
-var AWS = require('aws-sdk');
-var cloudfront = require('cloudfront');
+var request = require('request');
+var sha1 = require('sha1');
+var sharp = require('sharp');
+var url = require('url');
+var zlib = require('zlib');
 
-var ColorThief = require('color-thief'),
-    colorThief = new ColorThief();
-var lengthStream = require('length-stream');
-
-var compressor = require('node-minify');
+var Router = require('router');
+var router = Router();
 
 var monitor = require(__dirname + '/monitor');
 
@@ -52,10 +47,10 @@ Server.prototype.start = function (options, done) {
         config = require(configPath);
 
         //Init S3 Instance
-        if (config.get('images.s3')) {
+        if (config.get('images.s3.enabled')) {
             self.initS3Bucket();
         }
-        if (config.get('assets.s3')) {
+        if (config.get('assets.s3.enabled')) {
             self.initS3AssettsBucket();
         }
         //Init Redis client
@@ -71,14 +66,14 @@ Server.prototype.start = function (options, done) {
     });
 
     //Init S3 Instance
-    if (config.get('images.s3')) {
+    if (config.get('images.s3.enabled')) {
         this.initS3Bucket();
     }
-    if (config.get('assets.s3')) {
-        self.initS3AssettsBucket();
+    if (config.get('assets.s3,enabled')) {
+        self.initS3AssetsBucket();
     }
     //Init Redis client
-    if (config.get('caching.redis')) {
+    if (config.get('caching.redis,enabled')) {
         this.initRedisClient();
     }
 
@@ -384,7 +379,7 @@ Server.prototype.initS3Bucket = function () {
     this.s3 = new AWS.S3();
 };
 
-Server.prototype.initS3AssettsBucket = function () {
+Server.prototype.initS3AssetsBucket = function () {
     AWS.config.update({
         accessKeyId: config.get('assets.s3.accessKey'),
         secretAccessKey: config.get('assets.s3.secretKey')
@@ -485,20 +480,23 @@ Server.prototype.convertAndSave = function (readStream, originFileName, fileName
 Server.prototype.createNewConvertImage = function (url, originFileName, newFileName, options, returnJSON, res) {
     var self = this;
     if (url.length > 0) {
-        if (config.get('images.remote')) { // Load image from http or https url
-            url = config.get('images.remote') + '/' + url;
+        if (config.get('images.remote.enabled')) { // Load image from http or https url
+            url = config.get('images.remote.path') + '/' + url;
             request({url: url}, function (error, response, body) {
                 if (!error && response.statusCode == 200) {
                     self.convertAndSave(request({url: url}), originFileName, newFileName, options, returnJSON, res);
-                } else {
-                    self.displayErrorPage(404, 'Image path not valid.', res);
+                }
+                else {
+                    self.displayErrorPage(404, 'Image path "' + url + '" isn\'t valid.', res);
                 }
             })
-        } else if (config.get('images.s3')) { //Load image from S3
+        }
+        else if (config.get('images.s3.enabled')) { //Load image from S3
             self.s3.getObject({Bucket: config.get('images.s3.bucketName'), Key: url}, function (err, data) {
                 if (err) {
                     self.displayErrorPage(404, err, res);
-                } else {
+                }
+                else {
                     var s3ReadStream = self.s3.getObject({
                         Bucket: config.get('images.s3.bucketName'),
                         Key: url
@@ -506,18 +504,21 @@ Server.prototype.createNewConvertImage = function (url, originFileName, newFileN
                     self.convertAndSave(s3ReadStream, originFileName, newFileName, options, returnJSON, res);
                 }
             })
-        } else { // Load image from local disk
-            var imageDir = path.resolve(config.get('images.directory'));
+        }
+        else { // Load image from local disk
+            var imageDir = path.resolve(config.get('images.directory.path'));
             url = path.join(imageDir, url);
             if (fs.existsSync(url)) {
                 var fsReadStream = fs.createReadStream(url);
                 self.convertAndSave(fsReadStream, originFileName, newFileName, options, returnJSON, res);
-            } else {
-                self.displayErrorPage(404, 'File not exist.', res);
+            }
+            else {
+                self.displayErrorPage(404, 'File "' + url + '" doesn\'t exist.', res);
             }
         }
-    } else {
-        self.displayErrorPage(404, 'Image path not exist.', res);
+    }
+    else {
+        self.displayErrorPage(404, 'Image path doesn\'t exist.', res);
     }
 };
 
@@ -671,8 +672,8 @@ Server.prototype.compressJsCSSFiles = function (readStream, fileName, fileExt, c
  */
 Server.prototype.fetchOriginFileContent = function (url, fileName, fileExt, compress, res) {
     var self = this;
-    if (config.get('assets.remote')) { // Load file from http or https url
-        url = config.get('assets.remote') + '/' + url;
+    if (config.get('assets.remote.enabled')) { // Load file from http or https url
+        url = config.get('assets.remote.path') + '/' + url;
         request({url: url}, function (error, response, body) {
             if (!error && response.statusCode == 200) {
                 self.compressJsCSSFiles(request({url: url}), fileName, fileExt, compress, res);
@@ -680,7 +681,7 @@ Server.prototype.fetchOriginFileContent = function (url, fileName, fileExt, comp
                 self.displayErrorPage(404, 'File path not valid.', res);
             }
         })
-    } else if (config.get('assets.s3')) { //Load file from S3
+    } else if (config.get('assets.s3.enabled')) { //Load file from S3
         self.assetsS3.getObject({Bucket: config.get('assets.s3.bucketName'), Key: url}, function (err, data) {
             if (err) {
                 self.displayErrorPage(404, err, res);
@@ -693,13 +694,13 @@ Server.prototype.fetchOriginFileContent = function (url, fileName, fileExt, comp
             }
         })
     } else {
-        var resourceDir = path.resolve(config.get('assets.directory'));
+        var resourceDir = path.resolve(config.get('assets.directory.path'));
         url = path.join(resourceDir, url);
         if (fs.existsSync(url)) {
             var readStream = fs.createReadStream(url);
             self.compressJsCSSFiles(readStream, fileName, fileExt, compress, res);
         } else {
-            self.displayErrorPage(404, 'File not exist.', res);
+            self.displayErrorPage(404, 'File "' + url + '" doesn\'t exist.', res);
         }
     }
 }
