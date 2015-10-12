@@ -9,7 +9,7 @@
   "images": {
     "directory": {
       "enabled": true,
-      "path": ./images"
+      "path": "./images"
     },
     "s3": {
       "enabled": false,
@@ -27,7 +27,7 @@
   "assets": {
     "directory": {
       "enabled": true,
-      "path": ./public"
+      "path": "./public"
     },
     "s3": {
       "enabled": false,
@@ -46,8 +46,8 @@
     "ttl": 3600,
     "directory": {
       "enabled": true,
-      "path": ./cache/"
-    }
+      "path": "./cache/"
+    },
     "redis": {
       "enabled": false,
       "host": "tresting.qvhlji.ng.0001.euw1.cache.amazonaws.com",

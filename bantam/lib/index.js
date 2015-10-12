@@ -69,7 +69,7 @@ Server.prototype.start = function (options, done) {
     if (config.get('images.s3.enabled')) {
         this.initS3Bucket();
     }
-    if (config.get('assets.s3,enabled')) {
+    if (config.get('assets.s3.enabled')) {
         self.initS3AssetsBucket();
     }
     //Init Redis client
