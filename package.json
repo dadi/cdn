@@ -1,6 +1,6 @@
 {
   "name": "barbu",
-  "version": "0.1.8-beta",
+  "version": "0.1.9-beta",
   "dependencies": {
     "aws-sdk": "*",
     "body-parser": "*",

@@ -1,6 +1,6 @@
 ![Barbu](barbu.png)
 
-![Build Status](http://img.shields.io/badge/Release-0.1.7_Beta-green.svg?style=flat-square)&nbsp;[![License](http://img.shields.io/:License-MIT-blue.svg?style=flat-square)](http://dadi.mit-license.org)
+![Build Status](http://img.shields.io/badge/Release-0.1.9_Beta-green.svg?style=flat-square)&nbsp;[![License](http://img.shields.io/:License-MIT-blue.svg?style=flat-square)](http://dadi.mit-license.org)
 
 ## Contents
 
