@@ -63,7 +63,7 @@ install barbu as a service and ensure it loads on boot:
 
 `[sudo] forever-service install -s bantam/main.js -e NODE_ENV=production barbu --start`
 
-_Note the environment variable - `NODE_ENV=production` - set targetting the required config._
+_Note the environment variable - `NODE_ENV=production` - must be set to target the required config version._
 
 You can then interact with Barbu as a service using the following command:
 
