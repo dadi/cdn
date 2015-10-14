@@ -61,7 +61,9 @@ To run Barbu in the background, install [Forever](https://github.com/nodejitsu/f
 
 install barbu as a service and ensure it loads on boot:
 
-`[sudo] forever-service install -s bantam/main.js barbu --start`
+`[sudo] forever-service install -s bantam/main.js -e NODE_ENV=production barbu --start`
+
+_Note the environment variable set targetting the required config._
 
 You can then interact with Barbu as a service using the following command:
 
