@@ -22,6 +22,7 @@ This guide assumes a single server using utilising local caching. For Redis setu
 ### ImageMagick
 
 1. `sudo apt-get install libmagick++-dev`
+2. `sudo apt-get install libvips`
 2. `sudo apt-get install make`
 3. `sudo apt-get install g++`
 
