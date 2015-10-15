@@ -22,9 +22,17 @@ This guide assumes a single server using utilising local caching. For Redis setu
 ### ImageMagick
 
 1. `sudo apt-get install libmagick++-dev`
-2. `sudo apt-get install libvips-dev`
-2. `sudo apt-get install make`
-3. `sudo apt-get install g++`
+
+### VIPS
+
+1. `sudo add-apt-repository -y ppa:lovell/trusty-backport-vips`
+2. `sudo apt-get update`
+2. `sudo apt-get install -y libvips-dev libgsf-1-dev`
+
+### Misc. supporting packages
+
+1. `sudo apt-get install make`
+2. `sudo apt-get install g++`
 
 ### Barbu
 
