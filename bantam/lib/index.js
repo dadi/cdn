@@ -492,6 +492,7 @@ Server.prototype.createNewConvertImage = function (url, originFileName, newFileN
             })
         }
         else if (config.get('images.s3.enabled')) { //Load image from S3
+            if(url.substring(0, 1) == '/') url = url.substring(1);
             self.s3.getObject({Bucket: config.get('images.s3.bucketName'), Key: url}, function (err, data) {
                 if (err) {
                     self.displayErrorPage(404, err, res);
