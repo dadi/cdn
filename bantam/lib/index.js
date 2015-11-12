@@ -195,27 +195,40 @@ Server.prototype.start = function (options, done) {
 
                     var fileName = url.split('/')[url.split('/').length - 1];
                     var fileExt = url.substring(url.lastIndexOf('.') + 1);
-
-                    var newFileName = url.replace(/[\/.]/g, '') + recipe.settings.format +
+                    if(recipe.settings.format == 'js' || recipe.settings.format == 'css') {
+                        if(fileName.split('.').length == 1) fileName = fileName + '.' + fileExt;
+                        var compress = recipe.settings.compress;
+                        if (compress != 0 && compress != 1) {
+                            var error = '<p>Compress value should be 0 or 1.</p>';
+                            self.displayErrorPage(404, error, res);
+                        } else {
+                            self.fetchOriginFileContent(url, fileName, fileExt, compress, res);
+                        }
+                        var options = {
+                            format: 'assets'
+                        };
+                    } else {
+                        var newFileName = url.replace(/[\/.]/g, '') + recipe.settings.format +
                         recipe.settings.quality + recipe.settings.trim + recipe.settings.trimFuzz + recipe.settings.width + recipe.settings.height +
                         recipe.settings.resizeStyle + recipe.settings.gravity + recipe.settings.filter + recipe.settings.blur +
                         recipe.settings.strip + recipe.settings.rotate + recipe.settings.flip + '.' + recipe.settings.format;
 
-                    if (recipe.settings.format == 'json') {
-                        if (fileExt == fileName) {
-                            newFileName = url.replace(/[\/.]/g, '') + recipe.settings.format +
-                                recipe.settings.quality + recipe.settings.trim + recipe.settings.trimFuzz + recipe.settings.width + recipe.settings.height +
-                                recipe.settings.resizeStyle + recipe.settings.gravity + recipe.settings.filter + recipe.settings.blur +
-                                recipe.settings.strip + recipe.settings.rotate + recipe.settings.flip + '.png';
-                        } else {
-                            newFileName = url.replace(/[\/.]/g, '') + recipe.settings.format +
-                                recipe.settings.quality + recipe.settings.trim + recipe.settings.trimFuzz + recipe.settings.width + recipe.settings.height +
-                                recipe.settings.resizeStyle + recipe.settings.gravity + recipe.settings.filter + recipe.settings.blur +
-                                recipe.settings.strip + recipe.settings.rotate + recipe.settings.flip + '.' + fileExt;
+                        if (recipe.settings.format == 'json') {
+                            if (fileExt == fileName) {
+                                newFileName = url.replace(/[\/.]/g, '') + recipe.settings.format +
+                                    recipe.settings.quality + recipe.settings.trim + recipe.settings.trimFuzz + recipe.settings.width + recipe.settings.height +
+                                    recipe.settings.resizeStyle + recipe.settings.gravity + recipe.settings.filter + recipe.settings.blur +
+                                    recipe.settings.strip + recipe.settings.rotate + recipe.settings.flip + '.png';
+                            } else {
+                                newFileName = url.replace(/[\/.]/g, '') + recipe.settings.format +
+                                    recipe.settings.quality + recipe.settings.trim + recipe.settings.trimFuzz + recipe.settings.width + recipe.settings.height +
+                                    recipe.settings.resizeStyle + recipe.settings.gravity + recipe.settings.filter + recipe.settings.blur +
+                                    recipe.settings.strip + recipe.settings.rotate + recipe.settings.flip + '.' + fileExt;
+                            }
                         }
-                    }
 
-                    var options = recipe.settings;
+                        var options = recipe.settings;
+                    }
                 } else {
                     var optionsArray = paramString.split('/').slice(0, 13);
                     var url = paramString.substring(optionsArray.join('/').length + 1);
@@ -267,66 +280,40 @@ Server.prototype.start = function (options, done) {
                     };
                 }
 
-                if (options.format == 'json') {
-                    returnJSON = true;
-                    if (fileExt == fileName) {
-                        options.format = 'PNG';
-                    } else {
-                        options.format = fileExt;
-                    }
-                }
-
-                var originFileName = fileName;
-
-                if (config.get('security.maxWidth') && config.get('security.maxWidth') < options.width) options.width = config.get('security.maxWidth');
-                if (config.get('security.maxHeight') && config.get('security.maxHeight') < options.height) options.height = config.get('security.maxHeight');
-
-                if (options.filter == 'None' || options.filter == 0) delete options.filter;
-                if (options.gravity == 0) delete options.gravity;
-                if (options.width == 0) delete options.width;
-                if (options.height == 0) delete options.height;
-                if (options.quality == 0) delete options.quality;
-                if (options.trim == 0) delete options.trim;
-                if (options.trimFuzz == 0) delete options.trimFuzz;
-                if (options.resizeStyle == 0) delete options.resizeStyle;
-                if (options.blur == 0) delete options.blur;
-                if (options.strip == 0) delete options.strip;
-                if (options.rotate == 0) delete options.rotate;
-                if (options.flip == 0) delete options.flip;
-
-                var encryptName = sha1(newFileName);
-
-                if (config.get('caching.redis.enabled')) {
-                    self.client.exists(encryptName, function (err, exists) {
-                        if (exists > 0) {
-                            var readStream = redisRStream(self.client, encryptName);
-                            if (returnJSON) {
-                                self.fetchImageInformation(readStream, originFileName, newFileName, options, res);
-                            } else {
-                                // Set cache header
-                                res.setHeader('X-Cache', 'HIT');
-                                if(config.get('gzip')) {
-                                    res.setHeader('content-encoding', 'gzip');
-                                    readStream.pipe(zlib.createGzip()).pipe(res);
-                                } else {
-                                    readStream.pipe(res);
-                                }
-                            }
+                if(options.format != 'assets') {
+                    if (options.format == 'json') {
+                        returnJSON = true;
+                        if (fileExt == fileName) {
+                            options.format = 'PNG';
                         } else {
-                            // Set cache header
-                            res.setHeader('X-Cache', 'MISS');
-                            self.createNewConvertImage(url, originFileName, newFileName, options, returnJSON, res);
+                            options.format = fileExt;
                         }
-                    })
-                } else {
-                    var cacheDir = path.resolve(config.get('caching.directory.path'));
-                    if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
-                    var cachePath = path.join(cacheDir, encryptName);
-                    if (fs.existsSync(cachePath)) {
-                        fs.stat(cachePath, function (err, stats) {
-                            var lastMod = stats && stats.mtime && stats.mtime.valueOf();
-                            if (config.get('caching.ttl') && lastMod && (Date.now() - lastMod) / 1000 <= config.get('caching.ttl')) {
-                                var readStream = fs.createReadStream(cachePath);
+                    }
+
+                    var originFileName = fileName;
+
+                    if (config.get('security.maxWidth') && config.get('security.maxWidth') < options.width) options.width = config.get('security.maxWidth');
+                    if (config.get('security.maxHeight') && config.get('security.maxHeight') < options.height) options.height = config.get('security.maxHeight');
+
+                    if (options.filter == 'None' || options.filter == 0) delete options.filter;
+                    if (options.gravity == 0) delete options.gravity;
+                    if (options.width == 0) delete options.width;
+                    if (options.height == 0) delete options.height;
+                    if (options.quality == 0) delete options.quality;
+                    if (options.trim == 0) delete options.trim;
+                    if (options.trimFuzz == 0) delete options.trimFuzz;
+                    if (options.resizeStyle == 0) delete options.resizeStyle;
+                    if (options.blur == 0) delete options.blur;
+                    if (options.strip == 0) delete options.strip;
+                    if (options.rotate == 0) delete options.rotate;
+                    if (options.flip == 0) delete options.flip;
+
+                    var encryptName = sha1(newFileName);
+
+                    if (config.get('caching.redis.enabled')) {
+                        self.client.exists(encryptName, function (err, exists) {
+                            if (exists > 0) {
+                                var readStream = redisRStream(self.client, encryptName);
                                 if (returnJSON) {
                                     self.fetchImageInformation(readStream, originFileName, newFileName, options, res);
                                 } else {
@@ -344,11 +331,39 @@ Server.prototype.start = function (options, done) {
                                 res.setHeader('X-Cache', 'MISS');
                                 self.createNewConvertImage(url, originFileName, newFileName, options, returnJSON, res);
                             }
-                        });
+                        })
                     } else {
-                        // Set cache header
-                        res.setHeader('X-Cache', 'MISS');
-                        self.createNewConvertImage(url, originFileName, newFileName, options, returnJSON, res);
+                        var cacheDir = path.resolve(config.get('caching.directory.path'));
+                        if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
+                        var cachePath = path.join(cacheDir, encryptName);
+                        if (fs.existsSync(cachePath)) {
+                            fs.stat(cachePath, function (err, stats) {
+                                var lastMod = stats && stats.mtime && stats.mtime.valueOf();
+                                if (config.get('caching.ttl') && lastMod && (Date.now() - lastMod) / 1000 <= config.get('caching.ttl')) {
+                                    var readStream = fs.createReadStream(cachePath);
+                                    if (returnJSON) {
+                                        self.fetchImageInformation(readStream, originFileName, newFileName, options, res);
+                                    } else {
+                                        // Set cache header
+                                        res.setHeader('X-Cache', 'HIT');
+                                        if(config.get('gzip')) {
+                                            res.setHeader('content-encoding', 'gzip');
+                                            readStream.pipe(zlib.createGzip()).pipe(res);
+                                        } else {
+                                            readStream.pipe(res);
+                                        }
+                                    }
+                                } else {
+                                    // Set cache header
+                                    res.setHeader('X-Cache', 'MISS');
+                                    self.createNewConvertImage(url, originFileName, newFileName, options, returnJSON, res);
+                                }
+                            });
+                        } else {
+                            // Set cache header
+                            res.setHeader('X-Cache', 'MISS');
+                            self.createNewConvertImage(url, originFileName, newFileName, options, returnJSON, res);
+                        }
                     }
                 }
             }
@@ -683,6 +698,7 @@ Server.prototype.fetchOriginFileContent = function (url, fileName, fileExt, comp
             }
         })
     } else if (config.get('assets.s3.enabled')) { //Load file from S3
+        if(url.substring(0, 1) == '/') url = url.substring(1);
         self.assetsS3.getObject({Bucket: config.get('assets.s3.bucketName'), Key: url}, function (err, data) {
             if (err) {
                 self.displayErrorPage(404, err, res);
