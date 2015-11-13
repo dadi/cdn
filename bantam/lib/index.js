@@ -371,6 +371,8 @@ Server.prototype.start = function (options, done) {
     });
 
     var app = http.createServer(function (req, res) {
+		config.updateConfigDataForDomain(req.headers.host);
+
         res.setHeader('Server', 'Bantam / Barbu');
         if (config.get('clientCache.cacheControl')) res.setHeader('Cache-Control', config.get('clientCache.cacheControl'));
         if (config.get('clientCache.etag')) res.setHeader('ETag', config.get('clientCache.etag'));
