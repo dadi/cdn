@@ -30,6 +30,7 @@ Barbu is part of Bantam, a suite of components covering the full development sta
 
 * Node.js (latest)
 * ImageMagik (latest)
+* libvips (latest)
 
 ## Setup and installation
 
