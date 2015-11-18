@@ -4,7 +4,7 @@
 
 ## Overview
 
-Barbu's settings are defined in a single `config.json` file, which can be found at root. An example file, containing all of the available configuration options can be found in `config.example.json`.
+Barbu's settings are defined in a configuration files mapped to environment variables. These are contained wihtin `/config`. An example file, containing all of the available configuration options can be found in `/config/config.development.json.sample`.
 
 ## Config options
 
@@ -30,25 +30,60 @@ Source images can be called either locally, from an S3 bucket or remotely via a 
 
 **Example #1: local directory**
 
-	"images": {
-		"directory": "./images"
-	}
+  "images": {
+    "directory": {
+      "enabled": true,
+      "path": "./images"
+    },
+    "s3": {
+      "enabled": false,
+      "accessKey": "",
+      "secretKey": "",
+      "bucketName": ""
+    },
+    "remote": {
+      "enabled": false,
+      "path": ""
+    }
+  }
 
 **Example #2: S3 lookup**
 
-	"images": {
-		"s3": {
-			"accessKey": "AKIAJJHIE6YB7FVGVL7Q",
-			"secretKey": "OvIoiLgxQZszDuGCr5YWqKE/mNKlgSop+RqrkBTN",
-			"bucketName": "dadi-image-testing"
-		}
-	}
+  "images": {
+    "directory": {
+      "enabled": false,
+      "path": ""
+    },
+    "s3": {
+      "enabled": true,
+      "accessKey": "AKIAJJHIE6YB7FVGVL7Q",
+      "secretKey": "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",
+      "bucketName": "dadi-image-testing"
+    },
+    "remote": {
+      "enabled": false,
+      "path": ""
+    }
+  }
 
 **Example #3: remote lookup**
 
-	"images": {
-		"remote": "http://dh.dev.dadi.technology:3001"
-	}
+  "images": {
+    "directory": {
+      "enabled": false,
+      "path": "./images"
+    },
+    "s3": {
+      "enabled": false,
+      "accessKey": "",
+      "secretKey": "",
+      "bucketName": ""
+    },
+    "remote": {
+      "enabled": true,
+      "path": "http://dh.dev.dadi.technology:3001"
+    }
+  }
 
 ### assets (JavaScript/CSS)
 
@@ -56,48 +91,96 @@ Source assets (JavaScript/CSS) can be called either locally, from an S3 bucket o
 
 **Example #1: local directory**
 
-	"assets": {
-		"directory": "./public"
-	}
+  "assets": {
+    "directory": {
+      "enabled": true,
+      "path": "./public"
+    },
+    "s3": {
+      "enabled": false,
+      "accessKey": "",
+      "secretKey": "",
+      "bucketName": ""
+    },
+    "remote": {
+      "enabled": false,
+      "path": ""
+    }
+  }
 
 **Example #2: S3 lookup**
 
-	"assets": {
-		"s3": {
-			"accessKey": "AKIAJJHIE6YB7FVGVL7Q",
-			"secretKey": "OvIoiLgxQZszDuGCr5YWqKE/mNKlgSop+RqrkBTN",
-			"bucketName": "dadi-image-testing"
-		}
-	}
+  "assets": {
+    "directory": {
+      "enabled": false,
+      "path": ""
+    },
+    "s3": {
+      "enabled": true,
+      "accessKey": "AKIAJJHIE6YB7FVGVL7Q",
+      "secretKey": "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",
+      "bucketName": "dadi-image-testing"
+    },
+    "remote": {
+      "enabled": false,
+      "path": ""
+    }
+  }
 
 **Example #3: remote lookup**
 
-	"assets": {
-		"remote": "http://dh.dev.dadi.technology:3001"
-	}
+  "assets": {
+    "directory": {
+      "enabled": false,
+      "path": ""
+    },
+    "s3": {
+      "enabled": false,
+      "accessKey": "",
+      "secretKey": "",
+      "bucketName": ""
+    },
+    "remote": {
+      "enabled": true,
+      "path": "http://dh.dev.dadi.technology:3001"
+    }
+  }
 
 ### caching
 
-Barbu's cache can be set to be either local (held on disk [local filesystem]) or Redis. Redis is generally recommended as it provides an in memory cache which is substantially faster under load.
+Barbu's cache can be set to be either local (held on disk [local filesystem]) or Redis. Redis is generally recommended as it provides an in memory cache which is substantially faster under load. Redis also allows multiple instances of Barbu to share a cache, ensuring consistency in delivery within a clustered environment.
 
 The `ttl` setting defines the default Time To Live for cached images and assets in seconds. The setting is applied to invidiual images/assets at the point that they are first cached. Once the threshold is met, cached images and assets are expired, and a fresh copy is drawn from the source location.
 
 **Example #1: local caching**
 
-	"caching": {
-		"ttl": 3600,
-		"directory": "./cache/"
-	}
+  "caching": {
+    "ttl": 3600,
+    "directory": {
+      "enabled": true,
+      "path": "./cache/"
+    },
+    "redis": {
+      "enabled": false,
+      "host": "",
+      "port": 6379
+    }
+  }
 
 **Example #2: Redis cache**
 
-	"caching": {
-		"ttl": 3600,
-		"redis": {
-			"host": "tresting.qvhlji.ng.0001.euw1.cache.amazonaws.com",
-			"port": 6379
-		}
-	}
+  "caching": {
+    "ttl": 3600,
+    "directory": {
+      "enabled": false,
+      "path": ""
+    },
+    "redis": {
+      "enabled": true,
+      "host": "testing.qvhlji.ng.0001.euw1.cache.amazonaws.com",
+      "port": 6379
+    }
+  }
 
 ### clientCache
 
