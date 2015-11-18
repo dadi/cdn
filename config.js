@@ -1,4 +1,6 @@
 var convict = require('convict');
+var fs = require('fs');
+var path = require('path');
 
 // Define a schema
 var conf = convict({
@@ -230,5 +232,13 @@ conf.loadFile('./config/config.' + env + '.json');
 // Perform validation
 conf.validate({strict: false});
 
-module.exports = conf;
+//Update Config JSON file by domain name
+conf.updateConfigDataForDomain = function(domain) {
+  if(fs.existsSync(path.resolve(__dirname + '/workspace/domain-loader/' + domain + '.config.' + env + '.json'))) {
+    conf.loadFile(__dirname + '/workspace/domain-loader/' + domain + '.config.' + env + '.json');
+  } else {
+    console.log('No Config File Exists');
+  }
+};
 
+module.exports = conf;
