@@ -1,6 +1,6 @@
 ![Barbu](barbu.png)
 
-![Build Status](http://img.shields.io/badge/Release-0.1.9_Beta-green.svg?style=flat-square)&nbsp;[![License](http://img.shields.io/:License-MIT-blue.svg?style=flat-square)](http://dadi.mit-license.org)
+![Build Status](http://img.shields.io/badge/Release-0.1.10_Beta-green.svg?style=flat-square)&nbsp;[![License](http://img.shields.io/:License-MIT-blue.svg?style=flat-square)](http://dadi.mit-license.org)
 
 ## Contents
 
@@ -18,9 +18,9 @@
 
 ## Overview
 
-Barbu is built on Node.JS, with support for S3, Redis and Memcache. It is a high performance, just-in-time asset manipulation and delivery layer designed as a modern content distribution solution.
+Barbu is built on Node.JS, with support for S3 and Redis. It is a high performance, just-in-time asset manipulation and delivery layer designed as a modern content distribution solution.
 
-You can consider a full installation of Barbu as a CDN (Content Distribution Network). It is designed to carry the processing and delivery load associated with image manipulation and asset delivery. It acts autonomously as a layer on top of your core product.
+You can consider a full installation of Barbu as a CDN (Content Distribution Network). It is designed to carry the processing and delivery load associated with image manipulation and asset delivery (CSS/JS/fonts). It acts autonomously as a layer on top of your core product.
 
 It has full support for caching, header control, image manipulation, image compression and image format conversation. An authenticated API allows for fine grained cache control in the form of content invalidation on an individual file or collective path basis.
 
@@ -433,6 +433,7 @@ The `docs/` directory contains additional documentation on the component parts o
 * [Available filters](https://github.com/bantam-framework/barbu/blob/master/docs/filters.md)
 * [Compression](https://github.com/bantam-framework/barbu/blob/master/docs/compression.md)
 * [Configuration](https://github.com/bantam-framework/barbu/blob/master/docs/configuration.md)
+* [Multi-domain support](https://github.com/bantam-framework/barbu/blob/master/docs/domains.md)
 
 Feel free to contact the Bantam core development team on team@bant.am with questions.
 
@@ -453,9 +454,10 @@ We will capture planned updates and additions here. If you have anything to cont
 
 Planned additions:
 
-* CSS support (obfuscation and compression)
-* JavaScript support (obfuscation and compression)
-* Cloudfront invalidation chaining
+* ~~CSS support (obfuscation and compression)~~
+* ~~JavaScript support (obfuscation and compression)~~
+* ~~Cloudfront invalidation chaining~~
+* ~~Multiple domain support~~
 * Cluster support (master/slave API construct)
 * Integration of realtime analytics covering hits, bandwidth aggregates and throughput data
 * Audio and video support (we like a challenge)
