@@ -181,6 +181,17 @@ Server.prototype.start = function (options, done) {
             } else {
                 self.fetchOriginFileContent(url, fileName, fileExt, compress, res);
             }
+        } else if(paramString.split('/')[0] == 'fonts') {
+            var url = paramString.substring(paramString.split('/')[0].length + 1);
+            var fileName = url.split('/')[url.split('/').length - 1];
+            var fileExt = url.substring(url.lastIndexOf('.') + 1);
+            var supportExts = ['ttf', 'otf', 'woff', 'svg', 'eot'];
+            if(supportExts.indexOf(fileExt.toLowerCase()) < 0) {
+                var error = '<p>Font file type should be TTF, OTF, WOFF, SVG or EOT.</p>';
+                self.displayErrorPage(404, error, res);
+            } else {
+                self.fetchOriginFileContent(url, fileName, fileExt, 0, res);
+            }
         } else {
             if (paramString.split('/').length < 13 && !fs.existsSync(path.resolve(__dirname + '/../../workspace/recipes/' + paramString.split('/')[0] + '.json'))) {
                 var errorMessage = '<p>Url path is invalid.</p><p>The valid url path format:</p><p>http://some-example-domain.com/{format}/{quality}/{trim}/{trimFuzz}/{width}/{height}/{resizeStyle}/{gravity}/{filter}/{blur}/{strip}/{rotate}/{flip}/Imagepath</p>';
@@ -196,13 +207,27 @@ Server.prototype.start = function (options, done) {
                     var fileName = url.split('/')[url.split('/').length - 1];
                     var fileExt = url.substring(url.lastIndexOf('.') + 1);
                     if(recipe.settings.format == 'js' || recipe.settings.format == 'css') {
-                        if(fileName.split('.').length == 1) fileName = fileName + '.' + fileExt;
+                        if(fileName.split('.').length == 1) {
+                            fileExt = recipe.settings.format;
+                            fileName = fileName + '.' + fileExt;
+                        }
                         var compress = recipe.settings.compress;
                         if (compress != 0 && compress != 1) {
                             var error = '<p>Compress value should be 0 or 1.</p>';
                             self.displayErrorPage(404, error, res);
                         } else {
                             self.fetchOriginFileContent(url, fileName, fileExt, compress, res);
+                        }
+                        var options = {
+                            format: 'assets'
+                        };
+                    } else if(recipe.settings.format == 'fonts') {
+                        var supportExts = ['ttf', 'otf', 'woff', 'svg', 'eot'];
+                        if(supportExts.indexOf(fileExt.toLowerCase()) < 0) {
+                            var error = '<p>Font file type should be TTF, OTF, WOFF, SVG or EOT.</p>';
+                            self.displayErrorPage(404, error, res);
+                        } else {
+                            self.fetchOriginFileContent(url, fileName, fileExt, 0, res);
                         }
                         var options = {
                             format: 'assets'
