@@ -434,7 +434,6 @@ Server.prototype.initS3AssetsBucket = function () {
  */
 Server.prototype.initRedisClient = function () {
     this.client = redis.createClient(config.get('caching.redis.port'), config.get('caching.redis.host'), {
-        return_buffers: true,
         detect_buffers: true
     })
     this.client.on("error", function (err) {
