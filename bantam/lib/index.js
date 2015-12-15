@@ -346,9 +346,40 @@ Server.prototype.start = function (options, done) {
                                     res.setHeader('X-Cache', 'HIT');
                                     if(config.get('gzip')) {
                                         res.setHeader('content-encoding', 'gzip');
-                                        readStream.pipe(zlib.createGzip()).pipe(res);
+                                        var gzipStream = readStream.pipe(zlib.createGzip());
+							            var buffers = [];
+									    var fileSize = 0;
+
+									    function lengthListener(length) {
+									        fileSize = length;
+									    }
+
+									    gzipStream = gzipStream.pipe(lengthStream(lengthListener));
+									    gzipStream.on('data', function (buffer) {
+									        buffers.push(buffer);
+									    });
+									    gzipStream.on('end', function () {
+									        var buffer = Buffer.concat(buffers);
+									        res.setHeader('Content-Length', fileSize);
+									        res.end(buffer);
+									    });
                                     } else {
-                                        readStream.pipe(res);
+                                    	var buffers = [];
+									    var fileSize = 0;
+
+									    function lengthListener(length) {
+									        fileSize = length;
+									    }
+
+									    readStream = readStream.pipe(lengthStream(lengthListener));
+									    readStream.on('data', function (buffer) {
+									        buffers.push(buffer);
+									    });
+									    readStream.on('end', function () {
+									        var buffer = Buffer.concat(buffers);
+									        res.setHeader('Content-Length', fileSize);
+									        res.end(buffer);
+									    });
                                     }
                                 }
                             } else {
@@ -372,10 +403,41 @@ Server.prototype.start = function (options, done) {
                                         // Set cache header
                                         res.setHeader('X-Cache', 'HIT');
                                         if(config.get('gzip')) {
-                                            res.setHeader('content-encoding', 'gzip');
-                                            readStream.pipe(zlib.createGzip()).pipe(res);
+                                        	res.setHeader('content-encoding', 'gzip');
+                                        	var gzipStream = readStream.pipe(zlib.createGzip());
+								            var buffers = [];
+										    var fileSize = 0;
+
+										    function lengthListener(length) {
+										        fileSize = length;
+										    }
+
+										    gzipStream = gzipStream.pipe(lengthStream(lengthListener));
+										    gzipStream.on('data', function (buffer) {
+										        buffers.push(buffer);
+										    });
+										    gzipStream.on('end', function () {
+										        var buffer = Buffer.concat(buffers);
+										        res.setHeader('Content-Length', fileSize);
+										        res.end(buffer);
+										    });
                                         } else {
-                                            readStream.pipe(res);
+                                            var buffers = [];
+										    var fileSize = 0;
+
+										    function lengthListener(length) {
+										        fileSize = length;
+										    }
+
+										    readStream = readStream.pipe(lengthStream(lengthListener));
+										    readStream.on('data', function (buffer) {
+										        buffers.push(buffer);
+										    });
+										    readStream.on('end', function () {
+										        var buffer = Buffer.concat(buffers);
+										        res.setHeader('Content-Length', fileSize);
+										        res.end(buffer);
+										    });
                                         }
                                     }
                                 } else {
@@ -400,7 +462,7 @@ Server.prototype.start = function (options, done) {
 
         res.setHeader('Server', 'Bantam / Barbu');
         res.setHeader('Access-Control-Allow-Origin', '*');
-        
+
         if (config.get('clientCache.cacheControl')) res.setHeader('Cache-Control', config.get('clientCache.cacheControl'));
         if (config.get('clientCache.etag')) res.setHeader('ETag', config.get('clientCache.etag'));
 
@@ -476,24 +538,58 @@ Server.prototype.convertAndSave = function (readStream, originFileName, fileName
     magickVar.on('error', function (error) {
         self.displayErrorPage(404, error, res);
     });
+    
     var sharpStream = null;
     if(options.quality >= 70 && options.format.toLowerCase() == 'png') {
         sharpStream = sharp().png().compressionLevel(9);
     } else if(options.quality >= 70 && (options.format.toLowerCase() == 'jpg' || options.format.toLowerCase() == 'jpeg')){
         sharpStream = sharp().jpeg().compressionLevel(9);
     }
+
     var convertedStream = readStream.pipe(magickVar);
     if(sharpStream != null) {
         convertedStream = convertedStream.pipe(sharpStream);
     }
+
     if (returnJSON) {
         self.fetchImageInformation(convertedStream, originFileName, fileName, options, res);
     } else {
         if(config.get('gzip')) {
             res.setHeader('content-encoding', 'gzip');
-            convertedStream.pipe(zlib.createGzip()).pipe(res);
+            var gzipStream = convertedStream.pipe(zlib.createGzip());
+            var buffers = [];
+		    var fileSize = 0;
+
+		    function lengthListener(length) {
+		        fileSize = length;
+		    }
+
+		    gzipStream = gzipStream.pipe(lengthStream(lengthListener));
+		    gzipStream.on('data', function (buffer) {
+		        buffers.push(buffer);
+		    });
+		    gzipStream.on('end', function () {
+		        var buffer = Buffer.concat(buffers);
+		        res.setHeader('Content-Length', fileSize);
+		        res.end(buffer);
+		    });
         } else {
-            convertedStream.pipe(res);
+        	var buffers = [];
+		    var fileSize = 0;
+
+		    function lengthListener(length) {
+		        fileSize = length;
+		    }
+
+		    convertedStream = convertedStream.pipe(lengthStream(lengthListener));
+		    convertedStream.on('data', function (buffer) {
+		        buffers.push(buffer);
+		    });
+		    convertedStream.on('end', function () {
+		        var buffer = Buffer.concat(buffers);
+		        res.setHeader('Content-Length', fileSize);
+		        res.end(buffer);
+		    });
         }
     }
 
@@ -616,6 +712,7 @@ Server.prototype.fetchImageInformation = function (readStream, originFileName, f
             }
 
             res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Content-Length', fileSize);
             res.setHeader('X-Cache', 'HIT');
             res.end(JSON.stringify(jsonData));
         });
