@@ -193,8 +193,8 @@ Server.prototype.start = function (options, done) {
                 self.fetchOriginFileContent(url, fileName, fileExt, 0, res);
             }
         } else {
-            if (paramString.split('/').length < 13 && !fs.existsSync(path.resolve(__dirname + '/../../workspace/recipes/' + paramString.split('/')[0] + '.json'))) {
-                var errorMessage = '<p>Url path is invalid.</p><p>The valid url path format:</p><p>http://some-example-domain.com/{format}/{quality}/{trim}/{trimFuzz}/{width}/{height}/{resizeStyle}/{gravity}/{filter}/{blur}/{strip}/{rotate}/{flip}/Imagepath</p>';
+            if (paramString.split('/').length < 15 && !fs.existsSync(path.resolve(__dirname + '/../../workspace/recipes/' + paramString.split('/')[0] + '.json'))) {
+                var errorMessage = '<p>Url path is invalid.</p><p>The valid url path format:</p><p>http://some-example-domain.com/{format}/{quality}/{trim}/{trimFuzz}/{width}/{height}/{ratio}/{devicePixelRatio}/{resizeStyle}/{gravity}/{filter}/{blur}/{strip}/{rotate}/{flip}/Imagepath</p>';
                 self.displayErrorPage(404, errorMessage, res);
             } else {
                 if (fs.existsSync(path.resolve(__dirname + '/../../workspace/recipes/' + paramString.split('/')[0] + '.json'))) {
@@ -235,6 +235,7 @@ Server.prototype.start = function (options, done) {
                     } else {
                         var newFileName = url.replace(/[\/.]/g, '') + recipe.settings.format +
                         recipe.settings.quality + recipe.settings.trim + recipe.settings.trimFuzz + recipe.settings.width + recipe.settings.height +
+                        recipe.settings.ratio + recipe.settings.devicePixelRatio +
                         recipe.settings.resizeStyle + recipe.settings.gravity + recipe.settings.filter + recipe.settings.blur +
                         recipe.settings.strip + recipe.settings.rotate + recipe.settings.flip + '.' + recipe.settings.format;
 
@@ -242,11 +243,13 @@ Server.prototype.start = function (options, done) {
                             if (fileExt == fileName) {
                                 newFileName = url.replace(/[\/.]/g, '') + recipe.settings.format +
                                     recipe.settings.quality + recipe.settings.trim + recipe.settings.trimFuzz + recipe.settings.width + recipe.settings.height +
+                                    recipe.settings.ratio + recipe.settings.devicePixelRatio +
                                     recipe.settings.resizeStyle + recipe.settings.gravity + recipe.settings.filter + recipe.settings.blur +
                                     recipe.settings.strip + recipe.settings.rotate + recipe.settings.flip + '.png';
                             } else {
                                 newFileName = url.replace(/[\/.]/g, '') + recipe.settings.format +
                                     recipe.settings.quality + recipe.settings.trim + recipe.settings.trimFuzz + recipe.settings.width + recipe.settings.height +
+                                    recipe.settings.ratio + recipe.settings.devicePixelRatio +
                                     recipe.settings.resizeStyle + recipe.settings.gravity + recipe.settings.filter + recipe.settings.blur +
                                     recipe.settings.strip + recipe.settings.rotate + recipe.settings.flip + '.' + fileExt;
                             }
@@ -255,7 +258,7 @@ Server.prototype.start = function (options, done) {
                         var options = recipe.settings;
                     }
                 } else {
-                    var optionsArray = paramString.split('/').slice(0, 13);
+                    var optionsArray = paramString.split('/').slice(0, 15);
                     var url = paramString.substring(optionsArray.join('/').length + 1);
                     var fileName = url.split('/')[url.split('/').length - 1];
                     var fileExt = url.substring(url.lastIndexOf('.') + 1);
@@ -270,8 +273,8 @@ Server.prototype.start = function (options, done) {
                         }
                     }
 
-                    var gravity = optionsArray[7].substring(0, 1).toUpperCase() + optionsArray[7].substring(1);
-                    var filter = optionsArray[8].substring(0, 1).toUpperCase() + optionsArray[8].substring(1);
+                    var gravity = optionsArray[9].substring(0, 1).toUpperCase() + optionsArray[9].substring(1);
+                    var filter = optionsArray[10].substring(0, 1).toUpperCase() + optionsArray[10].substring(1);
                     /*
                      Options list
                      format:[e.g. png, jpg]
@@ -295,13 +298,15 @@ Server.prototype.start = function (options, done) {
                         trimFuzz: optionsArray[3],
                         width: optionsArray[4],
                         height: optionsArray[5],
-                        resizeStyle: optionsArray[6],
+                        ratio: optionsArray[6],
+                        devicePixelRatio: optionsArray[7],
+                        resizeStyle: optionsArray[8],
                         gravity: gravity,
                         filter: filter,
-                        blur: optionsArray[9],
-                        strip: optionsArray[10],
-                        rotate: optionsArray[11],
-                        flip: optionsArray[12]
+                        blur: optionsArray[11],
+                        strip: optionsArray[12],
+                        rotate: optionsArray[13],
+                        flip: optionsArray[14]
                     };
                 }
 
@@ -327,6 +332,8 @@ Server.prototype.start = function (options, done) {
                     if (options.quality == 0) delete options.quality;
                     if (options.trim == 0) delete options.trim;
                     if (options.trimFuzz == 0) delete options.trimFuzz;
+                    if (options.ratio == 0) delete options.ratio;
+                    if (options.devicePixelRatio == 0) delete options.devicePixelRatio;
                     if (options.resizeStyle == 0) delete options.resizeStyle;
                     if (options.blur == 0) delete options.blur;
                     if (options.strip == 0) delete options.strip;
@@ -534,6 +541,21 @@ Server.prototype.displayErrorPage = function (status, errorMessage, res) {
 Server.prototype.convertAndSave = function (readStream, originFileName, fileName, options, returnJSON, res) {
     var self = this;
     var encryptName = sha1(fileName);
+    var displayOption = options;
+    
+    if(options.ratio) {
+        var ratio = options.ratio.split('-');
+        if(!options.width && parseFloat(options.height) > 0) {
+            options.width = parseFloat(options.height) * (parseFloat(ratio[0]) / parseFloat(ratio[1]));
+        } else if(!options.height && parseFloat(options.width) > 0) {
+            options.height = parseFloat(options.width) * (parseFloat(ratio[1]) / parseFloat(ratio[0]));
+        }
+    }
+    if(options.devicePixelRatio) {
+        options.width = parseFloat(options.width) * parseFloat(options.devicePixelRatio);
+        options.height = parseFloat(options.height) * parseFloat(options.devicePixelRatio);
+    }
+
     var magickVar = imagemagick.streams.convert(options);
     magickVar.on('error', function (error) {
         self.displayErrorPage(404, error, res);
@@ -552,7 +574,7 @@ Server.prototype.convertAndSave = function (readStream, originFileName, fileName
     }
 
     if (returnJSON) {
-        self.fetchImageInformation(convertedStream, originFileName, fileName, options, res);
+        self.fetchImageInformation(convertedStream, originFileName, fileName, displayOption, res);
     } else {
         if(config.get('gzip')) {
             res.setHeader('content-encoding', 'gzip');
@@ -708,7 +730,9 @@ Server.prototype.fetchImageInformation = function (readStream, originFileName, f
                 blur: options.blur ? options.blur : 0,
                 strip: options.strip ? options.strip : 0,
                 rotate: options.rotate ? options.rotate : 0,
-                flip: options.flip ? options.flip : 0
+                flip: options.flip ? options.flip : 0,
+                ratio: options.ratio ? options.ratio : 0,
+                devicePixelRatio: options.devicePixelRatio ? options.devicePixelRatio : 0
             }
 
             res.setHeader('Content-Type', 'application/json');
