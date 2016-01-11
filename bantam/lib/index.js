@@ -22,6 +22,7 @@ var sha1 = require('sha1');
 var sharp = require('sharp');
 var url = require('url');
 var zlib = require('zlib');
+var imagesize = require('imagesize');
 
 var Router = require('router');
 var router = Router();
@@ -194,7 +195,7 @@ Server.prototype.start = function (options, done) {
             }
         } else {
             if (paramString.split('/').length < 15 && !fs.existsSync(path.resolve(__dirname + '/../../workspace/recipes/' + paramString.split('/')[0] + '.json'))) {
-                var errorMessage = '<p>Url path is invalid.</p><p>The valid url path format:</p><p>http://some-example-domain.com/{format}/{quality}/{trim}/{trimFuzz}/{width}/{height}/{ratio}/{devicePixelRatio}/{resizeStyle}/{gravity}/{filter}/{blur}/{strip}/{rotate}/{flip}/Imagepath</p>';
+                var errorMessage = '<p>Url path is invalid.</p><p>The valid url path format:</p><p>http://some-example-domain.com/{format}/{quality}/{trim}/{trimFuzz}/{width}/{height}/{crop-x}/{crop-y}/{ratio}/{devicePixelRatio}/{resizeStyle}/{gravity}/{filter}/{blur}/{strip}/{rotate}/{flip}/Imagepath</p>';
                 self.displayErrorPage(404, errorMessage, res);
             } else {
                 if (fs.existsSync(path.resolve(__dirname + '/../../workspace/recipes/' + paramString.split('/')[0] + '.json'))) {
@@ -258,7 +259,7 @@ Server.prototype.start = function (options, done) {
                         var options = recipe.settings;
                     }
                 } else {
-                    var optionsArray = paramString.split('/').slice(0, 15);
+                    var optionsArray = paramString.split('/').slice(0, 17);
                     var url = paramString.substring(optionsArray.join('/').length + 1);
                     var fileName = url.split('/')[url.split('/').length - 1];
                     var fileExt = url.substring(url.lastIndexOf('.') + 1);
@@ -273,8 +274,8 @@ Server.prototype.start = function (options, done) {
                         }
                     }
 
-                    var gravity = optionsArray[9].substring(0, 1).toUpperCase() + optionsArray[9].substring(1);
-                    var filter = optionsArray[10].substring(0, 1).toUpperCase() + optionsArray[10].substring(1);
+                    var gravity = optionsArray[11].substring(0, 1).toUpperCase() + optionsArray[11].substring(1);
+                    var filter = optionsArray[12].substring(0, 1).toUpperCase() + optionsArray[12].substring(1);
                     /*
                      Options list
                      format:[e.g. png, jpg]
@@ -283,6 +284,10 @@ Server.prototype.start = function (options, done) {
                      trimFuzz: [boolean 0/1]
                      width: [integer]
                      height: [integer]
+                     cropX: [integer]
+                     cropY: [integer]
+                     ratio: [String]
+                     devicePixelRatio: [integer]
                      resizeStyle: [aspectfill/aspectfit/fill]
                      gravity: ['NorthWest', 'North', 'NorthEast', 'West', 'Center', 'East', 'SouthWest', 'South', 'SouthEast', 'None']
                      filter: [e.g. 'Lagrange', 'Lanczos', 'none']
@@ -298,15 +303,17 @@ Server.prototype.start = function (options, done) {
                         trimFuzz: optionsArray[3],
                         width: optionsArray[4],
                         height: optionsArray[5],
-                        ratio: optionsArray[6],
-                        devicePixelRatio: optionsArray[7],
-                        resizeStyle: optionsArray[8],
+                        cropX: optionsArray[6],
+                        cropY: optionsArray[7],
+                        ratio: optionsArray[8],
+                        devicePixelRatio: optionsArray[9],
+                        resizeStyle: optionsArray[10],
                         gravity: gravity,
                         filter: filter,
-                        blur: optionsArray[11],
-                        strip: optionsArray[12],
-                        rotate: optionsArray[13],
-                        flip: optionsArray[14]
+                        blur: optionsArray[13],
+                        strip: optionsArray[14],
+                        rotate: optionsArray[15],
+                        flip: optionsArray[16]
                     };
                 }
 
@@ -332,6 +339,8 @@ Server.prototype.start = function (options, done) {
                     if (options.quality == 0) delete options.quality;
                     if (options.trim == 0) delete options.trim;
                     if (options.trimFuzz == 0) delete options.trimFuzz;
+                    if (options.cropX == 0) delete options.cropX;
+                    if (options.cropY == 0) delete options.cropY;
                     if (options.ratio == 0) delete options.ratio;
                     if (options.devicePixelRatio == 0) delete options.devicePixelRatio;
                     if (options.resizeStyle == 0) delete options.resizeStyle;
@@ -538,11 +547,11 @@ Server.prototype.displayErrorPage = function (status, errorMessage, res) {
  * fileName: file name to store converted image data
  * options: convert options
  */
-Server.prototype.convertAndSave = function (readStream, originFileName, fileName, options, returnJSON, res) {
+Server.prototype.convertAndSave = function (readStream, imageInfo, originFileName, fileName, options, returnJSON, res) {
     var self = this;
     var encryptName = sha1(fileName);
     var displayOption = options;
-    
+
     if(options.ratio) {
         var ratio = options.ratio.split('-');
         if(!options.width && parseFloat(options.height) > 0) {
@@ -562,21 +571,43 @@ Server.prototype.convertAndSave = function (readStream, originFileName, fileName
     });
     
     var sharpStream = null;
+    
     if(options.quality >= 70 && options.format.toLowerCase() == 'png') {
         sharpStream = sharp().png().compressionLevel(9);
     } else if(options.quality >= 70 && (options.format.toLowerCase() == 'jpg' || options.format.toLowerCase() == 'jpeg')){
         sharpStream = sharp().jpeg().compressionLevel(9);
+    } else if(options.cropX || options.cropY) {
+        sharpStream = sharp();
     }
-
-    var convertedStream = readStream.pipe(magickVar);
+        
     if(sharpStream != null) {
-        convertedStream = convertedStream.pipe(sharpStream);
+        var convertedStream = readStream.pipe(sharpStream);
+        if(options.cropX || options.cropY) {
+            var cropX = options.cropX?parseFloat(options.cropX):0;
+            var cropY = options.cropY?parseFloat(options.cropY):0;
+            var width = options.width?(parseFloat(options.width) + parseFloat(cropX)):0;
+            var height = options.height?(parseFloat(options.height) + parseFloat(cropY)):0;
+            var originalWidth = parseFloat(imageInfo.width);
+            var originalHeight = parseFloat(imageInfo.height);
+            if(width <= (originalWidth-cropX) && height <= (originalHeight-cropY)) {
+                if(width==0) width = originalWidth-cropX;
+                if(height==0) height = originalHeight-cropY;
+                convertedStream.extract(cropX, cropY, width, height);
+            } else {
+                self.displayErrorPage(404, 'Crop size is greater than image size.', res);
+                return;
+            }
+        } 
+        convertedStream = convertedStream.pipe(magickVar);     
+    } else {
+        var convertedStream = readStream.pipe(magickVar);
     }
 
     if (returnJSON) {
         self.fetchImageInformation(convertedStream, originFileName, fileName, displayOption, res);
     } else {
         if(config.get('gzip')) {
+
             res.setHeader('content-encoding', 'gzip');
             var gzipStream = convertedStream.pipe(zlib.createGzip());
             var buffers = [];
@@ -645,7 +676,10 @@ Server.prototype.createNewConvertImage = function (url, originFileName, newFileN
             url = config.get('images.remote.path') + '/' + url;
             request({url: url}, function (error, response, body) {
                 if (!error && response.statusCode == 200) {
-                    self.convertAndSave(request({url: url}), originFileName, newFileName, options, returnJSON, res);
+                    var tmpReadStream = request({url: url});
+                    imagesize(tmpReadStream, function(err, imageInfo) {
+                        self.convertAndSave(request({url: url}), imageInfo, originFileName, newFileName, options, returnJSON, res);
+                    });
                 }
                 else {
                     self.displayErrorPage(404, 'Image path "' + url + '" isn\'t valid.', res);
@@ -663,7 +697,13 @@ Server.prototype.createNewConvertImage = function (url, originFileName, newFileN
                         Bucket: config.get('images.s3.bucketName'),
                         Key: url
                     }).createReadStream();
-                    self.convertAndSave(s3ReadStream, originFileName, newFileName, options, returnJSON, res);
+                    var tmpReadStream = self.s3.getObject({
+                        Bucket: config.get('images.s3.bucketName'),
+                        Key: url
+                    }).createReadStream();
+                    imagesize(tmpReadStream, function(err, imageInfo) {
+                        self.convertAndSave(s3ReadStream, imageInfo, originFileName, newFileName, options, returnJSON, res);
+                    });
                 }
             })
         }
@@ -672,7 +712,10 @@ Server.prototype.createNewConvertImage = function (url, originFileName, newFileN
             url = path.join(imageDir, url);
             if (fs.existsSync(url)) {
                 var fsReadStream = fs.createReadStream(url);
-                self.convertAndSave(fsReadStream, originFileName, newFileName, options, returnJSON, res);
+                var tmpReadStream = fs.createReadStream(url);
+                imagesize(tmpReadStream, function(err, imageInfo) {
+                    self.convertAndSave(fsReadStream, imageInfo, originFileName, newFileName, options, returnJSON, res);
+                });
             }
             else {
                 self.displayErrorPage(404, 'File "' + url + '" doesn\'t exist.', res);
