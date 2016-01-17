@@ -14,7 +14,7 @@ The dimensions of the test image and of all output images is 1920 x 1080px.
 
 | Output quality | Image weight | Compression % | Image |
 | :------------- | :----------- | :----------- | :---- |
-| Original image | 2.6MB | N/A | ![Original image](../examples/original.jpg) |
+| Original image | 2.6MB | N/A | ![Original image](../assets/original.jpg) |
 | 80% | 705KB | 73.52% | ![80%](../assets/80pc.jpg) |
 | 60% | 498KB | 81.30% | ![60%](../assets/60pc.jpg) |
 | 40% | 396KB | 85.13% | ![40%](../assets/40pc.jpg) |
