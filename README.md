@@ -1,4 +1,4 @@
-![Barbu](barbu.png)
+![DADI CDN](http://cdn.dadi.tech/logo/dadi.png)
 
 ![Build Status](http://img.shields.io/badge/Release-0.1.10_Beta-green.svg?style=flat-square)&nbsp;[![License](http://img.shields.io/:License-MIT-blue.svg?style=flat-square)](http://dadi.mit-license.org)
 
