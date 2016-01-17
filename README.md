@@ -1,6 +1,6 @@
 # DADI CDN / Documentation
 
-![Build Status](http://img.shields.io/badge/Release-0.1.10_Beta-green.svg?style=flat-square)&nbsp;![Coverage](https://img.shields.io/badge/Coverage-88%-yellow.svg?style=flat-square)
+![Build Status](http://img.shields.io/badge/Release-0.1.11_Beta-green.svg?style=flat-square)&nbsp;![Coverage](https://img.shields.io/badge/Coverage-0%-yellow.svg?style=flat-square)
 
 ## Overview
 
