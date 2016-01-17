@@ -24,7 +24,7 @@
     "imagesize": "~1.0.0"
   },
   "scripts": {
-    "start": "node bantam/main"
+    "start": "node dadi/main"
   },
   "repository": {
     "type": "git",
