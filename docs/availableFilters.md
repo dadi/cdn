@@ -1,8 +1,8 @@
-![Barbu](../barbu.png)
+# DADI CDN
 
-# Filters
+## Filters
 
-## Simple resize filters
+### Simple resize filters
 
 - Point
 - Hermite
@@ -14,7 +14,7 @@
 - Quadratic
 - Mitchell
 
-## Windowed filters
+### Windowed filters
 
 - Lanczos
 - Hamming

@@ -4,7 +4,7 @@
 
 ### Overview
 
-Barbu's settings are defined in a configuration files mapped to environment variables. These are contained wihtin `/config`. An example file, containing all of the available configuration options can be found in `/config/config.development.json.sample`.
+DADI CDN's settings are defined in a configuration files mapped to environment variables. These are contained wihtin `/config`. An example file, containing all of the available configuration options can be found in `/config/config.development.json.sample`.
 
 ### Config options
 
@@ -148,7 +148,7 @@ Source assets (JavaScript/CSS) can be called either locally, from an S3 bucket o
 
 #### caching
 
-Barbu's cache can be set to be either local (held on disk [local filesystem]) or Redis. Redis is generally recommended as it provides an in memory cache which is substantially faster under load. Redis also allows multiple instances of Barbu to share a cache, ensuring consistency in delivery within a clustered environment.
+DADI CDN's cache can be set to be either local (held on disk [local filesystem]) or Redis. Redis is generally recommended as it provides an in memory cache which is substantially faster under load. Redis also allows multiple instances of DADI CDN to share a cache, ensuring consistency in delivery within a clustered environment.
 
 The `ttl` setting defines the default Time To Live for cached images and assets in seconds. The setting is applied to invidiual images/assets at the point that they are first cached. Once the threshold is met, cached images and assets are expired, and a fresh copy is drawn from the source location.
 
@@ -184,7 +184,7 @@ The `ttl` setting defines the default Time To Live for cached images and assets 
 
 ### clientCache
 
-The clientCache defines the cache headers that are sent with images/assets delivered by Barbu. They enable you to offset load by making use of modern browsers local caching.
+The clientCache defines the cache headers that are sent with images/assets delivered by DADI CDN. They enable you to offset load by making use of modern browsers local caching.
 
 You can read more about `cacheControl` and `etag` [here](https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/http-caching?hl=en).
 
@@ -210,7 +210,7 @@ You should set this to the maximum size of image required in your product.
 
 #### auth
 
-Barbu's internal API for cache invalidation uses two-legged OAuth. This configuration allows you to define a clientId and secret to secure the invalidation API.
+DADI CDN's internal API for cache invalidation uses two-legged OAuth. This configuration allows you to define a clientId and secret to secure the invalidation API.
 
 **Example**
 
@@ -221,7 +221,7 @@ Barbu's internal API for cache invalidation uses two-legged OAuth. This configur
 
 #### cloudfront
 
-Barbu works seamlessly with Cloudfront, allowing it to plug directly into global infrastructure. The `clodfront` settings in `config.json` enable Barbu's invalidation API to be chained directly with Cloudfront's invalidation API, meaning that an invalidation request sent to Barbu will have the effect of invalidating the same files in your Cloudfront distribution.
+DADI CDN works seamlessly with Cloudfront, allowing it to plug directly into global infrastructure. The `clodfront` settings in `config.json` enable DADI CDN's invalidation API to be chained directly with Cloudfront's invalidation API, meaning that an invalidation request sent to DADI CDN will have the effect of invalidating the same files in your Cloudfront distribution.
 
 **Example**
 
@@ -232,7 +232,7 @@ Barbu works seamlessly with Cloudfront, allowing it to plug directly into global
 
 #### GZIP
 
-Barbu supports GZIP compression, providiing a simple, effective way to save bandwidth and speed up your product.
+DADI CDN supports GZIP compression, providiing a simple, effective way to save bandwidth and speed up your product.
 
 **Example**
 
@@ -240,7 +240,7 @@ Barbu supports GZIP compression, providiing a simple, effective way to save band
 
 #### feedback
 
-With `feedbaack` set to `true`, Barbu will provide feedback directly to the console, enabling you monitor your installation. This is useful for intial setup and debugging. It should not be used in a proudction environment.
+With `feedbaack` set to `true`, DADI CDN will provide feedback directly to the console, enabling you monitor your installation. This is useful for intial setup and debugging. It should not be used in a proudction environment.
 
 **Example**
 

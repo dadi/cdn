@@ -10,7 +10,7 @@ Average byte per screen by content type:
 
 Improving web performance and giving a better experience is critical to good product design.
 
-Responsive images to the rescue! Right? Well, yes, but first we have to generate our responsive image assets. Thankfully Barbu makes this simple.
+Responsive images to the rescue! Right? Well, yes, but first we have to generate our responsive image assets. Thankfully DADI CDN makes this simple.
 
 ### Request structure
 
@@ -18,7 +18,7 @@ Responsive images to the rescue! Right? Well, yes, but first we have to generate
 
 ### Image manipulation options
 
-_Note: the format of the source image is automatically identified by Barbu_
+_Note: the format of the source image is automatically identified by DADI CDN_
 
 | Parameter     | Type          | Description |
 | :------------ | :------------ | :---------- |

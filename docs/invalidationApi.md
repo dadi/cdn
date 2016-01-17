@@ -2,7 +2,7 @@
 
 ## Invalidation API
 
-Barbu's cache, both local and Redis, can be invalidated on an individual image or file path basis using the invalidation API.
+DADI CDN's cache, both local and Redis, can be invalidated on an individual image or file path basis using the invalidation API.
 
 ### Authorisation
 
