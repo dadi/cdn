@@ -12,12 +12,9 @@ This guide assumes a single server using utilising local caching. For Redis setu
 
 ### Node.js latest
 
-1. `sudo apt-get update`
-2. `sudo apt-get upgrade`
-3. `sudo apt-get install python-software-properties`
-4. `sudo add-apt-repository ppa:chris-lea/node.js`
-5. `sudo apt-get update`
-6. `sudo apt-get install nodejs`
+1. `curl -sL https://deb.nodesource.com/setup_4.x | sudo -E bash -`
+2. `sudo apt-get install -y nodejs`
+3. `sudo apt-get install -y build-essential`
 
 ### ImageMagick
 
