@@ -476,7 +476,7 @@ Server.prototype.start = function (options, done) {
     var app = http.createServer(function (req, res) {
 		config.updateConfigDataForDomain(req.headers.host);
 
-        res.setHeader('Server', 'Bantam / Barbu');
+        res.setHeader('Server', 'DADI CDN');
         res.setHeader('Access-Control-Allow-Origin', '*');
 
         if (config.get('clientCache.cacheControl')) res.setHeader('Cache-Control', config.get('clientCache.cacheControl'));
@@ -569,9 +569,9 @@ Server.prototype.convertAndSave = function (readStream, imageInfo, originFileNam
     magickVar.on('error', function (error) {
         self.displayErrorPage(404, error, res);
     });
-    
+
     var sharpStream = null;
-    
+
     if(options.quality >= 70 && options.format.toLowerCase() == 'png') {
         sharpStream = sharp().png().compressionLevel(9);
     } else if(options.quality >= 70 && (options.format.toLowerCase() == 'jpg' || options.format.toLowerCase() == 'jpeg')){
@@ -579,7 +579,7 @@ Server.prototype.convertAndSave = function (readStream, imageInfo, originFileNam
     } else if(options.cropX || options.cropY) {
         sharpStream = sharp();
     }
-        
+
     if(sharpStream != null) {
         var convertedStream = readStream.pipe(sharpStream);
         if(options.cropX || options.cropY) {
@@ -597,8 +597,8 @@ Server.prototype.convertAndSave = function (readStream, imageInfo, originFileNam
                 self.displayErrorPage(404, 'Crop size is greater than image size.', res);
                 return;
             }
-        } 
-        convertedStream = convertedStream.pipe(magickVar);     
+        }
+        convertedStream = convertedStream.pipe(magickVar);
     } else {
         var convertedStream = readStream.pipe(magickVar);
     }

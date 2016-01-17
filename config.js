@@ -7,12 +7,12 @@ var conf = convict({
 
   server: {
     host: {
-      doc: "Barbu server IP address to bind to",
+      doc: "DADI CDN server IP address to bind to",
       format: 'ipaddress',
       default: '0.0.0.0'
     },
     port: {
-      doc: "Barbu server port to bind to",
+      doc: "DADI CDN server port to bind to",
       format: 'port',
       default: 8080
     }
@@ -115,7 +115,7 @@ var conf = convict({
       }
     }
   },
-  
+
   caching: {
     ttl: {
       doc: "",
@@ -132,7 +132,7 @@ var conf = convict({
         doc: "",
         format: String,
         default: "./cache/"
-      }      
+      }
     },
     redis: {
       enabled: {
