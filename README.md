@@ -14,23 +14,25 @@ CDN is part of DADI, a suite of components covering the full development stack, 
 
 ## Contents
 
-* [Overview](#overview)
-* [Requirements](#requirements)
-* [Setup and installation](#setup-and-installation)
-* [Working with images](#working-with-images)
-* [Working iwth images](#examples)
-* [Image data](#image-data)
-* [Working with JavaScript and CSS](#working-with-javascript-and-css)
-* [Delviery recipes](#delviery-recipes)
-* [The invalidation API](#the-invalidation-api)
-* [Configuration notes](#configuration-notes)
-* [Testing](#testing)
-* [Further reading](#further-reading)
-* [Development](#development)
-
-
-
-* [Available filters](https://github.com/bantam-framework/barbu/blob/master/docs/filters.md)
-* [Compression](https://github.com/bantam-framework/barbu/blob/master/docs/compression.md)
-* [Configuration](https://github.com/bantam-framework/barbu/blob/master/docs/configuration.md)
-* [Multi-domain support](https://github.com/bantam-framework/barbu/blob/master/docs/domains.md)
+* Overview (this document)
+* [Requirements](https://github.com/dadi/cdn/blob/docs/requirements.md)
+* Setup, installation and use
+	* [Setup and installation](https://github.com/dadi/cdn/blob/docs/setup-and-installation.md)
+	* [Configuration](https://github.com/dadi/cdn/blob/docs/configuration.md)
+	* [Configuration notes](https://github.com/dadi/cdn/blob/docs/configuration-notes.md)
+	* [Complete guide: Ubuntu](https://github.com/dadi/cdn/blob/docs/install-guide.ubuntu.md)
+* Images
+	* [Working with images](https://github.com/dadi/cdn/blob/docs/working-with-images.md)
+	* [Image manipulation examples](https://github.com/dadi/cdn/blob/docs/image-manipulation-examples.md)
+	* [Image data](https://github.com/dadi/cdn/blob/docs/image-data.md)
+	* [Available filters](https://github.com/dadi/cdn/blob/docs/available-filters.md)
+	* [Compression](https://github.com/dadi/cdn/blob/docs/compression.md)
+* JavaScript and CSS
+	* [Working with JavaScript and CSS](https://github.com/dadi/cdn/blob/docs/working-with-javascript-and-css.md)
+	* [JavaScript and CSS examples](https://github.com/dadi/cdn/blob/docs/javascript-and-css-example.md)
+* [Delviery recipes](https://github.com/dadi/cdn/blob/docs/delviery-recipes.md)
+* [Multi-domain support](https://github.com/dadi/cdn/blob/docs/multi-domain-support.md)
+* [Invalidation API](https://github.com/dadi/cdn/blob/docs/invalidation-api.md)
+* [Testing](https://github.com/dadi/cdn/blob/docs/testing.md)
+* [Development](https://github.com/dadi/cdn/blob/docs/development.md)
+* [License](https://github.com/dadi/cdn/blob/docs/license.md)
