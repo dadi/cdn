@@ -1,6 +1,6 @@
 # DADI CDN
 
-### JavaScript and CSS xamples
+### JavaScript and CSS examples
 
 #### Example #1: JavaScript
 
