@@ -45,7 +45,7 @@ GNU General Public License for more details.
 
 The GNU General Public License (GPL) is available at
 http://www.gnu.org/copyleft/gpl.html.<br />
-A copy can be found in the file COPYING distributed with
+A copy can be found in the file GPL distributed with
 these files.
 
-This copyright notice MUST APPEAR in all copies of the file!
+This copyright notice MUST APPEAR in all copies of the product!
