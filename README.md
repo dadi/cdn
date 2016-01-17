@@ -1,4 +1,4 @@
-![DADI CDN](dadi.png)
+# DADI CDN
 
 ![Build Status](http://img.shields.io/badge/Release-0.1.10_Beta-green.svg?style=flat-square)
 
