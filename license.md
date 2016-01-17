@@ -1,6 +1,6 @@
 # DADI CDN
 
-## Licence
+## License
 
 DADI is a data centric development and delivery stack, built specifically in support of the principles of API first and COPE.
 
