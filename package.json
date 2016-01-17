@@ -1,5 +1,5 @@
 {
-  "name": "dadi cdn",
+  "name": "dadi-cdn",
   "version": "0.1.11-beta",
   "dependencies": {
     "aws-sdk": "~2.2.17",
