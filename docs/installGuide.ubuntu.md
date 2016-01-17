@@ -67,7 +67,7 @@ To run DADI CDN in the background, install [Forever](https://github.com/nodejits
 
 Install DADI CDN as a service and ensure it loads on boot:
 
-`[sudo] forever-service install -s bantam/main.js -e NODE_ENV=production cdn --start`
+`[sudo] forever-service install -s dadi/main.js -e NODE_ENV=production cdn --start`
 
 _Note the environment variable - `NODE_ENV=production` - must be set to target the required config version._
 
