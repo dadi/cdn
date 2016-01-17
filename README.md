@@ -30,7 +30,7 @@ CDN is part of DADI, a suite of components covering the full development stack, 
 * JavaScript and CSS
 	* [Working with JavaScript and CSS](https://github.com/dadi/cdn/blob/docs/working-with-javascript-and-css.md)
 	* [JavaScript and CSS examples](https://github.com/dadi/cdn/blob/docs/javascript-and-css-examples.md)
-* [Delviery recipes](https://github.com/dadi/cdn/blob/docs/delivery-recipes.md)
+* [Delivery recipes](https://github.com/dadi/cdn/blob/docs/delivery-recipes.md)
 * [Multi-domain support](https://github.com/dadi/cdn/blob/docs/multi-domain-support.md)
 * [Invalidation API](https://github.com/dadi/cdn/blob/docs/invalidation-api.md)
 * [Testing](https://github.com/dadi/cdn/blob/docs/testing.md)
