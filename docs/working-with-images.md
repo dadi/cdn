@@ -6,7 +6,7 @@ The weight of the average product screen is about 2MB, and about two thirds of t
 
 Average byte per screen by content type:
 
-![Page weight breakdown](examples/page-weight-graph.png)
+![Page weight breakdown](../assets/page-weight-graph.png)
 
 Improving web performance and giving a better experience is critical to good product design.
 
