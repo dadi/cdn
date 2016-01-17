@@ -1,8 +1,0 @@
-{
-	"recipe": "sample-recipe",
-	"path": "/js",
-	"settings": {
-		"format": "js",
-		"compress": 1
-	}
-}
