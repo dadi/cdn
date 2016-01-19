@@ -33,7 +33,7 @@ CDN is part of DADI, a suite of components covering the full development stack, 
 * [Delivery recipes](https://github.com/dadi/cdn/blob/docs/docs/deliveryRecipes.md)
 * [Multi-domain support](https://github.com/dadi/cdn/blob/docs/docs/multiDomainSupport.md)
 * [Invalidation API](https://github.com/dadi/cdn/blob/docs/docs/invalidationApi.md)
-* [Testing](https://github.com/dadi/cdn/blob/docs/docs/testing.md)
+* [Response testing](https://github.com/dadi/cdn/blob/docs/docs/responseTesting.md)
 * [Development](https://github.com/dadi/cdn/blob/docs/docs/development.md)
 * [License](https://github.com/dadi/cdn/blob/docs/docs/license.md)
 * [GPL](https://github.com/dadi/cdn/blob/docs/docs/gpl.md)
