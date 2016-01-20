@@ -39,7 +39,8 @@ Source images can be called either locally, from an S3 bucket or remotely via a 
 			"enabled": false,
 			"accessKey": "",
 			"secretKey": "",
-			"bucketName": ""
+			"bucketName": "",
+			"region": ""
 		},
 		"remote": {
 			"enabled": false,
@@ -56,9 +57,10 @@ Source images can be called either locally, from an S3 bucket or remotely via a 
 		},
 		"s3": {
 			"enabled": true,
-			"accessKey": "AKIAJJHIE6YB7FVGVL7Q",
-			"secretKey": "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",
-			"bucketName": "dadi-image-testing"
+			"accessKey": "GIWJBDJWBDKJBWDJKW",
+			"secretKey": "JbdiwjgdiwdgiuHIHiwndinduNUNWUNSWuww",
+			"bucketName": "image-testing",
+			"region": "eu-west-1"
 		},
 		"remote": {
 			"enabled": false,
@@ -77,7 +79,8 @@ Source images can be called either locally, from an S3 bucket or remotely via a 
 			"enabled": false,
 			"accessKey": "",
 			"secretKey": "",
-			"bucketName": ""
+			"bucketName": "",
+			"region": ""
 		},
 		"remote": {
 			"enabled": true,
@@ -100,7 +103,8 @@ Source assets (JavaScript/CSS) can be called either locally, from an S3 bucket o
 			"enabled": false,
 			"accessKey": "",
 			"secretKey": "",
-			"bucketName": ""
+			"bucketName": "",
+			"region": ""
 		},
 		"remote": {
 			"enabled": false,
@@ -117,9 +121,10 @@ Source assets (JavaScript/CSS) can be called either locally, from an S3 bucket o
 		},
 		"s3": {
 			"enabled": true,
-			"accessKey": "AKIAJJHIE6YB7FVGVL7Q",
-			"secretKey": "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",
-			"bucketName": "dadi-image-testing"
+			"accessKey": "GIWJBDJWBDKJBWDJKW",
+			"secretKey": "JbdiwjgdiwdgiuHIHiwndinduNUNWUNSWuww",
+			"bucketName": "image-testing",
+			"region": ""
 		},
 		"remote": {
 			"enabled": false,
@@ -142,7 +147,7 @@ Source assets (JavaScript/CSS) can be called either locally, from an S3 bucket o
 		},
 			"remote": {
 			"enabled": true,
-			"path": "http://dh.dev.dadi.technology:3001"
+			"path": "http://somedomain.com:3001"
 		}
 	}
 
@@ -226,8 +231,9 @@ DADI CDN works seamlessly with Cloudfront, allowing it to plug directly into glo
 **Example**
 
 	"cloudfront": {
-		"accessKey": "AKIAJJHIE6YB7FVGVL7Q",
-		"secretKey": "OvIoiLgxQZszDuGCr5YWqKE/mNKlgSop+RqrkBTN"
+		"accessKey": "GIWJBDJWBDKJBWDJKW",
+		"secretKey": "JbdiwjgdiwdgiuHIHiwndinduNUNWUNSWuww",
+		"bucketName": ""
 	}
 
 #### GZIP
