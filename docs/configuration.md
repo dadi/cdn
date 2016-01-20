@@ -143,7 +143,8 @@ Source assets (JavaScript/CSS) can be called either locally, from an S3 bucket o
 			"enabled": false,
 			"accessKey": "",
 			"secretKey": "",
-			"bucketName": ""
+			"bucketName": "",
+			"region": ""
 		},
 			"remote": {
 			"enabled": true,
@@ -233,7 +234,8 @@ DADI CDN works seamlessly with Cloudfront, allowing it to plug directly into glo
 	"cloudfront": {
 		"accessKey": "GIWJBDJWBDKJBWDJKW",
 		"secretKey": "JbdiwjgdiwdgiuHIHiwndinduNUNWUNSWuww",
-		"bucketName": ""
+		"bucketName": "",
+		"region": ""
 	}
 
 #### GZIP
