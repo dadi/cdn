@@ -15,7 +15,8 @@
       "enabled": false,
       "accessKey": "",
       "secretKey": "",
-      "bucketName": ""
+      "bucketName": "",
+      "region": ""
     },
     "remote": {
       "enabled": false,
@@ -33,7 +34,8 @@
       "enabled": false,
       "accessKey": "",
       "secretKey": "",
-      "bucketName": ""
+      "bucketName": "",
+      "region": ""
     },
     "remote": {
       "enabled": false,

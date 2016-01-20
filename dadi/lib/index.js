@@ -496,8 +496,14 @@ Server.prototype.start = function (options, done) {
 Server.prototype.initS3Bucket = function () {
     AWS.config.update({
         accessKeyId: config.get('images.s3.accessKey'),
-        secretAccessKey: config.get('images.s3.secretKey')
+        secretAccessKey: config.get('images.s3.secretKey')        
     });
+    if(config.get('images.s3.region') && config.get('images.s3.region') != "") {
+        AWS.config.update({
+            region: config.get('images.s3.region')
+        });
+    }
+    
     this.s3 = new AWS.S3();
 };
 
@@ -506,6 +512,12 @@ Server.prototype.initS3AssetsBucket = function () {
         accessKeyId: config.get('assets.s3.accessKey'),
         secretAccessKey: config.get('assets.s3.secretKey')
     });
+    if(config.get('images.s3.region') && config.get('images.s3.region') != "") {
+        AWS.config.update({
+            region: config.get('images.s3.region')
+        });
+    }
+    
     this.assetsS3 = new AWS.S3();
 };
 

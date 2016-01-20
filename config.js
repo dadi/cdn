@@ -51,6 +51,11 @@ var conf = convict({
         doc: "",
         format: String,
         default: "dadi-image-testing"
+      },
+      region: {
+        doc: "",
+        format: String,
+        default: ""
       }
     },
     remote: {
@@ -100,6 +105,11 @@ var conf = convict({
         doc: "",
         format: String,
         default: "dadi-image-testing"
+      },
+      region: {
+        doc: "",
+        format: String,
+        default: ""
       }
     },
     remote: {
