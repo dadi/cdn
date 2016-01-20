@@ -1,9 +1,9 @@
 {
   "server": {
       "host": "0.0.0.0",
-      "port": 3000
+      "port": 80
   },
-  
+
   // Either directory, s3 or remote should be enabled
 
   "images": {
@@ -13,13 +13,13 @@
     },
     "s3": {
       "enabled": false,
-      "accessKey": "AKIAJJHIE6YB7FVGVL7Q",
-      "secretKey": "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",
-      "bucketName": "dadi-image-testing"
+      "accessKey": "",
+      "secretKey": "",
+      "bucketName": ""
     },
     "remote": {
       "enabled": false,
-      "path": "http://dh.dev.dadi.technology:3001"
+      "path": ""
     }
   },
 
@@ -31,13 +31,13 @@
     },
     "s3": {
       "enabled": false,
-      "accessKey": "AKIAJJHIE6YB7FVGVL7Q",
-      "secretKey": "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",
-      "bucketName": "dadi-image-testing"
+      "accessKey": "",
+      "secretKey": "",
+      "bucketName": ""
     },
     "remote": {
       "enabled": false,
-      "path": "http://dh.dev.dadi.technology:3001"
+      "path": ""
     }
   },
 
@@ -50,7 +50,7 @@
     },
     "redis": {
       "enabled": false,
-      "host": "tresting.qvhlji.ng.0001.euw1.cache.amazonaws.com",
+      "host": "",
       "port": 6379
     }
   },
@@ -67,8 +67,8 @@
     "secret": "asd544see68e52"
   },
   "cloudfront": {
-    "accessKey": "AKIAJJHIE6YB7FVGVL7Q",
-    "secretKey": "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"
+    "accessKey": "",
+    "secretKey": ""
   },
   "gzip": true,
   "feedback": false
