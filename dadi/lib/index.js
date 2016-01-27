@@ -587,14 +587,14 @@ Server.prototype.convertAndSave = function (readStream, imageInfo, originFileNam
     if(options.quality >= 70 && options.format.toLowerCase() == 'png') {
         sharpStream = sharp().png().compressionLevel(9);
     } else if(options.quality >= 70 && (options.format.toLowerCase() == 'jpg' || options.format.toLowerCase() == 'jpeg')){
-        sharpStream = sharp().jpeg().compressionLevel(9);
-    } else if(options.cropX || options.cropY) {
+        sharpStream = sharp().flatten().jpeg().compressionLevel(9);
+    } else if(options.cropX && options.cropY) {
         sharpStream = sharp();
     }
 
     if(sharpStream != null) {
         var convertedStream = readStream.pipe(sharpStream);
-        if(options.cropX || options.cropY) {
+        if(options.cropX && options.cropY) {
             var cropX = options.cropX?parseFloat(options.cropX):0;
             var cropY = options.cropY?parseFloat(options.cropY):0;
             var width = options.width?(parseFloat(options.width) + parseFloat(cropX)):0;
