@@ -41,7 +41,6 @@ var Server = function () {
 
 Server.prototype.start = function (options, done) {
     var self = this;
-
     //Monitor config.json file
     self.addMonitor(configPath, function (filename) {
         delete require.cache[configPath];
@@ -83,9 +82,11 @@ Server.prototype.start = function (options, done) {
         // check header or url parameters or post parameters for token
         var query = url.parse(req.url, true).query;
 
-        var token = query.token || req.headers['x-access-token'];
-
-
+        var parts = req.headers.authorization.split(' ');
+        var token;
+        if (parts.length == 2 && /^Bearer$/i.test(parts[0])) {
+            token = parts[1];
+        }
         // decode token
         if (token) {
             // verifies secret and checks exp
@@ -111,24 +112,33 @@ Server.prototype.start = function (options, done) {
         }
     };
 
-    //Authentication router
-    router.post('/authenticate', function (req, res) {
-        var token = jwt.sign({client: config.get('auth.clientId')}, config.get('auth.secret'), {
-            expiresInMinutes: 1440 // expires in 24 hours
-        });
-
-        // return the information including token as JSON
-        res.end(JSON.stringify({
-            success: true,
-            message: 'Enjoy your token!',
-            token: token
-        }));
-    });
-
     //Invalidation request middleware
     router.use('/api', isAuthenticated);
 
     router.use(bodyParser.json({limit: '50mb'}));
+    //Authentication router
+    router.post('/token', function (req, res) {
+        var clientId = req.body.clientId;
+        var secret = req.body.secret;
+        if(clientId == config.get('auth.clientId') && secret == config.get('auth.secret')) {
+
+            var token = jwt.sign({client: config.get('auth.clientId')}, config.get('auth.secret'), {
+                expiresIn: 86400 // expires in 24 hours
+            });
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Cache-Control', 'no-store');
+            res.setHeader('Pragma', 'no-cache');
+            res.end(JSON.stringify({
+                accessToken: token,
+                tokenType: "Bearer",
+                expiresIn: config.get('auth.tokenTtl')
+            }));
+        } else {
+            res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+            res.setHeader('Expires', '-1');
+            self.displayErrorPage(401, 'Unauthorized', res);
+        }
+    });
 
     //Invalidation request
     router.post('/api', function (req, res) {
@@ -592,6 +602,10 @@ Server.prototype.convertAndSave = function (readStream, imageInfo, originFileNam
         sharpStream = sharp();
     }
 
+    if(imageInfo.format.toLowerCase() == 'gif') {
+        readStream = readStream.pipe(imagemagick.streams.convert({format: options.format}));
+    }
+
     if(sharpStream != null) {
         var convertedStream = readStream.pipe(sharpStream);
         if(options.cropX && options.cropY) {
@@ -619,7 +633,6 @@ Server.prototype.convertAndSave = function (readStream, imageInfo, originFileNam
         self.fetchImageInformation(convertedStream, originFileName, fileName, displayOption, res);
     } else {
         if(config.get('gzip')) {
-
             res.setHeader('content-encoding', 'gzip');
             var gzipStream = convertedStream.pipe(zlib.createGzip());
             var buffers = [];

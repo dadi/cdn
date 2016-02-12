@@ -201,6 +201,11 @@ var conf = convict({
       doc: "",
       format: String,
       default: "asd544see68e52"
+    },
+    tokenTtl: {
+      doc: "",
+      format: Number,
+      default: 1800
     }
   },
   cloudfront: {
