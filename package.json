@@ -7,6 +7,7 @@
     "cloudfront": "~0.3.3",
     "color-thief": "~2.2.1",
     "convict": "^1.0.1",
+    "file-type": "^3.7.0",
     "finalhandler": "~0.4.0",
     "fs-finder": "~1.8.1",
     "imagemagick-native": "~1.8.0",
@@ -25,7 +26,8 @@
     "underscore": "~1.8.3"
   },
   "scripts": {
-    "start": "node dadi/main"
+    "start": "node dadi/main",
+    "test": "mocha"
   },
   "repository": {
     "type": "git",

@@ -20,8 +20,10 @@
  */
 
  var gd = require('node-gd');
+ var filetype = require('file-type');
 
  function Image(){
+   //load image by format
    this.load = function(buffer, type){
      return new Promise(function(resolve, reject){
        openByFormat = {
@@ -30,6 +32,17 @@
          'png': gd.createFromPngPtr,
          'gif': gd.createFromGifPtr
        };
+
+       if(typeof buffer === 'string'){
+         console.log('Buffer was a string');
+         buffer = new Buffer(buffer, 'utf8');
+         console.log(typeof buffer);
+         console.log(filetype(buffer));
+       }
+
+       if(!type){
+         type = filetype(buffer).ext;
+       }
 
        var ptr = openByFormat[type](buffer);
        if(ptr && ptr instanceof gd.Image){
@@ -55,9 +68,20 @@
    this.crop = function(){
 
    };
-
-   this.save = function(){
-
+   //returns the raw encoded image
+   this.save = function(img, type, quality){
+     return new Promise(function(resolve, reject){
+       var formats = {
+         'gif': 'gifPtr',
+         'jpg': 'jpegPtr',
+         'jpeg': 'jpegPtr',
+         'png': 'pngPtr'
+       };
+       if(type !== 'jpg' || type !== 'jpeg') quality = null;
+       if(!formats[type]) return reject(new Error('Unsupported format'));
+       var data = img[formats[type]](); //this is scary, I know
+       return resolve(data);
+     });
    };
  }
 
