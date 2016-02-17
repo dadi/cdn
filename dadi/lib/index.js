@@ -11,7 +11,6 @@ var Finder = require('fs-finder');
 var fs = require('fs');
 var http = require('http');
 var imagemagick = require('imagemagick-native');
-var jwt = require('jsonwebtoken'); // used to create, sign, and verify tokens
 var lengthStream = require('length-stream');
 var path = require('path');
 var redis = require("redis");
@@ -23,7 +22,8 @@ var sharp = require('sharp');
 var url = require('url');
 var zlib = require('zlib');
 var imagesize = require('imagesize');
-
+var uuid = require('node-uuid');
+var persist = require('node-persist');
 var Router = require('router');
 var router = Router();
 
@@ -41,6 +41,10 @@ var Server = function () {
 
 Server.prototype.start = function (options, done) {
     var self = this;
+    persist.initSync();
+    if(!persist.getItem('token')){
+        persist.setItemSync('token',[]);
+    }
     //Monitor config.json file
     self.addMonitor(configPath, function (filename) {
         delete require.cache[configPath];
@@ -79,36 +83,41 @@ Server.prototype.start = function (options, done) {
 
     //Authentication middleware
     function isAuthenticated(req, res, next) {
-        // check header or url parameters or post parameters for token
-        var query = url.parse(req.url, true).query;
-
-        var parts = req.headers.authorization.split(' ');
+        // check header for token
         var token;
-        if (parts.length == 2 && /^Bearer$/i.test(parts[0])) {
-            token = parts[1];
-        }
-        // decode token
-        if (token) {
-            // verifies secret and checks exp
-            jwt.verify(token, config.get('auth.secret'), function (err, decoded) {
-                if (err) {
-                    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
-                    res.setHeader('Expires', '-1');
-                    self.displayErrorPage(403, 'Failed to authenticate token.', res);
-                } else {
-                    // if everything is good, save to request for use in other routes
-                    req.decoded = decoded;
-                    next();
-                }
-            });
+        if(req.headers.authorization) {
+            var parts = req.headers.authorization.split(' ');
 
+            if (parts.length == 2 && /^Bearer$/i.test(parts[0])) {
+                token = parts[1];
+            }
+        } else {
+            self.displayUnauthorizationError(res, 'There isn\'t authorization header');
+        }
+
+        if (token) {
+            // Check token
+            var token_list = persist.getItem('token');
+            if(token_list.length > 0) {
+                var existToken = 0;
+                for(var i = 0; i < token_list.length; i++) {
+                    var local_token_item = token_list[i];
+                    if(token == local_token_item.token && parseInt(local_token_item.tokenExpire) >= Date.now()) {
+                        existToken++;
+                    } 
+                }
+                if(existToken > 0) {
+                    next();
+                } else {
+                    self.displayUnauthorizationError(res, 'Invalid token');
+                }
+            } else {
+                self.displayUnauthorizationError(res, 'Token doesn\'t exist');
+            }
         } else {
             // if there is no token
             // return an error
-            res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
-            res.setHeader('Expires', '-1');
-            self.displayErrorPage(403, 'No token provided.', res);
-
+            self.displayUnauthorizationError(res, 'Invalid token');
         }
     };
 
@@ -121,10 +130,11 @@ Server.prototype.start = function (options, done) {
         var clientId = req.body.clientId;
         var secret = req.body.secret;
         if(clientId == config.get('auth.clientId') && secret == config.get('auth.secret')) {
+            var token = uuid.v4();
+            var token_list = persist.getItem('token');
+            token_list.push({token: token, tokenExpire: Date.now() + (config.get('auth.tokenTtl') * 1000)});
+            persist.setItemSync('token', token_list);
 
-            var token = jwt.sign({client: config.get('auth.clientId')}, config.get('auth.secret'), {
-                expiresIn: 86400 // expires in 24 hours
-            });
             res.setHeader('Content-Type', 'application/json');
             res.setHeader('Cache-Control', 'no-store');
             res.setHeader('Pragma', 'no-cache');
@@ -134,9 +144,7 @@ Server.prototype.start = function (options, done) {
                 expiresIn: config.get('auth.tokenTtl')
             }));
         } else {
-            res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
-            res.setHeader('Expires', '-1');
-            self.displayErrorPage(401, 'Unauthorized', res);
+            self.displayUnauthorizationError(res);
         }
     });
 
@@ -561,6 +569,26 @@ Server.prototype.displayErrorPage = function (status, errorMessage, res) {
     res.write('<h1>Server Error</h1>');
     res.write('<pre>' + errorMessage + '</pre>');
     res.end();
+}
+
+/**
+ * Display Unauthorization Error Page
+ */
+Server.prototype.displayUnauthorizationError = function (res, message) {
+    res.statusCode = 401;
+    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    res.setHeader('WWW-Authenticate', 'Bearer realm="cdn-server"');
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Expires', '-1');
+    var errorMsg = {
+        Error: '401 Unauthorized'
+    };
+    if(message) {
+        errorMsg = {
+            Error: message
+        };
+    }
+    res.end(JSON.stringify(errorMsg));
 }
 
 /**
