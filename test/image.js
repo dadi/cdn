@@ -18,10 +18,6 @@ describe('Image Library', function(){
   });
   it('Should save the image as a png', function(done){
     image.save(testImagePtr, 'png')
-    .then(function(image){
-      console.log('Image type', typeof image); 
-      return image;
-    })
     .then(image.load)
     .then(function(){
       return done();

@@ -24,7 +24,7 @@
 
  function Image(){
    //load image by format
-   this.load = function(buffer, type){
+   this.load = function(buff, type){
      return new Promise(function(resolve, reject){
        openByFormat = {
          'jpg': gd.createFromJpegPtr,
@@ -33,18 +33,20 @@
          'gif': gd.createFromGifPtr
        };
 
-       if(typeof buffer === 'string'){
-         console.log('Buffer was a string');
-         buffer = new Buffer(buffer, 'utf8');
-         console.log(typeof buffer);
-         console.log(filetype(buffer));
+       if(typeof buff === 'string'){
+         buff = new Buffer(buff, 'ascii');
        }
 
        if(!type){
-         type = filetype(buffer).ext;
+         var ftype = filetype(buff);
+         if(ftype && ftype.ext){
+           type = ftype.ext;
+         }else{
+           return reject(new Error('Failed to infer image type'));
+         }
        }
 
-       var ptr = openByFormat[type](buffer);
+       var ptr = openByFormat[type](buff);
        if(ptr && ptr instanceof gd.Image){
          return resolve(ptr);
        }else{
