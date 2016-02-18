@@ -55,21 +55,38 @@
      });
    };
 
-   this.blur = function(){
-
+   this.blur = function(img, amt){
+     return new Promise(function(resolve, reject){
+       if(!amt) amt = 1;
+       for(var n = 0; n < amt; n++){
+         img.gaussianBlur();
+       }
+       return resolve(img);
+     });
    };
 
-   this.flip = function(){
-
+   this.flip = function(img, vertical){
+     return new Promise(function(resolve, reject){
+       if(vertical){
+         img.flipVertical();
+       }else{
+         img.flipHorizontal();
+       }
+       return resolve(img);
+     });
    };
 
-   this.rotate = function(){
-
+   this.crop = function(img, x, y, width, height){
+     return new Promise(function(resolve, reject){
+       if(!x) x = 0;
+       if(!y) y = 0;
+       if(!width) width = img.width;
+       if(!height) height = img.height;
+       img = img.crop(x, y, width, height);
+       return resolve(img);
+     });
    };
 
-   this.crop = function(){
-
-   };
    //returns the raw encoded image
    this.save = function(img, type, quality){
      return new Promise(function(resolve, reject){

@@ -5,3 +5,4 @@ config.qa.json
 
 npm-debug.log
 node_modules/
+results.png
