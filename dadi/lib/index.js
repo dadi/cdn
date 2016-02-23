@@ -750,7 +750,7 @@ Server.prototype.createNewConvertImage = function (url, originFileName, newFileN
                     self.displayErrorPage(404, err, res);
                 }
                 else {
-                    var size = parseInt(data.Headers['content-length']);
+                    var size = parseInt(data.ContentLength);
                     if(size === 0) {
                         return self.displayErrorPage(404, 'File size is 0 byte.', res);
                     }
