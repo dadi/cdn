@@ -729,6 +729,10 @@ Server.prototype.createNewConvertImage = function (url, originFileName, newFileN
             url = config.get('images.remote.path') + '/' + url;
             request({url: url}, function (error, response, body) {
                 if (!error && response.statusCode == 200) {
+                    var size = parseInt(response.headers['content-length']);
+                    if(size === 0) {
+                        return self.displayErrorPage(404, 'File size is 0 byte.', res);
+                    } 
                     var tmpReadStream = request({url: url});
                     imagesize(tmpReadStream, function(err, imageInfo) {
                         self.convertAndSave(request({url: url}), imageInfo, originFileName, newFileName, options, returnJSON, res);
@@ -746,6 +750,10 @@ Server.prototype.createNewConvertImage = function (url, originFileName, newFileN
                     self.displayErrorPage(404, err, res);
                 }
                 else {
+                    var size = parseInt(data.Headers['content-length']);
+                    if(size === 0) {
+                        return self.displayErrorPage(404, 'File size is 0 byte.', res);
+                    }
                     var s3ReadStream = self.s3.getObject({
                         Bucket: config.get('images.s3.bucketName'),
                         Key: url
@@ -765,10 +773,16 @@ Server.prototype.createNewConvertImage = function (url, originFileName, newFileN
             url = path.join(imageDir, url);
             if (fs.existsSync(url)) {
                 var fsReadStream = fs.createReadStream(url);
+                var stats = fs.statSync(url);
+                var fileSize = parseInt(stats["size"]);
+                if(fileSize === 0) {
+                    return self.displayErrorPage(404, 'File size is 0 byte.', res);
+                } 
                 var tmpReadStream = fs.createReadStream(url);
                 imagesize(tmpReadStream, function(err, imageInfo) {
                     self.convertAndSave(fsReadStream, imageInfo, originFileName, newFileName, options, returnJSON, res);
                 });
+            
             }
             else {
                 self.displayErrorPage(404, 'File "' + url + '" doesn\'t exist.', res);
