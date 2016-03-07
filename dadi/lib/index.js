@@ -611,8 +611,8 @@ Server.prototype.convertAndSave = function (readStream, imageInfo, originFileNam
         }
     }
     if(options.devicePixelRatio) {
-        options.width = parseFloat(options.width) * parseFloat(options.devicePixelRatio);
-        options.height = parseFloat(options.height) * parseFloat(options.devicePixelRatio);
+        options.width = parseFloat(options.width?options.width:imageInfo.width) * parseFloat(options.devicePixelRatio);
+        options.height = parseFloat(options.height?options.height:imageInfo.height) * parseFloat(options.devicePixelRatio);
     }
 
     var magickVar = imagemagick.streams.convert(options);
