@@ -15,6 +15,11 @@ var conf = convict({
       doc: "DADI CDN server port to bind to",
       format: 'port',
       default: 8080
+    },
+    name: {
+      doc: "Server name",
+      format: String,
+      default: "DADI (CDN)"
     }
   },
 
@@ -209,6 +214,11 @@ var conf = convict({
     }
   },
   cloudfront: {
+    enabled: {
+      doc: "",
+      format: Boolean,
+      default: false
+    },
     accessKey: {
       doc: "",
       format: String,
@@ -218,6 +228,11 @@ var conf = convict({
       doc: "",
       format: String,
       default: "OvIoiLgxQZszDuGCr5YWqKE/mNKlgSop+RqrkBTN"
+    },
+    distribution: {
+      doc: "",
+      format: String,
+      default: "target_distribution"
     }
   },
   gzip: {
