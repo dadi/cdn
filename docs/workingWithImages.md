@@ -14,7 +14,7 @@ Responsive images to the rescue! Right? Well, yes, but first we have to generate
 
 ### Request structure
 
-`http{s}://{domain}/{format}/{quality}/{trim}/{trimFuzz}/{width}/{height}/{resizeStyle}/{gravity}/{filter}/{blur}/{strip}/{rotate}/{flip}/{srcData}`
+`http{s}://{domain}/{format}/{quality}/{trim}/{trimFuzz}/{width}/{height}/{crop-x}/{crop-y}/{ratio}/{devicePixelRatio}/{resizeStyle}/{gravity}/{filter}/{blur}/{strip}/{rotate}/{flip}/{srcData}`
 
 ### Image manipulation options
 
@@ -28,6 +28,10 @@ _Note: the format of the source image is automatically identified by DADI CDN_
 | trimFuzz | Float | 0-1, default: 0. Trimmed color distance to edge color, 0 is exact |
 | width | Integer | Default: 0 (inherits original image size). Px |
 | height | Integer | Default: 0 (inherits original image size). Px |
+| crop-x | Integer | Default: 0. X position of crop area |
+| crop-y | Integer | Default: 0. Y position of crop area |
+| ratio | String | Default: 0.  Aspect ratio cropping. E.g. '16-9', '3-2' |
+| devicePixelRatio | Integer | Default: 0. Zoom In/Out of Image |
 | resizeStyle | String | Default: 0 (interipted as 'aspectfill'). Options: 'aspectfill', 'aspectfit', 'fill' |
 | gravity | String | Default: 0 (interipted as 'none'). Used to position the crop area when resizeStyle is 'aspectfill'. Options: 'NorthWest', 'North', 'NorthEast', 'West', 'Center', 'East', 'SouthWest', 'South', 'SouthEast', 'None' |
 | filter | String | Default: 0 (interipted as 'none'). Resize filter. E.g. 'Lagrange', 'Lanczos'. See docs below for full list of candidates |
