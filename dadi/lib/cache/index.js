@@ -7,12 +7,16 @@ var async = require('async');
 
 var config = require(__dirname + '/../../../config');
 
-var Cache = function() {
+var Cache = function(client) {
+
   this.enabled = config.get('caching.directory.enabled') || config.get('caching.redis.enabled');
   this.dir = config.get('caching.directory.path');
 
-  this.redisClient = null;
-  this.initRedisClient();
+  this.options = {};
+
+  this.redisClient = client;
+
+  var self = this;
 
   if (config.get('caching.directory.enabled') && !fs.existsSync(this.dir)) {
     fs.mkdirSync(this.dir);
@@ -20,46 +24,17 @@ var Cache = function() {
 };
 
 var instance;
-module.exports = function() {
+module.exports = function(client) {
   if (!instance) {
-    instance = new Cache();
+    instance = new Cache(client);
   }
   return instance;
-};
-
-// reset method for unit tests
-module.exports.reset = function() {
-  instance = null;
 };
 
 // get method for redis client
 module.exports.client = function() {
   if (instance) return instance.redisClient;
   return null;
-};
-
-/**
- * Create a Redis Client with configuration
- */
-Cache.prototype.initRedisClient = function () {
-  if (!config.get('caching.redis.enabled')) return;
-
-  var self = this;
-  this.redisClient = redis.createClient(config.get('caching.redis.port'), config.get('caching.redis.host'), {
-    detect_buffers: true
-  });
-
-  this.redisClient.on("error", function (err) {
-    console.log("Error " + err);
-  }).on("connect", function () {
-    console.log('Redis client Connected');
-  });
-
-  if (config.get('caching.redis.password')) {
-    this.redisClient.auth(config.get('caching.redis.password'), function () {
-      console.log('Redis client connected');
-    });
-  }
 };
 
 Cache.prototype.cacheImage = function(convertedStream, encryptName, next) {
@@ -87,7 +62,7 @@ Cache.prototype.cacheImage = function(convertedStream, encryptName, next) {
 Cache.prototype.cacheJSCSSFiles = function(readStream, fileName, next) {
   var self = this;
   if (config.get('caching.redis.enabled')) {
-    readStream.pipe(redisWStream(self.redisClient, fileName));
+    readStream.pipe(redisWStream(self.client, fileName));
 
   } else {
     var fileOut = path.join(path.resolve(config.get('caching.directory.path')), fileName);
