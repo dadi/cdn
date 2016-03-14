@@ -1,16 +1,13 @@
 var should = require('should');
-var sinon = require('sinon');
 var request = require('supertest');
 var config = require(__dirname + '/../../config');
 var help = require(__dirname + '/help');
 var app = require(__dirname + '/../../dadi/lib/');
 var fs = require('fs');
 
-var imageHandle = require(__dirname + '/../../dadi/lib/imagehandle');
-
 var testConfigString;
 
-describe('Controller', function () {
+describe('Authentication', function () {
   var tokenRoute = config.get('auth.tokenUrl');
 
   beforeEach(function (done) {
@@ -33,100 +30,6 @@ describe('Controller', function () {
     help.clearCache();
     app.stop(done);
   });
-
-  describe('Accept header', function(done) {
-    it('should extract options from url if no Accept header is present', function(done) {
-      // stub the convert method to access the provided arguments
-      var method = sinon.stub(imageHandle.ImageHandle.prototype, 'convertAndSave', function (readStream, imageInfo, originFileName, fileName, options, returnJSON, res) {
-        res.end()
-      })
-
-      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'));
-      client
-      .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
-      .expect(200)
-      .end(function(err, res) {
-        imageHandle.ImageHandle.prototype.convertAndSave.restore()
-        var options = method.firstCall.args[4];
-        options.quality.should.eql(50)
-        options.width.should.eql(801)
-        options.height.should.eql(478)
-        done()
-      })
-    })
-
-    it('should extract options from url if unknown Accept header is present', function(done) {
-      // stub the convert method to access the provided arguments
-      var method = sinon.stub(imageHandle.ImageHandle.prototype, 'convertAndSave', function (readStream, imageInfo, originFileName, fileName, options, returnJSON, res) {
-        res.end()
-      })
-
-      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'));
-      client
-      .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
-      .set('Accept', 'application/vnd+json')
-      .expect(200)
-      .end(function(err, res) {
-        imageHandle.ImageHandle.prototype.convertAndSave.restore()
-
-        method.called.should.eql(true)
-
-        var options = method.firstCall.args[4];
-        options.quality.should.eql(50)
-        options.width.should.eql(801)
-        options.height.should.eql(478)
-
-        done()
-      })
-    })
-
-    it('v2: should extract options from querystring if v2 Accept header is present', function(done) {
-      // stub the convert method to access the provided arguments
-      var method = sinon.stub(imageHandle.ImageHandle.prototype, 'convertAndSave', function (readStream, imageInfo, originFileName, fileName, options, returnJSON, res) {
-        res.end()
-      })
-
-      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'));
-      client
-      .get('/test.jpg?quality=50&width=801&height=478&gravity=North&resizeStyle=aspectfit&devicePixelRatio=2')
-      .set('Accept', 'application/vnd.dadicdn-v2+json')
-      .end(function(err, res) {
-
-        imageHandle.ImageHandle.prototype.convertAndSave.restore()
-
-        method.called.should.eql(true)
-
-        var options = method.firstCall.args[4];
-        options.quality.should.eql(50)
-        options.width.should.eql(801)
-        options.height.should.eql(478)
-        options.format.should.eql('jpg')
-        done()
-      })
-    })
-
-    it('v2: should extract output format from querystring if present', function(done) {
-      // stub the convert method to access the provided arguments
-      var method = sinon.stub(imageHandle.ImageHandle.prototype, 'convertAndSave', function (readStream, imageInfo, originFileName, fileName, options, returnJSON, res) {
-        res.end()
-      })
-
-      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'));
-      client
-      .get('/test.jpg?format=png&quality=50&width=801&height=478&gravity=North&resizeStyle=aspectfit&devicePixelRatio=2')
-      .set('Accept', 'application/vnd.dadicdn-v2+json')
-      .end(function(err, res) {
-
-        imageHandle.ImageHandle.prototype.convertAndSave.restore()
-
-        method.called.should.eql(true)
-
-        var options = method.firstCall.args[4];
-        options.format.should.eql('png')
-        done()
-      })
-    })
-  })
 
   it('should handle test image if image uri is valid', function(done) {
     var newTestConfig = JSON.parse(testConfigString);
@@ -192,11 +95,8 @@ describe('Controller', function () {
 
     var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'));
     client
-      .get('/sample-image-recipe/test.jpg')
-      .expect(200)
-      .end(function(err, res) {
-        done()
-      })
+      .get('/test_recipe/test.jpg')
+      .expect(200, done);
   });
 
   it('should return error if recipe is invalid ', function(done) {
@@ -214,7 +114,6 @@ describe('Controller', function () {
   });
 
   it('should handle test assets file if uri is valid', function(done) {
-    this.timeout(10000)
     var newTestConfig = JSON.parse(testConfigString);
     newTestConfig.assets.directory.enabled = true;
     newTestConfig.assets.directory.path = './test/assets';

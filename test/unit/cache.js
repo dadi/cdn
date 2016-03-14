@@ -3,9 +3,6 @@ var fs = require('fs');
 var path = require('path');
 var sinon = require('sinon');
 var proxyquire =  require('proxyquire');
-var redis = require('redis');
-var fakeredis = require('fakeredis');
-
 var Router = require('router');
 var router = Router();
 
@@ -80,23 +77,19 @@ describe('Cache', function (done) {
 
   it('should cache if the app\'s redis config settings allow', function (done) {
 
+    var server = sinon.mock(Server);
+    server.object.controller = controller(router);
+
     var newTestConfig = JSON.parse(testConfigString);
     newTestConfig.caching.directory.enabled = false;
     newTestConfig.caching.redis.enabled = true;
-    newTestConfig.caching.redis.host = '127.0.0.1'
     fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2));
 
     config.loadFile(config.configPath());
 
-    cache.reset()
+    cache = proxyquire('../../dadi/lib/cache', {'config': config});
 
-    // stub calls the redis createClient
-    sinon.stub(redis, 'createClient', fakeredis.createClient);
-
-    var c = controller(router);
-    redis.createClient.restore();
-
-    c.cache.redisClient.should.exist;
+    cache(server.object.controller.client).enabled.should.eql(true);
 
     done();
   });
