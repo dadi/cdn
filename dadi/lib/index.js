@@ -15,7 +15,7 @@ var Server = function () {
 
 };
 
-Server.prototype.start = function (options, done) {
+Server.prototype.start = function (done) {
   var self = this;
   
   router.use(bodyParser.json({limit: '50mb'}));
@@ -36,9 +36,23 @@ Server.prototype.start = function (options, done) {
     router(req, res, finalhandler(req, res));
   });
 
-  app.listen(config.get('server.port'));
+  var server = this.server = app.listen(config.get('server.port'));
+
+  this.readyState = 1;
 
   done && done();
+};
+
+
+// this is mostly needed for tests
+Server.prototype.stop = function (done) {
+  var self = this;
+  this.readyState = 3;
+
+  this.server.close(function (err) {
+    self.readyState = 0;
+    done && done(err);
+  });
 };
 
 module.exports = new Server();

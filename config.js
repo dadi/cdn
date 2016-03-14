@@ -197,6 +197,11 @@ var conf = convict({
     }
   },
   auth: {
+    tokenUrl: {
+      doc: "",
+      format: String,
+      default: "/token"
+    },
     clientId: {
       doc: "",
       format: String,
@@ -272,3 +277,7 @@ conf.updateConfigDataForDomain = function(domain) {
 };
 
 module.exports = conf;
+
+module.exports.configPath = function() {
+  return './config/config.' + conf.get('env') + '.json';
+}
