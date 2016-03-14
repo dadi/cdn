@@ -9,7 +9,7 @@ var cloudfront = require('cloudfront');
 var redis = require("redis");
 var _ = require('underscore');
 
-var configPath = path.resolve(__dirname + '/../../../config.js');
+var configPath = path.resolve(__dirname + '/../../../config');
 var config = require(__dirname + '/../../../config');
 var help = require(__dirname + '/../help');
 var monitor = require(__dirname + '/../monitor');
@@ -67,6 +67,9 @@ var Controller = function (router) {
 
   router.get(/(.+)/, function (req, res) {
     var paramString = req.params[0].substring(1, req.params[0].length);
+    var modelName = req.params[0];
+    var encryptName = sha1(modelName);
+
     var returnJSON = false;
     var fileExt = '';
     var compress = '';
@@ -104,14 +107,14 @@ var Controller = function (router) {
       }
     } else {
       if (paramString.split('/').length < 15 &&
-        !fs.existsSync(path.resolve(__dirname + '/../../workspace/recipes/' + paramString.split('/')[0] + '.json'))) {
+        !fs.existsSync(path.resolve(__dirname + '/../../../workspace/recipes/' + paramString.split('/')[0] + '.json'))) {
         var errorMessage = '<p>Url path is invalid.</p>' +
           '<p>The valid url path format:</p>' +
           '<p>http://some-example-domain.com/{format}/{quality}/{trim}/{trimFuzz}/{width}/{height}/{crop-x}/{crop-y}/{ratio}/{devicePixelRatio}/{resizeStyle}/{gravity}/{filter}/{blur}/{strip}/{rotate}/{flip}/Imagepath</p>';
         help.displayErrorPage(404, errorMessage, res);
       } else {
-        if (fs.existsSync(path.resolve(__dirname + '/../../workspace/recipes/' + paramString.split('/')[0] + '.json'))) {
-          var recipePath = path.resolve(__dirname + '/../../workspace/recipes/' + paramString.split('/')[0] + '.json');
+        if (fs.existsSync(path.resolve(__dirname + '/../../../workspace/recipes/' + paramString.split('/')[0] + '.json'))) {
+          var recipePath = path.resolve(__dirname + '/../../../workspace/recipes/' + paramString.split('/')[0] + '.json');
           var recipe = require(recipePath);
 
           var referencePath = recipe.path?recipe.path:'';
@@ -145,28 +148,6 @@ var Controller = function (router) {
               format: 'assets'
             };
           } else {
-            newFileName = url.replace(/[\/.]/g, '') + recipe.settings.format +
-              recipe.settings.quality + recipe.settings.trim + recipe.settings.trimFuzz + recipe.settings.width +
-              recipe.settings.height + recipe.settings.ratio + recipe.settings.devicePixelRatio +
-              recipe.settings.resizeStyle + recipe.settings.gravity + recipe.settings.filter + recipe.settings.blur +
-              recipe.settings.strip + recipe.settings.rotate + recipe.settings.flip + '.' + recipe.settings.format;
-
-            if (recipe.settings.format == 'json') {
-              if (fileExt == fileName) {
-                newFileName = url.replace(/[\/.]/g, '') + recipe.settings.format +
-                  recipe.settings.quality + recipe.settings.trim + recipe.settings.trimFuzz + recipe.settings.width +
-                  recipe.settings.height + recipe.settings.ratio + recipe.settings.devicePixelRatio +
-                  recipe.settings.resizeStyle + recipe.settings.gravity + recipe.settings.filter + recipe.settings.blur +
-                  recipe.settings.strip + recipe.settings.rotate + recipe.settings.flip + '.png';
-              } else {
-                newFileName = url.replace(/[\/.]/g, '') + recipe.settings.format +
-                  recipe.settings.quality + recipe.settings.trim + recipe.settings.trimFuzz + recipe.settings.width +
-                  recipe.settings.height + recipe.settings.ratio + recipe.settings.devicePixelRatio +
-                  recipe.settings.resizeStyle + recipe.settings.gravity + recipe.settings.filter + recipe.settings.blur +
-                  recipe.settings.strip + recipe.settings.rotate + recipe.settings.flip + '.' + fileExt;
-              }
-            }
-
             options = recipe.settings;
           }
         } else {
@@ -174,16 +155,6 @@ var Controller = function (router) {
           url = paramString.substring(optionsArray.join('/').length + 1);
           fileName = url.split('/')[url.split('/').length - 1];
           fileExt = url.substring(url.lastIndexOf('.') + 1);
-
-          newFileName = url.replace(/[\/.]/g, '') + optionsArray.join('') + '.' + optionsArray[0];
-
-          if (optionsArray[0] == 'json') {
-            if (fileExt == fileName) {
-              newFileName = url.replace(/[\/.]/g, '') + optionsArray.join('') + '.png';
-            } else {
-              newFileName = url.replace(/[\/.]/g, '') + optionsArray.join('') + '.' + fileExt;
-            }
-          }
 
           var gravity = optionsArray[11].substring(0, 1).toUpperCase() + optionsArray[11].substring(1);
           var filter = optionsArray[12].substring(0, 1).toUpperCase() + optionsArray[12].substring(1);
@@ -243,14 +214,12 @@ var Controller = function (router) {
           if (options.rotate == 0) delete options.rotate;
           if (options.flip == 0) delete options.flip;
 
-          var encryptName = sha1(newFileName);
-
           if (config.get('caching.redis.enabled')) {
             self.client.exists(encryptName, function (err, exists) {
               if (exists > 0) {
                 var readStream = redisRStream(self.client, encryptName);
                 if (returnJSON) {
-                  imageHandler.fetchImageInformation(readStream, originFileName, newFileName, options, res);
+                  imageHandler.fetchImageInformation(readStream, originFileName, modelName, options, res);
                 } else {
                   // Set cache header
                   res.setHeader('X-Cache', 'HIT');
@@ -288,7 +257,7 @@ var Controller = function (router) {
               } else {
                 // Set cache header
                 res.setHeader('X-Cache', 'MISS');
-                imageHandler.createNewConvertImage(url, originFileName, newFileName, options, returnJSON, res);
+                imageHandler.createNewConvertImage(url, originFileName, modelName, options, returnJSON, res);
               }
             });
           } else {
@@ -300,7 +269,7 @@ var Controller = function (router) {
                 if (config.get('caching.ttl') && lastMod && (Date.now() - lastMod) / 1000 <= config.get('caching.ttl')) {
                   var readStream = fs.createReadStream(cachePath);
                   if (returnJSON) {
-                    imageHandler.fetchImageInformation(readStream, originFileName, newFileName, options, res);
+                    imageHandler.fetchImageInformation(readStream, originFileName, modelName, options, res);
                   } else {
                     // Set cache header
                     res.setHeader('X-Cache', 'HIT');
@@ -340,13 +309,13 @@ var Controller = function (router) {
                 } else {
                   // Set cache header
                   res.setHeader('X-Cache', 'MISS');
-                  imageHandler.createNewConvertImage(url, originFileName, newFileName, options, returnJSON, res);
+                  imageHandler.createNewConvertImage(url, originFileName, modelName, options, returnJSON, res);
                 }
               });
             } else {
               // Set cache header
               res.setHeader('X-Cache', 'MISS');
-              imageHandler.createNewConvertImage(url, originFileName, newFileName, options, returnJSON, res);
+              imageHandler.createNewConvertImage(url, originFileName, modelName, options, returnJSON, res);
             }
           }
         }
@@ -357,7 +326,9 @@ var Controller = function (router) {
   //Invalidation request
   router.post('/api', function (req, res) {
     if (req.body.invalidate) {
-      var invalidate = req.body.invalidate.replace(/[\/.]/g, '');
+      var invalidate = '';
+      if(req.body.invalidate && req.body.invalidate !== '*')
+        invalidate = sha1(req.body.invalidate);
 
       help.clearCache(invalidate, function(err) {
         if (config.get('cloudfront.enabled')) {
@@ -366,7 +337,7 @@ var Controller = function (router) {
             var callerReference = (new Date()).toString();
             distribution.invalidate(callerReference, ['/' + req.body.invalidate], function (err, invalidation) {
               if (err) console.log(err);
-              console.log(invalidation);
+
               help.sendBackJSON(200, {
                 result: 'success',
                 message: 'Succeed to clear'
@@ -383,7 +354,7 @@ var Controller = function (router) {
     } else {
       help.sendBackJSON(400, {
         result: 'Failed',
-        message: 'Please pass "invalidate" path'
+        message: 'Please pass \'invalidate\' path'
       }, res);
     }
   });

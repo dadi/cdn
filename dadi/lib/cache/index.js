@@ -12,8 +12,6 @@ var Cache = function(client) {
   this.enabled = config.get('caching.directory.enabled') || config.get('caching.redis.enabled');
   this.dir = config.get('caching.directory.path');
 
-  this.options = {};
-
   this.redisClient = client;
 
   var self = this;
