@@ -29,7 +29,7 @@ var router = Router();
 
 var monitor = require(__dirname + '/monitor');
 
-var configPath = path.resolve(__dirname + '/../../config.js');
+var configPath = path.resolve(__dirname + '/../../config');
 var config = require(configPath);
 
 var Server = function () {
@@ -543,6 +543,16 @@ Server.prototype.initS3AssetsBucket = function () {
  * Create a Redis Client with configuration
  */
 Server.prototype.initRedisClient = function () {
+    if(this.client) {
+        if(this.client.connection_option.port !== config.get('caching.redis.port') || 
+            this.client.connection_option.host !== config.get('caching.redis.host')) {
+            this.client.end(true);
+            this.client = null;
+        } else {
+            return;
+        }
+    }
+
     this.client = redis.createClient(config.get('caching.redis.port'), config.get('caching.redis.host'), {
         detect_buffers: true
     })
@@ -700,9 +710,6 @@ Server.prototype.convertAndSave = function (readStream, imageInfo, originFileNam
     }
 
     if (config.get('caching.redis.enabled')) {
-        self.client.on("error", function (err) {
-            self.displayErrorPage(404, err, res);
-        });
         //Save to redis
         convertedStream.pipe(redisWStream(self.client, encryptName)).on('finish', function () {
             if (config.get('caching.ttl')) {
@@ -713,7 +720,7 @@ Server.prototype.convertAndSave = function (readStream, imageInfo, originFileNam
         var cacheDir = path.resolve(config.get('caching.directory.path'));
         var file = fs.createWriteStream(path.join(cacheDir, encryptName));
         file.on('error', function (err) {
-            self.displayErrorPage(404, err, res);
+            
         });
         convertedStream.pipe(file);
     }
@@ -737,19 +744,16 @@ Server.prototype.createNewConvertImage = function (url, originFileName, newFileN
                     imagesize(tmpReadStream, function(err, imageInfo) {
                         self.convertAndSave(request({url: url}), imageInfo, originFileName, newFileName, options, returnJSON, res);
                     });
-                }
-                else {
+                } else {
                     self.displayErrorPage(404, 'Image path "' + url + '" isn\'t valid.', res);
                 }
-            })
-        }
-        else if (config.get('images.s3.enabled')) { //Load image from S3
+            });
+        } else if (config.get('images.s3.enabled')) { //Load image from S3
             if(url.substring(0, 1) == '/') url = url.substring(1);
             self.s3.getObject({Bucket: config.get('images.s3.bucketName'), Key: url}, function (err, data) {
                 if (err) {
                     self.displayErrorPage(404, err, res);
-                }
-                else {
+                } else {
                     var size = parseInt(data.ContentLength);
                     if(size === 0) {
                         return self.displayErrorPage(404, 'File size is 0 byte.', res);
@@ -766,9 +770,8 @@ Server.prototype.createNewConvertImage = function (url, originFileName, newFileN
                         self.convertAndSave(s3ReadStream, imageInfo, originFileName, newFileName, options, returnJSON, res);
                     });
                 }
-            })
-        }
-        else { // Load image from local disk
+            });
+        } else { // Load image from local disk
             var imageDir = path.resolve(config.get('images.directory.path'));
             url = path.join(imageDir, url);
             if (fs.existsSync(url)) {
@@ -781,15 +784,12 @@ Server.prototype.createNewConvertImage = function (url, originFileName, newFileN
                 var tmpReadStream = fs.createReadStream(url);
                 imagesize(tmpReadStream, function(err, imageInfo) {
                     self.convertAndSave(fsReadStream, imageInfo, originFileName, newFileName, options, returnJSON, res);
-                });
-            
-            }
-            else {
+                });            
+            } else {
                 self.displayErrorPage(404, 'File "' + url + '" doesn\'t exist.', res);
             }
         }
-    }
-    else {
+    } else {
         self.displayErrorPage(404, 'Image path doesn\'t exist.', res);
     }
 };
@@ -864,22 +864,22 @@ Server.prototype.addMonitor = function (filepath, callback) {
 /**
  * Cache JS, CSS files to redis or local disk
  */
-Server.prototype.cacheJSCSSFiles = function(readStream, fileName, res) {
+Server.prototype.cacheJSCSSFiles = function(readStream, fileName, fileExt, res) {
     var self = this;
-    if (config.get('caching.redis.enabled')) {
-        self.client.on("error", function (err) {
-            self.displayErrorPage(404, err, res);
-        });
-        readStream.pipe(redisWStream(self.client, fileName));
 
+    if (config.get('caching.redis.enabled')) {
+        readStream.pipe(redisWStream(self.client, fileName));
     } else {
         var fileOut = path.join(path.resolve(config.get('caching.directory.path')), fileName);
         var file = fs.createWriteStream(fileOut);
         file.on('error', function (err) {
-            self.displayErrorPage(404, err, res);
+            
         });
         readStream.pipe(file);
     }
+
+    if (fileExt == 'js') res.setHeader('Content-Type', 'application/javascript');
+    else if (fileExt == 'css') res.setHeader('Content-Type', 'text/css');
     if(config.get('gzip')) {
         res.setHeader('content-encoding', 'gzip');
         readStream.pipe(zlib.createGzip()).pipe(res);
@@ -913,7 +913,7 @@ Server.prototype.compressJsCSSFiles = function (readStream, fileName, fileExt, c
                             newReadStream.on('close', function(){
                                 fs.unlink(fileOut);
                             });
-                            self.cacheJSCSSFiles(newReadStream, fileName, res);
+                            self.cacheJSCSSFiles(newReadStream, fileName, fileExt, res);
                         }
                     }
                 });
@@ -931,14 +931,14 @@ Server.prototype.compressJsCSSFiles = function (readStream, fileName, fileExt, c
                             newReadStream.on('close', function(){
                                 fs.unlink(fileOut);
                             });
-                            self.cacheJSCSSFiles(newReadStream, fileName, res);
+                            self.cacheJSCSSFiles(newReadStream, fileName, fileExt, res);
                         }
                     }
                 });
             }
         });
     } else {
-        self.cacheJSCSSFiles(readStream, fileName, res);
+        self.cacheJSCSSFiles(readStream, fileName, fileExt, res);
     }
 };
 
