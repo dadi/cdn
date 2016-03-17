@@ -6,6 +6,7 @@
 	Mauris sem turpis, lacinia eget faucibus vel, vulputate et ante.
  */
 
+var cb = {}
 cb.tools = {};
 cb.tools.substitute = function(str, arr){
 	var i, pattern, re, n = arr.length;
