@@ -7,7 +7,7 @@ var fs = require('fs');
 
 var testConfigString;
 
-describe('Authentication', function () {
+describe('Controller', function () {
   var tokenRoute = config.get('auth.tokenUrl');
 
   beforeEach(function (done) {
@@ -114,6 +114,7 @@ describe('Authentication', function () {
   });
 
   it('should handle test assets file if uri is valid', function(done) {
+    this.timeout(10000)
     var newTestConfig = JSON.parse(testConfigString);
     newTestConfig.assets.directory.enabled = true;
     newTestConfig.assets.directory.path = './test/assets';

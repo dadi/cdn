@@ -7,7 +7,9 @@ var app = require(__dirname + '/../../dadi/lib/');
 
 var bearerToken;
 
-describe('CacheInvalidationAPI', function () {
+describe('Cache', function () {
+  this.timeout(10000)
+  describe('Invalidation API', function () {
   beforeEach(function (done) {
     app.start(function() {
       help.getBearerToken(function (err, token) {
@@ -170,4 +172,5 @@ describe('CacheInvalidationAPI', function () {
       .set('Authorization', 'Bearer ' + bearerToken)
       .expect(400, done);
   });
+});
 });
