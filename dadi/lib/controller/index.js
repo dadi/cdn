@@ -396,6 +396,17 @@ Controller.prototype.initS3AssetsBucket = function () {
  */
 Controller.prototype.initRedisClient = function () {
   var self = this;
+
+  if(this.client) {
+    if(this.client.connection_option.port !== config.get('caching.redis.port') ||
+      this.client.connection_option.host !== config.get('caching.redis.host')) {
+      this.client.end(true);
+      this.client = null;
+    } else {
+      return;
+    }
+  }
+
   this.client = redis.createClient(config.get('caching.redis.port'), config.get('caching.redis.host'), {
     detect_buffers: true
   });
