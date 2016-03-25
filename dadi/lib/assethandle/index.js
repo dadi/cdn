@@ -78,6 +78,9 @@ AssetHandle.prototype.compressJsCSSFiles = function (readStream, fileName, fileE
                 fs.unlink(fileOut);
               });
               self.cache.cacheJSCSSFiles(newReadStream, encryptName, function() {
+                if (fileExt == 'js') res.setHeader('Content-Type', 'application/javascript');
+                else if (fileExt == 'css') res.setHeader('Content-Type', 'text/css');
+
                 if(config.get('gzip')) {
                   res.setHeader('content-encoding', 'gzip');
                   newReadStream.pipe(zlib.createGzip()).pipe(res);
@@ -103,6 +106,9 @@ AssetHandle.prototype.compressJsCSSFiles = function (readStream, fileName, fileE
                 fs.unlink(fileOut);
               });
               self.cache.cacheJSCSSFiles(newReadStream, encryptName, function() {
+                if (fileExt == 'js') res.setHeader('Content-Type', 'application/javascript');
+                else if (fileExt == 'css') res.setHeader('Content-Type', 'text/css');
+
                 if(config.get('gzip')) {
                   res.setHeader('content-encoding', 'gzip');
                   newReadStream.pipe(zlib.createGzip()).pipe(res);
@@ -117,6 +123,9 @@ AssetHandle.prototype.compressJsCSSFiles = function (readStream, fileName, fileE
     });
   } else {
     self.cache.cacheJSCSSFiles(readStream, encryptName, function() {
+      if (fileExt == 'js') res.setHeader('Content-Type', 'application/javascript');
+      else if (fileExt == 'css') res.setHeader('Content-Type', 'text/css');
+
       if(config.get('gzip')) {
         res.setHeader('content-encoding', 'gzip');
         readStream.pipe(zlib.createGzip()).pipe(res);
