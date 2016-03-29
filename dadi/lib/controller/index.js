@@ -215,9 +215,9 @@ var Controller = function (router) {
           if (options.flip == 0) delete options.flip;
 
           if (config.get('caching.redis.enabled')) {
-            self.client.exists(encryptName, function (err, exists) {
+            self.cache.client().exists(encryptName, function (err, exists) {
               if (exists > 0) {
-                var readStream = redisRStream(self.client, encryptName);
+                var readStream = redisRStream(self.cache.client(), encryptName);
                 if (returnJSON) {
                   imageHandler.fetchImageInformation(readStream, originFileName, modelName, options, res);
                 } else {
