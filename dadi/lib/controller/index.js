@@ -61,9 +61,9 @@ var Controller = function (router) {
   // }
 
   this.cache = cache();
+
   var imageHandler = ImageHandle(this.s3, this.cache);
   var assetHandler = AssetHandle(this.assetsS3, this.cache);
-
 
   router.get(/(.+)/, function (req, res) {
     var paramString = req.params[0].substring(1, req.params[0].length);
