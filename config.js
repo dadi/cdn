@@ -271,8 +271,6 @@ conf.validate({strict: false});
 conf.updateConfigDataForDomain = function(domain) {
   if(fs.existsSync(path.resolve(__dirname + '/workspace/domain-loader/' + domain + '.config.' + env + '.json'))) {
     conf.loadFile(__dirname + '/workspace/domain-loader/' + domain + '.config.' + env + '.json');
-  } else {
-    console.log('No Config File Exists');
   }
 };
 
