@@ -36,10 +36,10 @@ var Controller = function (router) {
     if (config.get('assets.s3.enabled')) {
       self.initS3AssetsBucket();
     }
-    //Init Redis client
-    if (config.get('caching.redis.enabled')) {
-      self.initRedisClient();
-    }
+    // //Init Redis client
+    // if (config.get('caching.redis.enabled')) {
+    //   self.initRedisClient();
+    // }
   });
 
   //Monitor recipes folders and files
@@ -56,11 +56,11 @@ var Controller = function (router) {
     self.initS3AssetsBucket();
   }
   //Init Redis client
-  if (config.get('caching.redis.enabled')) {
-    self.initRedisClient();
-  }
+  // if (config.get('caching.redis.enabled')) {
+  //   self.initRedisClient();
+  // }
 
-  this.cache = cache(this.client);
+  this.cache = cache();
   var imageHandler = ImageHandle(this.s3, this.cache);
   var assetHandler = AssetHandle(this.assetsS3, this.cache);
 
@@ -158,7 +158,7 @@ var Controller = function (router) {
 
           var gravity = optionsArray[11].substring(0, 1).toUpperCase() + optionsArray[11].substring(1);
           var filter = optionsArray[12].substring(0, 1).toUpperCase() + optionsArray[12].substring(1);
-          
+
           options = {
             format: optionsArray[0],
             quality: optionsArray[1],
@@ -389,26 +389,6 @@ Controller.prototype.initS3AssetsBucket = function () {
   }
 
   this.assetsS3 = new AWS.S3();
-};
-
-/**
- * Create a Redis Client with configuration
- */
-Controller.prototype.initRedisClient = function () {
-  var self = this;
-  this.client = redis.createClient(config.get('caching.redis.port'), config.get('caching.redis.host'), {
-    detect_buffers: true
-  });
-  this.client.on("error", function (err) {
-    console.log("Error " + err);
-  }).on("connect", function () {
-    console.log('Redis client Connected');
-  });
-  if (config.get('caching.redis.password')) {
-    self.client.auth(config.get('caching.redis.password'), function () {
-      console.log('Redis client connected');
-    });
-  }
 };
 
 Controller.prototype.addMonitor = function (filepath, callback) {
