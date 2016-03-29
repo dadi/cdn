@@ -95,8 +95,11 @@ describe('Controller', function () {
 
     var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'));
     client
-      .get('/test_recipe/test.jpg')
-      .expect(200, done);
+      .get('/sample-image-recipe/test.jpg')
+      .expect(200)
+      .end(function(err, res) {
+        done()
+      })
   });
 
   it('should return error if recipe is invalid ', function(done) {
