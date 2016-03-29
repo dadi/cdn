@@ -118,7 +118,6 @@ describe('Cache', function () {
   });
 
   it('should flush all cached items when path is "*"', function (done) {
-    this.timeout(5000);
     var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'));
     client
       .get('/jpg/70/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
