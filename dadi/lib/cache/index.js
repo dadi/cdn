@@ -27,6 +27,11 @@ module.exports = function() {
   return instance;
 };
 
+// reset method for unit tests
+module.exports.reset = function() {
+  instance = null;
+};
+
 // get method for redis client
 module.exports.client = function() {
   if (instance) return instance.redisClient;
@@ -55,8 +60,6 @@ Cache.prototype.initRedisClient = function () {
       console.log('Redis client connected');
     });
   }
-
-  return client;
 };
 
 Cache.prototype.cacheImage = function(convertedStream, encryptName, next) {
