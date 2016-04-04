@@ -45,6 +45,17 @@ Cache.prototype.initRedisClient = function () {
   if (!config.get('caching.redis.enabled')) return;
 
   var self = this;
+
+  if (this.redisClient) {
+    if (this.redisClient.connection_option.port !== config.get('caching.redis.port') ||
+      this.redisClient.connection_option.host !== config.get('caching.redis.host')) {
+      this.redisClient.end(true);
+      this.redisClient = null;
+    } else {
+      return;
+    }
+  }
+
   this.redisClient = redis.createClient(config.get('caching.redis.port'), config.get('caching.redis.host'), {
     detect_buffers: true
   });
