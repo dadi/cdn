@@ -45,12 +45,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/dadi/cdn.git"
+    "url": "git+https://github.com/dadi/cdn.git"
   },
   "bugs": {
     "url": "https://github.com/dadi/cdn/issues"
   },
   "homepage": "https://github.com/dadi/cdn",
+  "directories": {
+    "test": "test"
+  },
   "author": "DADI <team@dadi.tech>",
-  "license": "SEE LICENSE IN AGPL.md"
+  "license": "SEE LICENSE IN GPL.md"
 }
