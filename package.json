@@ -2,6 +2,7 @@
   "name": "dadi-cdn",
   "version": "0.1.11-beta",
   "scripts": {
+    "init": "validate-commit-msg",
     "start": "node server.js --node_env=development",
     "test": "env NODE_ENV=test ./node_modules/.bin/istanbul cover -x '**/workspace/**' -x '**/app/**' --report cobertura --report text --report html --report lcov ./node_modules/.bin/_mocha test",
     "posttest": "./scripts/coverage.js"
@@ -28,8 +29,7 @@
     "imagesize": "~1.0.0",
     "node-persist": "~0.0.8",
     "node-uuid": "~1.4.7",
-    "async": "^1.4.2",
-    "colors": "^1.1.2"
+    "validate-commit-message": "^3.0.1"
   },
   "devDependencies": {
     "env-test": "^1.0.0",
