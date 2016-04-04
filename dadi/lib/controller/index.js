@@ -70,6 +70,17 @@ var Controller = function (router) {
     var modelName = req.params[0];
     var encryptName = sha1(modelName);
 
+    // set a default version
+    var version = 'v1'
+
+    // get version from the request header if supplied
+    var versionRegex = /vnd.dadicdn-(.*)\+json/
+    if (req.headers.hasOwnProperty('accept')) {
+      if ((m = versionRegex.exec(req.headers.accept)) !== null) {
+        version = m[1]
+      }
+    }
+
     var returnJSON = false;
     var fileExt = '';
     var compress = '';
@@ -106,7 +117,7 @@ var Controller = function (router) {
         assetHandler.fetchOriginFileContent(url, fileName, fileExt, 0, res);
       }
     } else {
-      if (paramString.split('/').length < 15 &&
+      if (version === 'v1' && paramString.split('/').length < 15 &&
         !fs.existsSync(path.resolve(__dirname + '/../../../workspace/recipes/' + paramString.split('/')[0] + '.json'))) {
         var errorMessage = '<p>Url path is invalid.</p>' +
           '<p>The valid url path format:</p>' +
@@ -151,33 +162,22 @@ var Controller = function (router) {
             options = recipe.settings;
           }
         } else {
-          var optionsArray = paramString.split('/').slice(0, 17);
-          url = paramString.substring(optionsArray.join('/').length + 1);
-          fileName = url.split('/')[url.split('/').length - 1];
-          fileExt = url.substring(url.lastIndexOf('.') + 1);
 
-          var gravity = optionsArray[11].substring(0, 1).toUpperCase() + optionsArray[11].substring(1);
-          var filter = optionsArray[12].substring(0, 1).toUpperCase() + optionsArray[12].substring(1);
-
-          options = {
-            format: optionsArray[0],
-            quality: optionsArray[1],
-            trim: optionsArray[2],
-            trimFuzz: optionsArray[3],
-            width: optionsArray[4],
-            height: optionsArray[5],
-            cropX: optionsArray[6],
-            cropY: optionsArray[7],
-            ratio: optionsArray[8],
-            devicePixelRatio: optionsArray[9],
-            resizeStyle: optionsArray[10],
-            gravity: gravity,
-            filter: filter,
-            blur: optionsArray[13],
-            strip: optionsArray[14],
-            rotate: optionsArray[15],
-            flip: optionsArray[16]
-          };
+          if (version === 'v2') {
+            var urlOptions = require('url').parse(req.url, true);
+            url = urlOptions.pathname;
+            fileName = urlOptions.pathname.substring(1);
+            fileExt = path.extname(fileName).substring(1);
+            options = urlOptions.query;
+            if (typeof options.format === 'undefined') options.format = fileExt;
+          }
+          else {
+            var optionsArray = paramString.split('/').slice(0, 17);
+            url = paramString.substring(optionsArray.join('/').length + 1);
+            fileName = url.split('/')[url.split('/').length - 1];
+            fileExt = url.substring(url.lastIndexOf('.') + 1);
+            options = getImageOptions(optionsArray, version);
+          }
         }
 
         if(options.format != 'assets') {
@@ -358,6 +358,41 @@ var Controller = function (router) {
       }, res);
     }
   });
+
+  /**
+   * Parses the request URL and returns an options object
+   * @param {String} url - the request URL
+   * @param {String} version - the version number extracted from the 'Accept' request header
+   * @returns {object}
+   */
+  function getImageOptions (optionsArray, version) {
+
+    var gravity = optionsArray[11].substring(0, 1).toUpperCase() + optionsArray[11].substring(1);
+    var filter = optionsArray[12].substring(0, 1).toUpperCase() + optionsArray[12].substring(1);
+
+    options = {
+      format: optionsArray[0],
+      quality: optionsArray[1],
+      trim: optionsArray[2],
+      trimFuzz: optionsArray[3],
+      width: optionsArray[4],
+      height: optionsArray[5],
+      cropX: optionsArray[6],
+      cropY: optionsArray[7],
+      ratio: optionsArray[8],
+      devicePixelRatio: optionsArray[9],
+      resizeStyle: optionsArray[10],
+      gravity: gravity,
+      filter: filter,
+      blur: optionsArray[13],
+      strip: optionsArray[14],
+      rotate: optionsArray[15],
+      flip: optionsArray[16]
+    }
+
+    return options;
+  }
+
 };
 
 /**
