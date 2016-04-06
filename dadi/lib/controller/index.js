@@ -19,7 +19,7 @@ var cache = require(__dirname + '/../cache');
 
 var Controller = function (router) {
   var self = this;
-  this.s3 = null;
+//  this.s3 = null;
   this.assetsS3 = null;
   this.client = null;
   this.monitors = {};
@@ -30,9 +30,9 @@ var Controller = function (router) {
     config = require(configPath);
 
     //Init S3 Instance
-    if (config.get('images.s3.enabled')) {
-      self.initS3Bucket();
-    }
+  //  if (config.get('images.s3.enabled')) {
+  //    self.initS3Bucket();
+  //  }
     if (config.get('assets.s3.enabled')) {
       self.initS3AssetsBucket();
     }
@@ -49,9 +49,9 @@ var Controller = function (router) {
   });
 
   //Init S3 Instance
-  if (config.get('images.s3.enabled')) {
-    self.initS3Bucket();
-  }
+  //if (config.get('images.s3.enabled')) {
+  //  self.initS3Bucket();
+  //}
   if (config.get('assets.s3.enabled')) {
     self.initS3AssetsBucket();
   }
@@ -117,6 +117,8 @@ var Controller = function (router) {
         assetHandler.fetchOriginFileContent(url, fileName, fileExt, 0, res);
       }
     } else {
+console.log(version)
+console.log(paramString.split('/').length)
       if (version === 'v1' && paramString.split('/').length < 15 &&
         !fs.existsSync(path.resolve(__dirname + '/../../../workspace/recipes/' + paramString.split('/')[0] + '.json'))) {
         var errorMessage = '<p>Url path is invalid.</p>' +
