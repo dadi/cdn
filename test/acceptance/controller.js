@@ -152,7 +152,7 @@ describe('Controller', function () {
 
     var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'));
     client
-      .get('/jpg/50/0/0/801/478/0/0/0/aspectfit/North/0/0/0/0/0/test.jpg')
+      .get('/jpg/50/0/0/801/478/0/0/0/aspectfit/North/0/0/test.jpg')
       .expect(404, done);
   });
 
