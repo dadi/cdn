@@ -9,8 +9,9 @@ var sha1 = require('sha1');
 var sharp = require('sharp');
 var zlib = require('zlib');
 var imagesize = require('imagesize');
+var PassThrough = require('stream').PassThrough;
 
-var StorageFactory = require(__dirname + '/storage/factory');
+var StorageFactory = require(__dirname + '/../storage/factory');
 var config = require(__dirname + '/../../../config');
 var help = require(__dirname + '/../help');
 
@@ -144,13 +145,11 @@ ImageHandle.prototype.createNewConvertImage = function (req, originFileName, new
     stream.pipe(responseStream)
 
     imagesize(imageSizeStream, function(err, imageInfo) {
-      console.log(imageInfo)
       self.convertAndSave(responseStream, imageInfo, originFileName, newFileName, options, returnJSON, res);
     });
-
-  }).catch(function(error) {
-    console.log('error')
-    console.log(error)
+  }).catch(function(err) {
+    console.log(err)
+    help.displayErrorPage(err.statusCode, err.message, res);
   });
 
   // if (url.length > 0) {
