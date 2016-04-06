@@ -57,10 +57,12 @@ S3Storage.prototype.get = function () {
       Key: self.getKey()
     }
 
-    console.log(requestData)
-
     if (requestData.Bucket === '' || requestData.Key === '' ) {
-      return reject('Either no Bucket or Key provided: ' + JSON.stringify(requestData))
+      var err = {
+        statusCode: 400,
+        message: 'Either no Bucket or Key provided: ' + JSON.stringify(requestData)
+      }
+      return reject(err)
     }
 
     // create the AWS.Request object
