@@ -6,7 +6,7 @@ var fs = require('fs');
 var path = require('path');
 var AWS = require('aws-sdk');
 var cloudfront = require('cloudfront');
-var redis = require("redis");
+var redis = require('redis');
 var _ = require('underscore');
 
 var configPath = path.resolve(__dirname + '/../../../config');
@@ -73,12 +73,9 @@ var Controller = function (router) {
     // set a default version
     var version = 'v1'
 
-    // get version from the request header if supplied
-    var versionRegex = /vnd.dadicdn-(.*)\+json/
-    if (req.headers.hasOwnProperty('accept')) {
-      if ((m = versionRegex.exec(req.headers.accept)) !== null) {
-        version = m[1]
-      }
+    // set version 2 if the url was supplied with a querystring
+    if (require('url').parse(req.url, true).search) {
+      version = 'v2'
     }
 
     var returnJSON = false;
@@ -401,17 +398,17 @@ console.log(paramString.split('/').length)
  * Init S3 with configuration
  */
 Controller.prototype.initS3Bucket = function () {
-  AWS.config.update({
-    accessKeyId: config.get('images.s3.accessKey'),
-    secretAccessKey: config.get('images.s3.secretKey')
-  });
-  if(config.get('images.s3.region') && config.get('images.s3.region') != "") {
-    AWS.config.update({
-      region: config.get('images.s3.region')
-    });
-  }
-
-  this.s3 = new AWS.S3();
+  // AWS.config.update({
+  //   accessKeyId: config.get('images.s3.accessKey'),
+  //   secretAccessKey: config.get('images.s3.secretKey')
+  // });
+  // if(config.get('images.s3.region') && config.get('images.s3.region') != "") {
+  //   AWS.config.update({
+  //     region: config.get('images.s3.region')
+  //   });
+  // }
+  //
+  // this.s3 = new AWS.S3();
 };
 
 Controller.prototype.initS3AssetsBucket = function () {
