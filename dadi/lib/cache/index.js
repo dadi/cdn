@@ -74,9 +74,11 @@ Cache.prototype.initRedisClient = function () {
 };
 
 Cache.prototype.cacheImage = function(convertedStream, encryptName, next) {
-	var self = this;
+  var self = this;
 
-	if (config.get('caching.redis.enabled')) {
+  if (!self.enabled) return next()
+  
+  if (config.get('caching.redis.enabled')) {
     convertedStream.pipe(redisWStream(self.redisClient, encryptName)).on('finish', function () {
       if (config.get('caching.ttl')) {
         self.redisClient.expire(encryptName, config.get('caching.ttl'));
