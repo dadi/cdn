@@ -1,6 +1,7 @@
 var Promise = require('bluebird');
 var Readable = require('stream').Readable;
 var request = require('request');
+var stream = require('stream');
 var urljoin = require('url-join');
 var _ = require('underscore');
 
@@ -25,7 +26,10 @@ HTTPStorage.prototype.get = function () {
     .get(self.getFullUrl())
     .on('response', function(response) {
       if (response.statusCode === 200) {
-        return resolve(response)
+        // return resolve(response)
+        var bufferStream = new stream.PassThrough()
+        bufferStream.end(response.Body)
+        resolve(bufferStream)
       }
       else {
         var err = {
