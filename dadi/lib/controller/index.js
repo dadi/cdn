@@ -257,7 +257,7 @@ var Controller = function (router) {
               } else {
                 // Set cache header
                 res.setHeader('X-Cache', 'MISS');
-                imageHandler.createNewConvertImage(url, originFileName, modelName, options, returnJSON, res);
+                imageHandler.createNewConvertImage(req, originFileName, modelName, options, returnJSON, res);
               }
             });
           } else {
@@ -309,13 +309,13 @@ var Controller = function (router) {
                 } else {
                   // Set cache header
                   res.setHeader('X-Cache', 'MISS');
-                  imageHandler.createNewConvertImage(url, originFileName, modelName, options, returnJSON, res);
+                  imageHandler.createNewConvertImage(req, originFileName, modelName, options, returnJSON, res);
                 }
               });
             } else {
               // Set cache header
               res.setHeader('X-Cache', 'MISS');
-              imageHandler.createNewConvertImage(url, originFileName, modelName, options, returnJSON, res);
+              imageHandler.createNewConvertImage(req, originFileName, modelName, options, returnJSON, res);
             }
           }
         }
