@@ -13,12 +13,9 @@ module.exports = {
 
     var url = req.url
 
-    // get version from the request header if supplied
-    var versionRegex = /vnd.dadicdn-(.*)\+json/
-    if (req.headers.hasOwnProperty('accept')) {
-      if ((m = versionRegex.exec(req.headers.accept)) !== null) {
-        version = m[1]
-      }
+    // set version 2 if the url was supplied with a querystring
+    if (require('url').parse(url, true).search) {
+      version = 'v2'
     }
 
     // get storage adapter from the configuration settings
@@ -39,7 +36,7 @@ module.exports = {
 
     // get storage adapter from the first part of the url
     if (version === 'v2') {
-      adapterKey = _.compact(req.url.split('/')).shift()
+      adapterKey = _.compact(url.split('/')).shift()
       url = nodeUrl.parse(url, true).pathname
     }
 
