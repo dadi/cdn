@@ -23,6 +23,26 @@ var S3Storage = function (url) {
   this.url = url;
   this.s3 = new AWS.S3();
 
+  this.getBucket = function() {
+    if (self.url.indexOf('s3') > 0) {
+      return _.compact(self.urlParts())[0]
+    }
+    else {
+      return config.get('images.s3.bucketName')
+    }
+  }
+
+  this.getKey = function() {
+    if (self.url.indexOf('s3') > 0) {
+      var parts = _.compact(self.urlParts())
+      parts.shift()
+      return parts.join('/')
+    }
+    else {
+      return self.url
+    }
+  }
+
   this.urlParts = function() {
     return self.url.replace('/s3', '').split('/')
   }
@@ -30,19 +50,21 @@ var S3Storage = function (url) {
 
 S3Storage.prototype.get = function () {
   var self = this;
-  console.log(self.urlParts())
-  return new Promise(function(resolve, reject) {
-    var urlParts = _.compact(self.urlParts());
 
-    if (urlParts.length < 2) {
+  return new Promise(function(resolve, reject) {
+    var requestData = {
+      Bucket: self.getBucket(),
+      Key: self.getKey()
+    }
+
+    console.log(requestData)
+
+    if (requestData.Bucket === '') {
       reject('No Bucket Provided')
     }
 
     // create the AWS.Request object
-    var request = self.s3.getObject({
-      Bucket: urlParts.shift(),
-      Key: urlParts.join('/')
-    });
+    var request = self.s3.getObject(requestData);
 
     var promise = request.promise();
 
