@@ -59,8 +59,8 @@ S3Storage.prototype.get = function () {
 
     console.log(requestData)
 
-    if (requestData.Bucket === '') {
-      reject('No Bucket Provided')
+    if (requestData.Bucket === '' || requestData.Key === '' ) {
+      reject('Either no Bucket or Key provided: ' + JSON.stringify(requestData))
     }
 
     // create the AWS.Request object
