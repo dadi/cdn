@@ -67,6 +67,18 @@ var Controller = function (router) {
   var imageHandler = ImageHandle(this.s3, this.cache);
   var assetHandler = AssetHandle(this.assetsS3, this.cache);
 
+  function parseUrl(req) {
+    return nodeUrl.parse(req.url, true);
+  }
+
+  function getFormat(version, url) {
+    if (version === 'v1') {
+      return _.compact(url.pathname.split('/'))[0];
+    } else if (version === 'v2') {
+      return url.query.format;
+    }
+  }
+
   router.get(/(.+)/, function (req, res) {
     //var requestParams = req.params[0].substring(1, req.params[0].length);
     var paramString = req.params[0].substring(1, req.params[0].length);
