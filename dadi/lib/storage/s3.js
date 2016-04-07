@@ -5,20 +5,15 @@ var _ = require('underscore');
 
 var config = require(__dirname + '/../../../config');
 
-AWS.config.setPromisesDependency(require('bluebird'));
-AWS.config.update({
-  accessKeyId: config.get('images.s3.accessKey'),
-  secretAccessKey: config.get('images.s3.secretKey')
-});
-
-if (config.get('images.s3.region') && config.get('images.s3.region') != "") {
-  AWS.config.update({
-    region: config.get('images.s3.region')
-  });
-}
-
 var S3Storage = function (settings, url) {
   var self = this;
+
+  AWS.config.setPromisesDependency(require('bluebird'));
+  AWS.config.update({ accessKeyId: settings.s3.accessKey, secretAccessKey: settings.s3.secretKey });
+
+  if (settings.s3.region && settings.s3.region != "") {
+    AWS.config.update({ region: settings.s3.region });
+  }
 
   this.url = url;
   this.s3 = new AWS.S3();
