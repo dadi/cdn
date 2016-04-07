@@ -19,7 +19,7 @@ var DiskStorage = function (url) {
 
 DiskStorage.prototype.get = function () {
   var self = this;
-  console.log(self.getFullUrl())
+
   return new Promise(function(resolve, reject) {
     // attempt to open
     var stream = fs.createReadStream(self.getFullUrl());

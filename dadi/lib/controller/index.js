@@ -67,18 +67,6 @@ var Controller = function (router) {
   var imageHandler = ImageHandle(this.s3, this.cache);
   var assetHandler = AssetHandle(this.assetsS3, this.cache);
 
-  function parseUrl(req) {
-    return nodeUrl.parse(req.url, true);
-  }
-
-  function getFormat(version, url) {
-    if (version === 'v1') {
-      return _.compact(url.pathname.split('/'))[0];
-    } else if (version === 'v2') {
-      return url.query.format;
-    }
-  }
-
   router.get(/(.+)/, function (req, res) {
     //var requestParams = req.params[0].substring(1, req.params[0].length);
     var paramString = req.params[0].substring(1, req.params[0].length);
@@ -103,12 +91,22 @@ var Controller = function (router) {
     var supportExts = ['ttf', 'otf', 'woff', 'svg', 'eot'];
     var options = {};
 
-    var parsedUrl = parseUrl(req);
-    var format = getFormat(version, parsedUrl);
     var factory = Object.create(HandlerFactory);
-    var handler = factory.create(format, parsedUrl);
+    var handler = factory.create(req);
 
-    handler.get().then(function() {
+    console.log(handler)
+
+    handler.get().then(function(stream) {
+      var contentType = handler.format == 'js' ? 'application/javascript' : 'text/css'
+      res.setHeader('Content-Type', contentType);
+
+      if (config.get('gzip')) {
+        res.setHeader('content-encoding', 'gzip');
+        stream.pipe(zlib.createGzip()).pipe(res);
+      }
+      else {
+        stream.pipe(res);
+      }
 
     }).catch(function(err) {
       console.log(err)

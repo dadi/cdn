@@ -1,24 +1,32 @@
+var compressor = require('node-minify');
 var path = require('path');
 var Promise = require('bluebird');
+var url = require('url');
 var _ = require('underscore');
 
+var StorageFactory = require(__dirname + '/../storage/factory');
+var AssetHandle = require(__dirname + '/../assethandle');
 var config = require(__dirname + '/../../../config');
 
 /**
  * Performs checks on the supplied URL and fetches the asset
  * @param {String} format - the type of asset requested
- * @param {Object} url - the parsed URL. Contains path and query
+ * @param {Object} req - the original HTTP request
  */
-var AssetHandler = function (format, url) {
+var AssetHandler = function (format, req) {
   var self = this;
 
   this.supportedExtensions = ['ttf', 'otf', 'woff', 'svg', 'eot'];
   this.format = format;
   this.compress = 0;
+  this.factory = Object.create(StorageFactory);
+  this.assetHandler = AssetHandle(null, null);
+
+  this.req = req;
 
   // '/js/1/test.js' -> [ 'js', '1', 'test.js' ]
   // '/fonts/test.ttf' -> [ fonts', 'test.ttf' ]
-  this.urlParts = _.compact(url.pathname.split('/'))
+  this.urlParts = _.compact(url.parse(this.req.url, true).pathname.split('/'))
 
   if (this.format === 'css' || this.format === 'js') {
     this.fileExt = this.format;
@@ -30,8 +38,6 @@ var AssetHandler = function (format, url) {
     this.fileName = this.urlParts[1];
     this.fileExt = path.extname(this.fileName).replace('.','');
   }
-
-  this.url = paramString.substring(paramString.split('/')[0].length + 3);
 
 //  if (fileName.split('.').length == 1) fileName = fileName + '.' + fileExt;
 
@@ -72,12 +78,91 @@ AssetHandler.prototype.get = function () {
       return reject(err);
     }
 
-    return resolve('ASSET');
+    var storage = self.factory.create(this.req);
+
+    console.log(storage)
+
+    storage.get().then(function(stream) {
+
+      console.log(stream)
+
+      // compress, returns stream
+      self.compress(stream).then(function(stream) {
+        // cache
+        self.cache.cacheJSCSSFiles(stream, sha1(this.fileName), function () {
+          return resolve(stream)
+        });
+      })
+
+      // return
+
+      // var imageSizeStream = PassThrough()
+      // var responseStream = PassThrough()
+
+      // duplicate the stream so we can use it
+      // for the imagesize() request and the
+      // response. this saves requesting the same
+      // data a second time.
+      // stream.pipe(imageSizeStream)
+      // stream.pipe(responseStream)
+
+    //   imagesize(imageSizeStream, function(err, imageInfo) {
+    //     self.convertAndSave(responseStream, imageInfo, originFileName, newFileName, options, returnJSON, res);
+    //   });
+    // }).catch(function(err) {
+    //   help.displayErrorPage(err.statusCode, err.message, res);
+    // });
+
+    //return resolve('ASSET');
   })
 }
 
-module.exports = function (format, url) {
-  return new AssetHandler(format, url);
+AssetHandler.prototype.compress = function(stream) {
+  var self = this;
+
+  return new Promise(function(resolve, reject) {
+
+    // no compression required, send stream back
+    if (this.compress === 0) return resolve(stream);
+
+    if (!fs.existsSync(path.resolve('./tmp'))) fs.mkdirSync(path.resolve('./tmp'));
+
+    var compression = this.format === 'js' ? 'uglifyjs' : 'sqwish'
+
+    var fileIn = path.join(path.resolve('./tmp'), this.fileName);
+    var newFileName = this.fileName.split('.')[0] + '.min.' + this.fileName.split('.')[1];
+    var fileOut = path.join(path.resolve('./tmp'), newFileName);
+
+    stream.pipe(fs.createWriteStream(fileIn)).on('finish', function () {
+      new compressor.minify ({
+        type: compression,
+        fileIn: fileIn,
+        fileOut: fileOut,
+        callback: function (err, min) {
+          if (err) {
+            console.log(err)
+            //help.displayErrorPage(404, err, res);
+          }
+          else {
+            fs.unlinkSync(fileIn);
+            stream = fs.createReadStream(fileOut);
+
+            stream.on('open', function() {
+              return resolve(stream)
+            })
+
+            stream.on('close', function() {
+              fs.unlink(fileOut);
+            })
+          }
+        }
+      })
+    })
+  })
+}
+
+module.exports = function (format, req) {
+  return new AssetHandler(format, req);
 }
 
 module.exports.AssetHandler = AssetHandler;
