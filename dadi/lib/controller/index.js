@@ -7,12 +7,14 @@ var path = require('path');
 var AWS = require('aws-sdk');
 var cloudfront = require('cloudfront');
 var redis = require('redis');
+var nodeUrl = require('url');
 var _ = require('underscore');
 
 var configPath = path.resolve(__dirname + '/../../../config');
 var config = require(__dirname + '/../../../config');
 var help = require(__dirname + '/../help');
 var monitor = require(__dirname + '/../monitor');
+var HandlerFactory = require(__dirname + '/../handlers/factory');
 var ImageHandle = require(__dirname + '/../imagehandle');
 var AssetHandle = require(__dirname + '/../assethandle');
 var cache = require(__dirname + '/../cache');
@@ -65,7 +67,20 @@ var Controller = function (router) {
   var imageHandler = ImageHandle(this.s3, this.cache);
   var assetHandler = AssetHandle(this.assetsS3, this.cache);
 
+  function parseUrl(req) {
+    return nodeUrl.parse(req.url, true);
+  }
+
+  function getFormat(version, url) {
+    if (version === 'v1') {
+      return _.compact(url.pathname.split('/'))[0];
+    } else if (version === 'v2') {
+      return url.query.format;
+    }
+  }
+
   router.get(/(.+)/, function (req, res) {
+    //var requestParams = req.params[0].substring(1, req.params[0].length);
     var paramString = req.params[0].substring(1, req.params[0].length);
     var modelName = req.params[0];
     var encryptName = sha1(modelName);
@@ -87,6 +102,18 @@ var Controller = function (router) {
     var newFileName = '';
     var supportExts = ['ttf', 'otf', 'woff', 'svg', 'eot'];
     var options = {};
+
+    var parsedUrl = parseUrl(req);
+    var format = getFormat(version, parsedUrl);
+    var factory = Object.create(HandlerFactory);
+    var handler = factory.create(format, parsedUrl);
+
+    handler.get().then(function() {
+
+    }).catch(function(err) {
+      console.log(err)
+      help.displayErrorPage(err.statusCode, err.message, res);
+    });
 
     if (paramString.split('/')[0] == 'js' || paramString.split('/')[0] == 'css') {
       fileExt = paramString.split('/')[0];
