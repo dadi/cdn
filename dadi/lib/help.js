@@ -67,12 +67,13 @@ module.exports.displayUnauthorizationError = function (res, message) {
 
 module.exports.clearCache = function (pathname, callback) {
 
+  var Cache = cache();
   var cachePath = path.join(config.get('caching.directory.path'), pathname);
 
   // delete using Redis client
-  if (cache.client()) {
+  if (Cache.client()) {
     setTimeout(function() {
-      cache.delete(pathname, function(err) {
+      Cache.delete(pathname, function(err) {
         return callback(null);
       });
     }, 200);

@@ -9,13 +9,16 @@ var sha1 = require('sha1');
 var sharp = require('sharp');
 var zlib = require('zlib');
 var imagesize = require('imagesize');
+var PassThrough = require('stream').PassThrough;
 
+var StorageFactory = require(__dirname + '/../storage/factory');
 var config = require(__dirname + '/../../../config');
 var help = require(__dirname + '/../help');
 
 var ImageHandle = function(s3, cache) {
   this.s3 = s3;
   this.cache = cache;
+  this.factory = Object.create(StorageFactory);
 };
 
 /**
@@ -37,7 +40,9 @@ ImageHandle.prototype.convertAndSave = function (readStream, imageInfo, originFi
       options.height = parseFloat(options.width) * (parseFloat(ratio[1]) / parseFloat(ratio[0]));
     }
   }
-  if(options.devicePixelRatio) {
+
+  if (options.devicePixelRatio && options.devicePixelRatio < 4) {
+    // http://devicepixelratio.com/
     options.width = parseFloat(options.width) * parseFloat(options.devicePixelRatio);
     options.height = parseFloat(options.height) * parseFloat(options.devicePixelRatio);
   }
@@ -85,9 +90,16 @@ ImageHandle.prototype.convertAndSave = function (readStream, imageInfo, originFi
     convertedStream = readStream.pipe(magickVar);
   }
 
-  self.cache.cacheImage(convertedStream, encryptName, function() {
+  // duplicate stream for caching
+  var cacheStream = PassThrough()
+  convertedStream.pipe(cacheStream)
+  // duplicate stream for returning
+  var returnStream = PassThrough()
+  convertedStream.pipe(returnStream)
+
+  self.cache.cacheImage(cacheStream, encryptName, function() {
     if (returnJSON) {
-      self.fetchImageInformation(convertedStream, originFileName, fileName, displayOption, res);
+      self.fetchImageInformation(returnStream, originFileName, fileName, displayOption, res);
     } else {
       var buffers = [];
       var fileSize = 0;
@@ -95,9 +107,10 @@ ImageHandle.prototype.convertAndSave = function (readStream, imageInfo, originFi
       function lengthListener(length) {
         fileSize = length;
       }
-      if(config.get('gzip')) {
+
+      if (config.get('gzip')) {
         res.setHeader('content-encoding', 'gzip');
-        var gzipStream = convertedStream.pipe(zlib.createGzip());
+        var gzipStream = returnStream.pipe(zlib.createGzip());
         gzipStream = gzipStream.pipe(lengthStream(lengthListener));
         gzipStream.on('data', function (buffer) {
           buffers.push(buffer);
@@ -108,7 +121,7 @@ ImageHandle.prototype.convertAndSave = function (readStream, imageInfo, originFi
           res.end(buffer);
         });
       } else {
-        convertedStream = convertedStream.pipe(lengthStream(lengthListener));
+        convertedStream = returnStream.pipe(lengthStream(lengthListener));
         convertedStream.on('data', function (buffer) {
           buffers.push(buffer);
         });
@@ -125,75 +138,96 @@ ImageHandle.prototype.convertAndSave = function (readStream, imageInfo, originFi
 /**
  * Convert new image
  */
-ImageHandle.prototype.createNewConvertImage = function (url, originFileName, newFileName, options, returnJSON, res) {
+ImageHandle.prototype.createNewConvertImage = function (req, originFileName, newFileName, options, returnJSON, res) {
   var self = this;
-  if (url.length > 0) {
-    if (config.get('images.remote.enabled')) { // Load image from http or https url
-      url = config.get('images.remote.path') + '/' + url;
-      request({url: url}, function (error, response, body) {
-        if (!error && response.statusCode == 200) {
-          var size = parseInt(response.headers['content-length']);
-          if(size === 0) {
-            return help.displayErrorPage(404, 'File size is 0 byte.', res);
-          }
-          var tmpReadStream = request({url: url});
-          imagesize(tmpReadStream, function(err, imageInfo) {
-            self.convertAndSave(request({url: url}), imageInfo, originFileName, newFileName, options, returnJSON, res);
-          });
-        }
-        else {
-          help.displayErrorPage(404, 'Image path "' + url + '" isn\'t valid.', res);
-        }
-      });
-    }
-    else if (config.get('images.s3.enabled')) { //Load image from S3
-      if(url.substring(0, 1) == '/') url = url.substring(1);
-      self.s3.getObject({Bucket: config.get('images.s3.bucketName'), Key: url}, function (err, data) {
-        if (err) {
-          help.displayErrorPage(404, err, res);
-        }
-        else {
-          var size = parseInt(data.ContentLength);
-          if(size === 0) {
-            return help.displayErrorPage(404, 'File size is 0 byte.', res);
-          }
-          var s3ReadStream = self.s3.getObject({
-            Bucket: config.get('images.s3.bucketName'),
-            Key: url
-          }).createReadStream();
-          var tmpReadStream = self.s3.getObject({
-            Bucket: config.get('images.s3.bucketName'),
-            Key: url
-          }).createReadStream();
-          imagesize(tmpReadStream, function(err, imageInfo) {
-            self.convertAndSave(s3ReadStream, imageInfo, originFileName, newFileName, options, returnJSON, res);
-          });
-        }
-      });
-    }
-    else { // Load image from local disk
-      var imageDir = path.resolve(config.get('images.directory.path'));
-      url = path.join(imageDir, url);
-      if (fs.existsSync(url)) {
-        var fsReadStream = fs.createReadStream(url);
-        var stats = fs.statSync(url);
-        var fileSize = parseInt(stats["size"]);
-        if(fileSize === 0) {
-          return help.displayErrorPage(404, 'File size is 0 byte.', res);
-        }
-        var tmpReadStream = fs.createReadStream(url);
-        imagesize(tmpReadStream, function(err, imageInfo) {
-          self.convertAndSave(fsReadStream, imageInfo, originFileName, newFileName, options, returnJSON, res);
-        });
-      }
-      else {
-        help.displayErrorPage(404, 'File "' + url + '" doesn\'t exist.', res);
-      }
-    }
-  }
-  else {
-    help.displayErrorPage(404, 'Image path doesn\'t exist.', res);
-  }
+
+  var storage = self.factory.create(req);
+
+  storage.get().then(function(stream) {
+    var imageSizeStream = PassThrough()
+    var responseStream = PassThrough()
+
+    // duplicate the stream so we can use it
+    // for the imagesize() request and the
+    // response. this saves requesting the same
+    // data a second time.
+    stream.pipe(imageSizeStream)
+    stream.pipe(responseStream)
+
+    imagesize(imageSizeStream, function(err, imageInfo) {
+      self.convertAndSave(responseStream, imageInfo, originFileName, newFileName, options, returnJSON, res);
+    });
+  }).catch(function(err) {
+    help.displayErrorPage(err.statusCode, err.message, res);
+  });
+
+  // if (url.length > 0) {
+  //   if (config.get('images.remote.enabled')) { // Load image from http or https url
+  //     url = config.get('images.remote.path') + '/' + url;
+  //     request({url: url}, function (error, response, body) {
+  //       if (!error && response.statusCode == 200) {
+  //         var size = parseInt(response.headers['content-length']);
+  //         if(size === 0) {
+  //           return help.displayErrorPage(404, 'File size is 0 byte.', res);
+  //         }
+  //         var tmpReadStream = request({url: url});
+  //         imagesize(tmpReadStream, function(err, imageInfo) {
+  //           self.convertAndSave(request({url: url}), imageInfo, originFileName, newFileName, options, returnJSON, res);
+  //         });
+  //       }
+  //       else {
+  //         help.displayErrorPage(404, 'Image path "' + url + '" isn\'t valid.', res);
+  //       }
+  //     });
+  //   }
+  //   else if (config.get('images.s3.enabled')) { //Load image from S3
+  //     if(url.substring(0, 1) == '/') url = url.substring(1);
+  //     self.s3.getObject({Bucket: config.get('images.s3.bucketName'), Key: url}, function (err, data) {
+  //       if (err) {
+  //         help.displayErrorPage(404, err, res);
+  //       }
+  //       else {
+  //         var size = parseInt(data.ContentLength);
+  //         if(size === 0) {
+  //           return help.displayErrorPage(404, 'File size is 0 byte.', res);
+  //         }
+  //         var s3ReadStream = self.s3.getObject({
+  //           Bucket: config.get('images.s3.bucketName'),
+  //           Key: url
+  //         }).createReadStream();
+  //         var tmpReadStream = self.s3.getObject({
+  //           Bucket: config.get('images.s3.bucketName'),
+  //           Key: url
+  //         }).createReadStream();
+  //         imagesize(tmpReadStream, function(err, imageInfo) {
+  //           self.convertAndSave(s3ReadStream, imageInfo, originFileName, newFileName, options, returnJSON, res);
+  //         });
+  //       }
+  //     });
+  //   }
+  //   else { // Load image from local disk
+  //     var imageDir = path.resolve(config.get('images.directory.path'));
+  //     url = path.join(imageDir, url);
+  //     if (fs.existsSync(url)) {
+  //       var fsReadStream = fs.createReadStream(url);
+  //       var stats = fs.statSync(url);
+  //       var fileSize = parseInt(stats["size"]);
+  //       if(fileSize === 0) {
+  //         return help.displayErrorPage(404, 'File size is 0 byte.', res);
+  //       }
+  //       var tmpReadStream = fs.createReadStream(url);
+  //       imagesize(tmpReadStream, function(err, imageInfo) {
+  //         self.convertAndSave(fsReadStream, imageInfo, originFileName, newFileName, options, returnJSON, res);
+  //       });
+  //     }
+  //     else {
+  //       help.displayErrorPage(404, 'File "' + url + '" doesn\'t exist.', res);
+  //     }
+  //   }
+  // }
+  // else {
+  //   help.displayErrorPage(404, 'Image path doesn\'t exist.', res);
+  // }
 };
 
 /**

@@ -34,8 +34,8 @@ describe('Controller', function () {
     app.stop(done);
   });
 
-  describe('Accept header', function(done) {
-    it('should extract options from url if no Accept header is present', function(done) {
+  describe('Options Discovery', function(done) {
+    it('should extract options from url path if no querystring', function(done) {
       // stub the convert method to access the provided arguments
       var method = sinon.stub(imageHandle.ImageHandle.prototype, 'convertAndSave', function (readStream, imageInfo, originFileName, fileName, options, returnJSON, res) {
         res.end()
@@ -55,32 +55,7 @@ describe('Controller', function () {
       })
     })
 
-    it('should extract options from url if unknown Accept header is present', function(done) {
-      // stub the convert method to access the provided arguments
-      var method = sinon.stub(imageHandle.ImageHandle.prototype, 'convertAndSave', function (readStream, imageInfo, originFileName, fileName, options, returnJSON, res) {
-        res.end()
-      })
-
-      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'));
-      client
-      .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
-      .set('Accept', 'application/vnd+json')
-      .expect(200)
-      .end(function(err, res) {
-        imageHandle.ImageHandle.prototype.convertAndSave.restore()
-
-        method.called.should.eql(true)
-
-        var options = method.firstCall.args[4];
-        options.quality.should.eql(50)
-        options.width.should.eql(801)
-        options.height.should.eql(478)
-
-        done()
-      })
-    })
-
-    it('v2: should extract options from querystring if v2 Accept header is present', function(done) {
+    it('v2: should extract options from querystring if one is present', function(done) {
       // stub the convert method to access the provided arguments
       var method = sinon.stub(imageHandle.ImageHandle.prototype, 'convertAndSave', function (readStream, imageInfo, originFileName, fileName, options, returnJSON, res) {
         res.end()
@@ -89,7 +64,6 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'));
       client
       .get('/test.jpg?quality=50&width=801&height=478&gravity=North&resizeStyle=aspectfit&devicePixelRatio=2')
-      .set('Accept', 'application/vnd.dadicdn-v2+json')
       .end(function(err, res) {
 
         imageHandle.ImageHandle.prototype.convertAndSave.restore()
@@ -114,7 +88,6 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'));
       client
       .get('/test.jpg?format=png&quality=50&width=801&height=478&gravity=North&resizeStyle=aspectfit&devicePixelRatio=2')
-      .set('Accept', 'application/vnd.dadicdn-v2+json')
       .end(function(err, res) {
 
         imageHandle.ImageHandle.prototype.convertAndSave.restore()
@@ -152,7 +125,7 @@ describe('Controller', function () {
 
     var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'));
     client
-      .get('/jpg/50/0/0/801/478/0/0/0/aspectfit/North/0/0/0/0/0/test.jpg')
+      .get('/jpg/50/0/0/801/478/0/0/0/aspectfit/North/0/0/test.jpg')
       .expect(404, done);
   });
 
