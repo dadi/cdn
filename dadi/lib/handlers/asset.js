@@ -1,4 +1,5 @@
 var compressor = require('node-minify');
+var fs = require('fs');
 var path = require('path');
 var Promise = require('bluebird');
 var url = require('url');
@@ -24,14 +25,16 @@ var AssetHandler = function (format, req) {
 
   this.req = req;
 
+  var parsedUrl = url.parse(this.req.url, true);
+
   // '/js/1/test.js' -> [ 'js', '1', 'test.js' ]
   // '/fonts/test.ttf' -> [ fonts', 'test.ttf' ]
-  this.urlParts = _.compact(url.parse(this.req.url, true).pathname.split('/'))
+  this.urlParts = _.compact(parsedUrl.pathname.split('/'))
 
   if (this.format === 'css' || this.format === 'js') {
     this.fileExt = this.format;
-    this.fileName = this.urlParts[2];
-    this.compress = this.urlParts[1];
+    this.fileName = parsedUrl.query ? this.urlParts[1] : this.urlParts[2];
+    this.compress = parsedUrl.query ? parsedUrl.query.compress : this.urlParts[1];
   }
   else if (this.format === 'fonts') {
     this.url = this.urlParts.join('/');
@@ -87,12 +90,14 @@ AssetHandler.prototype.get = function () {
       console.log(stream)
 
       // compress, returns stream
-      self.compress(stream).then(function(stream) {
+      self.compressFile(stream).then(function(stream) {
         // cache
-        self.cache.cacheJSCSSFiles(stream, sha1(self.fileName), function () {
+        //self.cache.cacheJSCSSFiles(stream, sha1(self.fileName), function () {
           return resolve(stream)
-        });
+        //});
       })
+    }).catch(function(err) {
+      return reject(err);
     })
       // return
 
@@ -117,21 +122,23 @@ AssetHandler.prototype.get = function () {
   })
 }
 
-AssetHandler.prototype.compress = function(stream) {
+AssetHandler.prototype.compressFile = function(stream) {
   var self = this;
 
   return new Promise(function(resolve, reject) {
 
     // no compression required, send stream back
-    if (this.compress === 0) return resolve(stream);
+    if (self.compress === '0') return resolve(stream);
 
     if (!fs.existsSync(path.resolve('./tmp'))) fs.mkdirSync(path.resolve('./tmp'));
 
-    var compression = this.format === 'js' ? 'uglifyjs' : 'sqwish'
+    var compression = self.format === 'js' ? 'uglifyjs' : 'sqwish'
 
-    var fileIn = path.join(path.resolve('./tmp'), this.fileName);
-    var newFileName = this.fileName.split('.')[0] + '.min.' + this.fileName.split('.')[1];
+    var fileIn = path.join(path.resolve('./tmp'), self.fileName);
+    var newFileName = self.fileName.split('.')[0] + '.min.' + self.fileName.split('.')[1];
+console.log(newFileName)
     var fileOut = path.join(path.resolve('./tmp'), newFileName);
+console.log(fileOut)
 
     stream.pipe(fs.createWriteStream(fileIn)).on('finish', function () {
       new compressor.minify ({
