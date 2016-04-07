@@ -4,12 +4,12 @@ var zlib = require('zlib');
 var fs = require('fs');
 var path = require('path');
 var sha1 = require('sha1');
-
+var cache = require(__dirname + '/../cache');
 var config = require(__dirname + '/../../../config');
 var help = require(__dirname + '/../help');
 
 var AssetHandle = function(assetsS3, cache) {
-  this.cache = cache;
+  this.cache = cache();
   this.assetsS3 = assetsS3;
 };
 /**
