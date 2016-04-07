@@ -33,8 +33,8 @@ var AssetHandler = function (format, req) {
 
   if (this.format === 'css' || this.format === 'js') {
     this.fileExt = this.format;
-    this.fileName = parsedUrl.query ? this.urlParts[1] : this.urlParts[2];
-    this.compress = parsedUrl.query ? parsedUrl.query.compress : this.urlParts[1];
+    this.fileName = parsedUrl.search ? this.urlParts[1] : this.urlParts[2];
+    this.compress = parsedUrl.search ? parsedUrl.query.compress : this.urlParts[1];
   }
   else if (this.format === 'fonts') {
     this.url = this.urlParts.join('/');
@@ -135,8 +135,9 @@ AssetHandler.prototype.compressFile = function(stream) {
     var compression = self.format === 'js' ? 'uglifyjs' : 'sqwish'
 
     var fileIn = path.join(path.resolve('./tmp'), self.fileName);
-    var newFileName = self.fileName.split('.')[0] + '.min.' + self.fileName.split('.')[1];
+    var newFileName = self.fileName.split('.')[0] + '.min.' + self.fileExt;
 console.log(newFileName)
+console.log(self.fileName)
     var fileOut = path.join(path.resolve('./tmp'), newFileName);
 console.log(fileOut)
 
