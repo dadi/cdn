@@ -9,7 +9,7 @@ var config = require(__dirname + '/../../../config');
 var help = require(__dirname + '/../help');
 
 var AssetHandle = function(assetsS3, cache) {
-  this.cache = cache();
+//  this.cache = new cache();
   this.assetsS3 = assetsS3;
 };
 /**

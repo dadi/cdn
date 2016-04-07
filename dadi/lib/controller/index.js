@@ -124,7 +124,7 @@ var Controller = function (router) {
       console.log(err)
       help.displayErrorPage(err.statusCode, err.message, res);
     });
-
+return;
     if (paramString.split('/')[0] == 'js' || paramString.split('/')[0] == 'css') {
       fileExt = paramString.split('/')[0];
       compress = paramString.split('/')[1];
