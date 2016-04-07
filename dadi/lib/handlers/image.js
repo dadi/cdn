@@ -1,5 +1,5 @@
 var fs = require('fs');
-var ColorThief = require('color-thief');,
+var ColorThief = require('color-thief');
 var colorThief = new ColorThief();
 var imagemagick = require('imagemagick-native');
 var imagesize = require('imagesize');
@@ -27,15 +27,16 @@ var ImageHandler = function (format, req) {
   var self = this;
 
   this.req = req;
+  this.factory = Object.create(StorageFactory);
 
   var parsedUrl = url.parse(this.req.url, true);
   this.cacheKey = parsedUrl.pathname;
   this.fileName = path.basename(parsedUrl.pathname);
-  this.fileExt = path.extname(fileName).substring(1);
+  this.fileExt = path.extname(this.fileName).substring(1);
 
   if (parsedUrl.query) {
     this.options = parsedUrl.query;
-    if (typeof this.options.format === 'undefined') this.options.format = fileExt;
+    if (typeof this.options.format === 'undefined') this.options.format = this.fileExt;
   }
   else {
     var optionsArray = parsedUrl.pathname.split('/').slice(0, 17);
@@ -44,6 +45,8 @@ var ImageHandler = function (format, req) {
     // fileExt = url.substring(url.lastIndexOf('.') + 1);
     this.options = getImageOptions(optionsArray);
   }
+
+  this.format = this.options.format;
 }
 
 ImageHandler.prototype.get = function () {
@@ -170,7 +173,8 @@ ImageHandler.prototype.convert = function (readStream, imageInfo) {
     return resolve(returnStream)
 
     self.cache.cacheImage(cacheStream, encryptName, function() {
-      if (var returnJSON=false) {
+var returnJSON=false;      
+if (returnJSON) {
         self.fetchImageInformation(returnStream, self.fileName, self.cacheKey, displayOption, res);
       } else {
         var buffers = [];
