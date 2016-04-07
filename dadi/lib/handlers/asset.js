@@ -78,7 +78,7 @@ AssetHandler.prototype.get = function () {
       return reject(err);
     }
 
-    var storage = self.factory.create(self.req);
+    var storage = self.factory.create('asset', self.req);
 
     console.log(storage)
 

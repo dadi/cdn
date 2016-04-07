@@ -141,7 +141,7 @@ ImageHandle.prototype.convertAndSave = function (readStream, imageInfo, originFi
 ImageHandle.prototype.createNewConvertImage = function (req, originFileName, newFileName, options, returnJSON, res) {
   var self = this;
 
-  var storage = self.factory.create(req);
+  var storage = self.factory.create('image', req);
 
   storage.get().then(function(stream) {
     var imageSizeStream = PassThrough()
