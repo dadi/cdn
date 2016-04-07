@@ -2,6 +2,7 @@ var fs = require('fs');
 var path = require('path');
 var redis = require('redis');
 var redisWStream = require('redis-wstream');
+var sha1 = require('sha1');
 var _ = require('underscore');
 var async = require('async');
 
@@ -63,52 +64,64 @@ Cache.prototype.initRedisClient = function () {
   this.redisClient.on("error", function (err) {
     console.log("Error " + err);
   }).on("connect", function () {
-    console.log('Redis client Connected');
+    console.log('CACHE: Redis client connected');
   });
 
   if (config.get('caching.redis.password')) {
     this.redisClient.auth(config.get('caching.redis.password'), function () {
-      console.log('Redis client connected');
+      console.log('CACHE: Redis client connected and authenticated');
     });
   }
 };
 
-Cache.prototype.cacheImage = function(convertedStream, encryptName, next) {
+Cache.prototype.cacheFile = function(stream, key, next) {
   var self = this;
 
   if (!self.enabled) return next()
-  
-  if (config.get('caching.redis.enabled')) {
-    convertedStream.pipe(redisWStream(self.redisClient, encryptName)).on('finish', function () {
-      if (config.get('caching.ttl')) {
-        self.redisClient.expire(encryptName, config.get('caching.ttl'));
-        next();
+
+  var settings = config.get('caching');
+  var encryptedKey = sha1(key);
+
+  console.log(key)
+  console.log(encryptedKey)
+
+  if (settings.redis.enabled) {
+    stream.pipe(redisWStream(self.redisClient, encryptedKey)).on('finish', function () {
+      if (settings.ttl) {
+        self.redisClient.expire(encryptedKey, settings.ttl);
+        return next();
       }
     });
-  } else {
-    var cacheDir = path.resolve(config.get('caching.directory.path'));
-    var file = fs.createWriteStream(path.join(cacheDir, encryptName));
+  }
+  else {
+    var cacheDir = path.resolve(settings.directory.path);
+    var file = fs.createWriteStream(path.join(cacheDir, encryptedKey));
     file.on('error', function (err) {
+      console.log(err);
+    })
 
-    });
-
-    convertedStream.pipe(file);
-    next();
+    stream.pipe(file);
+    return next();
   }
 };
 
-Cache.prototype.cacheJSCSSFiles = function(readStream, fileName, next) {
-  var self = this;
-  if (config.get('caching.redis.enabled')) {
-    readStream.pipe(redisWStream(self.redisClient, fileName));
-
-  } else {
-    var fileOut = path.join(path.resolve(config.get('caching.directory.path')), fileName);
-    var file = fs.createWriteStream(fileOut);
-    readStream.pipe(file);
-  }
-  next();
-};
+// Cache.prototype.cacheJSCSSFiles = function(stream, fileName, next) {
+//   var self = this;
+//
+//   if (config.get('caching.redis.enabled')) {
+//     stream.pipe(redisWStream(self.redisClient, fileName));
+//   }
+//   else {
+//     var cacheDir = path.resolve(config.get('caching.directory.path'));
+//     var file = fs.createWriteStream(path.join(cacheDir, fileName));
+//     file.on('error', function (err) {
+//     })
+//
+//     stream.pipe(file);
+//   }
+//
+//   next();
+// };
 
 module.exports.delete = function(pattern, callback) {
   var iter = '0';

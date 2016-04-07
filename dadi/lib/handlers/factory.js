@@ -36,6 +36,8 @@ module.exports = {
 
     var format = getFormat(version, req)
 
+    console.log(format)
+
     switch (format) {
       case 'css':
       case 'fonts':

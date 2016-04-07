@@ -96,14 +96,10 @@ var Controller = function (router) {
 
     console.log(handler)
 
+    // TODO: check cache inside GET(), returning stream
     handler.get().then(function(stream) {
-      if (handler.format == 'js') {
-        res.setHeader('Content-Type', 'application/javascript')
-      }
-      else if (handler.format === 'css') {
-        res.setHeader('Content-Type', 'text/css')
-      }
-
+      var contentType = handler.format == 'js' ? 'application/javascript' : 'text/css'
+      res.setHeader('Content-Type', contentType);
 
       if (config.get('gzip')) {
         res.setHeader('content-encoding', 'gzip');
@@ -118,33 +114,8 @@ var Controller = function (router) {
       help.displayErrorPage(err.statusCode, err.message, res);
     });
 return;
-
-     if (paramString.split('/')[0] == 'js' || paramString.split('/')[0] == 'css') {
-       fileExt = paramString.split('/')[0];
-       compress = paramString.split('/')[1];
-       url = paramString.substring(paramString.split('/')[0].length + 3);
-       fileName = url.split('/')[url.split('/').length - 1];
-       if(fileName.split('.').length == 1) fileName = fileName + '.' + fileExt;
-    
-       if (compress != 0 && compress != 1) {
-         error = '<p>Url path is invalid.</p>' +
-           '<p>The valid url path format:</p>' +
-           '<p>http://some-example-domain.com/{format-(js, css)}/{compress-(0, 1)}/JS,CSS file path</p>';
-         help.displayErrorPage(404, error, res);
-       } else {
-         assetHandler.fetchOriginFileContent(url, fileName, fileExt, compress, res);
-       }
-     } else if(paramString.split('/')[0] == 'fonts') {
-       url = paramString.substring(paramString.split('/')[0].length + 1);
-       fileName = url.split('/')[url.split('/').length - 1];
-     fileExt = url.substring(url.lastIndexOf('.') + 1);
-       if(supportExts.indexOf(fileExt.toLowerCase()) < 0) {
-         error = '<p>Font file type should be TTF, OTF, WOFF, SVG or EOT.</p>';
-         help.displayErrorPage(404, error, res);
-       } else {
-         assetHandler.fetchOriginFileContent(url, fileName, fileExt, 0, res);
-       }
-     } else {
+    if (1==2) {
+    } else {
 //console.log(version)
 //console.log(paramString.split('/').length)
       if (version === 'v1' && paramString.split('/').length < 15 &&
@@ -193,21 +164,21 @@ return;
           }
         } else {
 
-          if (version === 'v2') {
-            var urlOptions = require('url').parse(req.url, true);
-            url = urlOptions.pathname;
-            fileName = urlOptions.pathname.substring(1);
-            fileExt = path.extname(fileName).substring(1);
-            options = urlOptions.query;
-            if (typeof options.format === 'undefined') options.format = fileExt;
-          }
-          else {
-            var optionsArray = paramString.split('/').slice(0, 17);
-            url = paramString.substring(optionsArray.join('/').length + 1);
-            fileName = url.split('/')[url.split('/').length - 1];
-            fileExt = url.substring(url.lastIndexOf('.') + 1);
-            options = getImageOptions(optionsArray, version);
-          }
+          // if (version === 'v2') {
+          //   var urlOptions = require('url').parse(req.url, true);
+          //   url = urlOptions.pathname;
+          //   fileName = urlOptions.pathname.substring(1);
+          //   fileExt = path.extname(fileName).substring(1);
+          //   options = urlOptions.query;
+          //   if (typeof options.format === 'undefined') options.format = fileExt;
+          // }
+          // else {
+          //   var optionsArray = paramString.split('/').slice(0, 17);
+          //   url = paramString.substring(optionsArray.join('/').length + 1);
+          //   fileName = url.split('/')[url.split('/').length - 1];
+          //   fileExt = url.substring(url.lastIndexOf('.') + 1);
+          //   options = getImageOptions(optionsArray, version);
+          // }
         }
 
         if(options.format != 'assets') {
@@ -222,11 +193,7 @@ return;
 
           var originFileName = fileName;
 
-          if (config.get('security.maxWidth') && config.get('security.maxWidth') < options.width)
-            options.width = config.get('security.maxWidth');
-          if (config.get('security.maxHeight') && config.get('security.maxHeight') < options.height)
-            options.height = config.get('security.maxHeight');
-
+          // TODO: add to image handler
           if (options.filter == 'None' || options.filter == 0) delete options.filter;
           if (options.gravity == 0) delete options.gravity;
           if (options.width == 0) delete options.width;
@@ -244,6 +211,7 @@ return;
           if (options.rotate == 0) delete options.rotate;
           if (options.flip == 0) delete options.flip;
 
+          // TODO: add to image handler
           if (config.get('caching.redis.enabled')) {
             self.cache.client().exists(encryptName, function (err, exists) {
               if (exists > 0) {
@@ -252,37 +220,7 @@ return;
                   imageHandler.fetchImageInformation(readStream, originFileName, modelName, options, res);
                 } else {
                   // Set cache header
-                  res.setHeader('X-Cache', 'HIT');
-                  var buffers = [];
-                  var fileSize = 0;
-
-                  function lengthListener(length) {
-                    fileSize = length;
-                  }
-
-                  if(config.get('gzip')) {
-                    res.setHeader('content-encoding', 'gzip');
-                    var gzipStream = readStream.pipe(zlib.createGzip());
-        				    gzipStream = gzipStream.pipe(lengthStream(lengthListener));
-        				    gzipStream.on('data', function (buffer) {
-      				        buffers.push(buffer);
-        				    });
-        				    gzipStream.on('end', function () {
-      				        var buffer = Buffer.concat(buffers);
-      				        res.setHeader('Content-Length', fileSize);
-      				        res.end(buffer);
-        				    });
-                  } else {
-        				    readStream = readStream.pipe(lengthStream(lengthListener));
-        				    readStream.on('data', function (buffer) {
-      				        buffers.push(buffer);
-        				    });
-        				    readStream.on('end', function () {
-      				        var buffer = Buffer.concat(buffers);
-      				        res.setHeader('Content-Length', fileSize);
-      				        res.end(buffer);
-        				    });
-                  }
+                  send using res pattern
                 }
               } else {
                 // Set cache header
@@ -302,39 +240,7 @@ return;
                     imageHandler.fetchImageInformation(readStream, originFileName, modelName, options, res);
                   } else {
                     // Set cache header
-                    res.setHeader('X-Cache', 'HIT');
-
-                    var buffers = [];
-                    var fileSize = 0;
-
-                    function lengthListener(length) {
-                      fileSize = length;
-                    }
-
-                    if(config.get('gzip')) {
-                    	res.setHeader('content-encoding', 'gzip');
-                    	var gzipStream = readStream.pipe(zlib.createGzip());
-
-        					    gzipStream = gzipStream.pipe(lengthStream(lengthListener));
-        					    gzipStream.on('data', function (buffer) {
-      					        buffers.push(buffer);
-        					    });
-        					    gzipStream.on('end', function () {
-      					        var buffer = Buffer.concat(buffers);
-      					        res.setHeader('Content-Length', fileSize);
-      					        res.end(buffer);
-        					    });
-                    } else {
-        					    readStream = readStream.pipe(lengthStream(lengthListener));
-        					    readStream.on('data', function (buffer) {
-       					        buffers.push(buffer);
-        					    });
-        					    readStream.on('end', function () {
-      					        var buffer = Buffer.concat(buffers);
-      					        res.setHeader('Content-Length', fileSize);
-      					        res.end(buffer);
-        					    });
-                    }
+                    send using res pattern
                   }
                 } else {
                   // Set cache header
@@ -388,41 +294,6 @@ return;
       }, res);
     }
   });
-
-  /**
-   * Parses the request URL and returns an options object
-   * @param {String} url - the request URL
-   * @param {String} version - the version number extracted from the 'Accept' request header
-   * @returns {object}
-   */
-  function getImageOptions (optionsArray, version) {
-
-    var gravity = optionsArray[11].substring(0, 1).toUpperCase() + optionsArray[11].substring(1);
-    var filter = optionsArray[12].substring(0, 1).toUpperCase() + optionsArray[12].substring(1);
-
-    options = {
-      format: optionsArray[0],
-      quality: optionsArray[1],
-      trim: optionsArray[2],
-      trimFuzz: optionsArray[3],
-      width: optionsArray[4],
-      height: optionsArray[5],
-      cropX: optionsArray[6],
-      cropY: optionsArray[7],
-      ratio: optionsArray[8],
-      devicePixelRatio: optionsArray[9],
-      resizeStyle: optionsArray[10],
-      gravity: gravity,
-      filter: filter,
-      blur: optionsArray[13],
-      strip: optionsArray[14],
-      rotate: optionsArray[15],
-      flip: optionsArray[16]
-    }
-
-    return options;
-  }
-
 };
 
 /**
