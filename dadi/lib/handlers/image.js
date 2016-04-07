@@ -8,7 +8,6 @@ var PassThrough = require('stream').PassThrough;
 var path = require('path');
 var Promise = require('bluebird');
 var request = require('request');
-var sha1 = require('sha1');
 var sharp = require('sharp');
 var url = require('url');
 var zlib = require('zlib');
@@ -16,6 +15,7 @@ var _ = require('underscore');
 
 var StorageFactory = require(__dirname + '/../storage/factory');
 var ImageHandle = require(__dirname + '/../imagehandle');
+var Cache = require(__dirname + '/../cache');
 var config = require(__dirname + '/../../../config');
 
 /**
@@ -28,6 +28,7 @@ var ImageHandler = function (format, req) {
 
   this.req = req;
   this.factory = Object.create(StorageFactory);
+  this.cache = Cache();
 
   var parsedUrl = url.parse(this.req.url, true);
   this.cacheKey = parsedUrl.pathname;
@@ -53,9 +54,9 @@ ImageHandler.prototype.get = function () {
   var self = this;
 
   return new Promise(function(resolve, reject) {
-
     var message;
 
+    // TODO: is there an error to raise here?
     if (message) {
       var err = {
         statusCode: 400,
@@ -67,12 +68,7 @@ ImageHandler.prototype.get = function () {
 
     var storage = self.factory.create('image', self.req);
 
-    console.log(storage)
-
     storage.get().then(function(stream) {
-
-      console.log(stream)
-
       var imageSizeStream = PassThrough()
       var responseStream = PassThrough()
 
@@ -88,9 +84,9 @@ ImageHandler.prototype.get = function () {
         // modelName = full URL pathname = /jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/cdn-media/01.jpg
         self.convert(responseStream, imageInfo).then(function(stream) {
           // cache here
-          //self.cache.cacheImage(stream, sha1(self.fileName), function () {
+          self.cache.cacheFile(stream, self.cacheKey, function () {
             return resolve(stream)
-          //})
+          })
         })
       })
     }).catch(function(err) {
@@ -100,16 +96,14 @@ ImageHandler.prototype.get = function () {
 }
 
 /**
- * Convert image and store in local disk or Redis.
- * readStream: read stream from S3, local disk and url
- * fileName: file name to store converted image data
- * options: convert options
+ * Convert image according to options specified
+ * @param {stream} stream - read stream from S3, local disk or url
  */
-ImageHandler.prototype.convert = function (readStream, imageInfo) {
+ImageHandler.prototype.convert = function (stream, imageInfo) {
   var self = this;
 
   return new Promise(function(resolve, reject) {
-    var encryptName = sha1(self.cacheKey);
+    //var encryptName = sha1(self.cacheKey);
     var options = self.options;
     var displayOption = options;
 
@@ -173,8 +167,7 @@ ImageHandler.prototype.convert = function (readStream, imageInfo) {
     return resolve(returnStream)
 
     self.cache.cacheImage(cacheStream, encryptName, function() {
-var returnJSON=false;      
-if (returnJSON) {
+      if (self.options.format === 'json') {
         self.fetchImageInformation(returnStream, self.fileName, self.cacheKey, displayOption, res);
       } else {
         var buffers = [];
@@ -236,6 +229,11 @@ function getDimensions(options) {
     dimensions.height = parseFloat(dimensions.height) * parseFloat(options.devicePixelRatio);
   }
 
+  if (config.get('security.maxWidth') && config.get('security.maxWidth') < dimensions.width)
+    dimensions.width = config.get('security.maxWidth');
+  if (config.get('security.maxHeight') && config.get('security.maxHeight') < dimensions.height)
+    dimensions.height = config.get('security.maxHeight');
+
   return dimensions;
 }
 
@@ -272,8 +270,8 @@ function getImageOptions (optionsArray) {
   return options;
 }
 
-module.exports = function (format, url) {
-  return new ImageHandler(format, url);
+module.exports = function (format, req) {
+  return new ImageHandler(format, req);
 }
 
 module.exports.ImageHandler = ImageHandler;

@@ -7,6 +7,7 @@ var _ = require('underscore');
 
 var StorageFactory = require(__dirname + '/../storage/factory');
 var AssetHandle = require(__dirname + '/../assethandle');
+var Cache = require(__dirname + '/../cache');
 var config = require(__dirname + '/../../../config');
 
 /**
@@ -22,6 +23,7 @@ var AssetHandler = function (format, req) {
   this.compress = '0';
   this.factory = Object.create(StorageFactory);
   this.assetHandler = AssetHandle(null, null);
+  this.cache = Cache();
 
   this.req = req;
 
@@ -42,6 +44,8 @@ var AssetHandler = function (format, req) {
     this.fileExt = path.extname(this.fileName).replace('.','');
   }
 
+  this.cacheKey = this.urlParts.join('/');
+
 //  if (fileName.split('.').length == 1) fileName = fileName + '.' + fileExt;
 
  //else {
@@ -59,7 +63,6 @@ AssetHandler.prototype.get = function () {
   var self = this;
 
   return new Promise(function(resolve, reject) {
-
     var message;
 
     if (self.compress !== '0' && self.compress !== '1') {
@@ -83,42 +86,17 @@ AssetHandler.prototype.get = function () {
 
     var storage = self.factory.create('asset', self.req);
 
-    console.log(storage)
-
     storage.get().then(function(stream) {
-
-      console.log(stream)
-
       // compress, returns stream
       self.compressFile(stream).then(function(stream) {
-        // cache
-        //self.cache.cacheJSCSSFiles(stream, sha1(self.fileName), function () {
+        // cache here
+        self.cache.cacheFile(stream, self.cacheKey, function () {
           return resolve(stream)
-        //});
+        })
       })
     }).catch(function(err) {
       return reject(err);
     })
-      // return
-
-      // var imageSizeStream = PassThrough()
-      // var responseStream = PassThrough()
-
-      // duplicate the stream so we can use it
-      // for the imagesize() request and the
-      // response. this saves requesting the same
-      // data a second time.
-      // stream.pipe(imageSizeStream)
-      // stream.pipe(responseStream)
-
-    //   imagesize(imageSizeStream, function(err, imageInfo) {
-    //     self.convertAndSave(responseStream, imageInfo, originFileName, newFileName, options, returnJSON, res);
-    //   });
-    // }).catch(function(err) {
-    //   help.displayErrorPage(err.statusCode, err.message, res);
-    // });
-
-    //return resolve('ASSET');
   })
 }
 
@@ -126,7 +104,6 @@ AssetHandler.prototype.compressFile = function(stream) {
   var self = this;
 
   return new Promise(function(resolve, reject) {
-
     // no compression required, send stream back
     if (self.compress === '0') return resolve(stream);
 
@@ -136,10 +113,7 @@ AssetHandler.prototype.compressFile = function(stream) {
 
     var fileIn = path.join(path.resolve('./tmp'), self.fileName);
     var newFileName = self.fileName.split('.')[0] + '.min.' + self.fileExt;
-console.log(newFileName)
-console.log(self.fileName)
     var fileOut = path.join(path.resolve('./tmp'), newFileName);
-console.log(fileOut)
 
     stream.pipe(fs.createWriteStream(fileIn)).on('finish', function () {
       new compressor.minify ({
