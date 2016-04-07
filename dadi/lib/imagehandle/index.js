@@ -40,7 +40,9 @@ ImageHandle.prototype.convertAndSave = function (readStream, imageInfo, originFi
       options.height = parseFloat(options.width) * (parseFloat(ratio[1]) / parseFloat(ratio[0]));
     }
   }
-  if(options.devicePixelRatio) {
+  
+  if (options.devicePixelRatio && options.devicePixelRatio < 4) {
+    // http://devicepixelratio.com/
     options.width = parseFloat(options.width) * parseFloat(options.devicePixelRatio);
     options.height = parseFloat(options.height) * parseFloat(options.devicePixelRatio);
   }
