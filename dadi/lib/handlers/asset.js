@@ -18,7 +18,7 @@ var AssetHandler = function (format, req) {
 
   this.supportedExtensions = ['ttf', 'otf', 'woff', 'svg', 'eot'];
   this.format = format;
-  this.compress = 0;
+  this.compress = '0';
   this.factory = Object.create(StorageFactory);
   this.assetHandler = AssetHandle(null, null);
 
@@ -59,13 +59,13 @@ AssetHandler.prototype.get = function () {
 
     var message;
 
-    if (this.compress !== 0 && this.compress !== 1) {
+    if (self.compress !== '0' && self.compress !== '1') {
       message = '<p>Url path is invalid.</p>' +
       '<p>The valid url path format:</p>' +
       '<p>http://some-example-domain.com/{format-(js, css)}/{compress-(0, 1)}/JS,CSS file path</p>';
     }
 
-    if (this.format === 'fonts' && this.supportedExtensions.indexOf(this.fileExt.toLowerCase()) < 0) {
+    if (self.format === 'fonts' && self.supportedExtensions.indexOf(self.fileExt.toLowerCase()) < 0) {
       message = '<p>Font file type should be TTF, OTF, WOFF, SVG or EOT.</p>';
     }
 
@@ -78,7 +78,7 @@ AssetHandler.prototype.get = function () {
       return reject(err);
     }
 
-    var storage = self.factory.create(this.req);
+    var storage = self.factory.create(self.req);
 
     console.log(storage)
 
@@ -89,11 +89,11 @@ AssetHandler.prototype.get = function () {
       // compress, returns stream
       self.compress(stream).then(function(stream) {
         // cache
-        self.cache.cacheJSCSSFiles(stream, sha1(this.fileName), function () {
+        self.cache.cacheJSCSSFiles(stream, sha1(self.fileName), function () {
           return resolve(stream)
         });
       })
-
+    })
       // return
 
       // var imageSizeStream = PassThrough()
