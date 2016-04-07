@@ -7,11 +7,11 @@ var _ = require('underscore');
 
 var config = require(__dirname + '/../../../config');
 
-var HTTPStorage = function (url) {
+var HTTPStorage = function (settings, url) {
   var self = this;
 
   this.url = url;
-  this.baseUrl = config.get('images.remote.path');
+  this.baseUrl = settings.remote.path;
 
   this.getFullUrl = function() {
     return urljoin(self.baseUrl, self.url.replace('/http', ''))
@@ -50,8 +50,8 @@ HTTPStorage.prototype.get = function () {
   })
 }
 
-module.exports = function (url) {
-  return new HTTPStorage(url);
+module.exports = function (settings, url) {
+  return new HTTPStorage(settings, url);
 }
 
 module.exports.HTTPStorage = HTTPStorage

@@ -7,21 +7,29 @@ var HTTPStorage = require(__dirname + '/http');
 var config = require(__dirname + '/../../../config');
 
 module.exports = {
-  create: function create(req) {
+  create: function create(type, req) {
+    var configBlock;
+    var url = req.url
+
     // set a default version
     var version = 'v1'
-
-    var url = req.url
 
     // set version 2 if the url was supplied with a querystring
     if (require('url').parse(url, true).search) {
       version = 'v2'
     }
 
+    if (type === 'image') {
+      configBlock = config.get('images')
+    }
+    else if (type === 'asset') {
+      configBlock = config.get('assets')
+    }
+
     // get storage adapter from the configuration settings
     if (version === 'v1') {
-      adapterKey = _.compact(_.map(config.get('images'), function(block, key) {
-        if (block.enabled) {
+      adapterKey = _.compact(_.map(configBlock, function(storage, key) {
+        if (storage.enabled) {
           if (key === 'directory') return 'disk'
           if (key === 'remote') return 'http'
           if (key === 's3') return 's3'
@@ -31,7 +39,8 @@ module.exports = {
 
       if (_.isArray(adapterKey)) adapterKey = adapterKey[0]
 
-      url = url.split('/').slice(18).join('/')
+      if (type === 'image') url = url.split('/').slice(18).join('/')
+      if (type === 'asset') url = url.split('/').slice(3).join('/')
     }
 
     // get storage adapter from the first part of the url
@@ -42,16 +51,16 @@ module.exports = {
 
     switch (adapterKey) {
       case 'disk':
-        return new DiskStorage(url)
+        return new DiskStorage(configBlock, url)
         break
       case 'http':
-        return new HTTPStorage(url)
+        return new HTTPStorage(configBlock, url)
         break
       case 's3':
-        return new S3Storage(url)
+        return new S3Storage(configBlock, url)
         break
       default:
-        return new DiskStorage(url)
+        return new DiskStorage(configBlock, url)
         break
     }
   }
