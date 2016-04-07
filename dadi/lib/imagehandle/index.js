@@ -138,28 +138,28 @@ ImageHandle.prototype.convertAndSave = function (readStream, imageInfo, originFi
 /**
  * Convert new image
  */
-ImageHandle.prototype.createNewConvertImage = function (req, originFileName, newFileName, options, returnJSON, res) {
-  var self = this;
-
-  var storage = self.factory.create('image', req);
-
-  storage.get().then(function(stream) {
-    var imageSizeStream = PassThrough()
-    var responseStream = PassThrough()
-
-    // duplicate the stream so we can use it
-    // for the imagesize() request and the
-    // response. this saves requesting the same
-    // data a second time.
-    stream.pipe(imageSizeStream)
-    stream.pipe(responseStream)
-
-    imagesize(imageSizeStream, function(err, imageInfo) {
-      self.convertAndSave(responseStream, imageInfo, originFileName, newFileName, options, returnJSON, res);
-    });
-  }).catch(function(err) {
-    help.displayErrorPage(err.statusCode, err.message, res);
-  });
+// ImageHandle.prototype.createNewConvertImage = function (req, originFileName, newFileName, options, returnJSON, res) {
+//   var self = this;
+//
+//   var storage = self.factory.create('image', req);
+//
+//   storage.get().then(function(stream) {
+//     var imageSizeStream = PassThrough()
+//     var responseStream = PassThrough()
+//
+//     // duplicate the stream so we can use it
+//     // for the imagesize() request and the
+//     // response. this saves requesting the same
+//     // data a second time.
+//     stream.pipe(imageSizeStream)
+//     stream.pipe(responseStream)
+//
+//     imagesize(imageSizeStream, function(err, imageInfo) {
+//       self.convertAndSave(responseStream, imageInfo, originFileName, newFileName, options, returnJSON, res);
+//     });
+//   }).catch(function(err) {
+//     help.displayErrorPage(err.statusCode, err.message, res);
+//   });
 
   // if (url.length > 0) {
   //   if (config.get('images.remote.enabled')) { // Load image from http or https url
@@ -228,7 +228,7 @@ ImageHandle.prototype.createNewConvertImage = function (req, originFileName, new
   // else {
   //   help.displayErrorPage(404, 'Image path doesn\'t exist.', res);
   // }
-};
+//};
 
 /**
  * Get image information from image buffer.
