@@ -33,7 +33,7 @@ module.exports.reset = function() {
 };
 
 // get method for redis client
-module.exports.client = function() {
+Cache.prototype.client = function() {
   if (instance) return instance.redisClient;
   return null;
 };
