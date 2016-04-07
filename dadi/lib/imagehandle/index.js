@@ -40,7 +40,7 @@ ImageHandle.prototype.convertAndSave = function (readStream, imageInfo, originFi
       options.height = parseFloat(options.width) * (parseFloat(ratio[1]) / parseFloat(ratio[0]));
     }
   }
-  
+
   if (options.devicePixelRatio && options.devicePixelRatio < 4) {
     // http://devicepixelratio.com/
     options.width = parseFloat(options.width) * parseFloat(options.devicePixelRatio);
@@ -90,17 +90,14 @@ ImageHandle.prototype.convertAndSave = function (readStream, imageInfo, originFi
     convertedStream = readStream.pipe(magickVar);
   }
 
-
   // duplicate stream for caching
   var cacheStream = PassThrough()
-  var returnStream = PassThrough()
   convertedStream.pipe(cacheStream)
+  // duplicate stream for returning
+  var returnStream = PassThrough()
   convertedStream.pipe(returnStream)
 
   self.cache.cacheImage(cacheStream, encryptName, function() {
-//  self.cache.cacheImage(convertedStream, encryptName, function() {
-console.log('back from cache')
-console.log(returnStream)
     if (returnJSON) {
       self.fetchImageInformation(returnStream, originFileName, fileName, displayOption, res);
     } else {
@@ -108,21 +105,17 @@ console.log(returnStream)
       var fileSize = 0;
 
       function lengthListener(length) {
-console.log('lengthlistener')
-console.log(length)
         fileSize = length;
       }
-      if(config.get('gzip')) {
-console.log('gzip processing')
+
+      if (config.get('gzip')) {
         res.setHeader('content-encoding', 'gzip');
         var gzipStream = returnStream.pipe(zlib.createGzip());
         gzipStream = gzipStream.pipe(lengthStream(lengthListener));
         gzipStream.on('data', function (buffer) {
-console.log('data')
           buffers.push(buffer);
         });
         gzipStream.on('end', function () {
-console.log('end')
           var buffer = Buffer.concat(buffers);
           res.setHeader('Content-Length', fileSize);
           res.end(buffer);
@@ -133,7 +126,6 @@ console.log('end')
           buffers.push(buffer);
         });
         convertedStream.on('end', function () {
-console.log(buffers)
           var buffer = Buffer.concat(buffers);
           res.setHeader('Content-Length', fileSize);
           res.end(buffer);
@@ -162,14 +154,10 @@ ImageHandle.prototype.createNewConvertImage = function (req, originFileName, new
     stream.pipe(imageSizeStream)
     stream.pipe(responseStream)
 
-console.log('calling imageSize')
     imagesize(imageSizeStream, function(err, imageInfo) {
-console.log('calling convertAndSave')
-console.log(imageInfo)
       self.convertAndSave(responseStream, imageInfo, originFileName, newFileName, options, returnJSON, res);
     });
   }).catch(function(err) {
-    console.log(err)
     help.displayErrorPage(err.statusCode, err.message, res);
   });
 
