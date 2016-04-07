@@ -125,32 +125,32 @@ var Controller = function (router) {
       help.displayErrorPage(err.statusCode, err.message, res);
     });
 return;
-    if (paramString.split('/')[0] == 'js' || paramString.split('/')[0] == 'css') {
-      fileExt = paramString.split('/')[0];
-      compress = paramString.split('/')[1];
-      url = paramString.substring(paramString.split('/')[0].length + 3);
-      fileName = url.split('/')[url.split('/').length - 1];
-      if(fileName.split('.').length == 1) fileName = fileName + '.' + fileExt;
-
-      if (compress != 0 && compress != 1) {
-        error = '<p>Url path is invalid.</p>' +
-          '<p>The valid url path format:</p>' +
-          '<p>http://some-example-domain.com/{format-(js, css)}/{compress-(0, 1)}/JS,CSS file path</p>';
-        help.displayErrorPage(404, error, res);
-      } else {
-        assetHandler.fetchOriginFileContent(url, fileName, fileExt, compress, res);
-      }
-    } else if(paramString.split('/')[0] == 'fonts') {
-      url = paramString.substring(paramString.split('/')[0].length + 1);
-      fileName = url.split('/')[url.split('/').length - 1];
-      fileExt = url.substring(url.lastIndexOf('.') + 1);
-      if(supportExts.indexOf(fileExt.toLowerCase()) < 0) {
-        error = '<p>Font file type should be TTF, OTF, WOFF, SVG or EOT.</p>';
-        help.displayErrorPage(404, error, res);
-      } else {
-        assetHandler.fetchOriginFileContent(url, fileName, fileExt, 0, res);
-      }
-    } else {
+    // if (paramString.split('/')[0] == 'js' || paramString.split('/')[0] == 'css') {
+    //   fileExt = paramString.split('/')[0];
+    //   compress = paramString.split('/')[1];
+    //   url = paramString.substring(paramString.split('/')[0].length + 3);
+    //   fileName = url.split('/')[url.split('/').length - 1];
+    //   if(fileName.split('.').length == 1) fileName = fileName + '.' + fileExt;
+    //
+    //   if (compress != 0 && compress != 1) {
+    //     error = '<p>Url path is invalid.</p>' +
+    //       '<p>The valid url path format:</p>' +
+    //       '<p>http://some-example-domain.com/{format-(js, css)}/{compress-(0, 1)}/JS,CSS file path</p>';
+    //     help.displayErrorPage(404, error, res);
+    //   } else {
+    //     assetHandler.fetchOriginFileContent(url, fileName, fileExt, compress, res);
+    //   }
+    // } else if(paramString.split('/')[0] == 'fonts') {
+    //   url = paramString.substring(paramString.split('/')[0].length + 1);
+    //   fileName = url.split('/')[url.split('/').length - 1];
+    //   fileExt = url.substring(url.lastIndexOf('.') + 1);
+    //   if(supportExts.indexOf(fileExt.toLowerCase()) < 0) {
+    //     error = '<p>Font file type should be TTF, OTF, WOFF, SVG or EOT.</p>';
+    //     help.displayErrorPage(404, error, res);
+    //   } else {
+    //     assetHandler.fetchOriginFileContent(url, fileName, fileExt, 0, res);
+    //   }
+    // } else {
 //console.log(version)
 //console.log(paramString.split('/').length)
       if (version === 'v1' && paramString.split('/').length < 15 &&

@@ -1,3 +1,4 @@
+var path = require('path');
 var url = require('url');
 var _ = require('underscore');
 var AssetHandler = require(__dirname + '/asset');
@@ -56,4 +57,3 @@ module.exports = {
     }
   }
 }
-
