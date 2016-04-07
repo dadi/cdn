@@ -4,6 +4,8 @@ config.production.json
 config.qa.json
 config.test.json
 
+cache
+
 npm-debug.log
 node_modules/
 coverage/
