@@ -141,8 +141,8 @@ var Controller = function (router) {
         assetHandler.fetchOriginFileContent(url, fileName, fileExt, 0, res);
       }
     } else {
-console.log(version)
-console.log(paramString.split('/').length)
+//console.log(version)
+//console.log(paramString.split('/').length)
       if (version === 'v1' && paramString.split('/').length < 15 &&
         !fs.existsSync(path.resolve(__dirname + '/../../../workspace/recipes/' + paramString.split('/')[0] + '.json'))) {
         var errorMessage = '<p>Url path is invalid.</p>' +
