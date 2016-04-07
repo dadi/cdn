@@ -90,34 +90,50 @@ ImageHandle.prototype.convertAndSave = function (readStream, imageInfo, originFi
     convertedStream = readStream.pipe(magickVar);
   }
 
-  self.cache.cacheImage(convertedStream, encryptName, function() {
+
+  // duplicate stream for caching
+  var cacheStream = PassThrough()
+  var returnStream = PassThrough()
+  convertedStream.pipe(cacheStream)
+  convertedStream.pipe(returnStream)
+
+  self.cache.cacheImage(cacheStream, encryptName, function() {
+//  self.cache.cacheImage(convertedStream, encryptName, function() {
+console.log('back from cache')
+console.log(returnStream)
     if (returnJSON) {
-      self.fetchImageInformation(convertedStream, originFileName, fileName, displayOption, res);
+      self.fetchImageInformation(returnStream, originFileName, fileName, displayOption, res);
     } else {
       var buffers = [];
       var fileSize = 0;
 
       function lengthListener(length) {
+console.log('lengthlistener')
+console.log(length)
         fileSize = length;
       }
       if(config.get('gzip')) {
+console.log('gzip processing')
         res.setHeader('content-encoding', 'gzip');
-        var gzipStream = convertedStream.pipe(zlib.createGzip());
+        var gzipStream = returnStream.pipe(zlib.createGzip());
         gzipStream = gzipStream.pipe(lengthStream(lengthListener));
         gzipStream.on('data', function (buffer) {
+console.log('data')
           buffers.push(buffer);
         });
         gzipStream.on('end', function () {
+console.log('end')
           var buffer = Buffer.concat(buffers);
           res.setHeader('Content-Length', fileSize);
           res.end(buffer);
         });
       } else {
-        convertedStream = convertedStream.pipe(lengthStream(lengthListener));
+        convertedStream = returnStream.pipe(lengthStream(lengthListener));
         convertedStream.on('data', function (buffer) {
           buffers.push(buffer);
         });
         convertedStream.on('end', function () {
+console.log(buffers)
           var buffer = Buffer.concat(buffers);
           res.setHeader('Content-Length', fileSize);
           res.end(buffer);
@@ -146,7 +162,10 @@ ImageHandle.prototype.createNewConvertImage = function (req, originFileName, new
     stream.pipe(imageSizeStream)
     stream.pipe(responseStream)
 
+console.log('calling imageSize')
     imagesize(imageSizeStream, function(err, imageInfo) {
+console.log('calling convertAndSave')
+console.log(imageInfo)
       self.convertAndSave(responseStream, imageInfo, originFileName, newFileName, options, returnJSON, res);
     });
   }).catch(function(err) {
