@@ -17,7 +17,7 @@ if (config.get('images.s3.region') && config.get('images.s3.region') != "") {
   });
 }
 
-var S3Storage = function (url) {
+var S3Storage = function (settings, url) {
   var self = this;
 
   this.url = url;
@@ -28,7 +28,7 @@ var S3Storage = function (url) {
       return _.compact(self.urlParts())[0]
     }
     else {
-      return config.get('images.s3.bucketName')
+      return settings.s3.bucketName
     }
   }
 
@@ -83,8 +83,8 @@ S3Storage.prototype.get = function () {
   })
 }
 
-module.exports = function (url) {
-  return new S3Storage(url);
+module.exports = function (settings, url) {
+  return new S3Storage(settings, url);
 }
 
 module.exports.S3Storage = S3Storage

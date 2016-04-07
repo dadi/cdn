@@ -6,11 +6,11 @@ var _ = require('underscore');
 
 var config = require(__dirname + '/../../../config');
 
-var DiskStorage = function (url) {
+var DiskStorage = function (settings, url) {
   var self = this;
 
   this.url = nodeUrl.parse(url, true).pathname;
-  this.path = path.resolve(config.get('images.directory.path'));
+  this.path = path.resolve(settings.directory.path);
 
   this.getFullUrl = function() {
     return path.join(self.path, self.url.replace('/disk', ''))
@@ -52,8 +52,8 @@ DiskStorage.prototype.get = function () {
   })
 }
 
-module.exports = function (url) {
-  return new DiskStorage(url);
+module.exports = function (settings, url) {
+  return new DiskStorage(settings, url);
 }
 
 module.exports.DiskStorage = DiskStorage
