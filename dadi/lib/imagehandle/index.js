@@ -19,6 +19,8 @@ var ImageHandle = function(s3, cache) {
   this.s3 = s3;
   this.cache = cache;
   this.factory = Object.create(StorageFactory);
+
+
 };
 
 /**

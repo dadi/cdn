@@ -31,22 +31,10 @@ var Controller = function (router) {
   });
 
   router.get(/(.+)/, function (req, res) {
-    //var requestParams = req.params[0].substring(1, req.params[0].length);
-    //var paramString = req.params[0].substring(1, req.params[0].length);
-    // var modelName = req.params[0];
-
-    // var returnJSON = false;
-    // var fileExt = '';
-    // var compress = '';
-    // var url = '';
-    // var fileName = '';
-    // var error = '';
-    // var newFileName = '';
-    // var supportExts = ['ttf', 'otf', 'woff', 'svg', 'eot'];
-    // var options = {};
-
     var factory = Object.create(HandlerFactory);
     var handler = factory.create(req);
+
+    console.log(handler)
 
     // TODO: check cache inside GET(), returning stream
     handler.get().then(function(stream) {
