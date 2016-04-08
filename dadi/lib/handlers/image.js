@@ -64,6 +64,11 @@ ImageHandler.prototype.get = function () {
       return reject(err);
     }
 
+    // get from cache
+    self.cache.get(self.cacheKey, function (stream) {
+      if (stream) return resolve(stream)
+    })
+
     var storage = self.factory.create('image', self.req);
 
     storage.get().then(function(stream) {
