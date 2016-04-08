@@ -44,7 +44,7 @@ DiskStorage.prototype.get = function () {
     stream.on('error', function() {
       var err = {
         statusCode: 404,
-        message: 'File not found'
+        message: 'File not found: ' + self.getFullUrl()
       }
 
       return reject(err);

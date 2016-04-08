@@ -32,15 +32,23 @@ var ImageHandler = function (format, req) {
   this.cache = Cache();
 
   var parsedUrl = url.parse(this.req.url, true);
+  this.url = req.url;
   this.cacheKey = parsedUrl.pathname;
   this.fileName = path.basename(parsedUrl.pathname);
   this.fileExt = path.extname(this.fileName).substring(1);
 
+}
+
+ImageHandler.prototype.get = function () {
+  var self = this;
+  self.cached = false;
+
+  var parsedUrl = url.parse(this.req.url, true);
   if (parsedUrl.search) {
     this.options = parsedUrl.query;
     if (typeof this.options.format === 'undefined') this.options.format = this.fileExt;
   }
-  else {
+  else if (!this.options) {
     var optionsArray = _.compact(parsedUrl.pathname.split('/')).slice(0, 17);
     //url = paramString.substring(optionsArray.join('/').length + 1);
     // fileName = url.split('/')[url.split('/').length - 1];
@@ -59,11 +67,6 @@ var ImageHandler = function (format, req) {
   else {
     this.format = this.options.format;
   }
-}
-
-ImageHandler.prototype.get = function () {
-  var self = this;
-  self.cached = false;
 
   return new Promise(function(resolve, reject) {
     var message;
@@ -89,7 +92,7 @@ ImageHandler.prototype.get = function () {
       }
 
       // not in cache, so get image from source
-      var storage = self.factory.create('image', self.req);
+      var storage = self.factory.create('image', self.url);
 
       storage.get().then(function(stream) {
         var cacheStream = new PassThrough()
@@ -105,8 +108,6 @@ ImageHandler.prototype.get = function () {
 console.log(self.options)
 
         imagesize(imageSizeStream, function(err, imageInfo) {
-          // originFileName = 01.jpg
-          // modelName = full URL pathname = /jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/cdn-media/01.jpg
 console.log(imageInfo)
           self.convert(convertStream, imageInfo).then(function(stream) {
 console.log('stream from convert')
@@ -117,11 +118,11 @@ console.log(stream)
 stream.pipe(responseStream)
 console.log('response stream')
 console.log(responseStream)
-            self.cache.cacheFile(stream, self.cacheKey, function () {
+            self.cache.cacheFile(stream, self.cacheKey, function (stream) {
 console.log('back from cache')
               // return image info only, as json
               if (self.options.format === 'json') {
-                self.getImageInfo(responseStream, function(data) {
+                self.getImageInfo(stream, function(data) {
                   var returnStream = new Readable()
                   returnStream.push(JSON.stringify(data,null,2))
                   returnStream.push(null)
@@ -161,7 +162,8 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
     magickVar.on('error', function (err) {
       return reject(err);
     });
-
+console.log('pre-convert')
+console.log(stream)
     var sharpStream = null;
 
     if(options.quality >= 70 && options.format.toLowerCase() == 'png') {
@@ -214,10 +216,13 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
     // var cacheStream = PassThrough()
     // convertedStream.pipe(cacheStream)
     // duplicate stream for returning
-//    var returnStream = PassThrough()
-//    convertedStream.pipe(returnStream)
+    var returnStream = new PassThrough()
+    convertedStream.pipe(returnStream)
 
-    return resolve(convertedStream)
+
+    console.log('post-convert returnStream')
+    console.log(returnStream)
+    return resolve(returnStream)
   })
 }
 
@@ -246,14 +251,19 @@ console.log(length)
   }
 
 var options = self.options;
-
+console.log('stream')
+console.log(stream)
 var ls = lengthStream(lengthListener);
 stream
     .pipe(ls)
     .on('error', function (err) { console.log(err); })
     .on('data', function (data) { buffers.push(data); })
     .on('end', function () {
-      console.log('DONE');
+var b = Buffer.concat(buffers)
+console.log(b)      
+console.log('DONE');
+  return cb(data)
+
     });
 stream.end();
   var data = {
@@ -273,6 +283,7 @@ stream.end();
     devicePixelRatio: options.devicePixelRatio ? options.devicePixelRatio : 0
   }
 
+  console.log('data')
   console.log(data)
 
 //  stream.on('end', function () {
@@ -295,7 +306,7 @@ stream.end();
 //    })
 
 //  })
-  return cb(data)
+//  return cb(data)
 }
 
 /**
