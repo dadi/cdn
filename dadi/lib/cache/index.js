@@ -1,6 +1,7 @@
 var fs = require('fs');
 var path = require('path');
 var redis = require('redis');
+var redisRStream = require('redis-rstream');
 var redisWStream = require('redis-wstream');
 var sha1 = require('sha1');
 var _ = require('underscore');
@@ -103,7 +104,67 @@ Cache.prototype.cacheFile = function(stream, key, next) {
     stream.pipe(file);
     return next();
   }
-};
+}
+
+Cache.prototype.get = function(key) {
+  var self = this;
+
+  if (!self.enabled) return next()
+
+  var settings = config.get('caching');
+  var encryptedKey = sha1(key);
+
+  console.log(key)
+  console.log(encryptedKey)
+
+  if (settings.redis.enabled) {
+    self.redisClient.exists(encryptedKey, function(err, exists) {
+      if (exists > 0) {
+        var stream = redisRStream(self.redisClient, encryptedKey);
+        // if (returnJSON) {
+        //   imageHandler.fetchImageInformation(readStream, originFileName, modelName, options, res);
+        // } else {
+        // Set cache header
+        return stream;
+        //send using res pattern
+        //}
+      }
+      else {
+        return null;
+      }
+      //   // Set cache header
+      //   res.setHeader('X-Cache', 'MISS');
+      //   imageHandler.createNewConvertImage(req, originFileName, modelName, options, returnJSON, res);
+    });
+  }
+  else {
+    var cachePath = path.join(self.dir, encryptedKey);
+    //if (fs.existsSync(cachePath))
+    fs.stat(cachePath, function (err, stats) {
+      if (err) {
+        return null;
+      }
+
+      var lastMod = stats && stats.mtime && stats.mtime.valueOf();
+
+      if (settings.ttl && lastMod && (Date.now() - lastMod) / 1000 <= settings.ttl) {
+        var stream = fs.createReadStream(cachePath);
+        // if (returnJSON)
+        //   imageHandler.fetchImageInformation(readStream, originFileName, modelName, options, res);
+
+        // Set cache header
+        return stream;
+        //send using res pattern
+      }
+      else {
+        return null;
+          // Set cache header
+          // res.setHeader('X-Cache', 'MISS');
+          // imageHandler.createNewConvertImage(req, originFileName, modelName, options, returnJSON, res);
+      }
+    })
+  }
+}
 
 // Cache.prototype.cacheJSCSSFiles = function(stream, fileName, next) {
 //   var self = this;
