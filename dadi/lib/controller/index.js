@@ -94,29 +94,55 @@ var Controller = function (router) {
     var factory = Object.create(HandlerFactory);
     var handler = factory.create(req);
 
-    console.log(handler)
+//    console.log(handler)
 
     // TODO: check cache inside GET(), returning stream
     handler.get().then(function(stream) {
 
       console.log('CONTROLLER')
-      console.log(stream)
+//console.log(stream)
 
       if (handler.format === 'js') {
         res.setHeader('Content-Type', 'application/javascript');
       }
-      else if (handler.format === 'css')
+      else if (handler.format === 'css') {
         res.setHeader('Content-Type', 'text/css');
+      }
+
+      var buffers = [];
+      var fileSize = 0;
+
+      function lengthListener(length) {
+        fileSize = length;
       }
 
       if (config.get('gzip')) {
         res.setHeader('content-encoding', 'gzip');
-        stream.pipe(zlib.createGzip()).pipe(res);
+        var gzipStream = stream.pipe(zlib.createGzip());
+        gzipStream = gzipStream.pipe(lengthStream(lengthListener));
+
+        gzipStream.on('data', function (buffer) {
+          buffers.push(buffer);
+        });
+
+        gzipStream.on('end', function () {
+          var buffer = Buffer.concat(buffers);
+          res.setHeader('Content-Length', fileSize);
+          res.end(buffer);
+        });
       }
       else {
-        stream.pipe(res);
-      }
+        var convertedStream = stream.pipe(lengthStream(lengthListener));
+        convertedStream.on('data', function (buffer) {
+          buffers.push(buffer);
+        });
 
+        convertedStream.on('end', function () {
+          var buffer = Buffer.concat(buffers);
+          res.setHeader('Content-Length', fileSize);
+          res.end(buffer);
+        });
+      }
     }).catch(function(err) {
       console.log('CONTROLLER')
       console.log(err)
