@@ -1,10 +1,8 @@
 var lengthStream = require('length-stream');
-var redisRStream = require('redis-rstream');
 var sha1 = require('sha1');
 var zlib = require('zlib');
 var fs = require('fs');
 var path = require('path');
-var AWS = require('aws-sdk');
 var cloudfront = require('cloudfront');
 var redis = require('redis');
 var nodeUrl = require('url');
@@ -15,33 +13,15 @@ var config = require(__dirname + '/../../../config');
 var help = require(__dirname + '/../help');
 var monitor = require(__dirname + '/../monitor');
 var HandlerFactory = require(__dirname + '/../handlers/factory');
-// var ImageHandle = require(__dirname + '/../imagehandle');
-// var AssetHandle = require(__dirname + '/../assethandle');
-//var cache = require(__dirname + '/../cache');
 
 var Controller = function (router) {
   var self = this;
-//  this.s3 = null;
-  //this.assetsS3 = null;
-  //this.client = null;
   this.monitors = {};
 
   //Monitor config.json file
   self.addMonitor(configPath, function (filename) {
     delete require.cache[configPath];
     config = require(configPath);
-
-    //Init S3 Instance
-  //  if (config.get('images.s3.enabled')) {
-  //    self.initS3Bucket();
-  //  }
-    // if (config.get('assets.s3.enabled')) {
-    //   self.initS3AssetsBucket();
-    // }
-    // //Init Redis client
-    // if (config.get('caching.redis.enabled')) {
-    //   self.initRedisClient();
-    // }
   });
 
   //Monitor recipes folders and files
@@ -50,36 +30,10 @@ var Controller = function (router) {
     delete require.cache[recipeDir + '/' + filename];
   });
 
-  //Init S3 Instance
-  //if (config.get('images.s3.enabled')) {
-  //  self.initS3Bucket();
-  //}
-  // if (config.get('assets.s3.enabled')) {
-  //   self.initS3AssetsBucket();
-  // }
-  //Init Redis client
-  // if (config.get('caching.redis.enabled')) {
-  //   self.initRedisClient();
-  // }
-
-  //this.cache = cache();
-
-  //var imageHandler = ImageHandle(this.s3, this.cache);
-  //var assetHandler = AssetHandle(this.assetsS3, this.cache);
-
   router.get(/(.+)/, function (req, res) {
     //var requestParams = req.params[0].substring(1, req.params[0].length);
     //var paramString = req.params[0].substring(1, req.params[0].length);
     // var modelName = req.params[0];
-    // var encryptName = sha1(modelName);
-
-    // set a default version
-    //var version = 'v1'
-
-    // set version 2 if the url was supplied with a querystring
-    // if (require('url').parse(req.url, true).search) {
-    //   version = 'v2'
-    // }
 
     // var returnJSON = false;
     // var fileExt = '';
@@ -94,13 +48,10 @@ var Controller = function (router) {
     var factory = Object.create(HandlerFactory);
     var handler = factory.create(req);
 
-//    console.log(handler)
-
     // TODO: check cache inside GET(), returning stream
     handler.get().then(function(stream) {
 
       console.log('CONTROLLER')
-//console.log(stream)
 
       if (handler.format === 'js') {
         res.setHeader('Content-Type', 'application/javascript');
@@ -234,24 +185,6 @@ var Controller = function (router) {
         //   var originFileName = fileName;
 
           // TODO: add to image handler
-          // if (options.filter == 'None' || options.filter == 0) delete options.filter;
-          // if (options.gravity == 0) delete options.gravity;
-          // if (options.width == 0) delete options.width;
-          // if (options.height == 0) delete options.height;
-          // if (options.quality == 0) delete options.quality;
-          // if (options.trim == 0) delete options.trim;
-          // if (options.trimFuzz == 0) delete options.trimFuzz;
-          // if (options.cropX == 0) delete options.cropX;
-          // if (options.cropY == 0) delete options.cropY;
-          // if (options.ratio == 0) delete options.ratio;
-          // if (options.devicePixelRatio == 0) delete options.devicePixelRatio;
-          // if (options.resizeStyle == 0) delete options.resizeStyle;
-          // if (options.blur == 0) delete options.blur;
-          // if (options.strip == 0) delete options.strip;
-          // if (options.rotate == 0) delete options.rotate;
-          // if (options.flip == 0) delete options.flip;
-
-          // TODO: add to image handler
           // if (config.get('caching.redis.enabled')) {
           //   self.cache.client().exists(encryptName, function (err, exists) {
           //     if (exists > 0) {
@@ -339,45 +272,14 @@ var Controller = function (router) {
   });
 };
 
-/**
- * Init S3 with configuration
- */
-Controller.prototype.initS3Bucket = function () {
-  // AWS.config.update({
-  //   accessKeyId: config.get('images.s3.accessKey'),
-  //   secretAccessKey: config.get('images.s3.secretKey')
-  // });
-  // if(config.get('images.s3.region') && config.get('images.s3.region') != "") {
-  //   AWS.config.update({
-  //     region: config.get('images.s3.region')
-  //   });
-  // }
-  //
-  // this.s3 = new AWS.S3();
-};
-
-Controller.prototype.initS3AssetsBucket = function () {
-  // AWS.config.update({
-  //   accessKeyId: config.get('assets.s3.accessKey'),
-  //   secretAccessKey: config.get('assets.s3.secretKey')
-  // });
-  // if(config.get('images.s3.region') && config.get('images.s3.region') != "") {
-  //   AWS.config.update({
-  //     region: config.get('images.s3.region')
-  //   });
-  // }
-  //
-  // this.assetsS3 = new AWS.S3();
-};
-
 Controller.prototype.addMonitor = function (filepath, callback) {
   filepath = path.normalize(filepath);
   if (this.monitors[filepath]) return;
   var m = monitor(filepath);
   m.on('change', callback);
   this.monitors[filepath] = m;
-};
+}
 
 module.exports = function (model) {
   return new Controller(model);
-};
+}
