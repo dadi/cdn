@@ -38,6 +38,11 @@ module.exports = {
 
     console.log(format)
 
+    return this.createFromFormat(format)
+  },
+
+  createFromFormat:  function createFromFormat(format) {
+    console.log(format)
     switch (format) {
       case 'css':
       case 'fonts':
@@ -49,12 +54,8 @@ module.exports = {
       case 'png':
         return new ImageHandler(format, req)
         break
-      case 'recipe':
-        return new RecipeHandler(format, req)
-        break
       default:
-        //return new UnknownHandler(format)
-        return null
+        return new RecipeHandler(req)
         break
     }
   }

@@ -7,7 +7,6 @@ var url = require('url');
 var _ = require('underscore');
 
 var StorageFactory = require(__dirname + '/../storage/factory');
-var AssetHandle = require(__dirname + '/../assethandle');
 var Cache = require(__dirname + '/../cache');
 var config = require(__dirname + '/../../../config');
 
@@ -23,7 +22,6 @@ var AssetHandler = function (format, req) {
   this.format = format;
   this.compress = '0';
   this.factory = Object.create(StorageFactory);
-  this.assetHandler = AssetHandle(null, null);
   this.cache = Cache();
 
   this.req = req;
