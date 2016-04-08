@@ -92,26 +92,46 @@ ImageHandler.prototype.get = function () {
       var storage = self.factory.create('image', self.req);
 
       storage.get().then(function(stream) {
+        var cacheStream = new PassThrough()
+        var convertStream = PassThrough()
         var imageSizeStream = PassThrough()
-        var responseStream = PassThrough()
+        var responseStream = new PassThrough()
 
         // duplicate the stream so we can use it for the imagesize() request and the
         // response. this saves requesting the same data a second time.
         stream.pipe(imageSizeStream)
-        stream.pipe(responseStream)
+        stream.pipe(convertStream)
+
+console.log(self.options)
 
         imagesize(imageSizeStream, function(err, imageInfo) {
           // originFileName = 01.jpg
           // modelName = full URL pathname = /jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/cdn-media/01.jpg
-          self.convert(responseStream, imageInfo).then(function(stream) {
+console.log(imageInfo)
+          self.convert(convertStream, imageInfo).then(function(stream) {
+console.log('stream from convert')
+console.log(stream)
+// stream.pipe(cacheStream)
+//console.log('cache stream')
+//console.log(cacheStream)
+stream.pipe(responseStream)
+console.log('response stream')
+console.log(responseStream)
             self.cache.cacheFile(stream, self.cacheKey, function () {
+console.log('back from cache')
               // return image info only, as json
               if (self.options.format === 'json') {
-                return resolve(self.getImageInfo(stream));
+                self.getImageInfo(responseStream, function(data) {
+                  var returnStream = new Readable()
+                  returnStream.push(JSON.stringify(data,null,2))
+                  returnStream.push(null)
+                  return resolve(returnStream)
+                })
               }
-
-              // return image
-              return resolve(stream)
+              else {
+                // return image
+                return resolve(responseStream)
+              }
             })
           }).catch(function(err) {
             return reject(err);
@@ -194,8 +214,8 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
     // var cacheStream = PassThrough()
     // convertedStream.pipe(cacheStream)
     // duplicate stream for returning
-    // var returnStream = PassThrough()
-    // convertedStream.pipe(returnStream)
+//    var returnStream = PassThrough()
+//    convertedStream.pipe(returnStream)
 
     return resolve(convertedStream)
   })
@@ -215,56 +235,67 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
   "filter":"None", "blur":0, "strip":0, "rotate":0, "flip":0, "ratio":0, "devicePixelRatio":0
 }
 */
-ImageHandler.prototype.getImageInfo = function (stream) {
+ImageHandler.prototype.getImageInfo = function (stream, cb) {
+  var self = this;
   var buffers = [];
   var fileSize = 0;
 
   function lengthListener(length) {
+console.log(length)
     fileSize = length;
   }
 
-  stream = stream.pipe(lengthStream(lengthListener));
-  stream.on('data', function (buffer) {
-    buffers.push(buffer);
-  })
+var options = self.options;
 
-  stream.on('end', function () {
-    var buffer = Buffer.concat(buffers);
-    var primaryColor = RGBtoHex(colorThief.getColor(buffer)[0], colorThief.getColor(buffer)[1], colorThief.getColor(buffer)[2]);
-    imagemagick.identify({
-      srcData: buffer
-    }, function (err, result) {
-      var jsonData = {
-        fileName: self.fileName,
-        cacheReference: sha1(self.cacheKey),
-        fileSize: fileSize,
-        format: result.format,
-        width: result.width,
-        height: result.height,
-        depth: result.depth,
-        density: result.density,
-        exif: result.exif,
-        primaryColor: primaryColor,
-        quality: options.quality ? options.quality : 75,
-        trim: options.trim ? options.trim : 0,
-        trimFuzz: options.trimFuzz ? options.trimFuzz : 0,
-        resizeStyle: options.resizeStyle ? options.resizeStyle : 'aspectfill',
-        gravity: options.gravity ? options.gravity : 'Center',
-        filter: options.filter ? options.filter : 'None',
-        blur: options.blur ? options.blur : 0,
-        strip: options.strip ? options.strip : 0,
-        rotate: options.rotate ? options.rotate : 0,
-        flip: options.flip ? options.flip : 0,
-        ratio: options.ratio ? options.ratio : 0,
-        devicePixelRatio: options.devicePixelRatio ? options.devicePixelRatio : 0
-      }
+var ls = lengthStream(lengthListener);
+stream
+    .pipe(ls)
+    .on('error', function (err) { console.log(err); })
+    .on('data', function (data) { buffers.push(data); })
+    .on('end', function () {
+      console.log('DONE');
+    });
+stream.end();
+  var data = {
+    fileName: self.fileName,
+    cacheReference: sha1(self.fileName),
+    quality: options.quality ? options.quality : 75,
+    trim: options.trim ? options.trim : 0,
+    trimFuzz: options.trimFuzz ? options.trimFuzz : 0,
+    resizeStyle: options.resizeStyle ? options.resizeStyle : 'aspectfill',
+    gravity: options.gravity ? options.gravity : 'Center',
+    filter: options.filter ? options.filter : 'None',
+    blur: options.blur ? options.blur : 0,
+    strip: options.strip ? options.strip : 0,
+    rotate: options.rotate ? options.rotate : 0,
+    flip: options.flip ? options.flip : 0,
+    ratio: options.ratio ? options.ratio : 0,
+    devicePixelRatio: options.devicePixelRatio ? options.devicePixelRatio : 0
+  }
 
-      var returnStream = new Readable();
-      returnStream.push(jsonData);
-      returnStream.push(null);
-      return returnStream;
-    })
-  })
+  console.log(data)
+
+//  stream.on('end', function () {
+//    var buffer = Buffer.concat(buffers);
+//    var primaryColor = RGBtoHex(colorThief.getColor(buffer)[0], colorThief.getColor(buffer)[1], colorThief.getColor(buffer)[2]);
+//    imagemagick.identify({
+ //     srcData: buffer
+ //   }, function (err, result) {
+
+//        fileSize: fileSize,
+//        format: result.format,
+//        width: result.width,
+//        height: result.height,
+//        depth: result.depth,
+//        density: result.density,
+//        exif: result.exif,
+//        primaryColor: primaryColor,
+//console.log(result)
+//      cb(data);
+//    })
+
+//  })
+  return cb(data)
 }
 
 /**

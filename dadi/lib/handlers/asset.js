@@ -104,7 +104,6 @@ AssetHandler.prototype.get = function () {
         return reject(err);
       })
     })
-    })
   })
 }
 
