@@ -121,68 +121,33 @@ console.log('CACHE GET')
     self.redisClient.exists(encryptedKey, function(err, exists) {
       if (exists > 0) {
         var stream = redisRStream(self.redisClient, encryptedKey);
-        // if (returnJSON) {
-        //   imageHandler.fetchImageInformation(readStream, originFileName, modelName, options, res);
-        // } else {
-        // Set cache header
         return cb(stream);
-        //send using res pattern
-        //}
       }
       else {
         return cb(null);
       }
-      //   // Set cache header
-      //   res.setHeader('X-Cache', 'MISS');
-      //   imageHandler.createNewConvertImage(req, originFileName, modelName, options, returnJSON, res);
-    });
+    })
   }
   else {
     var cachePath = path.join(self.dir, encryptedKey);
-console.log(cachePath)
-    //if (fs.existsSync(cachePath))
+
     fs.stat(cachePath, function (err, stats) {
       if (err) {
         return cb(null);
       }
-console.log(stats)
+
       var lastMod = stats && stats.mtime && stats.mtime.valueOf();
-console.log(settings)
+
       if (settings.ttl && lastMod && (Date.now() - lastMod) / 1000 <= settings.ttl) {
         var stream = fs.createReadStream(cachePath);
-        // if (returnJSON)
-        //   imageHandler.fetchImageInformation(readStream, originFileName, modelName, options, res);
-
-        // Set cache header
         return cb(stream);
       }
       else {
         return cb(null);
-          // Set cache header
-          // res.setHeader('X-Cache', 'MISS');
-          // imageHandler.createNewConvertImage(req, originFileName, modelName, options, returnJSON, res);
       }
     })
   }
 }
-
-// Cache.prototype.cacheJSCSSFiles = function(stream, fileName, next) {
-//   var self = this;
-//
-//   if (config.get('caching.redis.enabled')) {
-//     stream.pipe(redisWStream(self.redisClient, fileName));
-//   }
-//   else {
-//     var cacheDir = path.resolve(config.get('caching.directory.path'));
-//     var file = fs.createWriteStream(path.join(cacheDir, fileName));
-//     file.on('error', function (err) {
-//     })
-//
-//     stream.pipe(file);
-//   }
-//
-//   next();
-// };
 
 module.exports.delete = function(pattern, callback) {
   var iter = '0';
