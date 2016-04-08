@@ -87,11 +87,14 @@ Cache.prototype.cacheFile = function(stream, key, next) {
   console.log(encryptedKey)
 
   if (settings.redis.enabled) {
+console.log('start redis Write')
+
     stream.pipe(redisWStream(self.redisClient, encryptedKey)).on('finish', function () {
+console.log('end redis Write')
       if (settings.ttl) {
         self.redisClient.expire(encryptedKey, settings.ttl);
-        return next();
       }
+      return next();
     });
   }
   else {
@@ -101,8 +104,8 @@ Cache.prototype.cacheFile = function(stream, key, next) {
       console.log(err);
     })
 
-    stream.pipe(file);
-    return next();
+   stream.pipe(file);
+   return next();
   }
 }
 
