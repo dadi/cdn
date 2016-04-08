@@ -3,14 +3,12 @@ var ColorThief = require('color-thief');
 var colorThief = new ColorThief();
 var imagemagick = require('imagemagick-native');
 var imagesize = require('imagesize');
-var lengthStream = require('length-stream');
 var PassThrough = require('stream').PassThrough;
 var path = require('path');
 var Promise = require('bluebird');
 var request = require('request');
 var sharp = require('sharp');
 var url = require('url');
-var zlib = require('zlib');
 var _ = require('underscore');
 
 var StorageFactory = require(__dirname + '/../storage/factory');
@@ -35,12 +33,12 @@ var ImageHandler = function (format, req) {
   this.fileName = path.basename(parsedUrl.pathname);
   this.fileExt = path.extname(this.fileName).substring(1);
 
-  if (parsedUrl.query) {
+  if (parsedUrl.search) {
     this.options = parsedUrl.query;
     if (typeof this.options.format === 'undefined') this.options.format = this.fileExt;
   }
   else {
-    var optionsArray = parsedUrl.pathname.split('/').slice(0, 17);
+    var optionsArray = _.compact(parsedUrl.pathname.split('/')).slice(0, 17);
     //url = paramString.substring(optionsArray.join('/').length + 1);
     // fileName = url.split('/')[url.split('/').length - 1];
     // fileExt = url.substring(url.lastIndexOf('.') + 1);
@@ -87,6 +85,8 @@ ImageHandler.prototype.get = function () {
           self.cache.cacheFile(stream, self.cacheKey, function () {
             return resolve(stream)
           })
+        }).catch(function(err) {
+          return reject(err);
         })
       })
     }).catch(function(err) {
@@ -125,12 +125,15 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
     }
 
     if(imageInfo.format.toLowerCase() == 'gif') {
-      readStream = readStream.pipe(imagemagick.streams.convert({format: options.format}));
+      stream = stream.pipe(imagemagick.streams.convert({format: options.format}));
     }
+
+  console.log(options)
+console.log(dimensions)
 
     var convertedStream = null;
     if(sharpStream != null) {
-      convertedStream = readStream.pipe(sharpStream);
+      convertedStream = stream.pipe(sharpStream);
       if(options.cropX && options.cropY) {
         var cropX = options.cropX?parseFloat(options.cropX):0;
         var cropY = options.cropY?parseFloat(options.cropY):0;
@@ -141,6 +144,16 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
         if (width <= (originalWidth-cropX) && height <= (originalHeight-cropY)) {
           if (width==0) width = originalWidth-cropX;
           if (height==0) height = originalHeight-cropY;
+console.log(cropX)
+          console.log(cropY)
+          console.log(width)
+          console.log(height)
+          try {
+            convertedStream.extract(cropX, cropY, width, height);
+          }
+          catch (err) {
+            return reject(err);
+          }
           convertedStream.extract(cropX, cropY, width, height);
         }
         else {
@@ -148,13 +161,12 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
             statusCode: 400,
             message: 'Crop size is greater than image size.'
           }
-
           return reject(err);
         }
       }
       convertedStream = convertedStream.pipe(magickVar);
     } else {
-      convertedStream = readStream.pipe(magickVar);
+      convertedStream = stream.pipe(magickVar);
     }
 
     // duplicate stream for caching
@@ -166,73 +178,41 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
 
     return resolve(returnStream)
 
-    self.cache.cacheImage(cacheStream, encryptName, function() {
-      if (self.options.format === 'json') {
-        self.fetchImageInformation(returnStream, self.fileName, self.cacheKey, displayOption, res);
-      } else {
-        var buffers = [];
-        var fileSize = 0;
-
-        function lengthListener(length) {
-          fileSize = length;
-        }
-
-        if (config.get('gzip')) {
-          res.setHeader('content-encoding', 'gzip');
-          var gzipStream = returnStream.pipe(zlib.createGzip());
-          gzipStream = gzipStream.pipe(lengthStream(lengthListener));
-          gzipStream.on('data', function (buffer) {
-            buffers.push(buffer);
-          });
-          gzipStream.on('end', function () {
-            var buffer = Buffer.concat(buffers);
-            res.setHeader('Content-Length', fileSize);
-            res.end(buffer);
-          });
-        } else {
-          convertedStream = returnStream.pipe(lengthStream(lengthListener));
-          convertedStream.on('data', function (buffer) {
-            buffers.push(buffer);
-          });
-          convertedStream.on('end', function () {
-            var buffer = Buffer.concat(buffers);
-            res.setHeader('Content-Length', fileSize);
-            res.end(buffer);
-          });
-        }
-      }
-    })
+    //self.cache.cacheImage(cacheStream, encryptName, function() {
+    //  if (self.options.format === 'json') {
+    //    self.fetchImageInformation(returnStream, self.fileName, self.cacheKey, displayOption, res);
+    //  }
   })
 }
 
 function getDimensions(options) {
   var dimensions = {
-    width: 0,
-    height: 0
+    width: options.width,
+    height: options.height
   }
 
   if (options.ratio) {
     var ratio = options.ratio.split('-');
-    if (!options.width && parseFloat(options.height) > 0) {
-      dimensions.width = parseFloat(options.height) * (parseFloat(ratio[0]) / parseFloat(ratio[1]));
-      dimensions.height = parseFloat(options.height);
+    if (!dimensions.width && parseFloat(dimensions.height) > 0) {
+      dimensions.width = parseFloat(dimensions.height) * (parseFloat(ratio[0]) / parseFloat(ratio[1]));
+      dimensions.height = parseFloat(dimensions.height);
     }
-    else if (!options.height && parseFloat(options.width) > 0) {
-      dimensions.height = parseFloat(options.width) * (parseFloat(ratio[1]) / parseFloat(ratio[0]));
-      dimensions.width = parseFloat(options.width);
+    else if (!dimensions.height && parseFloat(dimensions.width) > 0) {
+      dimensions.height = parseFloat(dimensions.width) * (parseFloat(ratio[1]) / parseFloat(ratio[0]));
+      dimensions.width = parseFloat(dimensions.width);
     }
-  }
-
-  if (options.devicePixelRatio && options.devicePixelRatio < 4) {
-    // http://devicepixelratio.com/
-    dimensions.width = parseFloat(dimensions.width) * parseFloat(options.devicePixelRatio);
-    dimensions.height = parseFloat(dimensions.height) * parseFloat(options.devicePixelRatio);
   }
 
   if (config.get('security.maxWidth') && config.get('security.maxWidth') < dimensions.width)
     dimensions.width = config.get('security.maxWidth');
   if (config.get('security.maxHeight') && config.get('security.maxHeight') < dimensions.height)
     dimensions.height = config.get('security.maxHeight');
+
+  if (options.devicePixelRatio && options.devicePixelRatio < 4) {
+    // http://devicepixelratio.com/
+    dimensions.width = parseFloat(dimensions.width) * parseFloat(options.devicePixelRatio);
+    dimensions.height = parseFloat(dimensions.height) * parseFloat(options.devicePixelRatio);
+  }
 
   return dimensions;
 }
@@ -266,6 +246,23 @@ function getImageOptions (optionsArray) {
     rotate: optionsArray[15],
     flip: optionsArray[16]
   }
+
+  if (options.filter == 'None' || options.filter == 0) delete options.filter;
+  if (options.gravity == 0) delete options.gravity;
+  if (options.width == 0) delete options.width;
+  if (options.height == 0) delete options.height;
+  if (options.quality == 0) delete options.quality;
+  if (options.trim == 0) delete options.trim;
+  if (options.trimFuzz == 0) delete options.trimFuzz;
+  if (options.cropX == 0) delete options.cropX;
+  if (options.cropY == 0) delete options.cropY;
+  if (options.ratio == 0) delete options.ratio;
+  if (options.devicePixelRatio == 0) delete options.devicePixelRatio;
+  if (options.resizeStyle == 0) delete options.resizeStyle;
+  if (options.blur == 0) delete options.blur;
+  if (options.strip == 0) delete options.strip;
+  if (options.rotate == 0) delete options.rotate;
+  if (options.flip == 0) delete options.flip;
 
   return options;
 }
