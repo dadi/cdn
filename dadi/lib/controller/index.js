@@ -31,16 +31,18 @@ var Controller = function (router) {
   });
 
   router.get(/(.+)/, function (req, res) {
-    var factory = Object.create(HandlerFactory);
-    var handler = factory.create(req);
+    var factory = new HandlerFactory();
+console.log(factory)
+    factory.create(req, function(handler) {
 
+    console.log('handler')
     console.log(handler)
 
     // TODO: check cache inside GET(), returning stream
     handler.get().then(function(stream) {
 
       console.log('CONTROLLER')
-
+console.log(stream)
       if (handler.format === 'js') {
         res.setHeader('Content-Type', 'application/javascript');
       }
@@ -95,8 +97,9 @@ var Controller = function (router) {
 console.log(err.stack)
       help.displayErrorPage(err.statusCode, err.message, res);
     });
+  })
 
-    return;
+  return;
     // if (1==2) {
     // }
     // else {

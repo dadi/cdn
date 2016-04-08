@@ -33,12 +33,13 @@ var AssetHandler = function (format, req) {
   this.urlParts = _.compact(parsedUrl.pathname.split('/'))
 
   if (this.format === 'css' || this.format === 'js') {
+    this.url = this.urlParts.slice(2).join('/');
     this.fileExt = this.format;
     this.fileName = parsedUrl.search ? this.urlParts[1] : this.urlParts[2];
     this.compress = parsedUrl.search ? parsedUrl.query.compress : this.urlParts[1];
   }
   else if (this.format === 'fonts') {
-    this.url = this.urlParts.join('/');
+    this.url = parsedUrl.pathname.replace('/fonts','');
     this.fileName = this.urlParts[1];
     this.fileExt = path.extname(this.fileName).replace('.','');
   }
@@ -79,7 +80,7 @@ AssetHandler.prototype.get = function () {
         return resolve(stream)
       }
 
-      var storage = self.factory.create('asset', self.req);
+      var storage = self.factory.create('asset', self.url);
 
       console.log('GET FROM STORAGE')
 

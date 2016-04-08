@@ -5,7 +5,7 @@ var Promise = require('bluebird');
 var url = require('url');
 var _ = require('underscore');
 
-var HandlerFactory = require(__dirname + '/../handlers/factory');
+var HandlerFactory = require('./factory');
 var Cache = require(__dirname + '/../cache');
 var config = require(__dirname + '/../../../config');
 
@@ -13,6 +13,7 @@ var RecipeHandler = function (req) {
   var self = this;
 
   this.req = req;
+  this.factory = new HandlerFactory();
 
   var parsedUrl = url.parse(this.req.url, true);
 
@@ -25,16 +26,15 @@ var RecipeHandler = function (req) {
       return;
     }
 
-    self.recipe = require(recipePath);
+    self.recipe = require(self.recipePath);
 
-    var referencePath = recipe.path ? recipe.path : '';
+    var referencePath = self.recipe.path ? self.recipe.path : '';
     var url = referencePath + '/' + self.urlParts.join('/');
     self.fileName = path.basename(parsedUrl.pathname);
     self.fileExt = path.extname(parsedUrl.pathname).replace('.', '');
-    self.compress = recipe.settings.compress ? recipe.settings.compress : '0';
+    self.compress = self.recipe.settings.compress ? self.recipe.settings.compress.toString() : '0';
 
-    var factory = Object.create(HandlerFactory);
-    var handler = factory.createFromFormat(self.recipe.settings.format);
+    var handler = self.factory.createFromFormat(self.recipe.settings.format, self.req);
   })
 
   //   if (fs.existsSync(path.resolve(__dirname + '/../../../workspace/recipes/' + paramString.split('/')[0] + '.json'))) {

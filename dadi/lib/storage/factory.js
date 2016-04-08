@@ -7,9 +7,9 @@ var HTTPStorage = require(__dirname + '/http');
 var config = require(__dirname + '/../../../config');
 
 module.exports = {
-  create: function create(type, req) {
+  create: function create(type, url) {
     var configBlock;
-    var url = req.url
+//    var url = req.url
 
     // set a default version
     var version = 'v1'
@@ -39,8 +39,13 @@ module.exports = {
 
       if (_.isArray(adapterKey)) adapterKey = adapterKey[0]
 
-      if (type === 'image') url = url.split('/').slice(18).join('/')
-      if (type === 'asset') url = url.split('/').slice(3).join('/')
+      if (type === 'image') {
+        if (url.split('/').length > 15) url = url.split('/').slice(18).join('/')
+      }
+      
+      if (type === 'asset') url = url;//.split('/').slice(3).join('/')
+console.log(url)
+console.log(type)
     }
 
     // get storage adapter from the first part of the url
