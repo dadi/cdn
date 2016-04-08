@@ -3,10 +3,13 @@ var ColorThief = require('color-thief');
 var colorThief = new ColorThief();
 var imagemagick = require('imagemagick-native');
 var imagesize = require('imagesize');
+var lengthStream = require('length-stream');
 var PassThrough = require('stream').PassThrough;
 var path = require('path');
 var Promise = require('bluebird');
+var Readable = require('stream').Readable;
 var request = require('request');
+var sha1 = require('sha1');
 var sharp = require('sharp');
 var url = require('url');
 var _ = require('underscore');
@@ -45,7 +48,17 @@ var ImageHandler = function (format, req) {
     this.options = getImageOptions(optionsArray);
   }
 
-  this.format = this.options.format;
+  if (this.options.format === 'json') {
+    if (this.fileExt === this.fileName) {
+      this.format = 'PNG';
+    }
+    else {
+      this.format = this.fileExt;
+    }
+  }
+  else {
+    this.format = this.options.format;
+  }
 }
 
 ImageHandler.prototype.get = function () {
@@ -69,37 +82,44 @@ ImageHandler.prototype.get = function () {
     self.cache.get(self.cacheKey, function (stream) {
       if (stream) {
         self.cached = true;
+        // if (returnJSON) {
+        //   imageHandler.fetchImageInformation(readStream, originFileName, modelName, options, res);
+        // } else {
         return resolve(stream)
       }
 
-    var storage = self.factory.create('image', self.req);
+      // not in cache, so get image from source
+      var storage = self.factory.create('image', self.req);
 
-    storage.get().then(function(stream) {
-      var imageSizeStream = PassThrough()
-      var responseStream = PassThrough()
+      storage.get().then(function(stream) {
+        var imageSizeStream = PassThrough()
+        var responseStream = PassThrough()
 
-      // duplicate the stream so we can use it
-      // for the imagesize() request and the
-      // response. this saves requesting the same
-      // data a second time.
-      stream.pipe(imageSizeStream)
-      stream.pipe(responseStream)
+        // duplicate the stream so we can use it for the imagesize() request and the
+        // response. this saves requesting the same data a second time.
+        stream.pipe(imageSizeStream)
+        stream.pipe(responseStream)
 
-      imagesize(imageSizeStream, function(err, imageInfo) {
-        // originFileName = 01.jpg
-        // modelName = full URL pathname = /jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/cdn-media/01.jpg
-        self.convert(responseStream, imageInfo).then(function(stream) {
-          // cache here
-          self.cache.cacheFile(stream, self.cacheKey, function () {
-            return resolve(stream)
+        imagesize(imageSizeStream, function(err, imageInfo) {
+          // originFileName = 01.jpg
+          // modelName = full URL pathname = /jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/cdn-media/01.jpg
+          self.convert(responseStream, imageInfo).then(function(stream) {
+            self.cache.cacheFile(stream, self.cacheKey, function () {
+              // return image info only, as json
+              if (self.options.format === 'json') {
+                return resolve(self.getImageInfo(stream));
+              }
+
+              // return image
+              return resolve(stream)
+            })
+          }).catch(function(err) {
+            return reject(err);
           })
-        }).catch(function(err) {
-          return reject(err);
         })
+      }).catch(function(err) {
+        return reject(err);
       })
-    }).catch(function(err) {
-      return reject(err);
-    })
     })
   })
 }
@@ -112,7 +132,6 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
   var self = this;
 
   return new Promise(function(resolve, reject) {
-    //var encryptName = sha1(self.cacheKey);
     var options = self.options;
     var displayOption = options;
 
@@ -137,13 +156,10 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
       stream = stream.pipe(imagemagick.streams.convert({format: options.format}));
     }
 
-  console.log(options)
-console.log(dimensions)
-
     var convertedStream = null;
-    if(sharpStream != null) {
+    if (sharpStream != null) {
       convertedStream = stream.pipe(sharpStream);
-      if(options.cropX && options.cropY) {
+      if (options.cropX && options.cropY) {
         var cropX = options.cropX?parseFloat(options.cropX):0;
         var cropY = options.cropY?parseFloat(options.cropY):0;
         var width = dimensions.width?(parseFloat(dimensions.width) + parseFloat(cropX)):0;
@@ -153,17 +169,12 @@ console.log(dimensions)
         if (width <= (originalWidth-cropX) && height <= (originalHeight-cropY)) {
           if (width==0) width = originalWidth-cropX;
           if (height==0) height = originalHeight-cropY;
-console.log(cropX)
-          console.log(cropY)
-          console.log(width)
-          console.log(height)
           try {
             convertedStream.extract(cropX, cropY, width, height);
           }
           catch (err) {
             return reject(err);
           }
-          convertedStream.extract(cropX, cropY, width, height);
         }
         else {
           var err = {
@@ -174,24 +185,93 @@ console.log(cropX)
         }
       }
       convertedStream = convertedStream.pipe(magickVar);
-    } else {
+    }
+    else {
       convertedStream = stream.pipe(magickVar);
     }
 
     // duplicate stream for caching
-    var cacheStream = PassThrough()
-    convertedStream.pipe(cacheStream)
+    // var cacheStream = PassThrough()
+    // convertedStream.pipe(cacheStream)
     // duplicate stream for returning
-    var returnStream = PassThrough()
-    convertedStream.pipe(returnStream)
+    // var returnStream = PassThrough()
+    // convertedStream.pipe(returnStream)
 
-    return resolve(returnStream)
-
-    //self.cache.cacheImage(cacheStream, encryptName, function() {
-    //  if (self.options.format === 'json') {
-    //    self.fetchImageInformation(returnStream, self.fileName, self.cacheKey, displayOption, res);
-    //  }
+    return resolve(convertedStream)
   })
+}
+
+/**
+ * Get image information from stream
+ * @param {stream} stream - read stream from S3, local disk or url
+ * @returns {object}
+ */
+
+/*
+{ "fileName":"322324f3696ec76c3479617aa2d700403e58b74c.jpg", "cacheReference":"24a33b40b0c2281cb045d6dff9139a5a0ec0baff",
+  "fileSize":20766, "format":"JPEG", "width":"520", "height":"346", "depth":8,
+  "density":{"width":72,"height":72}, "exif":{"orientation":0}, "primaryColor":"#b7b7b0",
+  "quality":"70", "trim":0, "trimFuzz":0, "resizeStyle":"aspectfill", "gravity":"Center",
+  "filter":"None", "blur":0, "strip":0, "rotate":0, "flip":0, "ratio":0, "devicePixelRatio":0
+}
+*/
+ImageHandler.prototype.getImageInfo = function (stream) {
+  var buffers = [];
+  var fileSize = 0;
+
+  function lengthListener(length) {
+    fileSize = length;
+  }
+
+  stream = stream.pipe(lengthStream(lengthListener));
+  stream.on('data', function (buffer) {
+    buffers.push(buffer);
+  })
+
+  stream.on('end', function () {
+    var buffer = Buffer.concat(buffers);
+    var primaryColor = RGBtoHex(colorThief.getColor(buffer)[0], colorThief.getColor(buffer)[1], colorThief.getColor(buffer)[2]);
+    imagemagick.identify({
+      srcData: buffer
+    }, function (err, result) {
+      var jsonData = {
+        fileName: self.fileName,
+        cacheReference: sha1(self.cacheKey),
+        fileSize: fileSize,
+        format: result.format,
+        width: result.width,
+        height: result.height,
+        depth: result.depth,
+        density: result.density,
+        exif: result.exif,
+        primaryColor: primaryColor,
+        quality: options.quality ? options.quality : 75,
+        trim: options.trim ? options.trim : 0,
+        trimFuzz: options.trimFuzz ? options.trimFuzz : 0,
+        resizeStyle: options.resizeStyle ? options.resizeStyle : 'aspectfill',
+        gravity: options.gravity ? options.gravity : 'Center',
+        filter: options.filter ? options.filter : 'None',
+        blur: options.blur ? options.blur : 0,
+        strip: options.strip ? options.strip : 0,
+        rotate: options.rotate ? options.rotate : 0,
+        flip: options.flip ? options.flip : 0,
+        ratio: options.ratio ? options.ratio : 0,
+        devicePixelRatio: options.devicePixelRatio ? options.devicePixelRatio : 0
+      }
+
+      var returnStream = new Readable();
+      returnStream.push(jsonData);
+      returnStream.push(null);
+      return returnStream;
+    })
+  })
+}
+
+/**
+ *
+ */
+function RGBtoHex(red, green, blue) {
+  return '#' + ('00000' + (red << 16 | green << 8 | blue).toString(16)).slice(-6);
 }
 
 function getDimensions(options) {
