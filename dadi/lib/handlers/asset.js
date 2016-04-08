@@ -1,6 +1,7 @@
 var compressor = require('node-minify');
 var fs = require('fs');
 var path = require('path');
+var PassThrough = require('stream').PassThrough;
 var Promise = require('bluebird');
 var url = require('url');
 var _ = require('underscore');
@@ -45,18 +46,6 @@ var AssetHandler = function (format, req) {
   }
 
   this.cacheKey = this.urlParts.join('/');
-
-//  if (fileName.split('.').length == 1) fileName = fileName + '.' + fileExt;
-
- //else {
-  //  assetHandler.fetchOriginFileContent(url, fileName, fileExt, compress, res);
-  //}
-  // this.url = nodeUrl.parse(url, true).pathname;
-  // this.path = path.resolve(config.get('images.directory.path'));
-
-  // this.getFullUrl = function() {
-  //   return path.join(self.path, self.url.replace('/disk', ''))
-  // }
 }
 
 AssetHandler.prototype.get = function () {
@@ -89,9 +78,16 @@ AssetHandler.prototype.get = function () {
     storage.get().then(function(stream) {
       // compress, returns stream
       self.compressFile(stream).then(function(stream) {
-        // cache here
-        self.cache.cacheFile(stream, self.cacheKey, function () {
-          return resolve(stream)
+        var cacheStream = PassThrough()
+        var responseStream = PassThrough()
+
+        // duplicate the stream so we can use it for the cache request and the
+        // response. this saves requesting the same data a second time.
+        stream.pipe(cacheStream)
+        stream.pipe(responseStream)
+
+        self.cache.cacheFile(cacheStream, self.cacheKey, function () {
+          return resolve(responseStream)
         })
       })
     }).catch(function(err) {
@@ -148,3 +144,4 @@ module.exports = function (format, req) {
 }
 
 module.exports.AssetHandler = AssetHandler;
+
