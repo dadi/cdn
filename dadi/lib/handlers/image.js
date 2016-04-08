@@ -50,6 +50,7 @@ var ImageHandler = function (format, req) {
 
 ImageHandler.prototype.get = function () {
   var self = this;
+  self.cached = false;
 
   return new Promise(function(resolve, reject) {
     var message;
@@ -66,8 +67,10 @@ ImageHandler.prototype.get = function () {
 
     // get from cache
     self.cache.get(self.cacheKey, function (stream) {
-      if (stream) return resolve(stream)
-    })
+      if (stream) {
+        self.cached = true;
+        return resolve(stream)
+      }
 
     var storage = self.factory.create('image', self.req);
 
@@ -96,6 +99,7 @@ ImageHandler.prototype.get = function () {
       })
     }).catch(function(err) {
       return reject(err);
+    })
     })
   })
 }

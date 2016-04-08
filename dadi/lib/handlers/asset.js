@@ -50,6 +50,7 @@ var AssetHandler = function (format, req) {
 
 AssetHandler.prototype.get = function () {
   var self = this;
+  self.cached = false;
 
   return new Promise(function(resolve, reject) {
     var message;
@@ -75,10 +76,14 @@ AssetHandler.prototype.get = function () {
 
     // get from cache
     self.cache.get(self.cacheKey, function (stream) {
-      if (stream) return resolve(stream)
-    })
+      if (stream) {
+        self.cached = true;
+        return resolve(stream)
+      }
 
-    var storage = self.factory.create('asset', self.req);
+      var storage = self.factory.create('asset', self.req);
+
+      console.log('GET FROM STORAGE')
 
     storage.get().then(function(stream) {
       // compress, returns stream
@@ -97,6 +102,7 @@ AssetHandler.prototype.get = function () {
       })
     }).catch(function(err) {
       return reject(err);
+    })
     })
   })
 }

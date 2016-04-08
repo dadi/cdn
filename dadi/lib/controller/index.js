@@ -60,6 +60,13 @@ var Controller = function (router) {
         res.setHeader('Content-Type', 'text/css');
       }
 
+      if (handler.cached) {
+        res.setHeader('X-Cache', 'HIT');
+      }
+      else {
+        res.setHeader('X-Cache', 'MISS');
+      }
+
       var buffers = [];
       var fileSize = 0;
 
@@ -97,6 +104,7 @@ var Controller = function (router) {
     }).catch(function(err) {
       console.log('CONTROLLER')
       console.log(err)
+console.log(err.stack)
       help.displayErrorPage(err.statusCode, err.message, res);
     });
 
