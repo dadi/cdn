@@ -106,10 +106,10 @@ Cache.prototype.cacheFile = function(stream, key, next) {
   }
 }
 
-Cache.prototype.get = function(key) {
+Cache.prototype.get = function(key, cb) {
   var self = this;
-
-  if (!self.enabled) return next()
+console.log('CACHE GET')
+  if (!self.enabled) return cb(null)
 
   var settings = config.get('caching');
   var encryptedKey = sha1(key);
@@ -125,12 +125,12 @@ Cache.prototype.get = function(key) {
         //   imageHandler.fetchImageInformation(readStream, originFileName, modelName, options, res);
         // } else {
         // Set cache header
-        return stream;
+        return cb(stream);
         //send using res pattern
         //}
       }
       else {
-        return null;
+        return cb(null);
       }
       //   // Set cache header
       //   res.setHeader('X-Cache', 'MISS');
@@ -139,25 +139,25 @@ Cache.prototype.get = function(key) {
   }
   else {
     var cachePath = path.join(self.dir, encryptedKey);
+console.log(cachePath)
     //if (fs.existsSync(cachePath))
     fs.stat(cachePath, function (err, stats) {
       if (err) {
-        return null;
+        return cb(null);
       }
-
+console.log(stats)
       var lastMod = stats && stats.mtime && stats.mtime.valueOf();
-
+console.log(settings)
       if (settings.ttl && lastMod && (Date.now() - lastMod) / 1000 <= settings.ttl) {
         var stream = fs.createReadStream(cachePath);
         // if (returnJSON)
         //   imageHandler.fetchImageInformation(readStream, originFileName, modelName, options, res);
 
         // Set cache header
-        return stream;
-        //send using res pattern
+        return cb(stream);
       }
       else {
-        return null;
+        return cb(null);
           // Set cache header
           // res.setHeader('X-Cache', 'MISS');
           // imageHandler.createNewConvertImage(req, originFileName, modelName, options, returnJSON, res);
