@@ -230,59 +230,86 @@ ImageHandle.prototype.convertAndSave = function (readStream, imageInfo, originFi
   // }
 //};
 
-/**
- * Get image information from image buffer.
- * readStream: read stream from S3, local disk and url
- * fileName: file name to store converted image data
- */
-ImageHandle.prototype.fetchImageInformation = function (readStream, originFileName, fileName, options, res) {
-  var buffers = [];
-  var fileSize = 0;
-  var encryptName = sha1(fileName);
-
-  function lengthListener(length) {
-    fileSize = length;
-  }
-
-  readStream = readStream.pipe(lengthStream(lengthListener));
-  readStream.on('data', function (buffer) {
-    buffers.push(buffer);
-  });
-  readStream.on('end', function () {
-    var buffer = Buffer.concat(buffers);
-    var primaryColor = RGBtoHex(colorThief.getColor(buffer)[0], colorThief.getColor(buffer)[1], colorThief.getColor(buffer)[2]);
-    imagemagick.identify({
-      srcData: buffer
-    }, function (err, result) {
-      var jsonData = {
-        fileName: originFileName,
-        cacheReference: encryptName,
-        fileSize: fileSize,
-        format: result.format,
-        width: result.width,
-        height: result.height,
-        depth: result.depth,
-        density: result.density,
-        exif: result.exif,
-        primaryColor: primaryColor,
-        quality: options.quality ? options.quality : 75,
-        trim: options.trim ? options.trim : 0,
-        trimFuzz: options.trimFuzz ? options.trimFuzz : 0,
-        resizeStyle: options.resizeStyle ? options.resizeStyle : 'aspectfill',
-        gravity: options.gravity ? options.gravity : 'Center',
-        filter: options.filter ? options.filter : 'None',
-        blur: options.blur ? options.blur : 0,
-        strip: options.strip ? options.strip : 0,
-        rotate: options.rotate ? options.rotate : 0,
-        flip: options.flip ? options.flip : 0,
-        ratio: options.ratio ? options.ratio : 0,
-        devicePixelRatio: options.devicePixelRatio ? options.devicePixelRatio : 0
-      };
-      help.sendBackJSON(200, jsonData, res);
-
-    });
-  });
-};
+// /**
+//  * Get image information from image buffer.
+//  * readStream: read stream from S3, local disk and url
+//  * fileName: file name to store converted image data
+//  */
+//
+// /*
+// {
+//   "fileName":"322324f3696ec76c3479617aa2d700403e58b74c.jpg",
+//   "cacheReference":"24a33b40b0c2281cb045d6dff9139a5a0ec0baff",
+//   "fileSize":20766,
+//   "format":"JPEG",
+//   "width":"520",
+//   "height":"346",
+//   "depth":8,
+//   "density":{"width":72,"height":72},
+//   "exif":{"orientation":0},
+//   "primaryColor":"#b7b7b0",
+//   "quality":"70",
+//   "trim":0,
+//   "trimFuzz":0,
+//   "resizeStyle":"aspectfill",
+//   "gravity":"Center",
+//   "filter":"None",
+//   "blur":0,
+//   "strip":0,
+//   "rotate":0,
+//   "flip":0,
+//   "ratio":0,
+//   "devicePixelRatio":0
+// }
+// */
+// ImageHandle.prototype.fetchImageInformation = function (readStream, originFileName, fileName, options, res) {
+//   var buffers = [];
+//   var fileSize = 0;
+//   var encryptName = sha1(fileName);
+//
+//   function lengthListener(length) {
+//     fileSize = length;
+//   }
+//
+//   readStream = readStream.pipe(lengthStream(lengthListener));
+//   readStream.on('data', function (buffer) {
+//     buffers.push(buffer);
+//   });
+//   readStream.on('end', function () {
+//     var buffer = Buffer.concat(buffers);
+//     var primaryColor = RGBtoHex(colorThief.getColor(buffer)[0], colorThief.getColor(buffer)[1], colorThief.getColor(buffer)[2]);
+//     imagemagick.identify({
+//       srcData: buffer
+//     }, function (err, result) {
+//       var jsonData = {
+//         fileName: originFileName,
+//         cacheReference: encryptName,
+//         fileSize: fileSize,
+//         format: result.format,
+//         width: result.width,
+//         height: result.height,
+//         depth: result.depth,
+//         density: result.density,
+//         exif: result.exif,
+//         primaryColor: primaryColor,
+//         quality: options.quality ? options.quality : 75,
+//         trim: options.trim ? options.trim : 0,
+//         trimFuzz: options.trimFuzz ? options.trimFuzz : 0,
+//         resizeStyle: options.resizeStyle ? options.resizeStyle : 'aspectfill',
+//         gravity: options.gravity ? options.gravity : 'Center',
+//         filter: options.filter ? options.filter : 'None',
+//         blur: options.blur ? options.blur : 0,
+//         strip: options.strip ? options.strip : 0,
+//         rotate: options.rotate ? options.rotate : 0,
+//         flip: options.flip ? options.flip : 0,
+//         ratio: options.ratio ? options.ratio : 0,
+//         devicePixelRatio: options.devicePixelRatio ? options.devicePixelRatio : 0
+//       };
+//       help.sendBackJSON(200, jsonData, res);
+//
+//     });
+//   });
+// };
 
 // exports
 module.exports = function (s3, cache) {
@@ -291,6 +318,6 @@ module.exports = function (s3, cache) {
 
 module.exports.ImageHandle = ImageHandle;
 
-function RGBtoHex(red, green, blue) {
-  return '#' + ('00000' + (red << 16 | green << 8 | blue).toString(16)).slice(-6);
-}
+// function RGBtoHex(red, green, blue) {
+//   return '#' + ('00000' + (red << 16 | green << 8 | blue).toString(16)).slice(-6);
+// }
