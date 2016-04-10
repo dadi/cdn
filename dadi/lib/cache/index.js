@@ -78,30 +78,27 @@ Cache.prototype.initRedisClient = function () {
 Cache.prototype.cacheFile = function(stream, key, next) {
   var self = this;
 
-  if (!self.enabled) return next(stream)
+  if (!self.enabled) return next()
 
   var settings = config.get('caching');
   var encryptedKey = sha1(key);
 
   var Passthrough = require('stream').Passthrough
-  var cacheStream = Passthrough()
-  var returnStream = Passthrough()
-  
+  var cacheStream = new Passthrough()
+
   stream.pipe(cacheStream)
-  stream.pipe(returnStream)
 
   console.log(key)
   console.log(encryptedKey)
 
   if (settings.redis.enabled) {
-console.log('start redis Write')
-
+    console.log('start redis Write')
     cacheStream.pipe(redisWStream(self.redisClient, encryptedKey)).on('finish', function () {
-console.log('end redis Write')
+      console.log('end redis Write')
       if (settings.ttl) {
         self.redisClient.expire(encryptedKey, settings.ttl);
       }
-      return next(returnStream);
+      return next();
     });
   }
   else {
@@ -112,18 +109,18 @@ console.log('end redis Write')
     })
 
    cacheStream.pipe(file);
-   return next(returnStream);
+   return next();
   }
 }
 
 Cache.prototype.get = function(key, cb) {
   var self = this;
-console.log('CACHE GET')
   if (!self.enabled) return cb(null)
 
   var settings = config.get('caching');
   var encryptedKey = sha1(key);
 
+  console.log('CACHE GET')
   console.log(key)
   console.log(encryptedKey)
 
