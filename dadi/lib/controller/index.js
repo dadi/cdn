@@ -32,17 +32,13 @@ var Controller = function (router) {
 
   router.get(/(.+)/, function (req, res) {
     var factory = new HandlerFactory();
-console.log(factory)
     factory.create(req, function(handler) {
 
-    console.log('handler')
-    console.log(handler)
-
-    // TODO: check cache inside GET(), returning stream
     handler.get().then(function(stream) {
 
       console.log('CONTROLLER')
-console.log(stream)
+      console.log(stream)
+
       if (handler.format === 'js') {
         res.setHeader('Content-Type', 'application/javascript');
       }
@@ -94,7 +90,7 @@ console.log(stream)
     }).catch(function(err) {
       console.log('CONTROLLER')
       console.log(err)
-console.log(err.stack)
+      console.log(err.stack)
       help.displayErrorPage(err.statusCode, err.message, res);
     });
   })

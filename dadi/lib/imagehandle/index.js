@@ -1,7 +1,7 @@
 var fs = require('fs');
 var path = require('path');
-var ColorThief = require('color-thief'),
-  colorThief = new ColorThief();
+// var ColorThief = require('color-thief'),
+//   colorThief = new ColorThief();
 var imagemagick = require('imagemagick-native');
 var lengthStream = require('length-stream');
 var request = require('request');

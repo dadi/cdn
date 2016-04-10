@@ -1,7 +1,10 @@
 var fs = require('fs');
+var concat = require('concat-stream')
 var ColorThief = require('color-thief');
 var colorThief = new ColorThief();
-var imagemagick = require('imagemagick-native');
+//var imagemagick = require('imagemagick-native');
+var fill = require("aspect-fill")
+var fit = require("aspect-fit");
 var imagesize = require('imagesize');
 var lengthStream = require('length-stream');
 var PassThrough = require('stream').PassThrough;
@@ -96,8 +99,8 @@ ImageHandler.prototype.get = function () {
 
       storage.get().then(function(stream) {
         var cacheStream = new PassThrough()
-        var convertStream = PassThrough()
-        var imageSizeStream = PassThrough()
+        var convertStream = new PassThrough()
+        var imageSizeStream = new PassThrough()
         var responseStream = new PassThrough()
 
         // duplicate the stream so we can use it for the imagesize() request and the
@@ -105,24 +108,18 @@ ImageHandler.prototype.get = function () {
         stream.pipe(imageSizeStream)
         stream.pipe(convertStream)
 
-console.log(self.options)
-
         imagesize(imageSizeStream, function(err, imageInfo) {
-console.log(imageInfo)
-          self.convert(convertStream, imageInfo).then(function(stream) {
-console.log('stream from convert')
-console.log(stream)
-// stream.pipe(cacheStream)
-//console.log('cache stream')
-//console.log(cacheStream)
-stream.pipe(responseStream)
-console.log('response stream')
-console.log(responseStream)
-            self.cache.cacheFile(stream, self.cacheKey, function (stream) {
-console.log('back from cache')
+          console.log(imageInfo)
+          self.convert(convertStream, imageInfo).then(function(convertedStream) {
+            console.log('stream from convert')
+            console.log(convertedStream)
+            convertedStream.pipe(cacheStream)
+            convertedStream.pipe(responseStream)
+            self.cache.cacheFile(cacheStream, self.cacheKey, function() {
+              console.log('back from cache')
               // return image info only, as json
               if (self.options.format === 'json') {
-                self.getImageInfo(stream, function(data) {
+                self.getImageInfo(responseStream, function(data) {
                   var returnStream = new Readable()
                   returnStream.push(JSON.stringify(data,null,2))
                   returnStream.push(null)
@@ -157,72 +154,155 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
     var displayOption = options;
 
     var dimensions = getDimensions(options);
+    var width = dimensions.width;
+    var height = dimensions.height;
 
-    var magickVar = imagemagick.streams.convert(options);
-    magickVar.on('error', function (err) {
-      return reject(err);
-    });
-console.log('pre-convert')
-console.log(stream)
-    var sharpStream = null;
+    if (options.cropX && options.cropY) {
+      options.cropX = options.cropX ? parseFloat(options.cropX) : 0;
+      options.cropY = options.cropY ? parseFloat(options.cropY) : 0;
+      width = width ? (parseFloat(width) + parseFloat(options.cropX)) : 0;
+      height = height ? (parseFloat(height) + parseFloat(options.cropY)) : 0;
+      var originalWidth = parseFloat(imageInfo.width);
+      var originalHeight = parseFloat(imageInfo.height);
 
-    if(options.quality >= 70 && options.format.toLowerCase() == 'png') {
-      sharpStream = sharp().png().compressionLevel(9);
-    } else if(options.quality >= 70 && (options.format.toLowerCase() == 'jpg' || options.format.toLowerCase() == 'jpeg')){
-      sharpStream = sharp().flatten().jpeg().compressionLevel(9);
-    } else if(options.cropX && options.cropY) {
-      sharpStream = sharp();
+      // console.log({
+      //   cropX: options.cropX,
+      //   cropY: options.cropY,
+      //   width: width,
+      //   height: height
+      // })
+
+      if (width <= (originalWidth-options.cropX) && height <= (originalHeight-options.cropY)) {
+        if (width === 0) width = originalWidth-options.cropX;
+        if (height === 0) height = originalHeight-options.cropY;
+      }
+      else {
+        var err = {
+          statusCode: 400,
+          message: 'Crop size is greater than image size.'
+        }
+        return reject(err);
+      }
     }
 
-    if(imageInfo.format.toLowerCase() == 'gif') {
-      stream = stream.pipe(imagemagick.streams.convert({format: options.format}));
-    }
+    var image;
+    var concatStream = concat(gotPicture)
+    stream.pipe(concatStream)
 
-    var convertedStream = null;
-    if (sharpStream != null) {
-      convertedStream = stream.pipe(sharpStream);
-      if (options.cropX && options.cropY) {
-        var cropX = options.cropX?parseFloat(options.cropX):0;
-        var cropY = options.cropY?parseFloat(options.cropY):0;
-        var width = dimensions.width?(parseFloat(dimensions.width) + parseFloat(cropX)):0;
-        var height = dimensions.height?(parseFloat(dimensions.height) + parseFloat(cropY)):0;
-        var originalWidth = parseFloat(imageInfo.width);
-        var originalHeight = parseFloat(imageInfo.height);
-        if (width <= (originalWidth-cropX) && height <= (originalHeight-cropY)) {
-          if (width==0) width = originalWidth-cropX;
-          if (height==0) height = originalHeight-cropY;
-          try {
-            convertedStream.extract(cropX, cropY, width, height);
+    function gotPicture(imageBuffer) {
+      image = imageBuffer;
+
+      console.log(options)
+
+      // obtain an image object
+      require('lwip').open(image, imageInfo.format, function(err, image){
+
+        if (err) return reject(err)
+
+        // define a batch of manipulations and save to disk as JPEG:
+        var batch = image.batch()
+
+        // resize
+        if (width && height && options.resizeStyle) {
+          if (options.resizeStyle === 'aspectfit') {
+            var size = fit(imageInfo.width, imageInfo.height, width, height)
+            batch.cover(Math.ceil(size.width), Math.ceil(size.height))
           }
-          catch (err) {
-            return reject(err);
+          else if (options.resizeStyle === 'aspectfill') {
+            batch.cover(width, height)
+          }
+          else {
+            // fill
+            batch.resize(width, height)
           }
         }
         else {
-          var err = {
-            statusCode: 400,
-            message: 'Crop size is greater than image size.'
-          }
+          if (width && !height) batch.resize(parseInt(width))
+        }
+
+        // crop
+        //if (options.cropX && options.cropY) batch.crop(options.cropX, options.cropY)
+
+        if (options.blur) batch.blur(parseInt(options.blur))
+        if (options.flip) batch.flip(options.flip)
+        if (options.rotate) batch.rotate(parseInt(options.rotate), 'white')
+
+        // quality
+        var params = {}
+        var quality = parseInt(options.quality)
+        if (/jpe?g/.exec(imageInfo.format)) params.quality = quality
+        if (/png/.exec(imageInfo.format) {
+          if (quality > 70) params.compression = 'none'
+          else if (quality > 50) params.compression = 'fast'
+          else params.compression = 'high'
+        }
+
+        try {
+          batch.exec(function(err, image) {
+            image.toBuffer(self.options.format, params, function (err, buffer) {
+              if (err) return reject(err)
+
+              var bufferStream = new PassThrough();
+              bufferStream.end(buffer)
+              return resolve(bufferStream)
+            })
+          })
+        }
+        catch (err) {
           return reject(err);
         }
-      }
-      convertedStream = convertedStream.pipe(magickVar);
-    }
-    else {
-      convertedStream = stream.pipe(magickVar);
+      });
     }
 
-    // duplicate stream for caching
-    // var cacheStream = PassThrough()
-    // convertedStream.pipe(cacheStream)
-    // duplicate stream for returning
-    var returnStream = new PassThrough()
-    convertedStream.pipe(returnStream)
-
-
-    console.log('post-convert returnStream')
-    console.log(returnStream)
-    return resolve(returnStream)
+    // var sharpStream = null;
+    //
+    // if(options.quality >= 70 && options.format.toLowerCase() == 'png') {
+    //   sharpStream = sharp().png().compressionLevel(9);
+    // } else if(options.quality >= 70 && (options.format.toLowerCase() == 'jpg' || options.format.toLowerCase() == 'jpeg')){
+    //   sharpStream = sharp().flatten().jpeg().compressionLevel(9);
+    // } else if(options.cropX && options.cropY) {
+    //   sharpStream = sharp();
+    // }
+    //
+    // if(imageInfo.format.toLowerCase() == 'gif') {
+    //   stream = stream.pipe(imagemagick.streams.convert({format: options.format}));
+    // }
+    //
+    // var convertedStream = null;
+    // if (sharpStream != null) {
+    //   convertedStream = stream.pipe(sharpStream);
+    //   if (options.cropX && options.cropY) {
+    //     var cropX = options.cropX?parseFloat(options.cropX):0;
+    //     var cropY = options.cropY?parseFloat(options.cropY):0;
+    //     var width = dimensions.width?(parseFloat(dimensions.width) + parseFloat(cropX)):0;
+    //     var height = dimensions.height?(parseFloat(dimensions.height) + parseFloat(cropY)):0;
+    //     var originalWidth = parseFloat(imageInfo.width);
+    //     var originalHeight = parseFloat(imageInfo.height);
+    //     if (width <= (originalWidth-cropX) && height <= (originalHeight-cropY)) {
+    //       if (width==0) width = originalWidth-cropX;
+    //       if (height==0) height = originalHeight-cropY;
+    //       try {
+    //         convertedStream.extract(cropX, cropY, width, height);
+    //       }
+    //       catch (err) {
+    //         return reject(err);
+    //       }
+    //     }
+    //     else {
+    //       var err = {
+    //         statusCode: 400,
+    //         message: 'Crop size is greater than image size.'
+    //       }
+    //       return reject(err);
+    //     }
+    //   }
+    //   convertedStream = convertedStream.pipe(magickVar);
+    // }
+    // else {
+    //   convertedStream = stream.pipe(magickVar);
+    // }
+    //
+    // return resolve(convertedStream)
   })
 }
 
@@ -242,30 +322,15 @@ console.log(stream)
 */
 ImageHandler.prototype.getImageInfo = function (stream, cb) {
   var self = this;
+  var options = self.options;
   var buffers = [];
   var fileSize = 0;
 
   function lengthListener(length) {
-console.log(length)
+    console.log(length)
     fileSize = length;
   }
 
-var options = self.options;
-console.log('stream')
-console.log(stream)
-var ls = lengthStream(lengthListener);
-stream
-    .pipe(ls)
-    .on('error', function (err) { console.log(err); })
-    .on('data', function (data) { buffers.push(data); })
-    .on('end', function () {
-var b = Buffer.concat(buffers)
-console.log(b)      
-console.log('DONE');
-  return cb(data)
-
-    });
-stream.end();
   var data = {
     fileName: self.fileName,
     cacheReference: sha1(self.fileName),
@@ -283,8 +348,16 @@ stream.end();
     devicePixelRatio: options.devicePixelRatio ? options.devicePixelRatio : 0
   }
 
-  console.log('data')
-  console.log(data)
+  var ls = lengthStream(lengthListener);
+  stream.pipe(ls)
+    .on('error', function (err) { console.log(err); })
+    .on('data', function (data) { buffers.push(data); })
+    .on('end', function () {
+      var b = Buffer.concat(buffers)
+      console.log(b)
+      console.log('DONE');
+      return cb(data)
+    });
 
 //  stream.on('end', function () {
 //    var buffer = Buffer.concat(buffers);
@@ -344,6 +417,9 @@ function getDimensions(options) {
     dimensions.width = parseFloat(dimensions.width) * parseFloat(options.devicePixelRatio);
     dimensions.height = parseFloat(dimensions.height) * parseFloat(options.devicePixelRatio);
   }
+
+  console.log('DIMENSIONS')
+  console.log(dimensions)
 
   return dimensions;
 }
