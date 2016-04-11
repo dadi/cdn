@@ -55,6 +55,7 @@ var self = this;
         break
       case 'gif':
       case 'jpg':
+      case 'json':
       case 'png':
         return cb(new ImageHandler(format, req))
         break

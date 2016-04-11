@@ -2,7 +2,6 @@ var fs = require('fs');
 var concat = require('concat-stream')
 var ColorThief = require('color-thief');
 var colorThief = new ColorThief();
-//var imagemagick = require('imagemagick-native');
 var fill = require("aspect-fill")
 var fit = require("aspect-fit");
 var imagesize = require('imagesize');
@@ -11,9 +10,7 @@ var PassThrough = require('stream').PassThrough;
 var path = require('path');
 var Promise = require('bluebird');
 var Readable = require('stream').Readable;
-var request = require('request');
 var sha1 = require('sha1');
-var sharp = require('sharp');
 var url = require('url');
 var _ = require('underscore');
 
@@ -103,6 +100,19 @@ ImageHandler.prototype.get = function () {
         var imageSizeStream = new PassThrough()
         var responseStream = new PassThrough()
 
+var ExifImage = require('exif').ExifImage;
+try {
+    new ExifImage({ image : buffer }, function (err, exifData) {
+        if (err)
+            console.log('Error: '+err.message);
+        else
+            console.log(exifData); // Do something with your data!
+    });
+} catch (err) {
+    console.log('Error: ' + err.message);
+}
+
+
         // duplicate the stream so we can use it for the imagesize() request and the
         // response. this saves requesting the same data a second time.
         stream.pipe(imageSizeStream)
@@ -112,14 +122,14 @@ ImageHandler.prototype.get = function () {
           console.log(imageInfo)
           self.convert(convertStream, imageInfo).then(function(convertedStream) {
             console.log('stream from convert')
-            console.log(convertedStream)
+            //console.log(convertedStream)
             convertedStream.pipe(cacheStream)
             convertedStream.pipe(responseStream)
             self.cache.cacheFile(cacheStream, self.cacheKey, function() {
               console.log('back from cache')
               // return image info only, as json
               if (self.options.format === 'json') {
-                self.getImageInfo(responseStream, function(data) {
+                self.getImageInfo(convertedStream, function(data) {
                   var returnStream = new Readable()
                   returnStream.push(JSON.stringify(data,null,2))
                   returnStream.push(null)
@@ -216,8 +226,11 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
             batch.resize(width, height)
           }
         }
-        else {
-          if (width && !height) batch.resize(parseInt(width))
+        else if (width && height) {
+          batch.resize(parseInt(width), parseInt(height))
+        }
+        else if (width && !height) {
+          batch.resize(parseInt(width))
         }
 
         // crop
@@ -231,15 +244,18 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
         var params = {}
         var quality = parseInt(options.quality)
         if (/jpe?g/.exec(imageInfo.format)) params.quality = quality
-        if (/png/.exec(imageInfo.format) {
+        if (/png/.exec(imageInfo.format)) {
           if (quality > 70) params.compression = 'none'
           else if (quality > 50) params.compression = 'fast'
           else params.compression = 'high'
         }
 
+        // format
+        var format = self.options.format === 'json' ? imageInfo.format : self.options.format
+
         try {
           batch.exec(function(err, image) {
-            image.toBuffer(self.options.format, params, function (err, buffer) {
+            image.toBuffer(format, params, function (err, buffer) {
               if (err) return reject(err)
 
               var bufferStream = new PassThrough();
@@ -327,7 +343,6 @@ ImageHandler.prototype.getImageInfo = function (stream, cb) {
   var fileSize = 0;
 
   function lengthListener(length) {
-    console.log(length)
     fileSize = length;
   }
 
@@ -353,15 +368,17 @@ ImageHandler.prototype.getImageInfo = function (stream, cb) {
     .on('error', function (err) { console.log(err); })
     .on('data', function (data) { buffers.push(data); })
     .on('end', function () {
-      var b = Buffer.concat(buffers)
-      console.log(b)
-      console.log('DONE');
+      var buffer = Buffer.concat(buffers);
+      var primaryColor = RGBtoHex(colorThief.getColor(buffer)[0], colorThief.getColor(buffer)[1], colorThief.getColor(buffer)[2]);
+
+
+      data.fileSize = fileSize;
+      data.primaryColor = primaryColor;
+console.log('DONE');
       return cb(data)
     });
 
 //  stream.on('end', function () {
-//    var buffer = Buffer.concat(buffers);
-//    var primaryColor = RGBtoHex(colorThief.getColor(buffer)[0], colorThief.getColor(buffer)[1], colorThief.getColor(buffer)[2]);
 //    imagemagick.identify({
  //     srcData: buffer
  //   }, function (err, result) {

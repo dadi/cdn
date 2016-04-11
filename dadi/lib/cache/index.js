@@ -83,8 +83,8 @@ Cache.prototype.cacheFile = function(stream, key, next) {
   var settings = config.get('caching');
   var encryptedKey = sha1(key);
 
-  var Passthrough = require('stream').Passthrough
-  var cacheStream = new Passthrough()
+  var PassThrough = require('stream').PassThrough
+  var cacheStream = new PassThrough()
 
   stream.pipe(cacheStream)
 
