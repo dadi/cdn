@@ -2,11 +2,11 @@ var fs = require('fs');
 var path = require('path');
 // var ColorThief = require('color-thief'),
 //   colorThief = new ColorThief();
-var imagemagick = require('imagemagick-native');
+//var imagemagick = require('imagemagick-native');
 var lengthStream = require('length-stream');
 var request = require('request');
 var sha1 = require('sha1');
-var sharp = require('sharp');
+//var sharp = require('sharp');
 var zlib = require('zlib');
 var imagesize = require('imagesize');
 var PassThrough = require('stream').PassThrough;
@@ -49,23 +49,23 @@ ImageHandle.prototype.convertAndSave = function (readStream, imageInfo, originFi
     options.height = parseFloat(options.height) * parseFloat(options.devicePixelRatio);
   }
 
-  var magickVar = imagemagick.streams.convert(options);
-  magickVar.on('error', function (error) {
-    help.displayErrorPage(404, error, res);
-  });
+//  var magickVar = imagemagick.streams.convert(options);
+//  magickVar.on('error', function (error) {
+//    help.displayErrorPage(404, error, res);
+//  });
 
   var sharpStream = null;
 
   if(options.quality >= 70 && options.format.toLowerCase() == 'png') {
-    sharpStream = sharp().png().compressionLevel(9);
+//    sharpStream = sharp().png().compressionLevel(9);
   } else if(options.quality >= 70 && (options.format.toLowerCase() == 'jpg' || options.format.toLowerCase() == 'jpeg')){
-    sharpStream = sharp().flatten().jpeg().compressionLevel(9);
+ //   sharpStream = sharp().flatten().jpeg().compressionLevel(9);
   } else if(options.cropX && options.cropY) {
-    sharpStream = sharp();
+ //   sharpStream = sharp();
   }
 
   if(imageInfo.format.toLowerCase() == 'gif') {
-    readStream = readStream.pipe(imagemagick.streams.convert({format: options.format}));
+ //   readStream = readStream.pipe(imagemagick.streams.convert({format: options.format}));
   }
 
   var convertedStream = null;
@@ -81,7 +81,7 @@ ImageHandle.prototype.convertAndSave = function (readStream, imageInfo, originFi
       if(width <= (originalWidth-cropX) && height <= (originalHeight-cropY)) {
         if(width==0) width = originalWidth-cropX;
         if(height==0) height = originalHeight-cropY;
-        convertedStream.extract(cropX, cropY, width, height);
+ //       convertedStream.extract(cropX, cropY, width, height);
       } else {
         help.displayErrorPage(404, 'Crop size is greater than image size.', res);
         return;
