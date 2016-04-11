@@ -1,3 +1,7 @@
+var site = require('../../package.json').name;
+var version = require('../../package.json').version;
+var nodeVersion = Number(process.version.match(/^v(\d+\.\d+)/)[1]);
+var colors = require('colors');
 var bodyParser = require('body-parser');
 var finalhandler = require('finalhandler');
 var http = require('http');
@@ -37,12 +41,32 @@ Server.prototype.start = function (done) {
   });
 
   var server = this.server = app.listen(config.get('server.port'));
+  server.on('listening', function() { onListening(this) });
 
   this.readyState = 1;
 
   done && done();
 };
 
+function onListening(server) {
+  var env = config.get('env');
+  var address = server.address()
+
+  if (env !== 'test') {
+    var startText = '  ----------------------------\n';
+    startText += '  Started \'DADI CDN\'\n';
+    startText += '  ----------------------------\n';
+    startText += '  Server:      '.green + address.address + ':' + address.port + '\n';
+    startText += '  Version:     '.green + version + '\n';
+    startText += '  Node.JS:     '.green + nodeVersion + '\n';
+    startText += '  Environment: '.green + env + '\n';
+    startText += '  ----------------------------\n';
+
+    startText += '\n\n  Copyright ' + String.fromCharCode(169) + ' 2015 DADI+ Limited (https://dadi.tech)'.white +'\n';
+
+    console.log(startText)
+  }
+}
 
 // this is mostly needed for tests
 Server.prototype.stop = function (done) {

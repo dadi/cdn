@@ -82,8 +82,6 @@ AssetHandler.prototype.get = function () {
 
       var storage = self.factory.create('asset', self.url);
 
-      console.log('GET FROM STORAGE')
-
       storage.get().then(function(stream) {
         // compress, returns stream
         self.compressFile(stream).then(function(stream) {

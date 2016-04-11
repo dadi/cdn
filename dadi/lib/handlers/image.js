@@ -2,6 +2,7 @@ var fs = require('fs');
 var concat = require('concat-stream')
 var ColorThief = require('color-thief');
 var colorThief = new ColorThief();
+var ExifImage = require('exif').ExifImage;
 var fill = require("aspect-fill")
 var fit = require("aspect-fit");
 var imagesize = require('imagesize');
@@ -15,7 +16,6 @@ var url = require('url');
 var _ = require('underscore');
 
 var StorageFactory = require(__dirname + '/../storage/factory');
-var ImageHandle = require(__dirname + '/../imagehandle');
 var Cache = require(__dirname + '/../cache');
 var config = require(__dirname + '/../../../config');
 
@@ -36,7 +36,7 @@ var ImageHandler = function (format, req) {
   this.cacheKey = parsedUrl.pathname;
   this.fileName = path.basename(parsedUrl.pathname);
   this.fileExt = path.extname(this.fileName).substring(1);
-
+  this.exifData = {}
 }
 
 ImageHandler.prototype.get = function () {
@@ -55,6 +55,8 @@ ImageHandler.prototype.get = function () {
     // fileExt = url.substring(url.lastIndexOf('.') + 1);
     this.options = getImageOptions(optionsArray);
   }
+
+  this.options = self.sanitiseOptions(this.options);
 
   if (this.options.format === 'json') {
     if (this.fileExt === this.fileName) {
@@ -83,15 +85,14 @@ ImageHandler.prototype.get = function () {
 
     // get from cache
     self.cache.get(self.cacheKey, function (stream) {
+
+      // if found in cache, return it
       if (stream) {
         self.cached = true;
-        // if (returnJSON) {
-        //   imageHandler.fetchImageInformation(readStream, originFileName, modelName, options, res);
-        // } else {
         return resolve(stream)
       }
 
-      // not in cache, so get image from source
+      // not in cache, get image from source
       var storage = self.factory.create('image', self.url);
 
       storage.get().then(function(stream) {
@@ -99,39 +100,40 @@ ImageHandler.prototype.get = function () {
         var convertStream = new PassThrough()
         var imageSizeStream = new PassThrough()
         var responseStream = new PassThrough()
-
-var ExifImage = require('exif').ExifImage;
-try {
-    new ExifImage({ image : buffer }, function (err, exifData) {
-        if (err)
-            console.log('Error: '+err.message);
-        else
-            console.log(exifData); // Do something with your data!
-    });
-} catch (err) {
-    console.log('Error: ' + err.message);
-}
-
+        var exifStream = new PassThrough()
 
         // duplicate the stream so we can use it for the imagesize() request and the
         // response. this saves requesting the same data a second time.
         stream.pipe(imageSizeStream)
         stream.pipe(convertStream)
+        stream.pipe(exifStream)
 
+        // get the image size and format
         imagesize(imageSizeStream, function(err, imageInfo) {
-          console.log(imageInfo)
+
+          // extract exif data if available
+          if (imageInfo && /jpe?g/.exec(imageInfo.format)) {
+            self.extractExifData(exifStream).then(function(exifData) {
+              self.exifData = exifData
+            })
+          }
+          else {
+            exifStream = null
+          }
+
+          // connvert image using specified options
           self.convert(convertStream, imageInfo).then(function(convertedStream) {
-            console.log('stream from convert')
-            //console.log(convertedStream)
+
             convertedStream.pipe(cacheStream)
             convertedStream.pipe(responseStream)
+
+            // cache the file if enabled
             self.cache.cacheFile(cacheStream, self.cacheKey, function() {
-              console.log('back from cache')
               // return image info only, as json
               if (self.options.format === 'json') {
                 self.getImageInfo(convertedStream, function(data) {
                   var returnStream = new Readable()
-                  returnStream.push(JSON.stringify(data,null,2))
+                  returnStream.push(JSON.stringify(data, null, 2))
                   returnStream.push(null)
                   return resolve(returnStream)
                 })
@@ -161,11 +163,13 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
 
   return new Promise(function(resolve, reject) {
     var options = self.options;
-    var displayOption = options;
 
-    var dimensions = getDimensions(options);
-    var width = dimensions.width;
-    var height = dimensions.height;
+    var dimensions = getDimensions(options, imageInfo);
+    var width = dimensions.width
+    var height = dimensions.height
+
+    // console.log(options)
+    // console.log(dimensions)
 
     if (options.cropX && options.cropY) {
       options.cropX = options.cropX ? parseFloat(options.cropX) : 0;
@@ -195,14 +199,10 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
       }
     }
 
-    var image;
-    var concatStream = concat(gotPicture)
+    var concatStream = concat(processImage)
     stream.pipe(concatStream)
 
-    function gotPicture(imageBuffer) {
-      image = imageBuffer;
-
-      console.log(options)
+    function processImage(image) {
 
       // obtain an image object
       require('lwip').open(image, imageInfo.format, function(err, image){
@@ -212,22 +212,24 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
         // define a batch of manipulations and save to disk as JPEG:
         var batch = image.batch()
 
+        var filter = options.filter ? options.filter.toLowerCase() : 'lanczos'
+
         // resize
         if (width && height && options.resizeStyle) {
           if (options.resizeStyle === 'aspectfit') {
             var size = fit(imageInfo.width, imageInfo.height, width, height)
-            batch.cover(Math.ceil(size.width), Math.ceil(size.height))
+            batch.cover(Math.ceil(size.width), Math.ceil(size.height), filter)
           }
           else if (options.resizeStyle === 'aspectfill') {
-            batch.cover(width, height)
+            batch.cover(width, height, filter)
           }
           else {
             // fill
-            batch.resize(width, height)
+            batch.resize(width, height, filter)
           }
         }
         else if (width && height) {
-          batch.resize(parseInt(width), parseInt(height))
+          batch.cover(parseInt(width), parseInt(height))
         }
         else if (width && !height) {
           batch.resize(parseInt(width))
@@ -267,7 +269,7 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
         catch (err) {
           return reject(err);
         }
-      });
+      })
     }
 
     // var sharpStream = null;
@@ -323,6 +325,30 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
 }
 
 /**
+ * Extract EXIF data from the specified image
+ * @param {stream} stream - read stream from S3, local disk or url
+ */
+ImageHandler.prototype.extractExifData = function (stream) {
+  var self = this;
+
+  return new Promise(function(resolve, reject) {
+
+    var image;
+    var concatStream = concat(gotImage)
+    stream.pipe(concatStream)
+
+    function gotImage(buffer) {
+      new ExifImage({ image : buffer }, function (err, data) {
+        if (err)
+          return reject(err)
+        else
+          return resolve(data)
+      })
+    }
+  })
+}
+
+/**
  * Get image information from stream
  * @param {stream} stream - read stream from S3, local disk or url
  * @returns {object}
@@ -371,32 +397,18 @@ ImageHandler.prototype.getImageInfo = function (stream, cb) {
       var buffer = Buffer.concat(buffers);
       var primaryColor = RGBtoHex(colorThief.getColor(buffer)[0], colorThief.getColor(buffer)[1], colorThief.getColor(buffer)[2]);
 
-
       data.fileSize = fileSize;
       data.primaryColor = primaryColor;
-console.log('DONE');
+
+      if (self.exifData.image && self.exifData.image.XResolution) {
+        data.density = {
+          width: self.exifData.image.XResolution,
+          height: self.exifData.image.YResolution
+        }
+      }
+
       return cb(data)
-    });
-
-//  stream.on('end', function () {
-//    imagemagick.identify({
- //     srcData: buffer
- //   }, function (err, result) {
-
-//        fileSize: fileSize,
-//        format: result.format,
-//        width: result.width,
-//        height: result.height,
-//        depth: result.depth,
-//        density: result.density,
-//        exif: result.exif,
-//        primaryColor: primaryColor,
-//console.log(result)
-//      cb(data);
-//    })
-
-//  })
-//  return cb(data)
+    })
 }
 
 /**
@@ -406,7 +418,7 @@ function RGBtoHex(red, green, blue) {
   return '#' + ('00000' + (red << 16 | green << 8 | blue).toString(16)).slice(-6);
 }
 
-function getDimensions(options) {
+function getDimensions(options, imageInfo) {
   var dimensions = {
     width: options.width,
     height: options.height
@@ -422,6 +434,14 @@ function getDimensions(options) {
       dimensions.height = parseFloat(dimensions.width) * (parseFloat(ratio[1]) / parseFloat(ratio[0]));
       dimensions.width = parseFloat(dimensions.width);
     }
+    else if (!dimensions.height && !dimensions.height) {
+      dimensions.width = parseFloat(imageInfo.height) * (parseFloat(ratio[0]) / parseFloat(ratio[1]));
+      dimensions.height = parseFloat(imageInfo.width) * (parseFloat(ratio[1]) / parseFloat(ratio[0]));
+    }
+  }
+  else {
+    dimensions.width = dimensions.width || imageInfo.width
+    dimensions.height = dimensions.height || imageInfo.height
   }
 
   if (config.get('security.maxWidth') && config.get('security.maxWidth') < dimensions.width)
@@ -434,9 +454,6 @@ function getDimensions(options) {
     dimensions.width = parseFloat(dimensions.width) * parseFloat(options.devicePixelRatio);
     dimensions.height = parseFloat(dimensions.height) * parseFloat(options.devicePixelRatio);
   }
-
-  console.log('DIMENSIONS')
-  console.log(dimensions)
 
   return dimensions;
 }
@@ -471,6 +488,10 @@ function getImageOptions (optionsArray) {
     flip: optionsArray[16]
   }
 
+  return options;
+}
+
+ImageHandler.prototype.sanitiseOptions = function (options) {
   if (options.filter == 'None' || options.filter == 0) delete options.filter;
   if (options.gravity == 0) delete options.gravity;
   if (options.width == 0) delete options.width;
