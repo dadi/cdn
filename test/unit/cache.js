@@ -11,8 +11,7 @@ var router = Router();
 
 var config;
 var cache;
-var Server = require(__dirname + '/../../dadi/lib');
-var controller = require(__dirname + '/../../dadi/lib/controller');
+var imageHandler = require(__dirname + '/../../dadi/lib/handlers/image');
 
 var testConfigString;
 
@@ -31,6 +30,7 @@ describe('Cache', function (done) {
   });
 
   afterEach(function(done) {
+    delete require.cache[__dirname + '/../../dadi/lib/cache'];
     fs.writeFileSync(config.configPath(), testConfigString);
     done();
   });
@@ -42,9 +42,6 @@ describe('Cache', function (done) {
 
   it('should cache if the app\'s directory config settings allow', function (done) {
 
-    var server = sinon.mock(Server);
-    server.object.controller = controller(router);
-
     var newTestConfig = JSON.parse(testConfigString);
     newTestConfig.caching.directory.enabled = true;
     newTestConfig.caching.redis.enabled = false;
@@ -52,17 +49,20 @@ describe('Cache', function (done) {
 
     config.loadFile(config.configPath());
 
-    cache = proxyquire('../../dadi/lib/cache', {'config': config});
+    cache.reset()
 
-    cache(server.object.controller.client).enabled.should.eql(true);
+    var req = {
+      url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
+    }
+
+    var im = new imageHandler('jpg', req)
+
+    im.cache.enabled.should.eql(true);
 
     done();
   });
 
   it('should not cache if the app\'s config settings don\'t allow', function (done) {
-
-    var server = sinon.mock(Server);
-    server.object.controller = controller(router);
 
     var newTestConfig = JSON.parse(testConfigString);
     newTestConfig.caching.directory.enabled = false;
@@ -71,9 +71,16 @@ describe('Cache', function (done) {
 
     config.loadFile(config.configPath());
 
-    cache = proxyquire('../../dadi/lib/cache', {'config': config});
+    cache.reset()
 
-    cache(server.object.controller.client).enabled.should.eql(false);
+    var req = {
+      url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
+    }
+
+    var imageHandler = proxyquire('../../dadi/lib/handlers/image', {'Cache': cache});
+    var im = new imageHandler('jpg', req)
+
+    im.cache.enabled.should.eql(false);
 
     done();
   });
@@ -93,10 +100,15 @@ describe('Cache', function (done) {
     // stub calls the redis createClient
     sinon.stub(redis, 'createClient', fakeredis.createClient);
 
-    var c = controller(router);
+    var req = {
+      url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
+    }
+
+    var im = new imageHandler('jpg', req)
+
     redis.createClient.restore();
 
-    c.cache.redisClient.should.exist;
+    im.cache.redisClient.should.exist;
 
     done();
   });

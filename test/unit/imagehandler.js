@@ -4,11 +4,12 @@ var should = require('should');
 var sinon = require('sinon');
 var Promise = require('bluebird');
 var stream = require('stream');
-var imageHandle = require(__dirname + '/../../dadi/lib/imagehandle');
+var imageHandler = require(__dirname + '/../../dadi/lib/handlers/image');
 var factory = require(__dirname + '/../../dadi/lib/storage/factory');
 var DiskStorage = require(__dirname + '/../../dadi/lib/storage/disk');
 var HTTPStorage = require(__dirname + '/../../dadi/lib/storage/http');
 var S3Storage = require(__dirname + '/../../dadi/lib/storage/s3');
+var cache = require(__dirname + '/../../dadi/lib/cache');
 
 var config;
 var stub;
@@ -24,25 +25,21 @@ describe('ImageHandler', function (done) {
     testConfigString = fs.readFileSync(config.configPath());
     testConfigString = testConfigString.toString()
 
-    // stub the convert method to access the provided arguments
-    stub = sinon.stub(imageHandle.ImageHandle.prototype, 'convertAndSave', function (readStream, imageInfo, originFileName, fileName, options, returnJSON, res) {
-      readStream.resume();
-    })
-
     done()
   })
 
   afterEach(function(done) {
     setTimeout(function() {
-      imageHandle.ImageHandle.prototype.convertAndSave.restore()
       fs.writeFileSync(config.configPath(), testConfigString);
       done()
     }, 1000)
   })
 
   it('should use Disk Storage storage adapter when nothing else is configured', function(done) {
-    var imageHandler = imageHandle(null, null);
     var newTestConfig = JSON.parse(testConfigString);
+    newTestConfig.caching.directory.enabled = false;
+    newTestConfig.caching.redis.enabled = false;
+    cache.reset()
     newTestConfig.images.directory.enabled = false;
     newTestConfig.images.directory.path = './test/images';
     fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2));
@@ -53,11 +50,8 @@ describe('ImageHandler', function (done) {
     var spy = sinon.spy(factory, 'create');
 
     var req = {
-      headers: {},
       url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
     }
-
-    req.headers.accept = 'application/vnd.dadicdn-v1+json'
 
     // set some expected values
     var expected = path.join(path.resolve(config.get('images.directory.path')), '/test.jpg')
@@ -71,29 +65,42 @@ describe('ImageHandler', function (done) {
       })
     })
 
+    var convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert', function(aStream, imageInfo) {
+      return new Promise(function(resolve, reject) {
+        var readable = new stream.Readable();
+        readable.push('');
+        readable.push(null);
+        resolve(readable);
+      })
+    })
+
     // this is the test
-    imageHandler.createNewConvertImage (req, 'originFileName', 'newFileName', {}, false, {});
+    var im = new imageHandler('jpg', req)
+    im.get().then(function(stream) {
 
-    factory.create.restore()
-    DiskStorage.DiskStorage.prototype.get.restore()
+      factory.create.restore()
+      DiskStorage.DiskStorage.prototype.get.restore()
+      imageHandler.ImageHandler.prototype.convert.restore()
 
-    spy.called.should.eql(true)
-    get.called.should.eql(true)
+      spy.called.should.eql(true)
+      get.called.should.eql(true)
 
-    var returnValue = spy.firstCall.returnValue;
-    returnValue.getFullUrl().should.eql(expected)
+      var returnValue = spy.firstCall.returnValue;
+      returnValue.getFullUrl().should.eql(expected)
 
-    done()
+      done()
+    })
   })
 
   it('should use Disk Storage storage adapter when configured', function(done) {
-    var imageHandler = imageHandle(null, null);
     var newTestConfig = JSON.parse(testConfigString);
+    newTestConfig.caching.directory.enabled = false;
+    newTestConfig.caching.redis.enabled = false;
+    cache.reset()
     newTestConfig.images.directory.enabled = true;
     newTestConfig.images.directory.path = './test/images';
     fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2));
 
-    //console.log(newTestConfig)
     config.loadFile(config.configPath());
 
     var spy = sinon.spy(factory, 'create');
@@ -103,8 +110,6 @@ describe('ImageHandler', function (done) {
       url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
     }
 
-    req.headers.accept = 'application/vnd.dadicdn-v1+json'
-
     // set some expected values
     var expected = path.join(path.resolve(config.get('images.directory.path')), '/test.jpg')
 
@@ -117,24 +122,38 @@ describe('ImageHandler', function (done) {
       })
     })
 
+    var convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert', function(aStream, imageInfo) {
+      return new Promise(function(resolve, reject) {
+        var readable = new stream.Readable();
+        readable.push('');
+        readable.push(null);
+        resolve(readable);
+      })
+    })
+
     // this is the test
-    imageHandler.createNewConvertImage (req, 'originFileName', 'newFileName', {}, false, {});
+    var im = new imageHandler('jpg', req)
+    im.get().then(function(stream) {
 
-    factory.create.restore()
-    DiskStorage.DiskStorage.prototype.get.restore()
+      factory.create.restore()
+      DiskStorage.DiskStorage.prototype.get.restore()
+      imageHandler.ImageHandler.prototype.convert.restore()
 
-    spy.called.should.eql(true)
-    get.called.should.eql(true)
+      spy.called.should.eql(true)
+      get.called.should.eql(true)
 
-    var returnValue = spy.firstCall.returnValue;
-    returnValue.getFullUrl().should.eql(expected)
+      var returnValue = spy.firstCall.returnValue;
+      returnValue.getFullUrl().should.eql(expected)
 
-    done()
+      done()
+    })
   })
 
   it('should use HTTP Storage storage adapter when configured', function(done) {
-    var imageHandler = imageHandle(null, null);
     var newTestConfig = JSON.parse(testConfigString);
+    newTestConfig.caching.directory.enabled = false;
+    newTestConfig.caching.redis.enabled = false;
+    cache.reset()
     newTestConfig.images.directory.enabled = false;
     newTestConfig.images.remote.enabled = true;
     newTestConfig.images.remote.path = 'https://nodejs.org';
@@ -150,8 +169,6 @@ describe('ImageHandler', function (done) {
       url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/static/images/logos/nodejs-new-white-pantone.png'
     }
 
-    req.headers.accept = 'application/vnd.dadicdn-v1+json'
-
     // set some expected values
     var expected = 'https://nodejs.org/static/images/logos/nodejs-new-white-pantone.png'
 
@@ -164,41 +181,51 @@ describe('ImageHandler', function (done) {
       })
     })
 
+    var convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert', function(aStream, imageInfo) {
+      return new Promise(function(resolve, reject) {
+        var readable = new stream.Readable();
+        readable.push('');
+        readable.push(null);
+        resolve(readable);
+      })
+    })
+
     // this is the test
-    imageHandler.createNewConvertImage (req, 'originFileName', 'newFileName', {}, false, {});
+    var im = new imageHandler('jpg', req)
+    im.get().then(function(stream) {
 
-    factory.create.restore()
-    HTTPStorage.HTTPStorage.prototype.get.restore()
+      factory.create.restore()
+      HTTPStorage.HTTPStorage.prototype.get.restore()
+      imageHandler.ImageHandler.prototype.convert.restore()
 
-    spy.called.should.eql(true)
-    get.called.should.eql(true)
+      spy.called.should.eql(true)
+      get.called.should.eql(true)
 
-    var returnValue = spy.firstCall.returnValue;
-    returnValue.getFullUrl().should.eql(expected)
+      var returnValue = spy.firstCall.returnValue;
+      returnValue.getFullUrl().should.eql(expected)
 
-    done()
+      done()
+    })
   })
 
   it('should use S3 Storage storage adapter when configured', function(done) {
-    var imageHandler = imageHandle(null, null);
     var newTestConfig = JSON.parse(testConfigString);
+    newTestConfig.caching.directory.enabled = false;
+    newTestConfig.caching.redis.enabled = false;
+    cache.reset()
     newTestConfig.images.directory.enabled = false;
     newTestConfig.images.remote.enabled = false;
     newTestConfig.images.s3.enabled = true;
     //newTestConfig.images.remote.path = 'https://nodejs.org';
     fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2));
 
-    //console.log(newTestConfig)
     config.loadFile(config.configPath());
 
     var spy = sinon.spy(factory, 'create');
 
     var req = {
-      headers: {},
       url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
     }
-
-    req.headers.accept = 'application/vnd.dadicdn-v1+json'
 
     // set some expected values
     var expected = ['test.jpg']
@@ -212,18 +239,30 @@ describe('ImageHandler', function (done) {
       })
     })
 
+    var convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert', function(aStream, imageInfo) {
+      return new Promise(function(resolve, reject) {
+        var readable = new stream.Readable();
+        readable.push('');
+        readable.push(null);
+        resolve(readable);
+      })
+    })
+
     // this is the test
-    imageHandler.createNewConvertImage (req, 'originFileName', 'newFileName', {}, false, {});
+    var im = new imageHandler('jpg', req)
+    im.get().then(function(stream) {
 
-    factory.create.restore()
-    S3Storage.S3Storage.prototype.get.restore()
+      factory.create.restore()
+      S3Storage.S3Storage.prototype.get.restore()
+      imageHandler.ImageHandler.prototype.convert.restore()
 
-    spy.called.should.eql(true)
-    get.called.should.eql(true)
+      spy.called.should.eql(true)
+      get.called.should.eql(true)
 
-    var returnValue = spy.firstCall.returnValue;
-    returnValue.urlParts().should.eql(expected)
+      var returnValue = spy.firstCall.returnValue;
+      returnValue.urlParts().should.eql(expected)
 
-    done()
+      done()
+    })
   })
 });
