@@ -24,7 +24,7 @@ coberturaBadger(opts, function parsingResults(err, badgeStatus) {
     console.log("An error occurred: " + err.message);
   }
 
-  //console.log(badgeStatus);
+  console.log(badgeStatus);
 
   var readme = path.resolve(__dirname + '/../README.md');
   var badgeUrl = badgeStatus.url; // e.g. http://img.shields.io/badge/coverage-60%-yellow.svg
