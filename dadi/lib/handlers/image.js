@@ -88,8 +88,10 @@ ImageHandler.prototype.get = function () {
 
       // if found in cache, return it
       if (stream) {
-        self.cached = true;
-        return resolve(stream)
+        if (self.options.format !== 'json') {
+          self.cached = true;
+          return resolve(stream)
+        }
       }
 
       // not in cache, get image from source
@@ -131,7 +133,7 @@ ImageHandler.prototype.get = function () {
             self.cache.cacheFile(cacheStream, self.cacheKey, function() {
               // return image info only, as json
               if (self.options.format === 'json') {
-                self.getImageInfo(convertedStream, function(data) {
+                self.getImageInfo(convertedStream, imageInfo, function(data) {
                   var returnStream = new Readable()
                   returnStream.push(JSON.stringify(data, null, 2))
                   returnStream.push(null)
@@ -362,7 +364,7 @@ ImageHandler.prototype.extractExifData = function (stream) {
   "filter":"None", "blur":0, "strip":0, "rotate":0, "flip":0, "ratio":0, "devicePixelRatio":0
 }
 */
-ImageHandler.prototype.getImageInfo = function (stream, cb) {
+ImageHandler.prototype.getImageInfo = function (stream, imageInfo, cb) {
   var self = this;
   var options = self.options;
   var buffers = [];
@@ -375,6 +377,7 @@ ImageHandler.prototype.getImageInfo = function (stream, cb) {
   var data = {
     fileName: self.fileName,
     cacheReference: sha1(self.fileName),
+    format: imageInfo.format,
     quality: options.quality ? options.quality : 75,
     trim: options.trim ? options.trim : 0,
     trimFuzz: options.trimFuzz ? options.trimFuzz : 0,
