@@ -254,6 +254,19 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
           else params.compression = 'high'
         }
 
+        // sharpening
+        if (quality >= 70) {
+          if (/jpe?g/.exec(imageInfo.format)) {
+            batch.sharpen(5)
+          }
+          else if (/png/.exec(imageInfo.format)) {
+            batch.sharpen(5)
+          }
+        }
+        else if (options.cropX && options.cropY) {
+          batch.sharpen(5)
+        }
+
         // format
         var format = self.options.format === 'json' ? imageInfo.format : self.options.format
 
@@ -274,55 +287,10 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
       })
     }
 
-    // var sharpStream = null;
-    //
-    // if(options.quality >= 70 && options.format.toLowerCase() == 'png') {
-    //   sharpStream = sharp().png().compressionLevel(9);
-    // } else if(options.quality >= 70 && (options.format.toLowerCase() == 'jpg' || options.format.toLowerCase() == 'jpeg')){
-    //   sharpStream = sharp().flatten().jpeg().compressionLevel(9);
-    // } else if(options.cropX && options.cropY) {
-    //   sharpStream = sharp();
-    // }
     //
     // if(imageInfo.format.toLowerCase() == 'gif') {
     //   stream = stream.pipe(imagemagick.streams.convert({format: options.format}));
     // }
-    //
-    // var convertedStream = null;
-    // if (sharpStream != null) {
-    //   convertedStream = stream.pipe(sharpStream);
-    //   if (options.cropX && options.cropY) {
-    //     var cropX = options.cropX?parseFloat(options.cropX):0;
-    //     var cropY = options.cropY?parseFloat(options.cropY):0;
-    //     var width = dimensions.width?(parseFloat(dimensions.width) + parseFloat(cropX)):0;
-    //     var height = dimensions.height?(parseFloat(dimensions.height) + parseFloat(cropY)):0;
-    //     var originalWidth = parseFloat(imageInfo.width);
-    //     var originalHeight = parseFloat(imageInfo.height);
-    //     if (width <= (originalWidth-cropX) && height <= (originalHeight-cropY)) {
-    //       if (width==0) width = originalWidth-cropX;
-    //       if (height==0) height = originalHeight-cropY;
-    //       try {
-    //         convertedStream.extract(cropX, cropY, width, height);
-    //       }
-    //       catch (err) {
-    //         return reject(err);
-    //       }
-    //     }
-    //     else {
-    //       var err = {
-    //         statusCode: 400,
-    //         message: 'Crop size is greater than image size.'
-    //       }
-    //       return reject(err);
-    //     }
-    //   }
-    //   convertedStream = convertedStream.pipe(magickVar);
-    // }
-    // else {
-    //   convertedStream = stream.pipe(magickVar);
-    // }
-    //
-    // return resolve(convertedStream)
   })
 }
 
