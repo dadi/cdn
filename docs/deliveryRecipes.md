@@ -4,9 +4,9 @@
 
 A Recipe is a predefined set of configuration options that are made avialble via a shortened URL, which hides the configuration options.
 
-Recipes are defined in JSON files held in the `/workspace/recepes` folder.
+Recipes are defined in JSON files held in the `/workspace/recipes` folder.
 
-### Example recepe
+### Example recipe
 
 	{
 		"recipe": "example-recipe-name",
