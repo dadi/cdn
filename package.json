@@ -32,5 +32,11 @@
   "repository": {
     "type": "git",
     "url": "git://github.com/dadi/cdn.git"
-  }
+  },
+  "bugs": {
+    "url": "https://github.com/dadi/cdn/issues"
+  },
+  "homepage": "https://github.com/dadi/cdn",
+  "author": "DADI <team@dadi.tech>",
+  "license": "SEE LICENSE IN AGPL.md"
 }
