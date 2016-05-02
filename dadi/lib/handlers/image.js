@@ -7,6 +7,7 @@ var fill = require("aspect-fill")
 var fit = require("aspect-fit");
 var imagesize = require('imagesize');
 var lengthStream = require('length-stream');
+var logger = require('@dadi/logger')
 var PassThrough = require('stream').PassThrough;
 var path = require('path');
 var Promise = require('bluebird');
@@ -43,6 +44,8 @@ ImageHandler.prototype.get = function () {
   var self = this;
   self.cached = false;
 
+  logger.info('ImageHandler.get: ' + this.req.url)
+
   var parsedUrl = url.parse(this.req.url, true);
   if (parsedUrl.search) {
     this.options = parsedUrl.query;
@@ -50,9 +53,6 @@ ImageHandler.prototype.get = function () {
   }
   else if (!this.options) {
     var optionsArray = _.compact(parsedUrl.pathname.split('/')).slice(0, 17);
-    //url = paramString.substring(optionsArray.join('/').length + 1);
-    // fileName = url.split('/')[url.split('/').length - 1];
-    // fileExt = url.substring(url.lastIndexOf('.') + 1);
     this.options = getImageOptions(optionsArray);
   }
 
@@ -174,12 +174,25 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
     // console.log(dimensions)
 
     if (options.cropX && options.cropY) {
-      options.cropX = options.cropX ? parseFloat(options.cropX) : 0;
-      options.cropY = options.cropY ? parseFloat(options.cropY) : 0;
-      width = width ? (parseFloat(width) + parseFloat(options.cropX)) : 0;
-      height = height ? (parseFloat(height) + parseFloat(options.cropY)) : 0;
-      var originalWidth = parseFloat(imageInfo.width);
-      var originalHeight = parseFloat(imageInfo.height);
+      var originalWidth = parseFloat(imageInfo.width)
+      var originalHeight = parseFloat(imageInfo.height)
+
+      //console.log("%s > %s || %s > %s", width,(originalWidth-parseInt(options.cropX)), height, (originalHeight-parseInt(options.cropY)))
+      if ((width-parseInt(options.cropX) > originalWidth) || (height-parseInt(options.cropY)) > originalHeight) {
+        var rectangle = width.toString() + "x" + height.toString()
+        var original = originalWidth.toString() + "x" + originalHeight.toString()
+        var message = "The calculated crop rectangle is larger than the original image size. Crop rectangle: " + rectangle + ", Image size: " + original
+        var err = {
+          statusCode: 400,
+          message: message
+        }
+        return reject(err);
+      }
+
+      // options.cropX = options.cropX ? parseFloat(options.cropX) : 0;
+      // options.cropY = options.cropY ? parseFloat(options.cropY) : 0;
+      // width = width ? (parseFloat(width) + parseFloat(options.cropX)) : 0;
+      // height = height ? (parseFloat(height) + parseFloat(options.cropY)) : 0;
 
       // console.log({
       //   cropX: options.cropX,
@@ -187,18 +200,6 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
       //   width: width,
       //   height: height
       // })
-
-      if (width <= (originalWidth-options.cropX) && height <= (originalHeight-options.cropY)) {
-        if (width === 0) width = originalWidth-options.cropX;
-        if (height === 0) height = originalHeight-options.cropY;
-      }
-      else {
-        var err = {
-          statusCode: 400,
-          message: 'Crop size is greater than image size.'
-        }
-        return reject(err);
-      }
     }
 
     var concatStream = concat(processImage)
@@ -217,18 +218,40 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
         var filter = options.filter ? options.filter.toLowerCase() : 'lanczos'
 
         // resize
-        if (width && height && options.resizeStyle) {
-          if (options.resizeStyle === 'aspectfit') {
-            var size = fit(imageInfo.width, imageInfo.height, width, height)
-            batch.cover(Math.ceil(size.width), Math.ceil(size.height), filter)
+        if (options.resizeStyle) {
+          if (width && height) {
+            switch (options.resizeStyle) {
+              case 'aspectfit':
+                var size = fit(imageInfo.width, imageInfo.height, width, height)
+                batch.cover(Math.ceil(size.width), Math.ceil(size.height), filter)
+                break
+              case 'aspectfill':
+                batch.cover(parseInt(width), parseInt(height), filter)
+                break
+              case 'fill':
+                batch.resize(parseInt(width), parseInt(height), filter)
+                break
+              case 'crop':
+                if (options.crop) {
+                  var coords = options.crop.split(',')
+                  if (coords.length === 2) {
+                    batch.crop(parseInt(coords[0]), parseInt(coords[1]), parseInt(width-coords[0]), parseInt(height-coords[1]))
+                  }
+                  else if (coords.length === 4) {
+                    batch.crop(parseInt(coords[0]), parseInt(coords[1]), parseInt(coords[2]), parseInt(coords[3]))
+                  }
+                }
+                else { // width & height provided, crop from centre
+                  batch.crop(parseInt(width), parseInt(height))
+                }
+
+                break;
+            }
           }
-          else if (options.resizeStyle === 'aspectfill') {
-            batch.cover(width, height, filter)
-          }
-          else {
-            // fill
-            batch.resize(width, height, filter)
-          }
+        }
+        else if (width && height && options.cropX && options.cropY) {
+          //console.log("%s %s %s %s", parseInt(options.cropX), parseInt(options.cropY), width-parseInt(options.cropX), height-parseInt(options.cropY))
+          batch.crop(parseInt(options.cropX), parseInt(options.cropY), width-parseInt(options.cropX), height-parseInt(options.cropY))
         }
         else if (width && height) {
           batch.cover(parseInt(width), parseInt(height))
@@ -236,9 +259,6 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
         else if (width && !height) {
           batch.resize(parseInt(width))
         }
-
-        // crop
-        //if (options.cropX && options.cropY) batch.crop(options.cropX, options.cropY)
 
         if (options.blur) batch.blur(parseInt(options.blur))
         if (options.flip) batch.flip(options.flip)
@@ -267,6 +287,9 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
           batch.sharpen(5)
         }
 
+        // give it a little colour
+        batch.saturate(0.1)
+
         // format
         var format = self.options.format === 'json' ? imageInfo.format : self.options.format
 
@@ -286,11 +309,6 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
         }
       })
     }
-
-    //
-    // if(imageInfo.format.toLowerCase() == 'gif') {
-    //   stream = stream.pipe(imagemagick.streams.convert({format: options.format}));
-    // }
   })
 }
 
@@ -345,7 +363,6 @@ ImageHandler.prototype.getImageInfo = function (stream, imageInfo, cb) {
   var data = {
     fileName: self.fileName,
     cacheReference: sha1(self.fileName),
-    format: imageInfo.format,
     quality: options.quality ? options.quality : 75,
     trim: options.trim ? options.trim : 0,
     trimFuzz: options.trimFuzz ? options.trimFuzz : 0,
@@ -368,6 +385,7 @@ ImageHandler.prototype.getImageInfo = function (stream, imageInfo, cb) {
       var buffer = Buffer.concat(buffers);
       var primaryColor = RGBtoHex(colorThief.getColor(buffer)[0], colorThief.getColor(buffer)[1], colorThief.getColor(buffer)[2]);
 
+      data.format = imageInfo.format;
       data.fileSize = fileSize;
       data.primaryColor = primaryColor;
 
@@ -481,6 +499,23 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
   if (options.flip == 0) delete options.flip;
 
   return options;
+}
+
+ImageHandler.prototype.contentType = function () {
+  switch (this.format.toLowerCase()) {
+    case 'png':
+      return 'image/png'
+      break
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg'
+      break
+    case 'gif':
+      return 'image/gif'
+      break
+    default:
+      return 'image/jpeg'
+  }
 }
 
 module.exports = function (format, req) {
