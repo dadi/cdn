@@ -33,7 +33,7 @@ var AssetHandler = function (format, req) {
   this.urlParts = _.compact(parsedUrl.pathname.split('/'))
 
   if (this.format === 'css' || this.format === 'js') {
-    this.url = this.urlParts.slice(2).join('/');
+    this.url = this.urlParts.length > 2 ? this.urlParts.slice(2).join('/') : this.urlParts.join('/')
     this.fileExt = this.format;
     this.fileName = parsedUrl.search ? this.urlParts[1] : this.urlParts[2];
     this.compress = parsedUrl.search ? parsedUrl.query.compress : this.urlParts[1];
@@ -82,19 +82,23 @@ AssetHandler.prototype.get = function () {
 
       var storage = self.factory.create('asset', self.url);
 
-      storage.get().then(function(stream) {
+      storage.get().then(function (stream) {
         // compress, returns stream
         self.compressFile(stream).then(function(stream) {
-          var cacheStream = PassThrough()
-          var responseStream = PassThrough()
+          // var cacheStream = PassThrough()
+          // var responseStream = PassThrough()
 
           // duplicate the stream so we can use it for the cache request and the
           // response. this saves requesting the same data a second time.
-          stream.pipe(cacheStream)
-          stream.pipe(responseStream)
+          // stream.pipe(cacheStream)
+          // stream.pipe(responseStream)
 
-          self.cache.cacheFile(cacheStream, self.cacheKey, function () {
-            return resolve(responseStream)
+          //console.log(responseStream)
+          //console.log(stream)
+
+          self.cache.cacheFile(stream, self.cacheKey, function (stream) {
+            //console.log(stream)
+            return resolve(stream)
           })
         })
       }).catch(function(err) {
@@ -145,6 +149,31 @@ AssetHandler.prototype.compressFile = function(stream) {
       })
     })
   })
+}
+
+AssetHandler.prototype.contentType = function () {
+  if (this.format === 'js') {
+    return 'application/javascript'
+  }
+  else if (this.format === 'css') {
+    return 'text/css'
+  }
+
+  if (this.fileExt === 'eot') {
+    return 'application/vnd.ms-fontobject'
+  }
+  else if (this.fileExt === 'otf') {
+    return 'application/font-sfnt'
+  }
+  else if (this.fileExt === 'svg') {
+    return 'image/svg+xml'
+  }
+  else if (this.fileExt === 'ttf') {
+    return 'application/font-sfnt'
+  }
+  else if (this.fileExt === 'woff') {
+    return 'application/font-woff'
+  }
 }
 
 module.exports = function (format, req) {
