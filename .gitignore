@@ -6,6 +6,13 @@ config.test.json
 
 cache
 
+# Log
+log/
+log/**/*
+
 npm-debug.log
 node_modules/
 coverage/
+scripts/coverage.svg
+
+persist
