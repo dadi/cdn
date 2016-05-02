@@ -16,6 +16,7 @@ describe('Controller', function () {
   var tokenRoute = config.get('auth.tokenUrl');
 
   beforeEach(function (done) {
+
     delete require.cache[__dirname + '/../../config'];
     config = require(__dirname + '/../../config');
 
@@ -94,6 +95,76 @@ describe('Controller', function () {
         done()
       })
     })
+  })
+
+  describe('Assets', function(done) {
+
+    beforeEach(function(done) {
+      var newTestConfig = JSON.parse(testConfigString);
+      newTestConfig.assets.directory.enabled = true;
+      newTestConfig.assets.directory.path = './test/assets';
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2));
+
+      config.loadFile(config.configPath());
+
+      done()
+    })
+
+    it('should handle uncompressed JS file if uri is valid', function(done) {
+      this.timeout(2000)
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'));
+      client
+      .get('/js/0/test.js')
+      .expect(200, function(err, res) {
+        res.should.exist;
+        done()
+      })
+    })
+
+    it('should handle uncompressed CSS file if uri is valid', function(done) {
+      this.timeout(2000)
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'));
+      client
+      .get('/css/0/test.css')
+      .expect(200, function(err, res) {
+        res.should.exist;
+        done()
+      })
+    })
+
+    it('should handle compressed JS file if uri is valid', function(done) {
+      this.timeout(2000)
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'));
+      client
+      .get('/js/1/test.js')
+      .expect(200, function(err, res) {
+        res.should.exist;
+        done()
+      })
+    })
+
+    it('should handle compressed CSS file if uri is valid', function(done) {
+      this.timeout(2000)
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'));
+      client
+      .get('/css/1/test.css')
+      .expect(200, function(err, res) {
+        res.should.exist;
+        done()
+      })
+    })
+
+    it('should handle TTF file if uri is valid', function(done) {
+      this.timeout(2000)
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'));
+      client
+      .get('/fonts/test.ttf')
+      .expect(200, function(err, res) {
+        res.should.exist;
+        done()
+      })
+    })
+
   })
 
   it('should handle test image if image uri is valid', function(done) {
@@ -187,43 +258,6 @@ describe('Controller', function () {
       .expect(404, done);
   });
 
-  it('should handle test assets file if uri is valid', function(done) {
-    this.timeout(10000)
-    var newTestConfig = JSON.parse(testConfigString);
-    newTestConfig.assets.directory.enabled = true;
-    newTestConfig.assets.directory.path = './test/assets';
-    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2));
-
-    config.loadFile(config.configPath());
-
-    var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'));
-    client
-      .get('/js/0/test.js')
-      .expect(200, function(err, res) {
-        res.should.exist;
-        client
-          .get('/js/1/test.js')
-          .expect(200, function(err, res) {
-            res.should.exist;
-            client
-              .get('/css/0/test.css')
-              .expect(200, function(err, res) {
-                res.should.exist;
-                client
-                  .get('/css/1/test.css')
-                  .expect(200, function(err, res) {
-                    res.should.exist;
-                    client
-                      .get('/fonts/test.ttf')
-                      .expect(200, function(err, res) {
-                        res.should.exist;
-                        done();
-                      });
-                  });
-              });
-          });
-      });
-  });
 
   it('should return error if compress parameter is not 0 or 1', function(done) {
     var newTestConfig = JSON.parse(testConfigString);
