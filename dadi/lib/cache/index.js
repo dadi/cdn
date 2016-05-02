@@ -1,4 +1,6 @@
 var fs = require('fs');
+var logger = require('@dadi/logger')
+var PassThrough = require('stream').PassThrough
 var path = require('path');
 var redis = require('redis');
 var redisRStream = require('redis-rstream');
@@ -15,6 +17,8 @@ var Cache = function() {
 
   this.redisClient = null;
   this.initRedisClient();
+
+  logger.info({module: 'cache'}, 'Cache logging started');
 
   if (config.get('caching.directory.enabled') && !fs.existsSync(this.dir)) {
     fs.mkdirSync(this.dir);
@@ -60,55 +64,75 @@ Cache.prototype.initRedisClient = function () {
 
   this.redisClient = redis.createClient(config.get('caching.redis.port'), config.get('caching.redis.host'), {
     detect_buffers: true
-  });
+  })
 
   this.redisClient.on("error", function (err) {
     console.log("Error " + err);
+    logger.error({module: 'cache'}, err);
+
+    if (err.code === 'CONNECTION_BROKEN' || err.code === 'ECONNREFUSED') {
+      logger.warn({module: 'cache'}, 'Resetting Redis client and cache instance. Falling back to directory cache.');
+
+      // close the existing client
+      self.redisClient.end(true);
+      self.redisClient = null;
+
+      // modify config
+      config.set('caching.redis.enabled', false)
+      config.set('caching.directory.enabled', true)
+
+      // restart the cache
+      instance = new Cache();
+    }
   }).on("connect", function () {
-    console.log('CACHE: Redis client connected');
+    logger.info({module: 'cache'}, 'Redis client connected')
   });
 
   if (config.get('caching.redis.password')) {
     this.redisClient.auth(config.get('caching.redis.password'), function () {
-      console.log('CACHE: Redis client connected and authenticated');
+      logger.info({module: 'cache'}, 'Redis client connected and authenticated')
     });
   }
 };
 
-Cache.prototype.cacheFile = function(stream, key, next) {
+Cache.prototype.cacheFile = function(stream, key, cb) {
   var self = this;
 
-  if (!self.enabled) return next()
+  // var responseStream = PassThrough()
+  // stream.pipe(responseStream)
+
+  if (!self.enabled) return cb(stream)
 
   var settings = config.get('caching');
   var encryptedKey = sha1(key);
 
-  var PassThrough = require('stream').PassThrough
-  var cacheStream = new PassThrough()
-
+  var cacheStream = PassThrough()
   stream.pipe(cacheStream)
 
-  // console.log(key)
-  // console.log(encryptedKey)
-
   if (settings.redis.enabled) {
-    cacheStream.pipe(redisWStream(self.redisClient, encryptedKey)).on('finish', function () {
-      console.log('end redis Write')
+    var redisWriteStream = redisWStream(self.redisClient, encryptedKey)
+    redisWriteStream.on('finish', function () {
       if (settings.ttl) {
         self.redisClient.expire(encryptedKey, settings.ttl);
       }
-      return next();
-    });
+      console.log('cache write finished')
+      return cb(stream);
+    }).on('error', function(err) {
+      logger.error({module: 'cache'}, err)
+    })
+
+    cacheStream.pipe(redisWriteStream)
+    cacheStream.end(null)
   }
   else {
     var cacheDir = path.resolve(settings.directory.path);
     var file = fs.createWriteStream(path.join(cacheDir, encryptedKey));
     file.on('error', function (err) {
-      console.log(err);
+      logger.error({module: 'cache'}, err);
     })
 
    cacheStream.pipe(file);
-   return next();
+   return cb(stream);
   }
 }
 
