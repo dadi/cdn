@@ -1,7 +1,24 @@
-var path = require('path');
 var fs = require('fs');
+var path = require('path');
+var Promise = require('bluebird');
+var streamLength = require("stream-length");
+
 var config = require(path.resolve(__dirname + '/../../config'));
 var cache = require(__dirname + '/cache');
+
+module.exports.contentLength = function(stream) {
+  return new Promise(function(resolve, reject) {
+    Promise.try(function () {
+      return streamLength(stream)
+    })
+    .then(function (result) {
+      resolve(result)
+    })
+    .catch(function (err){
+      reject(err)
+    })
+  })
+}
 
 // helper that sends json response
 module.exports.sendBackJSON = function (successCode, results, res) {
