@@ -2,18 +2,20 @@ var cloudfront = require('cloudfront');
 var concat = require('concat-stream')
 var fs = require('fs');
 var lengthStream = require('length-stream');
-var nodeUrl = require('url');
 var path = require('path');
-var redis = require('redis');
 var sha1 = require('sha1');
 var zlib = require('zlib');
 var _ = require('underscore');
+
+var logger = require('@dadi/logger');
 
 var configPath = path.resolve(__dirname + '/../../../config');
 var config = require(__dirname + '/../../../config');
 var help = require(__dirname + '/../help');
 var monitor = require(__dirname + '/../monitor');
 var HandlerFactory = require(__dirname + '/../handlers/factory');
+
+logger.init(config.get('logging'), config.get('aws'), config.get('env'));
 
 var Controller = function (router) {
   var self = this;
@@ -31,6 +33,8 @@ var Controller = function (router) {
     delete require.cache[recipeDir + '/' + filename];
   });
 
+  router.use(logger.requestLogger);
+
   router.get(/(.+)/, function (req, res) {
 
     var factory = new HandlerFactory();
@@ -38,11 +42,8 @@ var Controller = function (router) {
     factory.create(req).then(function(handler) {
       handler.get().then(function(stream) {
 
-        if (handler.format === 'js') {
-          res.setHeader('Content-Type', 'application/javascript');
-        }
-        else if (handler.format === 'css') {
-          res.setHeader('Content-Type', 'text/css');
+        if (handler.contentType()) {
+          res.setHeader('Content-Type', handler.contentType())
         }
 
         if (handler.cached) {
@@ -52,31 +53,46 @@ var Controller = function (router) {
           res.setHeader('X-Cache', 'MISS');
         }
 
-        // get the length of the stream
-        var contentLength = 0;
-        function lengthListener(length) {
-          contentLength = length;
-        }
+        var contentLength = 0
 
         // receive the concatenated buffer and send the response
         function sendBuffer(buffer) {
-          res.setHeader('Content-Length', contentLength);
-          res.end(buffer);
+          // console.log('sendBuffer')
+          // console.log(buffer)
+          // console.log(contentLength)
+          res.setHeader('Content-Length', contentLength)
+          res.end(buffer)
+        }
+
+        function lengthListener(length) {
+          //console.log('lengthListener')
+          contentLength = length;
         }
 
         var concatStream = concat(sendBuffer)
 
         if (config.get('gzip')) {
-          res.setHeader('content-encoding', 'gzip')
+          res.setHeader('Content-Encoding', 'gzip')
           var gzipStream = stream.pipe(zlib.createGzip())
           gzipStream = gzipStream.pipe(lengthStream(lengthListener));
           gzipStream.pipe(concatStream)
         }
         else {
-          stream.pipe(lengthStream(lengthListener))
-          stream.pipe(concatStream)
+          if (handler.fileExt === 'ttf' || handler.fileExt === 'otf') {
+            help.contentLength(stream).then(function(length) {
+              contentLength = length
+              stream.pipe(concatStream)
+            }).catch(function (err) {
+              console.log(err)
+            })
+          }
+          else {
+            stream.pipe(lengthStream(lengthListener));
+            stream.pipe(concatStream)
+          }
         }
       }).catch(function(err) {
+        console.log(err.stack)
         help.displayErrorPage(err.statusCode, err.message, res);
       })
     }).catch(function(err) {
