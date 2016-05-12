@@ -32,19 +32,24 @@ var AssetHandler = function (format, req) {
   // '/fonts/test.ttf' -> [ fonts', 'test.ttf' ]
   this.urlParts = _.compact(parsedUrl.pathname.split('/'))
 
+  this.fullUrl = this.req.url
+  this.hasQuery = !_.isEmpty(parsedUrl.search)
+
   if (this.format === 'css' || this.format === 'js') {
     this.url = this.urlParts.length > 2 ? this.urlParts.slice(2).join('/') : this.urlParts.join('/')
     this.fileExt = this.format;
-    this.fileName = parsedUrl.search ? this.urlParts[1] : this.urlParts[2];
-    this.compress = parsedUrl.search ? parsedUrl.query.compress : this.urlParts[1];
+    this.fileName = this.hasQuery ? this.urlParts[1] : this.urlParts[2];
+    this.compress = this.hasQuery ? parsedUrl.query.compress : this.urlParts[1];
   }
   else if (this.format === 'fonts') {
+    // console.log(parsedUrl)
+    // console.log(this.urlParts)
     this.url = parsedUrl.pathname.replace('/fonts','');
-    this.fileName = this.urlParts[1];
-    this.fileExt = path.extname(this.fileName).replace('.','');
+    this.fileName = this.url;
+    this.fileExt = path.extname(this.url).replace('.','');
   }
 
-  this.cacheKey = this.urlParts.join('/');
+  this.cacheKey = this.req.url; //this.urlParts.join('/');
 }
 
 AssetHandler.prototype.get = function () {
@@ -80,7 +85,7 @@ AssetHandler.prototype.get = function () {
         return resolve(stream)
       }
 
-      var storage = self.factory.create('asset', self.url);
+      var storage = self.factory.create('asset', self.fullUrl, self.hasQuery);
 
       storage.get().then(function (stream) {
         // compress, returns stream
@@ -97,7 +102,6 @@ AssetHandler.prototype.get = function () {
           //console.log(stream)
 
           self.cache.cacheFile(stream, self.cacheKey, function (stream) {
-            //console.log(stream)
             return resolve(stream)
           })
         })
@@ -113,7 +117,7 @@ AssetHandler.prototype.compressFile = function(stream) {
 
   return new Promise(function(resolve, reject) {
     // no compression required, send stream back
-    if (self.compress === '0') return resolve(stream);
+    if (self.format === 'fonts' || self.compress === '0') return resolve(stream);
 
     if (!fs.existsSync(path.resolve('./tmp'))) fs.mkdirSync(path.resolve('./tmp'));
 
@@ -130,8 +134,7 @@ AssetHandler.prototype.compressFile = function(stream) {
         fileOut: fileOut,
         callback: function (err, min) {
           if (err) {
-            console.log(err)
-            //help.displayErrorPage(404, err, res);
+            return reject(err)
           }
           else {
             fs.unlinkSync(fileIn);

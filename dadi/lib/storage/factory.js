@@ -7,14 +7,14 @@ var HTTPStorage = require(__dirname + '/http');
 var config = require(__dirname + '/../../../config');
 
 module.exports = {
-  create: function create(type, url) {
+  create: function create(type, url, hasQuery) {
     var configBlock;
 
     // set a default version
     var version = 'v1'
 
     // set version 2 if the url was supplied with a querystring
-    if (require('url').parse(url, true).search) {
+    if (hasQuery || require('url').parse(url, true).search) {
       version = 'v2'
     }
 
@@ -42,10 +42,13 @@ module.exports = {
         if (url.split('/').length > 15) url = url.split('/').slice(18).join('/')
       }
 
-      if (type === 'asset') url = url;//.split('/').slice(3).join('/')
-
-      // console.log(url)
-      // console.log(type)
+      // for version 1 assets we need the part of the url following
+      // either "/fonts/" or "/css/0/" or "/js/1/"
+      if (type === 'asset') {
+        var re = /\/css\/[0-9]\//gi
+        url = url.replace(re, '')
+        url = url.replace('/fonts/', '')
+      }
     }
 
     // get storage adapter from the first part of the url

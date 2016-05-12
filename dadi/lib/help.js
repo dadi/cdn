@@ -14,7 +14,7 @@ module.exports.contentLength = function(stream) {
     .then(function (result) {
       resolve(result)
     })
-    .catch(function (err){
+    .catch(function (err) {
       reject(err)
     })
   })
@@ -55,7 +55,7 @@ module.exports.sendBackJSONP = function (callbackName, results, res) {
  * errorMessage: Error Message to display in the error page.
  */
 module.exports.displayErrorPage = function (status, errorMessage, res) {
-  res.statusCode = status;
+  res.statusCode = status || 500;
   res.setHeader('Content-Type', 'text/html');
   res.write('<h1>Server Error</h1>');
   res.write('<pre>' + errorMessage + '</pre>');

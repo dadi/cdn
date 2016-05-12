@@ -13,7 +13,7 @@ var DiskStorage = function (settings, url) {
   this.path = path.resolve(settings.directory.path);
 
   this.getFullUrl = function() {
-    return path.join(self.path, self.url.replace('/disk', ''))
+    return path.join(self.path, self.url.replace('disk', ''))
   }
 }
 

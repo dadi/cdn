@@ -3,6 +3,7 @@ var Promise = require('bluebird');
 var stream = require('stream');
 var _ = require('underscore');
 
+var logger = require('@dadi/logger');
 var config = require(__dirname + '/../../../config');
 
 var S3Storage = function (settings, url) {
@@ -52,6 +53,8 @@ S3Storage.prototype.get = function () {
       Key: self.getKey()
     }
 
+    logger.info('S3 Request (' + self.url + '):' + JSON.stringify(requestData))
+
     if (requestData.Bucket === '' || requestData.Key === '' ) {
       var err = {
         statusCode: 400,
@@ -68,7 +71,8 @@ S3Storage.prototype.get = function () {
     promise.then(
       function (data) {
         var bufferStream = new stream.PassThrough();
-        bufferStream.end(data.Body)
+        bufferStream.push(data.Body)
+        bufferStream.push(null)
         resolve(bufferStream);
       },
       function (error) {

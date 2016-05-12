@@ -10,11 +10,13 @@ var config = require(__dirname + '/../../../config');
 var HTTPStorage = function (settings, url) {
   var self = this;
 
+  if (!settings.remote.path) throw new Error('Remote address not specified')
+
   this.url = url;
   this.baseUrl = settings.remote.path;
 
   this.getFullUrl = function() {
-    return urljoin(self.baseUrl, self.url.replace('/http', ''))
+    return urljoin(self.baseUrl, self.url.replace('/http/', ''))
   }
 }
 
@@ -26,10 +28,9 @@ HTTPStorage.prototype.get = function () {
     .get(self.getFullUrl())
     .on('response', function(response) {
       if (response.statusCode === 200) {
-        // return resolve(response)
         var bufferStream = new stream.PassThrough()
-        bufferStream.end(response.Body)
-        resolve(bufferStream)
+        response.pipe(bufferStream)
+        return resolve(bufferStream)
       }
       else {
         var err = {
