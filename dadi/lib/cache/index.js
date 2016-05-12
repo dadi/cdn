@@ -98,16 +98,15 @@ Cache.prototype.initRedisClient = function () {
 Cache.prototype.cacheFile = function(stream, key, cb) {
   var self = this;
 
-  // var responseStream = PassThrough()
-  // stream.pipe(responseStream)
-
   if (!self.enabled) return cb(stream)
 
   var settings = config.get('caching');
   var encryptedKey = sha1(key);
 
   var cacheStream = PassThrough()
+  var responseStream = PassThrough()
   stream.pipe(cacheStream)
+  stream.pipe(responseStream)
 
   if (settings.redis.enabled) {
     var redisWriteStream = redisWStream(self.redisClient, encryptedKey)
@@ -116,13 +115,12 @@ Cache.prototype.cacheFile = function(stream, key, cb) {
         self.redisClient.expire(encryptedKey, settings.ttl);
       }
       console.log('cache write finished')
-      return cb(stream);
+      return cb(responseStream);
     }).on('error', function(err) {
       logger.error({module: 'cache'}, err)
     })
 
     cacheStream.pipe(redisWriteStream)
-    cacheStream.end(null)
   }
   else {
     var cacheDir = path.resolve(settings.directory.path);

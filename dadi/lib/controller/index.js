@@ -2,6 +2,7 @@ var cloudfront = require('cloudfront');
 var concat = require('concat-stream')
 var fs = require('fs');
 var lengthStream = require('length-stream');
+var PassThrough = require('stream').PassThrough;
 var path = require('path');
 var sha1 = require('sha1');
 var zlib = require('zlib');
@@ -57,15 +58,11 @@ var Controller = function (router) {
 
         // receive the concatenated buffer and send the response
         function sendBuffer(buffer) {
-          // console.log('sendBuffer')
-          // console.log(buffer)
-          // console.log(contentLength)
           res.setHeader('Content-Length', contentLength)
           res.end(buffer)
         }
 
         function lengthListener(length) {
-          //console.log('lengthListener')
           contentLength = length;
         }
 
@@ -78,21 +75,10 @@ var Controller = function (router) {
           gzipStream.pipe(concatStream)
         }
         else {
-          if (handler.fileExt === 'ttf' || handler.fileExt === 'otf') {
-            help.contentLength(stream).then(function(length) {
-              contentLength = length
-              stream.pipe(concatStream)
-            }).catch(function (err) {
-              console.log(err)
-            })
-          }
-          else {
-            stream.pipe(lengthStream(lengthListener));
-            stream.pipe(concatStream)
-          }
+          stream.pipe(lengthStream(lengthListener)).pipe(concatStream)
         }
       }).catch(function(err) {
-        console.log(err.stack)
+        logger.error({err: err})
         help.displayErrorPage(err.statusCode, err.message, res);
       })
     }).catch(function(err) {

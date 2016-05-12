@@ -34,7 +34,7 @@ var ImageHandler = function (format, req) {
 
   var parsedUrl = url.parse(this.req.url, true);
   this.url = req.url;
-  this.cacheKey = parsedUrl.pathname;
+  this.cacheKey = this.req.url;
   this.fileName = path.basename(parsedUrl.pathname);
   this.fileExt = path.extname(this.fileName).substring(1);
   this.exifData = {}
@@ -43,8 +43,6 @@ var ImageHandler = function (format, req) {
 ImageHandler.prototype.get = function () {
   var self = this;
   self.cached = false;
-
-  logger.info('ImageHandler.get: ' + this.req.url)
 
   var parsedUrl = url.parse(this.req.url, true);
   if (parsedUrl.search) {
@@ -104,6 +102,8 @@ ImageHandler.prototype.get = function () {
         var responseStream = new PassThrough()
         var exifStream = new PassThrough()
 
+        //console.log(stream)
+
         // duplicate the stream so we can use it for the imagesize() request and the
         // response. this saves requesting the same data a second time.
         stream.pipe(imageSizeStream)
@@ -112,6 +112,9 @@ ImageHandler.prototype.get = function () {
 
         // get the image size and format
         imagesize(imageSizeStream, function(err, imageInfo) {
+
+          // console.log(err)
+          // console.log(imageInfo)
 
           // extract exif data if available
           //if (imageInfo && /jpe?g/.exec(imageInfo.format)) {
