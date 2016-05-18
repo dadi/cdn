@@ -6,6 +6,7 @@ var Promise = require('bluebird');
 var url = require('url');
 var _ = require('underscore');
 
+var logger = require('@dadi/logger');
 var StorageFactory = require(__dirname + '/../storage/factory');
 var Cache = require(__dirname + '/../cache');
 var config = require(__dirname + '/../../../config');
