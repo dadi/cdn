@@ -54,7 +54,12 @@ ImageHandler.prototype.get = function () {
     this.options = getImageOptions(optionsArray);
   }
 
+//logger.warn(parsedUrl)
+//logger.warn(this.options)
+
   this.options = self.sanitiseOptions(this.options);
+
+//logger.warn(this.options)
 
   if (this.options.format === 'json') {
     if (this.fileExt === this.fileName) {

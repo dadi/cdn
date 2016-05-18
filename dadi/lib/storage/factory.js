@@ -45,9 +45,10 @@ module.exports = {
       // for version 1 assets we need the part of the url following
       // either "/fonts/" or "/css/0/" or "/js/1/"
       if (type === 'asset') {
-        var re = /\/css\/[0-9]\//gi
+        var re = /\/(css|js)\/[0-9]\//gi
         url = url.replace(re, '')
-        url = url.replace('/fonts/', '')
+        var fontsre = /\/fonts\/[0-9]\//gi
+        url = url.replace(fontsre, '')
       }
     }
 
