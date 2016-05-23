@@ -44,10 +44,6 @@ HTTPStorage.prototype.get = function () {
     .on('error', function(err) {
       return reject(err)
     })
-    // var size = parseInt(response.headers['content-length']);
-    // if(size === 0) {
-    //   return help.displayErrorPage(404, 'File size is 0 byte.', res);
-    // }
   })
 }
 

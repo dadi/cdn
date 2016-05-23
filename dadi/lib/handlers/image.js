@@ -54,12 +54,7 @@ ImageHandler.prototype.get = function () {
     this.options = getImageOptions(optionsArray);
   }
 
-//logger.warn(parsedUrl)
-//logger.warn(this.options)
-
   this.options = self.sanitiseOptions(this.options);
-
-//logger.warn(this.options)
 
   if (this.options.format === 'json') {
     if (this.fileExt === this.fileName) {
@@ -107,8 +102,6 @@ ImageHandler.prototype.get = function () {
         var responseStream = new PassThrough()
         var exifStream = new PassThrough()
 
-        //console.log(stream)
-
         // duplicate the stream so we can use it for the imagesize() request and the
         // response. this saves requesting the same data a second time.
         stream.pipe(imageSizeStream)
@@ -117,9 +110,6 @@ ImageHandler.prototype.get = function () {
 
         // get the image size and format
         imagesize(imageSizeStream, function(err, imageInfo) {
-
-          // console.log(err)
-          // console.log(imageInfo)
 
           // extract exif data if available
           //if (imageInfo && /jpe?g/.exec(imageInfo.format)) {
@@ -178,9 +168,6 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
     var width = dimensions.width
     var height = dimensions.height
 
-    // console.log(options)
-    // console.log(dimensions)
-
     if (options.cropX && options.cropY) {
       var originalWidth = parseFloat(imageInfo.width)
       var originalHeight = parseFloat(imageInfo.height)
@@ -220,7 +207,7 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
 
         if (err) return reject(err)
 
-        // define a batch of manipulations and save to disk as JPEG:
+        // define a batch of manipulations
         var batch = image.batch()
 
         var filter = options.filter ? options.filter.toLowerCase() : 'lanczos'
