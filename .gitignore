@@ -4,7 +4,8 @@ config.production.json
 config.qa.json
 config.test.json
 
-cache
+cache/
+!/dadi/lib/cache/**/*
 
 # Log
 log/
@@ -16,3 +17,4 @@ coverage/
 scripts/coverage.svg
 
 persist
+public/**/*
