@@ -25,19 +25,7 @@ module.exports = {
       configBlock = config.get('assets')
     }
 
-    // get storage adapter from the configuration settings
     if (version === 'v1') {
-      adapterKey = _.compact(_.map(configBlock, function(storage, key) {
-        if (storage.enabled) {
-          if (key === 'directory') return 'disk'
-          if (key === 'remote') return 'http'
-          if (key === 's3') return 's3'
-          return key;
-        }
-      }))
-
-      if (_.isArray(adapterKey)) adapterKey = adapterKey[0]
-
       if (type === 'image') {
         if (url.split('/').length > 15) url = url.split('/').slice(18).join('/')
       }
@@ -56,6 +44,20 @@ module.exports = {
     if (version === 'v2') {
       adapterKey = _.compact(url.split('/')).shift()
       url = nodeUrl.parse(url, true).pathname
+    }
+
+    // get storage adapter from the configuration settings
+    if (version === 'v1' || /(disk|http|s3)/.exec(adapterKey) === null) {
+      adapterKey = _.compact(_.map(configBlock, function(storage, key) {
+        if (storage.enabled) {
+          if (key === 'directory') return 'disk'
+          if (key === 'remote') return 'http'
+          if (key === 's3') return 's3'
+          return key;
+        }
+      }))
+
+      if (_.isArray(adapterKey)) adapterKey = adapterKey[0]
     }
 
     switch (adapterKey) {
