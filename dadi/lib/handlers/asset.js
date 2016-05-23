@@ -91,17 +91,7 @@ AssetHandler.prototype.get = function () {
       storage.get().then(function (stream) {
         // compress, returns stream
         self.compressFile(stream).then(function(stream) {
-          // var cacheStream = PassThrough()
-          // var responseStream = PassThrough()
-
-          // duplicate the stream so we can use it for the cache request and the
-          // response. this saves requesting the same data a second time.
-          // stream.pipe(cacheStream)
-          // stream.pipe(responseStream)
-
-          //console.log(responseStream)
-          //console.log(stream)
-
+          // cache, returns stream
           self.cache.cacheFile(stream, self.cacheKey, function (stream) {
             return resolve(stream)
           })
