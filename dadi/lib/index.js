@@ -24,6 +24,10 @@ Server.prototype.start = function (done) {
 
   router.use(bodyParser.json({limit: '50mb'}));
 
+  router.use('/', function(req, res, next) {
+    res.end('Welcome to DADI CDN')
+  })
+
   auth(router);
 
   controller(router);
