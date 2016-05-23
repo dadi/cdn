@@ -106,20 +106,23 @@ ImageHandler.prototype.get = function () {
         // response. this saves requesting the same data a second time.
         stream.pipe(imageSizeStream)
         stream.pipe(convertStream)
-        //stream.pipe(exifStream)
+        stream.pipe(exifStream)
 
         // get the image size and format
         imagesize(imageSizeStream, function(err, imageInfo) {
 
           // extract exif data if available
-          //if (imageInfo && /jpe?g/.exec(imageInfo.format)) {
-          //  self.extractExifData(exifStream).then(function(exifData) {
-          //    self.exifData = exifData
-          //  })
-          //}
-          //else {
-          //  exifStream = null
-          //}
+          if (imageInfo && /jpe?g/.exec(imageInfo.format)) {
+           self.extractExifData(exifStream).then(function(exifData) {
+             self.exifData = exifData
+           }).catch(function(err) {
+             // no exif data
+             exifStream = null
+           })
+          }
+          else {
+           exifStream = null
+          }
 
           // connvert image using specified options
           self.convert(convertStream, imageInfo).then(function(convertedStream) {
@@ -384,12 +387,13 @@ ImageHandler.prototype.getImageInfo = function (stream, imageInfo, cb) {
       data.fileSize = fileSize;
       data.primaryColor = primaryColor;
 
-      //if (self.exifData.image && self.exifData.image.XResolution) {
-      //  data.density = {
-      //    width: self.exifData.image.XResolution,
-      //    height: self.exifData.image.YResolution
-      //  }
-      //}
+      if (self.exifData.image && self.exifData.image.XResolution && self.exifData.image.YResolution) {
+       data.density = {
+         width: self.exifData.image.XResolution,
+         height: self.exifData.image.YResolution,
+         unit: (self.exifData.image.ResolutionUnit ? (self.exifData.image.ResolutionUnit === 2 ? 'dpi' : '') : '')
+       }
+      }
 
       return cb(data)
     })
