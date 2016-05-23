@@ -34,13 +34,22 @@ var S3Storage = function (settings, url) {
       parts.shift()
       return parts.join('/')
     }
+    else if (self.url.substring(1) === '/') {
+      return self.url.substring(1)
+    }
     else {
       return self.url
     }
   }
 
   this.urlParts = function() {
-    return self.url.replace('/s3', '').split('/')
+    // console.log(self.url)
+    if (self.url.indexOf('/s3') === 0) {
+      return self.url.replace('/s3', '').split('/')
+    }
+    else {
+      return self.url.substring(1).split('/')
+    }
   }
 }
 
