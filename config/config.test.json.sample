@@ -1,11 +1,8 @@
 {
   "server": {
       "host": "0.0.0.0",
-      "port": 3000
+      "port": 8111
   },
-  
-  // Either directory, s3 or remote should be enabled
-
   "images": {
     "directory": {
       "enabled": true,
@@ -13,17 +10,16 @@
     },
     "s3": {
       "enabled": false,
-      "accessKey": "AKIAIAG75JEHJKWC5V2Q",
-      "secretKey": "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",
-      "bucketName": "wallpprs"
+      "accessKey": "",
+      "secretKey": "",
+      "bucketName": "",
+      "region": ""
     },
     "remote": {
       "enabled": false,
-      "path": "http://dh.dev.dadi.technology:3001"
+      "path": ""
     }
   },
-
-  // Either directory, s3 or remote should be enabled
   "assets": {
     "directory": {
       "enabled": true,
@@ -31,17 +27,16 @@
     },
     "s3": {
       "enabled": false,
-      "accessKey": "AKIAJJHIE6YB7FVGVL7Q",
-      "secretKey": "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",
-      "bucketName": "dadi-image-testing"
+      "accessKey": "",
+      "secretKey": "",
+      "bucketName": "",
+      "region": ""
     },
     "remote": {
       "enabled": false,
-      "path": "http://dh.dev.dadi.technology:3001"
+      "path": ""
     }
   },
-
-  // Either directory or redis should be enabled
   "caching": {
     "ttl": 3600,
     "directory": {
@@ -50,7 +45,7 @@
     },
     "redis": {
       "enabled": false,
-      "host": "tresting.qvhlji.ng.0001.euw1.cache.amazonaws.com",
+      "host": "",
       "port": 6379
     }
   },
@@ -63,12 +58,12 @@
     "maxHeight": 1024
   },
   "auth": {
-    "clientId": "1235488",
-    "secret": "asd544see68e52"
+    "clientId": "test",
+    "secret": "test"
   },
   "cloudfront": {
-    "accessKey": "AKIAJJHIE6YB7FVGVL7Q",
-    "secretKey": "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"
+    "accessKey": "",
+    "secretKey": ""
   },
   "gzip": true,
   "feedback": false

@@ -70,7 +70,8 @@
   },
   "cloudfront": {
     "accessKey": "",
-    "secretKey": ""
+    "secretKey": "",
+    "distribution": ""
   },
   "gzip": true,
   "feedback": false
