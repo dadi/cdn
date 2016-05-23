@@ -5,7 +5,6 @@
     "init": "validate-commit-msg",
     "start": "node index.js --node_env=development",
     "test": "env NODE_ENV=test ./node_modules/.bin/istanbul cover -x '**/workspace/**' -x '**/app/**' --report cobertura --report text --report html --report lcov ./node_modules/.bin/_mocha test",
-    "preinstall": "npm install -g sqwish",
     "posttest": "./scripts/coverage.js"
   },
   "dependencies": {

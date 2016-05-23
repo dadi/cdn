@@ -4,11 +4,23 @@ var nodeVersion = Number(process.version.match(/^v(\d+\.\d+)/)[1]);
 var colors = require('colors');
 var bodyParser = require('body-parser');
 var finalhandler = require('finalhandler');
+var fs = require('fs');
 var http = require('http');
 var path = require('path');
 var Router = require('router');
 var router = Router();
 var _ = require('underscore');
+
+// let's ensure there's at least a dev config file here
+var devConfigPath = __dirname + '/../../config/config.development.json';
+try {
+  var stats = fs.statSync(devConfigPath);
+}
+catch (err) {
+  if (err.code === 'ENOENT') {
+    fs.writeFileSync(devConfigPath, fs.readFileSync(devConfigPath + '.sample'));
+  }
+}
 
 var auth = require(__dirname + '/auth');
 var controller = require(__dirname + '/controller');
@@ -33,7 +45,7 @@ Server.prototype.start = function (done) {
   controller(router);
 
   var app = http.createServer(function (req, res) {
-	config.updateConfigDataForDomain(req.headers.host);
+    config.updateConfigDataForDomain(req.headers.host);
 
     res.setHeader('Server', config.get('server.name'));
     res.setHeader('Access-Control-Allow-Origin', '*');
