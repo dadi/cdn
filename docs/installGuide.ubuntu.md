@@ -10,64 +10,82 @@ This guide assumes a single server using utilising local caching. For Redis setu
 
 ### Installing DADI CDN
 
-#### Node.js latest
+#### Prerequisites
 
-1. `curl -sL https://deb.nodesource.com/setup_4.x | sudo -E bash -`
-2. `sudo apt-get install -y nodejs`
-3. `sudo apt-get install -y build-essential`
+The DADI platform follows the Node LTS (Long Term Support) release schedule, and as such
+the version of Node required to run DADI CDN is coupled to the version of Node
+currently in Active LTS. See the [LTS schedule](https://github.com/nodejs/LTS) for
+further information.
 
-#### ImageMagick
+#### Install Node.js v4 and NPM
 
-1. `sudo apt-get install libmagick++-dev`
+```shell
+curl -sL https://deb.nodesource.com/setup_4.x | sudo -E bash -
+sudo apt-get install -y nodejs
+sudo apt-get install -y build-essential
+sudo npm install npm -g
+```
 
-#### VIPS
+#### Upgrade GCC++ Compiler
 
-1. `sudo add-apt-repository -y ppa:lovell/trusty-backport-vips`
-2. `sudo apt-get update`
-2. `sudo apt-get install -y libvips-dev libgsf-1-dev`
+```shell
+sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+sudo apt-get update -y
+sudo apt-get install gcc-4.9 g++-4.9
+sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 60 --slave /usr/bin/g++ g++ /usr/bin/g++-4.9
+```
 
-#### Misc. supporting packages
+#### Install dependencies
 
-1. `sudo apt-get install make`
-2. `sudo apt-get install g++`
+##### Image Libraries
 
-#### CDN
+sudo apt-get install libcairo2-dev libjpeg-dev libgif-dev
 
-Install GCC to provide the latest build of the c++ bson extension (not required, but improves performance) -
+##### Sqwish CSS Compressor
 
-`sudo apt-get install gcc make build-essential`
+sudo npm install -g sqwish
 
-Install Git and pull down the latest stable build of Serama -
+##### DADI CDN
 
-1. `sudo apt-get install git`
-2. `sudo git clone https://github.com/dadi/cdn.git`
-3. `cd cdn/`
+###### Install from NPM
 
-Install DADI CDN -
+1. `mkdir my-cdn-app`
+2. `cd my-cdn-app`
+3. `npm init` - follow the prompts, accepting the defaults is usually enough`
+4. `npm install --save @dadi/cdn`
+5. `touch main.js`
+6. add the following code to main.js
+```js
+var app = require('@dadi/cdn')
+```
+7. add the following to package.json
+```json
+"scripts": {
+    "start": "node ./main.js --node-env=development"
+}
+```
 
-*Note:* DADI CDN's log and cache directories are created at startup using settings in the main configuration file `config.json`.
+###### Install from Git
 
-`[sudo] npm install`
+1. `sudo git clone https://github.com/dadi/cdn.git`
+2. `cd cdn/`
+3. `sudo npm install`
 
-Perform DADI CDN's tests -
+#### Starting the server
 
-`[sudo] npm test`
-
-Start DADI CDN -
+*Note:* The CDN's log and cache directories are created at startup using settings in the current environment's configuration file. See files in `/config` for example configurations.
 
 `[sudo] npm start`
 
-#### Forever
+#### Running DADI CDN as a service
 
-To run DADI CDN in the background, install [Forever](https://github.com/nodejitsu/forever) and [Forever-service](https://github.com/zapty/forever-service):
+To run DADI CDN as a service, install [Forever](https://github.com/nodejitsu/forever) and [Forever-service](https://github.com/zapty/forever-service):
 
-`[sudo] npm install forever -g`
-
-`[sudo] npm install -g forever-service`
+`sudo npm install -g forever forever-service`
 
 Install DADI CDN as a service and ensure it loads on boot:
 
-`[sudo] forever-service install -s dadi/main.js -e NODE_ENV=production cdn --start`
+`sudo forever-service install -s index.js -e NODE_ENV=production cdn --start`
 
 _Note the environment variable - `NODE_ENV=production` - must be set to target the required config version._
 
