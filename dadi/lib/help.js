@@ -71,14 +71,11 @@ module.exports.displayUnauthorizationError = function (res, message) {
   res.setHeader('WWW-Authenticate', 'Bearer realm="cdn-server"');
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Expires', '-1');
+
   var errorMsg = {
-    Error: '401 Unauthorized'
-  };
-  if(message) {
-    errorMsg = {
-      Error: message
-    };
+    Error: message || '401 Unauthorized'
   }
+
   res.end(JSON.stringify(errorMsg));
 };
 
