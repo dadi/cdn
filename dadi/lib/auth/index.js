@@ -6,11 +6,9 @@ var uuid = require('node-uuid');
 var config = require(__dirname + '/../../../config.js');
 var help = require(__dirname + '/../help');
 
-function mustAuthenticate(path) {
-    path = url.parse(path, true);
-    // all /api requests must be authenticated
-    if (path.pathname.indexOf('api') > -1) return true;
-    else return false;
+function mustAuthenticate(requestUrl) {
+  // all /api requests must be authenticated
+  return requestUrl.indexOf('/api') === 0
 }
 
 // This attaches middleware to the passed in app instance
@@ -29,7 +27,7 @@ module.exports = function (router) {
         if (req.url === tokenRoute || !mustAuthenticate(req.url)) return next();
 
         // require an authorization header for every request
-        if (!(req.headers && req.headers.authorization)) 
+        if (!(req.headers && req.headers.authorization))
             return help.displayUnauthorizationError(res, 'There isn\'t authorization header');
 
         // Strip token value out of request headers
@@ -49,7 +47,7 @@ module.exports = function (router) {
                 var local_token_item = token_list[i];
                 if(token == local_token_item.token && parseInt(local_token_item.tokenExpire) >= Date.now()) {
                     existToken++;
-                } 
+                }
             }
             if(existToken > 0) {
                 return next();
