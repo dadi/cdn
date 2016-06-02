@@ -4,7 +4,7 @@
 
 ### Overview
 
-DADI CDN's settings are defined in a configuration files mapped to environment variables. These are contained wihtin `/config`. An example file, containing all of the available configuration options can be found in `/config/config.development.json.sample`.
+DADI CDN's settings are defined in configuration files mapped to environment variables. These are contained wihtin `/config`. An example file, containing all of the available configuration options can be found in `/config/config.development.json.sample`.
 
 ### Config options
 
@@ -26,67 +26,61 @@ The proper name should always resolve correctly. Alternately, you can set it to 
 
 #### images
 
-Source images can be called either locally, from an S3 bucket or remotely via a URL.
+Source images can be acessed from the local filesystem, from an Amazon S3 bucket or remotely via a URL.
 
-**Example #1: local directory**
+**Local filesystem**
 
-	"images": {
-		"directory": {
-			"enabled": true,
-			"path": "./images"
-		},
-		"s3": {
-			"enabled": false,
-			"accessKey": "",
-			"secretKey": "",
-			"bucketName": "",
-			"region": ""
-		},
-		"remote": {
-			"enabled": false,
-			"path": ""
-		}
-	}
+```json
+"images": {
+  "directory": {
+    "enabled": true,
+    "path": "./images"
+  },
+  "s3": {
+    "enabled": false
+  },
+  "remote": {
+    "enabled": false
+  }
+}
+```
 
-**Example #2: S3 lookup**
+**Amazon S3**
 
-	"images": {
-		"directory": {
-			"enabled": false,
-			"path": ""
-		},
-		"s3": {
-			"enabled": true,
-			"accessKey": "GIWJBDJWBDKJBWDJKW",
-			"secretKey": "JbdiwjgdiwdgiuHIHiwndinduNUNWUNSWuww",
-			"bucketName": "image-testing",
-			"region": "eu-west-1"
-		},
-		"remote": {
-			"enabled": false,
-			"path": ""
-		}
-	}
+```json
+"images": {
+  "directory": {
+    "enabled": false
+  },
+  "s3": {
+    "enabled": true,
+    "accessKey": "accessKeyGoesHere",
+    "secretKey": "secretGoesHere",
+    "bucketName": "bucketNameGoesHere",
+    "region": "eu-west-1"
+  },
+  "remote": {
+    "enabled": false
+  }
+}
+```
 
-**Example #3: remote lookup**
+**URL lookup**
 
-	"images": {
-		"directory": {
-			"enabled": false,
-			"path": "./images"
-		},
-		"s3": {
-			"enabled": false,
-			"accessKey": "",
-			"secretKey": "",
-			"bucketName": "",
-			"region": ""
-		},
-		"remote": {
-			"enabled": true,
-			"path": "http://dh.dev.dadi.technology:3001"
-		}
-	}
+```json
+"images": {
+  "directory": {
+    "enabled": false
+  },
+  "s3": {
+    "enabled": false
+  },
+  "remote": {
+    "enabled": true,
+    "path": "http://media.example.com"
+  }
+}
+```
 
 #### assets (JavaScript/CSS)
 

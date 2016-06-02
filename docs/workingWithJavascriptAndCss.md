@@ -8,12 +8,31 @@ Minification refers to the process of removing unnecessary or redundant data wit
 
 ### Request structure
 
-`http{s}://{domain}/{input-format}/{minify}/{srcData}`
+There are currently two formats for requesting assets from DADI CDN.
+
+#### Version 1
+
+`http(s)://www.exmaple.com/{input-format}/{compress}/{srcData}`
+
+#### Version 2
+
+The second version of the request is less rigid than the original, utilising the querystring instead of the path to specify parameters. Using this structure allows specifying as many or as few options as actually required.
+
+`http(s)://www.exmaple.com/{srcData}?compress=0`
+
+**Note:** The format of the asset is determined from the file extension.
+
+**Note:** The version of the request structure is determined by the presence or absence of a querystring. If you want
+to deliver an asset with no compression and leave out the `compress` parameter (as it will default to no compression), it is still required
+to add a dummy querystring to the request, e.g. `http(s)://www.example.com/{srcData}?v2`.
+
+If the querystring is not present, DADI CDN will assume the request structure is using Version 1 and the
+request will fail due to the missing path parameters.
 
 ### Resource manipulation options
 
 | Parameter     | Type          | Description |
 | :------------ | :------------ | :---------- |
 | input-format | String | The input format. Can be 'js' or 'css' |
-| minify | Boolean | Default: 0. Minifys content for delivery |
+| compress | Boolean | Default: 0. Minifies content for delivery |
 | srcData | String | Buffer with JavaScript or CSS data (including filepath) |

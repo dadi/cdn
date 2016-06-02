@@ -34,7 +34,7 @@ install DADI CDN as a service and ensure it loads on boot:
 
 `[sudo] forever-service install -s dadi/main.js cdn --start`
 
-You can then interact with Barbu as a service using the following command:
+You can then interact with CDN as a service using the following command:
 
 - Start: `[sudo] start cdn`
 - Stop: `[sudo] stop cdn`

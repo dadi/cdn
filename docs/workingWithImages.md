@@ -14,7 +14,30 @@ Responsive images to the rescue! Right? Well, yes, but first we have to generate
 
 ### Request structure
 
-`http{s}://{domain}/{format}/{quality}/{trim}/{trimFuzz}/{width}/{height}/{crop-x}/{crop-y}/{ratio}/{devicePixelRatio}/{resizeStyle}/{gravity}/{filter}/{blur}/{strip}/{rotate}/{flip}/{srcData}`
+There are currently two formats for requesting assets from DADI CDN.
+
+#### Version 1
+
+`http(s)://www.example.com/{format}/{quality}/{trim}/{trimFuzz}/{width}/{height}/{crop-x}/{crop-y}/{ratio}/{devicePixelRatio}/{resizeStyle}/{gravity}/{filter}/{blur}/{strip}/{rotate}/{flip}/{srcData}`
+
+#### Version 2
+
+The second version of the request is less rigid than the original, utilising the querystring instead of the path to specify parameters. Using this structure allows specifying as many or as few options as actually required.
+
+The basic form is:
+
+`http(s)://www.example.com/{srcData}`
+
+Any of the below parameters can then be added as querystring options. For example:
+
+`http(s)://www.example.com/{srcData}?format=jpg&quality=70&width=100&height=100`
+
+**Note:** The version of request structure is determined by the presence or absence of a querystring. If you need
+to deliver an asset in it's original state with no manipulation options specified, it is required
+to add a dummy querystring to the request, e.g. `http(s)://www.example.com/{srcData}?v2`.
+
+If the querystring is not present, DADI CDN will assume the request structure is using Version 1 and the
+request will fail due to the missing path parameters.
 
 ### Image manipulation options
 
@@ -32,7 +55,7 @@ _Note: the format of the source image is automatically identified by DADI CDN_
 | crop-y | Integer | Default: 0. Y position of crop area |
 | ratio | String | Default: 0.  Aspect ratio cropping. E.g. '16-9', '3-2' |
 | devicePixelRatio | Integer | Default: 0. Zoom In/Out of Image |
-| resizeStyle | String | Default: 0 (interipted as 'aspectfill'). Options: 'aspectfill', 'aspectfit', 'fill' |
+| resizeStyle | String | Default: 0 (interpreted as 'aspectfill'). Options: 'aspectfill', 'aspectfit', 'fill', 'crop' |
 | gravity | String | Default: 0 (interipted as 'none'). Used to position the crop area when resizeStyle is 'aspectfill'. Options: 'NorthWest', 'North', 'NorthEast', 'West', 'Center', 'East', 'SouthWest', 'South', 'SouthEast', 'None' |
 | filter | String | Default: 0 (interipted as 'none'). Resize filter. E.g. 'Lagrange', 'Lanczos'. See docs below for full list of candidates |
 | blur | Integer | 0-1, default: 0. Adds blur to the image |
@@ -48,3 +71,4 @@ _Note: the format of the source image is automatically identified by DADI CDN_
 | aspectfill | Keep the aspect ratio, get the exact provided size |
 | fill | Forget the aspect ratio, get the exact provided size |
 | aspectfit | Keep the aspect ratio, get maximum image that fits inside provided size |
+| crop | x |
