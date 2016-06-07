@@ -1,6 +1,6 @@
 {
   "name": "@dadi/cdn",
-  "version": "1.0.5",
+  "version": "1.1.0",
   "description": "A high performance, just-in-time asset manipulation and delivery layer designed as a modern content distribution solution.",
   "scripts": {
     "init": "validate-commit-msg",
@@ -16,10 +16,12 @@
     "aws-sdk": "2.3.0",
     "bluebird": "latest",
     "body-parser": "~1.14.1",
+    "chokidar": "^1.5.1",
     "cloudfront": "~0.3.3",
     "color-thief": "~2.2.1",
     "colors": "^1.1.2",
     "concat-stream": "^1.5.1",
+    "console-stamp": "^0.2.2",
     "convict": "^1.0.1",
     "exif": "^0.6.0",
     "exif2": "0.0.1",

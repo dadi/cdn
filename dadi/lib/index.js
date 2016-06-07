@@ -69,7 +69,7 @@ function onListening(server) {
   var address = server.address()
 
   if (env !== 'test') {
-    var startText = '  ----------------------------\n';
+    var startText = '\n  ----------------------------\n';
     startText += '  Started \'DADI CDN\'\n';
     startText += '  ----------------------------\n';
     startText += '  Server:      '.green + address.address + ':' + address.port + '\n';
