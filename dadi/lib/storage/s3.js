@@ -47,8 +47,11 @@ var S3Storage = function (settings, url) {
     if (self.url.indexOf('/s3') === 0) {
       return self.url.replace('/s3', '').split('/')
     }
-    else {
+    else if (self.url.substring(1) === '/') {
       return self.url.substring(1).split('/')
+    }
+    else {
+      return self.url.split('/')
     }
   }
 }
