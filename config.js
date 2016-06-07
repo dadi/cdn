@@ -313,6 +313,11 @@ var conf = convict({
       default: "target_distribution"
     }
   },
+  cluster: {
+    doc: "If true, CDN runs in cluster mode, starting a worker for each CPU core",
+    format: Boolean,
+    default: false
+  },
   gzip: {
     doc: "If true, uses gzip compression and adds a 'Content-Encoding:gzip' header to the response",
     format: Boolean,
