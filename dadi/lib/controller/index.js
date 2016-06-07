@@ -41,7 +41,7 @@ var Controller = function (router) {
     var factory = new HandlerFactory();
 
     factory.create(req).then(function(handler) {
-      handler.get().then(function(stream) {
+      return handler.get().then(function(stream) {
 
         if (handler.contentType()) {
           res.setHeader('Content-Type', handler.contentType())
