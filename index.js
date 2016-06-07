@@ -67,15 +67,17 @@ function restartWorkers() {
   }
 
   workerIds.forEach(function(wid) {
-    cluster.workers[wid].send({
-      type: 'shutdown',
-      from: 'master'
-    })
+    if (cluster.workers[wid]) {
+      cluster.workers[wid].send({
+        type: 'shutdown',
+        from: 'master'
+      })
 
-    setTimeout(function() {
-      if(cluster.workers[wid]) {
-        cluster.workers[wid].kill('SIGKILL')
-      }
-    }, 5000)
+      setTimeout(function() {
+        if(cluster.workers[wid]) {
+          cluster.workers[wid].kill('SIGKILL')
+        }
+      }, 5000)
+    }
   })
 }
