@@ -1,24 +1,24 @@
-var fs = require('fs');
+var fs = require('fs')
 var concat = require('concat-stream')
-var ColorThief = require('color-thief');
-var colorThief = new ColorThief();
-var ExifImage = require('exif').ExifImage;
-var fill = require("aspect-fill")
-var fit = require("aspect-fit");
-var imagesize = require('imagesize');
-var lengthStream = require('length-stream');
+var ColorThief = require('color-thief')
+var colorThief = new ColorThief()
+var ExifImage = require('exif').ExifImage
+var fill = require('aspect-fill')
+var fit = require('aspect-fit')
+var imagesize = require('imagesize')
+var lengthStream = require('length-stream')
 var logger = require('@dadi/logger')
-var PassThrough = require('stream').PassThrough;
-var path = require('path');
-var Promise = require('bluebird');
-var Readable = require('stream').Readable;
-var sha1 = require('sha1');
-var url = require('url');
-var _ = require('underscore');
+var PassThrough = require('stream').PassThrough
+var path = require('path')
+var Promise = require('bluebird')
+var Readable = require('stream').Readable
+var sha1 = require('sha1')
+var url = require('url')
+var _ = require('underscore')
 
-var StorageFactory = require(__dirname + '/../storage/factory');
-var Cache = require(__dirname + '/../cache');
-var config = require(__dirname + '/../../../config');
+var StorageFactory = require(__dirname + '/../storage/factory')
+var Cache = require(__dirname + '/../cache')
+var config = require(__dirname + '/../../../config')
 
 /**
  * Performs checks on the supplied URL and fetches the image
@@ -26,50 +26,48 @@ var config = require(__dirname + '/../../../config');
  * @param {Object} req - the original HTTP request
  */
 var ImageHandler = function (format, req) {
-  var self = this;
+  var self = this
 
-  this.req = req;
-  this.factory = Object.create(StorageFactory);
-  this.cache = Cache();
+  this.req = req
+  this.factory = Object.create(StorageFactory)
+  this.cache = Cache()
 
-  var parsedUrl = url.parse(this.req.url, true);
-  this.url = req.url;
-  this.cacheKey = this.req.url;
-  this.fileName = path.basename(parsedUrl.pathname);
-  this.fileExt = path.extname(this.fileName).substring(1);
+  var parsedUrl = url.parse(this.req.url, true)
+  this.url = req.url
+  this.cacheKey = this.req.url
+  this.fileName = path.basename(parsedUrl.pathname)
+  this.fileExt = path.extname(this.fileName).substring(1)
   this.exifData = {}
 }
 
 ImageHandler.prototype.get = function () {
-  var self = this;
-  self.cached = false;
+  var self = this
+  self.cached = false
 
-  var parsedUrl = url.parse(this.req.url, true);
+  var parsedUrl = url.parse(this.req.url, true)
   if (parsedUrl.search) {
-    this.options = parsedUrl.query;
-    if (typeof this.options.format === 'undefined') this.options.format = this.fileExt;
+    this.options = parsedUrl.query
+    if (typeof this.options.format === 'undefined') this.options.format = this.fileExt
   }
   else if (!this.options) {
-    var optionsArray = _.compact(parsedUrl.pathname.split('/')).slice(0, 17);
-    this.options = getImageOptions(optionsArray);
+    var optionsArray = _.compact(parsedUrl.pathname.split('/')).slice(0, 17)
+    this.options = getImageOptions(optionsArray)
   }
 
-  this.options = self.sanitiseOptions(this.options);
+  this.options = self.sanitiseOptions(this.options)
 
   if (this.options.format === 'json') {
     if (this.fileExt === this.fileName) {
-      this.format = 'PNG';
+      this.format = 'PNG'
+    } else {
+      this.format = this.fileExt
     }
-    else {
-      this.format = this.fileExt;
-    }
-  }
-  else {
-    this.format = this.options.format;
+  } else {
+    this.format = this.options.format
   }
 
-  return new Promise(function(resolve, reject) {
-    var message;
+  return new Promise(function (resolve, reject) {
+    var message
 
     // TODO: is there an error to raise here?
     if (message) {
@@ -78,7 +76,7 @@ ImageHandler.prototype.get = function () {
         message: message
       }
 
-      return reject(err);
+      return reject(err)
     }
 
     // get from cache
@@ -87,15 +85,15 @@ ImageHandler.prototype.get = function () {
       // if found in cache, return it
       if (stream) {
         if (self.options.format !== 'json') {
-          self.cached = true;
+          self.cached = true
           return resolve(stream)
         }
       }
 
       // not in cache, get image from source
-      var storage = self.factory.create('image', self.url);
+      var storage = self.factory.create('image', self.url)
 
-      storage.get().then(function(stream) {
+      storage.get().then(function (stream) {
         var cacheStream = new PassThrough()
         var convertStream = new PassThrough()
         var imageSizeStream = new PassThrough()
@@ -109,49 +107,46 @@ ImageHandler.prototype.get = function () {
         stream.pipe(exifStream)
 
         // get the image size and format
-        imagesize(imageSizeStream, function(err, imageInfo) {
+        imagesize(imageSizeStream, function (err, imageInfo) {
 
           // extract exif data if available
           if (imageInfo && /jpe?g/.exec(imageInfo.format)) {
-           self.extractExifData(exifStream).then(function(exifData) {
-             self.exifData = exifData
-           }).catch(function(err) {
-             // no exif data
-             exifStream = null
-           })
-          }
-          else {
-           exifStream = null
+            self.extractExifData(exifStream).then(function (exifData) {
+              self.exifData = exifData
+            }).catch(function (err) {
+              // no exif data
+              exifStream = null
+            })
+          }else {
+            exifStream = null
           }
 
           // connvert image using specified options
-          self.convert(convertStream, imageInfo).then(function(convertedStream) {
-
+          self.convert(convertStream, imageInfo).then(function (convertedStream) {
             convertedStream.pipe(cacheStream)
             convertedStream.pipe(responseStream)
 
             // cache the file if enabled
-            self.cache.cacheFile(cacheStream, self.cacheKey, function() {
+            self.cache.cacheFile(cacheStream, self.cacheKey, function () {
               // return image info only, as json
               if (self.options.format === 'json') {
-                self.getImageInfo(convertedStream, imageInfo, function(data) {
+                self.getImageInfo(convertedStream, imageInfo, function (data) {
                   var returnStream = new Readable()
                   returnStream.push(JSON.stringify(data, null, 2))
                   returnStream.push(null)
                   return resolve(returnStream)
                 })
-              }
-              else {
+              }else {
                 // return image
                 return resolve(responseStream)
               }
             })
-          }).catch(function(err) {
-            return reject(err);
+          }).catch(function (err) {
+            return reject(err)
           })
         })
-      }).catch(function(err) {
-        return reject(err);
+      }).catch(function (err) {
+        return reject(err)
       })
     })
   })
@@ -162,12 +157,12 @@ ImageHandler.prototype.get = function () {
  * @param {stream} stream - read stream from S3, local disk or url
  */
 ImageHandler.prototype.convert = function (stream, imageInfo) {
-  var self = this;
+  var self = this
 
-  return new Promise(function(resolve, reject) {
-    var options = self.options;
+  return new Promise(function (resolve, reject) {
+    var options = self.options
 
-    var dimensions = getDimensions(options, imageInfo);
+    var dimensions = getDimensions(options, imageInfo)
     var width = dimensions.width
     var height = dimensions.height
 
@@ -175,39 +170,38 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
       var originalWidth = parseFloat(imageInfo.width)
       var originalHeight = parseFloat(imageInfo.height)
 
-      //console.log("%s > %s || %s > %s", width,(originalWidth-parseInt(options.cropX)), height, (originalHeight-parseInt(options.cropY)))
-      if ((width-parseInt(options.cropX) > originalWidth) || (height-parseInt(options.cropY)) > originalHeight) {
-        var rectangle = width.toString() + "x" + height.toString()
-        var original = originalWidth.toString() + "x" + originalHeight.toString()
-        var message = "The calculated crop rectangle is larger than the original image size. Crop rectangle: " + rectangle + ", Image size: " + original
+      // console.log("%s > %s || %s > %s", width,(originalWidth-parseInt(options.cropX)), height, (originalHeight-parseInt(options.cropY)))
+      if ((width - parseInt(options.cropX) > originalWidth) || (height - parseInt(options.cropY)) > originalHeight) {
+        var rectangle = width.toString() + 'x' + height.toString()
+        var original = originalWidth.toString() + 'x' + originalHeight.toString()
+        var message = 'The calculated crop rectangle is larger than the original image size. Crop rectangle: ' + rectangle + ', Image size: ' + original
         var err = {
           statusCode: 400,
           message: message
         }
-        return reject(err);
+        return reject(err)
       }
 
-      // options.cropX = options.cropX ? parseFloat(options.cropX) : 0;
-      // options.cropY = options.cropY ? parseFloat(options.cropY) : 0;
-      // width = width ? (parseFloat(width) + parseFloat(options.cropX)) : 0;
-      // height = height ? (parseFloat(height) + parseFloat(options.cropY)) : 0;
+      // options.cropX = options.cropX ? parseFloat(options.cropX) : 0
+      // options.cropY = options.cropY ? parseFloat(options.cropY) : 0
+      // width = width ? (parseFloat(width) + parseFloat(options.cropX)) : 0
+      // height = height ? (parseFloat(height) + parseFloat(options.cropY)) : 0
 
-      // console.log({
-      //   cropX: options.cropX,
-      //   cropY: options.cropY,
-      //   width: width,
-      //   height: height
-      // })
+    // console.log({
+    //   cropX: options.cropX,
+    //   cropY: options.cropY,
+    //   width: width,
+    //   height: height
+    // })
     }
 
     var concatStream = concat(processImage)
     stream.pipe(concatStream)
 
-    function processImage(image) {
+    function processImage (image) {
 
       // obtain an image object
-      require('lwip').open(image, imageInfo.format, function(err, image){
-
+      require('lwip').open(image, imageInfo.format, function (err, image) {
         if (err) return reject(err)
 
         // define a batch of manipulations
@@ -233,23 +227,22 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                 if (options.crop) {
                   var coords = options.crop.split(',')
                   if (coords.length === 2) {
-                    batch.crop(parseInt(coords[0]), parseInt(coords[1]), parseInt(width-coords[0]), parseInt(height-coords[1]))
+                    batch.crop(parseInt(coords[0]), parseInt(coords[1]), parseInt(width - coords[0]), parseInt(height - coords[1]))
                   }
                   else if (coords.length === 4) {
                     batch.crop(parseInt(coords[0]), parseInt(coords[1]), parseInt(coords[2]), parseInt(coords[3]))
                   }
-                }
-                else { // width & height provided, crop from centre
+                }else { // width & height provided, crop from centre
                   batch.crop(parseInt(width), parseInt(height))
                 }
 
-                break;
+                break
             }
           }
         }
         else if (width && height && options.cropX && options.cropY) {
-          //console.log("%s %s %s %s", parseInt(options.cropX), parseInt(options.cropY), width-parseInt(options.cropX), height-parseInt(options.cropY))
-          batch.crop(parseInt(options.cropX), parseInt(options.cropY), width-parseInt(options.cropX), height-parseInt(options.cropY))
+          // console.log("%s %s %s %s", parseInt(options.cropX), parseInt(options.cropY), width-parseInt(options.cropX), height-parseInt(options.cropY))
+          batch.crop(parseInt(options.cropX), parseInt(options.cropY), width - parseInt(options.cropX), height - parseInt(options.cropY))
         }
         else if (width && height) {
           batch.cover(parseInt(width), parseInt(height))
@@ -292,18 +285,17 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
         var format = self.options.format === 'json' ? imageInfo.format : self.options.format
 
         try {
-          batch.exec(function(err, image) {
+          batch.exec(function (err, image) {
             image.toBuffer(format, params, function (err, buffer) {
               if (err) return reject(err)
 
-              var bufferStream = new PassThrough();
+              var bufferStream = new PassThrough()
               bufferStream.end(buffer)
               return resolve(bufferStream)
             })
           })
-        }
-        catch (err) {
-          return reject(err);
+        } catch (err) {
+          return reject(err)
         }
       })
     }
@@ -315,16 +307,15 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
  * @param {stream} stream - read stream from S3, local disk or url
  */
 ImageHandler.prototype.extractExifData = function (stream) {
-  var self = this;
+  var self = this
 
-  return new Promise(function(resolve, reject) {
-
-    var image;
+  return new Promise(function (resolve, reject) {
+    var image
     var concatStream = concat(gotImage)
     stream.pipe(concatStream)
 
-    function gotImage(buffer) {
-      new ExifImage({ image : buffer }, function (err, data) {
+    function gotImage (buffer) {
+      new ExifImage({ image: buffer }, function (err, data) {
         if (err)
           return reject(err)
         else
@@ -349,13 +340,13 @@ ImageHandler.prototype.extractExifData = function (stream) {
 }
 */
 ImageHandler.prototype.getImageInfo = function (stream, imageInfo, cb) {
-  var self = this;
-  var options = self.options;
-  var buffers = [];
-  var fileSize = 0;
+  var self = this
+  var options = self.options
+  var buffers = []
+  var fileSize = 0
 
-  function lengthListener(length) {
-    fileSize = length;
+  function lengthListener (length) {
+    fileSize = length
   }
 
   var data = {
@@ -375,24 +366,24 @@ ImageHandler.prototype.getImageInfo = function (stream, imageInfo, cb) {
     devicePixelRatio: options.devicePixelRatio ? options.devicePixelRatio : 0
   }
 
-  var ls = lengthStream(lengthListener);
+  var ls = lengthStream(lengthListener)
   stream.pipe(ls)
     .on('error', function (err) { console.log(err); })
     .on('data', function (data) { buffers.push(data); })
     .on('end', function () {
-      var buffer = Buffer.concat(buffers);
-      var primaryColor = RGBtoHex(colorThief.getColor(buffer)[0], colorThief.getColor(buffer)[1], colorThief.getColor(buffer)[2]);
+      var buffer = Buffer.concat(buffers)
+      var primaryColor = RGBtoHex(colorThief.getColor(buffer)[0], colorThief.getColor(buffer)[1], colorThief.getColor(buffer)[2])
 
-      data.format = imageInfo.format;
-      data.fileSize = fileSize;
-      data.primaryColor = primaryColor;
+      data.format = imageInfo.format
+      data.fileSize = fileSize
+      data.primaryColor = primaryColor
 
       if (self.exifData.image && self.exifData.image.XResolution && self.exifData.image.YResolution) {
-       data.density = {
-         width: self.exifData.image.XResolution,
-         height: self.exifData.image.YResolution,
-         unit: (self.exifData.image.ResolutionUnit ? (self.exifData.image.ResolutionUnit === 2 ? 'dpi' : '') : '')
-       }
+        data.density = {
+          width: self.exifData.image.XResolution,
+          height: self.exifData.image.YResolution,
+          unit: (self.exifData.image.ResolutionUnit ? (self.exifData.image.ResolutionUnit === 2 ? 'dpi' : '') : '')
+        }
       }
 
       return cb(data)
@@ -402,48 +393,47 @@ ImageHandler.prototype.getImageInfo = function (stream, imageInfo, cb) {
 /**
  *
  */
-function RGBtoHex(red, green, blue) {
-  return '#' + ('00000' + (red << 16 | green << 8 | blue).toString(16)).slice(-6);
+function RGBtoHex (red, green, blue) {
+  return '#' + ('00000' + (red << 16 | green << 8 | blue).toString(16)).slice(-6)
 }
 
-function getDimensions(options, imageInfo) {
+function getDimensions (options, imageInfo) {
   var dimensions = {
     width: options.width,
     height: options.height
   }
 
   if (options.ratio) {
-    var ratio = options.ratio.split('-');
+    var ratio = options.ratio.split('-')
     if (!dimensions.width && parseFloat(dimensions.height) > 0) {
-      dimensions.width = parseFloat(dimensions.height) * (parseFloat(ratio[0]) / parseFloat(ratio[1]));
-      dimensions.height = parseFloat(dimensions.height);
+      dimensions.width = parseFloat(dimensions.height) * (parseFloat(ratio[0]) / parseFloat(ratio[1]))
+      dimensions.height = parseFloat(dimensions.height)
     }
     else if (!dimensions.height && parseFloat(dimensions.width) > 0) {
-      dimensions.height = parseFloat(dimensions.width) * (parseFloat(ratio[1]) / parseFloat(ratio[0]));
-      dimensions.width = parseFloat(dimensions.width);
+      dimensions.height = parseFloat(dimensions.width) * (parseFloat(ratio[1]) / parseFloat(ratio[0]))
+      dimensions.width = parseFloat(dimensions.width)
     }
     else if (!dimensions.height && !dimensions.height) {
-      dimensions.width = parseFloat(imageInfo.height) * (parseFloat(ratio[0]) / parseFloat(ratio[1]));
-      dimensions.height = parseFloat(imageInfo.width) * (parseFloat(ratio[1]) / parseFloat(ratio[0]));
+      dimensions.width = parseFloat(imageInfo.height) * (parseFloat(ratio[0]) / parseFloat(ratio[1]))
+      dimensions.height = parseFloat(imageInfo.width) * (parseFloat(ratio[1]) / parseFloat(ratio[0]))
     }
-  }
-  else {
+  }else {
     dimensions.width = dimensions.width || imageInfo.width
     dimensions.height = dimensions.height || imageInfo.height
   }
 
   if (config.get('security.maxWidth') && config.get('security.maxWidth') < dimensions.width)
-    dimensions.width = config.get('security.maxWidth');
+    dimensions.width = config.get('security.maxWidth')
   if (config.get('security.maxHeight') && config.get('security.maxHeight') < dimensions.height)
-    dimensions.height = config.get('security.maxHeight');
+    dimensions.height = config.get('security.maxHeight')
 
   if (options.devicePixelRatio && options.devicePixelRatio < 4) {
     // http://devicepixelratio.com/
-    dimensions.width = parseFloat(dimensions.width) * parseFloat(options.devicePixelRatio);
-    dimensions.height = parseFloat(dimensions.height) * parseFloat(options.devicePixelRatio);
+    dimensions.width = parseFloat(dimensions.width) * parseFloat(options.devicePixelRatio)
+    dimensions.height = parseFloat(dimensions.height) * parseFloat(options.devicePixelRatio)
   }
 
-  return dimensions;
+  return dimensions
 }
 
 /**
@@ -452,9 +442,8 @@ function getDimensions(options, imageInfo) {
  * @returns {object}
  */
 function getImageOptions (optionsArray) {
-
-  var gravity = optionsArray[11].substring(0, 1).toUpperCase() + optionsArray[11].substring(1);
-  var filter = optionsArray[12].substring(0, 1).toUpperCase() + optionsArray[12].substring(1);
+  var gravity = optionsArray[11].substring(0, 1).toUpperCase() + optionsArray[11].substring(1)
+  var filter = optionsArray[12].substring(0, 1).toUpperCase() + optionsArray[12].substring(1)
 
   options = {
     format: optionsArray[0],
@@ -476,28 +465,28 @@ function getImageOptions (optionsArray) {
     flip: optionsArray[16]
   }
 
-  return options;
+  return options
 }
 
 ImageHandler.prototype.sanitiseOptions = function (options) {
-  if (options.filter == 'None' || options.filter == 0) delete options.filter;
-  if (options.gravity == 0) delete options.gravity;
-  if (options.width == 0) delete options.width;
-  if (options.height == 0) delete options.height;
-  if (options.quality == 0) delete options.quality;
-  if (options.trim == 0) delete options.trim;
-  if (options.trimFuzz == 0) delete options.trimFuzz;
-  if (options.cropX == 0) delete options.cropX;
-  if (options.cropY == 0) delete options.cropY;
-  if (options.ratio == 0) delete options.ratio;
-  if (options.devicePixelRatio == 0) delete options.devicePixelRatio;
-  if (options.resizeStyle == 0) delete options.resizeStyle;
-  if (options.blur == 0) delete options.blur;
-  if (options.strip == 0) delete options.strip;
-  if (options.rotate == 0) delete options.rotate;
-  if (options.flip == 0) delete options.flip;
+  if (options.filter == 'None' || options.filter == 0) delete options.filter
+  if (options.gravity == 0) delete options.gravity
+  if (options.width == 0) delete options.width
+  if (options.height == 0) delete options.height
+  if (options.quality == 0) delete options.quality
+  if (options.trim == 0) delete options.trim
+  if (options.trimFuzz == 0) delete options.trimFuzz
+  if (options.cropX == 0) delete options.cropX
+  if (options.cropY == 0) delete options.cropY
+  if (options.ratio == 0) delete options.ratio
+  if (options.devicePixelRatio == 0) delete options.devicePixelRatio
+  if (options.resizeStyle == 0) delete options.resizeStyle
+  if (options.blur == 0) delete options.blur
+  if (options.strip == 0) delete options.strip
+  if (options.rotate == 0) delete options.rotate
+  if (options.flip == 0) delete options.flip
 
-  return options;
+  return options
 }
 
 ImageHandler.prototype.contentType = function () {
@@ -518,7 +507,7 @@ ImageHandler.prototype.contentType = function () {
 }
 
 module.exports = function (format, req) {
-  return new ImageHandler(format, req);
+  return new ImageHandler(format, req)
 }
 
-module.exports.ImageHandler = ImageHandler;
+module.exports.ImageHandler = ImageHandler

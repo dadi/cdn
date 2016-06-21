@@ -1,14 +1,14 @@
-var nodeUrl = require('url');
-var _ = require('underscore');
-var S3Storage = require(__dirname + '/s3');
-var DiskStorage = require(__dirname + '/disk');
-var HTTPStorage = require(__dirname + '/http');
+var nodeUrl = require('url')
+var _ = require('underscore')
+var S3Storage = require(__dirname + '/s3')
+var DiskStorage = require(__dirname + '/disk')
+var HTTPStorage = require(__dirname + '/http')
 
-var config = require(__dirname + '/../../../config');
+var config = require(__dirname + '/../../../config')
 
 module.exports = {
-  create: function create(type, url, hasQuery) {
-    var configBlock;
+  create: function create (type, url, hasQuery) {
+    var configBlock
 
     // set a default version
     var version = 'v1'
@@ -48,12 +48,12 @@ module.exports = {
 
     // get storage adapter from the configuration settings
     if (version === 'v1' || /(disk|http|s3)/.exec(adapterKey) === null) {
-      adapterKey = _.compact(_.map(configBlock, function(storage, key) {
+      adapterKey = _.compact(_.map(configBlock, function (storage, key) {
         if (storage.enabled) {
           if (key === 'directory') return 'disk'
           if (key === 'remote') return 'http'
           if (key === 's3') return 's3'
-          return key;
+          return key
         }
       }))
 

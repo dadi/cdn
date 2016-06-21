@@ -1,15 +1,15 @@
-var compressor = require('node-minify');
-var fs = require('fs');
-var path = require('path');
-var PassThrough = require('stream').PassThrough;
-var Promise = require('bluebird');
-var url = require('url');
-var _ = require('underscore');
+var compressor = require('node-minify')
+var fs = require('fs')
+var path = require('path')
+var PassThrough = require('stream').PassThrough
+var Promise = require('bluebird')
+var url = require('url')
+var _ = require('underscore')
 
-var logger = require('@dadi/logger');
-var StorageFactory = require(__dirname + '/../storage/factory');
-var Cache = require(__dirname + '/../cache');
-var config = require(__dirname + '/../../../config');
+var logger = require('@dadi/logger')
+var StorageFactory = require(__dirname + '/../storage/factory')
+var Cache = require(__dirname + '/../cache')
+var config = require(__dirname + '/../../../config')
 
 /**
  * Performs checks on the supplied URL and fetches the asset
@@ -17,17 +17,17 @@ var config = require(__dirname + '/../../../config');
  * @param {Object} req - the original HTTP request
  */
 var AssetHandler = function (format, req) {
-  var self = this;
+  var self = this
 
-  this.supportedExtensions = ['ttf', 'otf', 'woff', 'svg', 'eot'];
-  this.format = format;
-  this.compress = '0';
-  this.factory = Object.create(StorageFactory);
-  this.cache = Cache();
+  this.supportedExtensions = ['ttf', 'otf', 'woff', 'svg', 'eot']
+  this.format = format
+  this.compress = '0'
+  this.factory = Object.create(StorageFactory)
+  this.cache = Cache()
 
-  this.req = req;
+  this.req = req
 
-  var parsedUrl = url.parse(this.req.url, true);
+  var parsedUrl = url.parse(this.req.url, true)
 
   // '/js/1/test.js' -> [ 'js', '1', 'test.js' ]
   // '/fonts/test.ttf' -> [ fonts', 'test.ttf' ]
@@ -38,36 +38,36 @@ var AssetHandler = function (format, req) {
 
   if (this.format === 'css' || this.format === 'js') {
     this.url = this.urlParts.length > 2 ? this.urlParts.slice(2).join('/') : this.urlParts.join('/')
-    this.fileExt = this.format;
-    this.fileName = this.hasQuery ? this.urlParts[1] : this.urlParts[2];
-    this.compress = this.hasQuery ? parsedUrl.query.compress : this.urlParts[1];
+    this.fileExt = this.format
+    this.fileName = this.hasQuery ? this.urlParts[1] : this.urlParts[2]
+    this.compress = this.hasQuery ? parsedUrl.query.compress : this.urlParts[1]
   }
   else if (this.format === 'fonts') {
     // console.log(parsedUrl)
     // console.log(this.urlParts)
-    this.url = parsedUrl.pathname.replace('/fonts','');
-    this.fileName = this.url;
-    this.fileExt = path.extname(this.url).replace('.','');
+    this.url = parsedUrl.pathname.replace('/fonts', '')
+    this.fileName = this.url
+    this.fileExt = path.extname(this.url).replace('.', '')
   }
 
-  this.cacheKey = this.req.url; //this.urlParts.join('/');
+  this.cacheKey = this.req.url; // this.urlParts.join('/')
 }
 
 AssetHandler.prototype.get = function () {
-  var self = this;
-  self.cached = false;
+  var self = this
+  self.cached = false
 
-  return new Promise(function(resolve, reject) {
-    var message;
+  return new Promise(function (resolve, reject) {
+    var message
 
     if (self.compress !== '0' && self.compress !== '1') {
       message = '<p>Url path is invalid.</p>' +
-      '<p>The valid url path format:</p>' +
-      '<p>http://some-example-domain.com/{format-(js, css)}/{compress-(0, 1)}/JS,CSS file path</p>';
+        '<p>The valid url path format:</p>' +
+        '<p>http://some-example-domain.com/{format-(js, css)}/{compress-(0, 1)}/JS,CSS file path</p>'
     }
 
     if (self.format === 'fonts' && self.supportedExtensions.indexOf(self.fileExt.toLowerCase()) < 0) {
-      message = '<p>Font file type should be TTF, OTF, WOFF, SVG or EOT.</p>';
+      message = '<p>Font file type should be TTF, OTF, WOFF, SVG or EOT.</p>'
     }
 
     if (message) {
@@ -76,67 +76,66 @@ AssetHandler.prototype.get = function () {
         message: message
       }
 
-      return reject(err);
+      return reject(err)
     }
 
     // get from cache
     self.cache.get(self.cacheKey, function (stream) {
       if (stream) {
-        self.cached = true;
+        self.cached = true
         return resolve(stream)
       }
 
-      var storage = self.factory.create('asset', self.fullUrl, self.hasQuery);
+      var storage = self.factory.create('asset', self.fullUrl, self.hasQuery)
 
       storage.get().then(function (stream) {
         // compress, returns stream
-        self.compressFile(stream).then(function(stream) {
+        self.compressFile(stream).then(function (stream) {
           // cache, returns stream
           self.cache.cacheFile(stream, self.cacheKey, function (stream) {
             return resolve(stream)
           })
         })
-      }).catch(function(err) {
-        return reject(err);
+      }).catch(function (err) {
+        return reject(err)
       })
     })
   })
 }
 
-AssetHandler.prototype.compressFile = function(stream) {
-  var self = this;
+AssetHandler.prototype.compressFile = function (stream) {
+  var self = this
 
-  return new Promise(function(resolve, reject) {
+  return new Promise(function (resolve, reject) {
     // no compression required, send stream back
-    if (self.format === 'fonts' || self.compress === '0') return resolve(stream);
+    if (self.format === 'fonts' || self.compress === '0') return resolve(stream)
 
-    if (!fs.existsSync(path.resolve('./tmp'))) fs.mkdirSync(path.resolve('./tmp'));
+    if (!fs.existsSync(path.resolve('./tmp'))) fs.mkdirSync(path.resolve('./tmp'))
 
     var compression = self.format === 'js' ? 'uglifyjs' : 'sqwish'
 
-    var fileIn = path.join(path.resolve('./tmp'), self.fileName);
-    var newFileName = self.fileName.split('.')[0] + '.min.' + self.fileExt;
-    var fileOut = path.join(path.resolve('./tmp'), newFileName);
+    var fileIn = path.join(path.resolve('./tmp'), self.fileName)
+    var newFileName = self.fileName.split('.')[0] + '.min.' + self.fileExt
+    var fileOut = path.join(path.resolve('./tmp'), newFileName)
 
     stream.pipe(fs.createWriteStream(fileIn)).on('finish', function () {
-      new compressor.minify ({
+      new compressor.minify({
         type: compression,
         fileIn: fileIn,
         fileOut: fileOut,
         callback: function (err, min) {
           if (err) {
             return reject(err)
-          }
-          else {
-            fs.unlinkSync(fileIn);
-            stream = fs.createReadStream(fileOut);
+          }else {
+            fs.unlinkSync(fileIn)
+            stream = fs.createReadStream(fileOut)
 
-            stream.on('open', function() {
+            stream.on('open', function () {
               return resolve(stream)
             })
 
-            stream.on('close', function() {
-              fs.unlink(fileOut);
+            stream.on('close', function () {
+              fs.unlink(fileOut)
             })
           }
         }
@@ -171,7 +170,7 @@ AssetHandler.prototype.contentType = function () {
 }
 
 module.exports = function (format, req) {
-  return new AssetHandler(format, req);
+  return new AssetHandler(format, req)
 }
 
-module.exports.AssetHandler = AssetHandler;
+module.exports.AssetHandler = AssetHandler

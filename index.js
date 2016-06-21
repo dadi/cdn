@@ -11,18 +11,18 @@ if (config.get('cluster')) {
     var numWorkers = require('os').cpus().length
     console.log('Master cluster setting up ' + numWorkers + ' workers...')
 
-    for(var i = 0; i < numWorkers; i++) {
+    for (var i = 0; i < numWorkers; i++) {
       cluster.fork()
     }
 
-    cluster.on('online', function(worker) {
+    cluster.on('online', function (worker) {
       console.log('Worker ' + worker.process.pid + ' is online')
     })
 
-    cluster.on('exit', function(worker, code, signal) {
+    cluster.on('exit', function (worker, code, signal) {
       console.log('Worker ' + worker.process.pid + ' died with code: ' + code + ', and signal: ' + signal)
       console.log('Starting a new worker')
-      cluster.fork();
+      cluster.fork()
     })
 
     var watcher = chokidar.watch(process.cwd(), {
@@ -31,50 +31,49 @@ if (config.get('cluster')) {
       ignoreInitial: true
     })
 
-    watcher.on('add', function(filePath) {
+    watcher.on('add', function (filePath) {
       if (path.basename(filePath) === 'restart.cdn') {
         console.log('Shutdown requested')
         fs.unlinkSync(filePath)
         restartWorkers()
       }
     })
-  }
-  else {
+  }else {
     var app = module.exports = require('./dadi/lib')
-    app.start(function() {
+    app.start(function () {
       console.log('Process ' + process.pid + ' is listening for incoming requests')
 
-      process.on('message', function(message) {
+      process.on('message', function (message) {
         if (message.type === 'shutdown') {
           console.log('Process ' + process.pid + ' is shutting down...')
-          process.exit(0);
+          process.exit(0)
         }
       })
     })
   }
 } else {
   var app = module.exports = require('./dadi/lib')
-  app.start(function() {
+  app.start(function () {
     console.log('Process ' + process.pid + ' is listening for incoming requests')
   })
 }
 
-function restartWorkers() {
+function restartWorkers () {
   var wid, workerIds = []
 
-  for(wid in cluster.workers) {
+  for (wid in cluster.workers) {
     workerIds.push(wid)
   }
 
-  workerIds.forEach(function(wid) {
+  workerIds.forEach(function (wid) {
     if (cluster.workers[wid]) {
       cluster.workers[wid].send({
         type: 'shutdown',
         from: 'master'
       })
 
-      setTimeout(function() {
-        if(cluster.workers[wid]) {
+      setTimeout(function () {
+        if (cluster.workers[wid]) {
           cluster.workers[wid].kill('SIGKILL')
         }
       }, 5000)
