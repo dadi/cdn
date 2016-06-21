@@ -26,7 +26,6 @@
     "exif": "^0.6.0",
     "exif2": "0.0.1",
     "finalhandler": "~0.4.0",
-    "fs-finder": "~1.8.1",
     "gzip-size": "^3.0.0",
     "imagesize": "~1.0.0",
     "length-stream": "~0.1.1",

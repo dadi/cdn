@@ -1,3 +1,5 @@
+.DS_Store
+
 # Config
 config.development.json
 config.production.json

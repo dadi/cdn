@@ -12,6 +12,16 @@ It has full support for caching, header control, image manipulation, image compr
 
 CDN is part of DADI, a suite of components covering the full development stack, built for performance and scale.
 
+## Mac OS X
+
+Please follow the instructions here: https://github.com/Automattic/node-canvas/wiki/Installation---OSX
+
+### Troubleshooting
+
+Most problems can be solved by using Homebrew and running `brew install cairo`
+
+
+
 ## Licence
 
 DADI is a data centric development and delivery stack, built specifically in support of the principles of API first and COPE.
