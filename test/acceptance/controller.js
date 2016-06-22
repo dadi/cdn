@@ -96,7 +96,7 @@ describe('Controller', function () {
   })
 
   describe('Assets', function (done) {
-    this.timeout(2500)
+    this.timeout(5000)
 
     beforeEach(function (done) {
       var newTestConfig = JSON.parse(testConfigString)
