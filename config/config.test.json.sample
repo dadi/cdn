@@ -3,6 +3,21 @@
       "host": "0.0.0.0",
       "port": 8111
   },
+  "logging": {
+    "enabled": true,
+    "level": "info",
+    "path": "./log",
+    "filename": "cdn",
+    "extension": "log",
+    "fileRotationPeriod": "1d",
+    "fileRetentionCount": 7,
+    "accessLog": {
+      "enabled": true,
+      "fileRotationPeriod": "1d",
+      "fileRetentionCount": 7,
+      "kinesisStream": ""
+    }
+  },
   "images": {
     "directory": {
       "enabled": true,

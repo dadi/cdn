@@ -4,6 +4,22 @@
       "port": 80
   },
 
+  "logging": {
+    "enabled": true,
+    "level": "info",
+    "path": "./log",
+    "filename": "cdn",
+    "extension": "log",
+    "fileRotationPeriod": "1d",
+    "fileRetentionCount": 7,
+    "accessLog": {
+      "enabled": true,
+      "fileRotationPeriod": "1d",
+      "fileRetentionCount": 7,
+      "kinesisStream": ""
+    }
+  },
+
   // Either directory, s3 or remote should be enabled
 
   "images": {
