@@ -18,7 +18,7 @@ var Cache = function() {
   this.redisClient = null;
   this.initRedisClient();
 
-  logger.info({module: 'cache'}, 'Cache logging started');
+  if (config.get('env') !== 'test') logger.info({module: 'cache'}, 'Cache logging started');
 
   if (config.get('caching.directory.enabled') && !fs.existsSync(this.dir)) {
     fs.mkdirSync(this.dir);
