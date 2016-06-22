@@ -43,14 +43,13 @@ var AssetHandler = function (format, req) {
     this.compress = this.hasQuery ? parsedUrl.query.compress : this.urlParts[1]
   }
   else if (this.format === 'fonts') {
-    // console.log(parsedUrl)
-    // console.log(this.urlParts)
-    this.url = parsedUrl.pathname.replace('/fonts', '')
-    this.fileName = this.url
-    this.fileExt = path.extname(this.url).replace('.', '')
+    this.url = this.urlParts.splice(1).join('/')
+    this.fullUrl = this.url
+    this.fileName = path.basename(this.url)
+    this.fileExt = path.extname(this.fileName).replace('.', '')
   }
 
-  this.cacheKey = this.req.url; // this.urlParts.join('/')
+  this.cacheKey = this.req.url;
 }
 
 AssetHandler.prototype.get = function () {
