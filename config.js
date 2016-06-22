@@ -119,17 +119,17 @@ var conf = convict({
       accessKey: {
         doc: '',
         format: String,
-        default: 'AKIAJJHIE6YB7FVGVL7Q'
+        default: ''
       },
       secretKey: {
         doc: '',
         format: String,
-        default: 'OvIoiLgxQZszDuGCr5YWqKE/mNKlgSop+RqrkBTN'
+        default: ''
       },
       bucketName: {
         doc: '',
         format: String,
-        default: 'dadi-image-testing'
+        default: ''
       },
       region: {
         doc: '',
@@ -172,17 +172,17 @@ var conf = convict({
       accessKey: {
         doc: '',
         format: String,
-        default: 'AKIAJJHIE6YB7FVGVL7Q'
+        default: ''
       },
       secretKey: {
         doc: '',
         format: String,
-        default: 'OvIoiLgxQZszDuGCr5YWqKE/mNKlgSop+RqrkBTN'
+        default: ''
       },
       bucketName: {
         doc: '',
         format: String,
-        default: 'dadi-image-testing'
+        default: ''
       },
       region: {
         doc: '',
