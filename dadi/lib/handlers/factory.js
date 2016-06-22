@@ -88,12 +88,10 @@ HandlerFactory.prototype.createFromRecipe = function (format, req) {
     fs.stat(recipePath, function (err, stats) {
       if (err) {
         if (err.code === 'ENOENT') {
-          var err = {
-            statusCode: 404,
-            message: `Unknown recipe "${format}.json"`
-          }
-
-          return reject(err)
+          var error = new Error("Unknown recipe")
+          error.statusCode = 404
+          error.detail = `Unknown recipe "${format}.json"`
+          return reject(error)
         }
         return reject(err)
       }
