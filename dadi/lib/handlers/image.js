@@ -117,7 +117,7 @@ ImageHandler.prototype.get = function () {
               // no exif data
               exifStream = null
             })
-          }else {
+          } else {
             exifStream = null
           }
 
@@ -136,7 +136,7 @@ ImageHandler.prototype.get = function () {
                   returnStream.push(null)
                   return resolve(returnStream)
                 })
-              }else {
+              } else {
                 // return image
                 return resolve(responseStream)
               }
@@ -372,11 +372,14 @@ ImageHandler.prototype.getImageInfo = function (stream, imageInfo, cb) {
     .on('data', function (data) { buffers.push(data); })
     .on('end', function () {
       var buffer = Buffer.concat(buffers)
-      var primaryColor = RGBtoHex(colorThief.getColor(buffer)[0], colorThief.getColor(buffer)[1], colorThief.getColor(buffer)[2])
+      var colour = colorThief.getColor(buffer)
+      var primaryColour = RGBtoHex(colour[0], colour[1], colour[2])
+      var palette = colorThief.getPalette(buffer, options.colours ? options.colours : 6)
 
       data.format = imageInfo.format
       data.fileSize = fileSize
-      data.primaryColor = primaryColor
+      data.primaryColor = primaryColour
+      data.palette = palette
 
       if (self.exifData.image && self.exifData.image.XResolution && self.exifData.image.YResolution) {
         data.density = {
@@ -417,7 +420,7 @@ function getDimensions (options, imageInfo) {
       dimensions.width = parseFloat(imageInfo.height) * (parseFloat(ratio[0]) / parseFloat(ratio[1]))
       dimensions.height = parseFloat(imageInfo.width) * (parseFloat(ratio[1]) / parseFloat(ratio[0]))
     }
-  }else {
+  } else {
     dimensions.width = dimensions.width || imageInfo.width
     dimensions.height = dimensions.height || imageInfo.height
   }
@@ -490,6 +493,10 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
 }
 
 ImageHandler.prototype.contentType = function () {
+  if (this.options.format === 'json') {
+    return 'application/json'
+  }
+
   switch (this.format.toLowerCase()) {
     case 'png':
       return 'image/png'

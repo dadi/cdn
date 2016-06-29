@@ -66,7 +66,7 @@ var Controller = function (router) {
 
         var concatStream = concat(sendBuffer)
 
-        if (config.get('gzip')) {
+        if (config.get('gzip') && handler.contentType() !== 'application/json') {
           res.setHeader('Content-Encoding', 'gzip')
           var gzipStream = stream.pipe(zlib.createGzip())
           gzipStream = gzipStream.pipe(lengthStream(lengthListener))
