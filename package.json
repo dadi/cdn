@@ -9,6 +9,7 @@
     "posttest": "./scripts/coverage.js"
   },
   "dependencies": {
+    "@dadi/status": "git+https://git@github.com/dadi/status.git",
     "@dadi/logger": "latest",
     "aspect-fill": "^1.0.1",
     "aspect-fit": "^1.0.2",

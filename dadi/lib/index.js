@@ -10,6 +10,7 @@ var path = require('path')
 var Router = require('router')
 var router = Router()
 var _ = require('underscore')
+var dadiStatus = require('@dadi/status')
 
 // let's ensure there's at least a dev config file here
 var devConfigPath = __dirname + '/../../config/config.development.json'
@@ -36,6 +37,63 @@ Server.prototype.start = function (done) {
   router.get('/', function (req, res, next) {
     res.end('Welcome to DADI CDN')
   })
+
+  var statusHandler = function (req, res, next) {
+    var method = req.method && req.method.toLowerCase()
+    var authorization = req.headers.authorization
+
+    // /status should be authenticated (using the same keys as used for the invalidation API),
+    // config.get('status.requireAuthentication')
+    // anything to do with auth(router) below?
+
+    if (method !== 'post' || config.get('status.enabled') === false) {
+      if (next) {
+        return next()
+      } else {
+        // if we're running an independent endpoint, send back a quick 400 response
+        var resBody = JSON.stringify({
+          status: 400,
+          error: 'bad request'
+        })
+        res.statusCode = 200
+        res.setHeader('Content-Type', 'application/json')
+        res.setHeader('Content-Length', Buffer.byteLength(resBody))
+        res.end(resBody)
+      }
+
+    } else {
+      var params = {
+        site: site,
+        package: '@dadi/cdn',
+        version: version,
+        healthCheck: {
+          authorization: authorization,
+          baseUrl: 'http://' + config.get('server.host') + ':' + config.get('server.port'),
+          routes: config.get('status.routes')
+        }
+      }
+
+      dadiStatus(params, function(err, data) {
+        if (err) return next(err)
+        var resBody = JSON.stringify(data, null, 2)
+
+        res.statusCode = 200
+        res.setHeader('Content-Type', 'application/json')
+        res.setHeader('Content-Length', Buffer.byteLength(resBody))
+        return res.end(resBody)
+      })
+    }
+  }
+
+  // if the status endpoint is set to be independent, then we need to create a fresh http server
+  if (config.get('status.independent')) {
+    var statusApp = http.createServer(statusHandler)
+    var statusServer = this.statusServer = statusApp.listen(config.get('status.port'))
+    statusServer.on('listening', function () { onStatusListening(this) })
+    // TODO: sync this up with `server` so `this.readyState = 1` is true?
+  } else {
+    router.use('/status', statusHandler)
+  }
 
   auth(router)
 
@@ -76,6 +134,21 @@ function onListening (server) {
     startText += '  ----------------------------\n'
 
     startText += '\n\n  Copyright ' + String.fromCharCode(169) + ' 2015 DADI+ Limited (https://dadi.tech)'.white + '\n'
+
+    console.log(startText)
+  }
+}
+
+function onStatusListening (server) {
+  var env = config.get('env')
+  var address = server.address()
+
+  if (env !== 'test') {
+    var startText = '\n  ----------------------------\n'
+    startText += "  Started independent status endpoint\n"
+    startText += '  ----------------------------\n'
+    startText += '  Server:      '.green + address.address + ':' + address.port + '\n'
+    startText += '  ----------------------------\n'
 
     console.log(startText)
   }
