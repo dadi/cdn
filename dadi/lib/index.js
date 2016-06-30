@@ -42,10 +42,6 @@ Server.prototype.start = function (done) {
     var method = req.method && req.method.toLowerCase()
     var authorization = req.headers.authorization
 
-    // /status should be authenticated (using the same keys as used for the invalidation API),
-    // config.get('status.requireAuthentication')
-    // anything to do with auth(router) below?
-
     if (method !== 'post' || config.get('status.enabled') === false) {
       return next()
     } else {
@@ -72,10 +68,10 @@ Server.prototype.start = function (done) {
     }
   }
 
-  // if the status endpoint is set to be independent, then we need to create a fresh http server
-  if (config.get('status.independent')) {
+  // if the status endpoint is set to be standalone, then we need to create a fresh http server
+  if (config.get('status.standalone')) {
     var statusRouter = Router()
-    auth(statusRouter)
+    config.get('status.requireAuthentication') && auth(statusRouter)
     statusRouter.use('/api/status', statusHandler)
 
     var statusApp = http.createServer(function (req, res) {
@@ -142,7 +138,7 @@ function onStatusListening (server) {
 
   if (env !== 'test') {
     var startText = '\n  ----------------------------\n'
-    startText += "  Started independent status endpoint\n"
+    startText += "  Started standalone status endpoint\n"
     startText += '  ----------------------------\n'
     startText += '  Server:      '.green + address.address + ':' + address.port + '\n'
     startText += '  ----------------------------\n'

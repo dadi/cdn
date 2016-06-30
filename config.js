@@ -267,8 +267,8 @@ var conf = convict({
       format: Boolean,
       default: true
     },
-    independent: {
-      doc: "If true, status endpoint will run on an independent address/port.",
+    standalone: {
+      doc: "If true, status endpoint will run on an standalone address/port.",
       format: Boolean,
       default: true
     },
