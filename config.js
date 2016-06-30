@@ -279,12 +279,12 @@ var conf = convict({
       env: "STATUS_PORT"
     },
     routes: {
-      doc: "An array of routes to test. Each route object must contain properties `route` and `expectedResponseTime`.",
+      doc: "An array of routes to test. Each route object must contain properties `route` and `expectedResponseTime`. Note, `expectedResponseTime` is seconds.",
       format: Array,
       default: [
         {
           route: '/test.jpg?format=png&quality=50&width=800&height=600',
-          expectedResponseTime: 25
+          expectedResponseTime: 0.025
         }
       ]
     }
