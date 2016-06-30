@@ -68,6 +68,10 @@ Server.prototype.start = function (done) {
     }
   }
 
+  auth(router)
+
+  controller(router)
+
   // if the status endpoint is set to be standalone, then we need to create a fresh http server
   if (config.get('status.standalone')) {
     var statusRouter = Router()
@@ -89,10 +93,6 @@ Server.prototype.start = function (done) {
     router.use('/api/status', statusHandler)
   }
 
-  auth(router)
-
-  controller(router)
-
   var app = http.createServer(function (req, res) {
     config.updateConfigDataForDomain(req.headers.host)
 
@@ -101,6 +101,7 @@ Server.prototype.start = function (done) {
 
     if (config.get('clientCache.cacheControl')) res.setHeader('Cache-Control', config.get('clientCache.cacheControl'))
     if (config.get('clientCache.etag')) res.setHeader('ETag', config.get('clientCache.etag'))
+    if (req.url === '/api/status') res.setHeader('Cache-Control', 'no-cache')
 
     router(req, res, finalhandler(req, res))
   })

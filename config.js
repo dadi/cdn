@@ -270,7 +270,7 @@ var conf = convict({
     standalone: {
       doc: "If true, status endpoint will run on an standalone address/port.",
       format: Boolean,
-      default: true
+      default: false
     },
     port: {
       doc: "Accept connections on the specified port. A value of zero will assign a random port.",
