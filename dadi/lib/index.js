@@ -77,6 +77,7 @@ Server.prototype.start = function (done) {
     var statusApp = http.createServer(function (req, res) {
       res.setHeader('Server', config.get('server.name'))
       res.setHeader('Access-Control-Allow-Origin', '*')
+      res.setHeader('Cache-Control', 'no-cache')
       statusRouter(req, res, finalhandler(req, res))
     })
 
