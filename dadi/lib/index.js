@@ -10,6 +10,7 @@ var path = require('path')
 var Router = require('router')
 var router = Router()
 var _ = require('underscore')
+var dadiStatus = require('@dadi/status')
 
 // let's ensure there's at least a dev config file here
 var devConfigPath = __dirname + '/../../config/config.development.json'
@@ -37,9 +38,71 @@ Server.prototype.start = function (done) {
     res.end('Welcome to DADI CDN')
   })
 
+  var statusHandler = function (req, res, next) {
+    var method = req.method && req.method.toLowerCase()
+    var authorization = req.headers.authorization
+
+    if (method !== 'post' || config.get('status.enabled') === false) {
+      return next()
+    } else {
+      var params = {
+        site: site,
+        package: '@dadi/cdn',
+        version: version,
+        healthCheck: {
+          authorization: authorization,
+          baseUrl: 'http://' + config.get('server.host') + ':' + config.get('server.port'),
+          routes: config.get('status.routes')
+        }
+      }
+
+      dadiStatus(params, function(err, data) {
+        if (err) return next(err)
+
+        data.status = {
+          status: data.routes[0].status,
+          healthStatus: data.routes[0].healthStatus,
+          message: data.routes[0].healthStatus === 'Green'
+            ? 'Service is responding within specified parameters'
+            : data.routes[0].healthStatus === 'Amber'
+              ? 'Service is responding, but outside of specified parameters'
+              : 'Service is not responding correctly'
+        }
+
+        var resBody = JSON.stringify(data, null, 2)
+
+        res.statusCode = 200
+        res.setHeader('Content-Type', 'application/json')
+        res.setHeader('Content-Length', Buffer.byteLength(resBody))
+        return res.end(resBody)
+      })
+    }
+  }
+
   auth(router)
 
   controller(router)
+
+  // if the status endpoint is set to be standalone, then we need to create a fresh http server
+  if (config.get('status.standalone')) {
+    var statusRouter = Router()
+    config.get('status.requireAuthentication') && auth(statusRouter)
+    statusRouter.use('/api/status', statusHandler)
+
+    var statusApp = http.createServer(function (req, res) {
+      res.setHeader('Server', config.get('server.name'))
+      res.setHeader('Access-Control-Allow-Origin', '*')
+      res.setHeader('Cache-Control', 'no-cache')
+      statusRouter(req, res, finalhandler(req, res))
+    })
+
+    var statusServer = this.statusServer = statusApp.listen(config.get('status.port'))
+    statusServer.on('listening', function () { onStatusListening(this) })
+
+    // TODO: sync this up with `server` so `this.readyState = 1` is true?
+  } else {
+    router.use('/api/status', statusHandler)
+  }
 
   var app = http.createServer(function (req, res) {
     config.updateConfigDataForDomain(req.headers.host)
@@ -49,6 +112,7 @@ Server.prototype.start = function (done) {
 
     if (config.get('clientCache.cacheControl')) res.setHeader('Cache-Control', config.get('clientCache.cacheControl'))
     if (config.get('clientCache.etag')) res.setHeader('ETag', config.get('clientCache.etag'))
+    if (req.url === '/api/status') res.setHeader('Cache-Control', 'no-cache')
 
     router(req, res, finalhandler(req, res))
   })
@@ -76,6 +140,21 @@ function onListening (server) {
     startText += '  ----------------------------\n'
 
     startText += '\n\n  Copyright ' + String.fromCharCode(169) + ' 2015 DADI+ Limited (https://dadi.tech)'.white + '\n'
+
+    console.log(startText)
+  }
+}
+
+function onStatusListening (server) {
+  var env = config.get('env')
+  var address = server.address()
+
+  if (env !== 'test') {
+    var startText = '\n  ----------------------------\n'
+    startText += "  Started standalone status endpoint\n"
+    startText += '  ----------------------------\n'
+    startText += '  Server:      '.green + address.address + ':' + address.port + '\n'
+    startText += '  ----------------------------\n'
 
     console.log(startText)
   }

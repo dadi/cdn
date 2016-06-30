@@ -256,6 +256,39 @@ var conf = convict({
       default: '15f0fff99ed5aae4edffdd6496d7131f'
     }
   },
+  status: {
+  	enabled: {
+      doc: "If true, status endpoint is enabled.",
+      format: Boolean,
+      default: true
+    },
+    requireAuthentication: {
+      doc: "If true, status endpoint requires authentication.",
+      format: Boolean,
+      default: true
+    },
+    standalone: {
+      doc: "If true, status endpoint will run on an standalone address/port.",
+      format: Boolean,
+      default: false
+    },
+    port: {
+      doc: "Accept connections on the specified port. A value of zero will assign a random port.",
+      format: Number,
+      default: 8003,
+      env: "STATUS_PORT"
+    },
+    routes: {
+      doc: "An array of routes to test. Each route object must contain properties `route` and `expectedResponseTime`. Note, `expectedResponseTime` is seconds.",
+      format: Array,
+      default: [
+        {
+          route: '/test.jpg?format=png&quality=50&width=800&height=600',
+          expectedResponseTime: 0.025
+        }
+      ]
+    }
+  },
   security: {
     maxWidth: {
       doc: '',
