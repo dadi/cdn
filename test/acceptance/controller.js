@@ -206,6 +206,46 @@ describe('Controller', function () {
       })
   })
 
+  it('should return image info when format = JSON', function (done) {
+    var newTestConfig = JSON.parse(testConfigString)
+    newTestConfig.images.directory.enabled = true
+    newTestConfig.images.directory.path = './test/images'
+    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+    config.loadFile(config.configPath())
+
+    var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+    client
+      .get('/json/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
+      .end(function(err, res) {
+        res.statusCode.should.eql(200)
+        var info = res.body
+
+        info.fileName.should.eql('test.jpg')
+        info.format.should.eql('jpeg')
+        done()
+      })
+  })
+
+  it('should return 400 when requested crop dimensions are larger than the original image', function (done) {
+    var newTestConfig = JSON.parse(testConfigString)
+    newTestConfig.images.directory.enabled = true
+    newTestConfig.images.directory.path = './test/images'
+    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+    config.loadFile(config.configPath())
+
+    var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+    client
+      .get('/test.jpg?width=2000&cropX=20&cropY=20')
+      .end(function(err, res) {
+        res.statusCode.should.eql(400)
+        res.body.message.should.exist
+
+        done()
+      })
+  })
+
   it('should get image from cache if cache is enabled and cached item exists', function (done) {
     this.timeout(4000)
 

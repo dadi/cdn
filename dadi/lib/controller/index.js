@@ -76,11 +76,10 @@ var Controller = function (router) {
         }
       }).catch(function (err) {
         logger.error({err: err})
-        help.displayErrorPage(err.statusCode, err.message, res)
+        help.sendBackJSON(err.statusCode || 400, err, res)
       })
     }).catch(function (err) {
       help.sendBackJSON(err.statusCode || 400, err, res)
-      //help.displayErrorPage(err.statusCode || 400, err.message, res)
     })
   })
 

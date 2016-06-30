@@ -9,12 +9,8 @@
     "path": "./log",
     "filename": "cdn",
     "extension": "log",
-    "fileRotationPeriod": "1d",
-    "fileRetentionCount": 7,
     "accessLog": {
       "enabled": true,
-      "fileRotationPeriod": "1d",
-      "fileRetentionCount": 7,
       "kinesisStream": ""
     }
   },

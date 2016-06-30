@@ -179,6 +179,7 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
           statusCode: 400,
           message: message
         }
+
         return reject(err)
       }
 
@@ -375,11 +376,17 @@ ImageHandler.prototype.getImageInfo = function (stream, imageInfo, cb) {
       var colour = colorThief.getColor(buffer)
       var primaryColour = RGBtoHex(colour[0], colour[1], colour[2])
       var palette = colorThief.getPalette(buffer, options.colours ? options.colours : 6)
+      var paletteHex = _.map(palette, function(colour) {
+        return RGBtoHex(colour[0], colour[1], colour[2])
+      })
 
       data.format = imageInfo.format
       data.fileSize = fileSize
       data.primaryColor = primaryColour
-      data.palette = palette
+      data.palette = {
+        rgb: palette,
+        hex: paletteHex
+      }
 
       if (self.exifData.image && self.exifData.image.XResolution && self.exifData.image.YResolution) {
         data.density = {

@@ -1,6 +1,6 @@
 # DADI CDN
 
-[![npm version](https://badge.fury.io/js/%40dadi%2Fcdn.svg)](https://badge.fury.io/js/%40dadi%2Fcdn)&nbsp;![Coverage](https://img.shields.io/badge/Coverage-68%-yellow.svg?style=flat-square)
+[![npm version](https://badge.fury.io/js/%40dadi%2Fcdn.svg)](https://badge.fury.io/js/%40dadi%2Fcdn)&nbsp;![Coverage](https://img.shields.io/badge/Coverage-72%-yellow.svg?style=flat-square)
 
 ## Overview
 

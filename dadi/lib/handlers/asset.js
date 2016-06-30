@@ -60,13 +60,11 @@ AssetHandler.prototype.get = function () {
     var message
 
     if (self.compress !== '0' && self.compress !== '1') {
-      message = '<p>Url path is invalid.</p>' +
-        '<p>The valid url path format:</p>' +
-        '<p>http://some-example-domain.com/{format-(js, css)}/{compress-(0, 1)}/JS,CSS file path</p>'
+      message = 'The path format is invalid. Use http://www.example.com/{format-(js, css)}/{compress-(0, 1)}/{filepath}'
     }
 
     if (self.format === 'fonts' && self.supportedExtensions.indexOf(self.fileExt.toLowerCase()) < 0) {
-      message = '<p>Font file type should be TTF, OTF, WOFF, SVG or EOT.</p>'
+      message = 'Font file type should be TTF, OTF, WOFF, SVG or EOT'
     }
 
     if (message) {
