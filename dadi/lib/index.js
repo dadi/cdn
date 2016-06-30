@@ -47,20 +47,7 @@ Server.prototype.start = function (done) {
     // anything to do with auth(router) below?
 
     if (method !== 'post' || config.get('status.enabled') === false) {
-      if (next) {
-        return next()
-      } else {
-        // if we're running an independent endpoint, send back a quick 400 response
-        var resBody = JSON.stringify({
-          status: 400,
-          error: 'bad request'
-        })
-        res.statusCode = 200
-        res.setHeader('Content-Type', 'application/json')
-        res.setHeader('Content-Length', Buffer.byteLength(resBody))
-        res.end(resBody)
-      }
-
+      return next()
     } else {
       var params = {
         site: site,
@@ -87,12 +74,22 @@ Server.prototype.start = function (done) {
 
   // if the status endpoint is set to be independent, then we need to create a fresh http server
   if (config.get('status.independent')) {
-    var statusApp = http.createServer(statusHandler)
+    var statusRouter = Router()
+    auth(statusRouter)
+    statusRouter.use('/api/status', statusHandler)
+
+    var statusApp = http.createServer(function (req, res) {
+      res.setHeader('Server', config.get('server.name'))
+      res.setHeader('Access-Control-Allow-Origin', '*')
+      statusRouter(req, res, finalhandler(req, res))
+    })
+
     var statusServer = this.statusServer = statusApp.listen(config.get('status.port'))
     statusServer.on('listening', function () { onStatusListening(this) })
+
     // TODO: sync this up with `server` so `this.readyState = 1` is true?
   } else {
-    router.use('/status', statusHandler)
+    router.use('/api/status', statusHandler)
   }
 
   auth(router)
