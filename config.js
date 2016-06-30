@@ -281,7 +281,12 @@ var conf = convict({
     routes: {
       doc: "An array of routes to test. Each route object must contain properties `route` and `expectedResponseTime`.",
       format: Array,
-      default: []
+      default: [
+        {
+          route: '/test.jpg?format=png&quality=50&width=800&height=600',
+          expectedResponseTime: 25
+        }
+      ]
     }
   },
   security: {
