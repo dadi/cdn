@@ -80,11 +80,8 @@ Server.prototype.start = function (done) {
     }
   }
 
-  auth(router)
-
-  controller(router)
-
-  // if the status endpoint is set to be standalone, then we need to create a fresh http server
+  // ensure that middleware runs in the correct order,
+  // especially when running an integrated status page
   if (config.get('status.standalone')) {
     var statusRouter = Router()
     config.get('status.requireAuthentication') && auth(statusRouter)
@@ -100,10 +97,18 @@ Server.prototype.start = function (done) {
     var statusServer = this.statusServer = statusApp.listen(config.get('status.port'))
     statusServer.on('listening', function () { onStatusListening(this) })
 
-    // TODO: sync this up with `server` so `this.readyState = 1` is true?
+    auth(router)
   } else {
-    router.use('/api/status', statusHandler)
+    if (config.get('status.requireAuthentication')) {
+      auth(router)
+      router.use('/api/status', statusHandler)
+    } else {
+      router.use('/api/status', statusHandler)
+      auth(router)
+    }
   }
+
+  controller(router)
 
   var app = http.createServer(function (req, res) {
     config.updateConfigDataForDomain(req.headers.host)
