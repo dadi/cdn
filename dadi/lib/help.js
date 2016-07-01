@@ -65,15 +65,14 @@ module.exports.displayErrorPage = function (status, errorMessage, res) {
 /**
  * Display Unauthorization Error Page
  */
-module.exports.displayUnauthorizationError = function (res, message) {
+module.exports.displayUnauthorizedError = function (res) {
   res.statusCode = 401
   res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate')
-  res.setHeader('WWW-Authenticate', 'Bearer realm="cdn-server"')
   res.setHeader('Content-Type', 'application/json')
   res.setHeader('Expires', '-1')
 
   var errorMsg = {
-    Error: message || '401 Unauthorized'
+    Error: 'HTTP 401 Unauthorized'
   }
 
   res.end(JSON.stringify(errorMsg))

@@ -27,8 +27,9 @@ module.exports = function (router) {
     if (req.url === tokenRoute || !mustAuthenticate(req.url)) return next()
 
     // require an authorization header for every request
-    if (!(req.headers && req.headers.authorization))
-      return help.displayUnauthorizationError(res, "There isn't authorization header")
+    if (!(req.headers && req.headers.authorization)) {
+      return fail('NoToken', res)
+    }
 
     // Strip token value out of request headers
     var parts = req.headers.authorization.split(' ')
@@ -39,7 +40,10 @@ module.exports = function (router) {
       token = parts[1]
     }
 
-    if (!token) return fail()
+    if (!token) {
+      return fail('NoToken', res)
+    }
+
     var token_list = persist.getItem('token')
     if (token_list.length > 0) {
       var existToken = 0
@@ -49,13 +53,14 @@ module.exports = function (router) {
           existToken++
         }
       }
+
       if (existToken > 0) {
         return next()
       } else {
-        help.displayUnauthorizationError(res, 'Invalid token')
+        return fail('InvalidToken', res)
       }
     } else {
-      help.displayUnauthorizationError(res, "Token doesn't exist")
+      return fail('NoToken', res)
     }
   })
 
@@ -80,9 +85,24 @@ module.exports = function (router) {
           expiresIn: config.get('auth.tokenTtl')
         }))
       } else {
-        help.displayUnauthorizationError(res)
+        return fail('NoAccess', res)
       }
     }
     next()
   })
+
+  function fail(type, res) {
+    switch (type) {
+      case 'NoToken':
+        res.setHeader('WWW-Authenticate', 'Bearer, error="no_token", error_description="No access token supplied"')
+        break
+      case 'InvalidToken':
+        res.setHeader('WWW-Authenticate', 'Bearer, error="invalid_token", error_description="Invalid or expired access token"')
+        break
+      default:
+        res.setHeader('WWW-Authenticate', 'Bearer realm="/token"');
+    }
+
+    return help.displayUnauthorizedError(res)
+  }
 }
