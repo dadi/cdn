@@ -59,14 +59,15 @@ Server.prototype.start = function (done) {
       dadiStatus(params, function(err, data) {
         if (err) return next(err)
 
+        var responseMessages = {
+          Green: 'Service is responding within specified parameters',
+          Amber: 'Service is responding, but outside of specified parameters'
+        }
+
         data.status = {
           status: data.routes[0].status,
           healthStatus: data.routes[0].healthStatus,
-          message: data.routes[0].healthStatus === 'Green'
-            ? 'Service is responding within specified parameters'
-            : data.routes[0].healthStatus === 'Amber'
-              ? 'Service is responding, but outside of specified parameters'
-              : 'Service is not responding correctly'
+          message: responseMessages[data.routes[0].healthStatus] || 'Service is not responding correctly'
         }
 
         var resBody = JSON.stringify(data, null, 2)
