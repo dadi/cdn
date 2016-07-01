@@ -1,36 +1,31 @@
 # DADI CDN
 
-## Delviery recipes
+## Asset Delivery Recipes
 
-A Recipe is a predefined set of configuration options that are made avialble via a shortened URL, which hides the configuration options.
+A "recipe" is a predefined set of configuration options that are made avialble via a shortened URL, hiding the configuration options from the end user.
 
 Recipes are defined in JSON files held in the `/workspace/recipes` folder.
 
-### Example recipe
+**Example recipe**
 
-	{
-		"recipe": "example-recipe-name",
-		"settings": {
-			"format": "jpg",
-			"quality": "80",
-			"trim": "0",
-			"trimFuzz": "0",
-			"width": "1024",
-			"height": "768",
-			"resizeStyle": "0",
-			"gravity": "0",
-			"filter": "0",
-			"blur": "0",
-			"strip": "0",
-			"rotate": "0",
-			"flip": "0"
-		}
-	}
+```js
+{
+  "recipe": "thumbnail",
+  "settings": {
+    "format": "jpg",
+    "quality": "80",
+    "width": "150",
+    "height": "150",
+    "resizeStyle": "crop"
+  }
+}
+```
 
-### Using a recepe
+### Using a Recipe
 
-Making use of a recepe is simple: call your image via the recipe name defined in the recepe JSON.
+Making use of a recipe is simple: call your image via the recipe name defined in the recipe JSON.
 
 For example:
 
-`http://youdomain.com/example-recipe-name/image-filename.png`
+`http://www.example.com/thumbnail/image-filename.jpg`
+

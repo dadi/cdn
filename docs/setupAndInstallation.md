@@ -1,5 +1,9 @@
 # DADI CDN
 
+## Requirements
+
+* Node.js (following Node.js LTS, currently v4.0)
+
 ## Setup and installation
 
 `$ [sudo] git clone https://github.com/dadi/cdn.git`

@@ -2,23 +2,17 @@
 
 ## Working with images
 
-The weight of the average product screen is about 2MB, and about two thirds of that weight comes from images. At the same time, a huge number of people are now accessing the Internet on 3G-or-worse connections that make a 2MB screen load a bit of a horror show. Even on a fast connection, a 2MB screen can wreak havoc on your users' data plans.
-
-Average byte per screen by content type:
-
-![Page weight breakdown](../assets/page-weight-graph.png)
-
-Improving web performance and giving a better experience is critical to good product design.
-
-Responsive images to the rescue! Right? Well, yes, but first we have to generate our responsive image assets. Thankfully DADI CDN makes this simple.
-
 ### Request structure
 
 There are currently two formats for requesting assets from DADI CDN.
 
 #### Version 1
 
-`http(s)://www.example.com/{format}/{quality}/{trim}/{trimFuzz}/{width}/{height}/{crop-x}/{crop-y}/{ratio}/{devicePixelRatio}/{resizeStyle}/{gravity}/{filter}/{blur}/{strip}/{rotate}/{flip}/{srcData}`
+`http(s)://cdn.example.com/{format}/{quality}/{trim}/{trimFuzz}/{width}/{height}/{crop-x}/{crop-y}/{ratio}/{devicePixelRatio}/{resizeStyle}/{gravity}/{filter}/{blur}/{strip}/{rotate}/{flip}/{srcData}`
+
+**Example**
+
+`http://cdn.example.com/png/75/0/0/100/100/0/0/1-1/1/0/0/0/0/0/0/0/path/to/file.jpg`
 
 #### Version 2
 
@@ -26,18 +20,20 @@ The second version of the request is less rigid than the original, utilising the
 
 The basic form is:
 
-`http(s)://www.example.com/{srcData}`
+`http(s)://cdn.example.com/{srcData}`
 
-Any of the below parameters can then be added as querystring options. For example:
+Any of the below parameters can then be added as querystring options.
 
-`http(s)://www.example.com/{srcData}?format=jpg&quality=70&width=100&height=100`
+**Example**
+
+`http://cdn.example.com/path/to/file.jpg?format=png&quality=75&width=100&height=100`
 
 **Note:** The version of request structure is determined by the presence or absence of a querystring. If you need
 to deliver an asset in it's original state with no manipulation options specified, it is required
 to add a dummy querystring to the request, e.g. `http(s)://www.example.com/{srcData}?v2`.
 
 If the querystring is not present, DADI CDN will assume the request structure is using Version 1 and the
-request will fail due to the missing path parameters.
+request will fail due to missing path parameters.
 
 ### Image manipulation options
 
@@ -56,8 +52,8 @@ _Note: the format of the source image is automatically identified by DADI CDN_
 | ratio | String | Default: 0.  Aspect ratio cropping. E.g. '16-9', '3-2' |
 | devicePixelRatio | Integer | Default: 0. Zoom In/Out of Image |
 | resizeStyle | String | Default: 0 (interpreted as 'aspectfill'). Options: 'aspectfill', 'aspectfit', 'fill', 'crop' |
-| gravity | String | Default: 0 (interipted as 'none'). Used to position the crop area when resizeStyle is 'aspectfill'. Options: 'NorthWest', 'North', 'NorthEast', 'West', 'Center', 'East', 'SouthWest', 'South', 'SouthEast', 'None' |
-| filter | String | Default: 0 (interipted as 'none'). Resize filter. E.g. 'Lagrange', 'Lanczos'. See docs below for full list of candidates |
+| gravity | String | Default: 0 (interpreted as 'none'). Used to position the crop area when resizeStyle is 'aspectfill'. Options: 'NorthWest', 'North', 'NorthEast', 'West', 'Center', 'East', 'SouthWest', 'South', 'SouthEast', 'None' |
+| filter | String | Default: 0 (interpreted as 'none'). Resize filter. E.g. 'Lagrange', 'Lanczos'. See docs below for full list of filters |
 | blur | Integer | 0-1, default: 0. Adds blur to the image |
 | strip | Boolean | Default: 0. Strips comments out from image |
 | rotate | Integer | Default: 0. Rotates an image. Degrees |

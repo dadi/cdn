@@ -35,4 +35,4 @@ _Additional labels for pre-release and build metadata are available as extension
 
 Very daring.
 
-Fork, hack, possibly even add some tests, then send a pull request :)
+Fork, hack, add some tests, then send a pull request :)
