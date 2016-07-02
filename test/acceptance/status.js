@@ -4,6 +4,7 @@ var path = require('path')
 var should = require('should')
 var sinon = require('sinon')
 var request = require('supertest')
+var _ = require('underscore')
 
 var cache = require(__dirname + '/../../dadi/lib/cache')
 var config = require(__dirname + '/../../config')
@@ -30,7 +31,7 @@ function updateConfigAndReloadApp (configOverride) {
   config = require(__dirname + '/../../config')
 
   var testConfigString = fs.readFileSync(config.configPath())
-  var newTestConfig = _.mergeWith({}, JSON.parse(testConfigString), defaultConfig, configOverride)
+  var newTestConfig = _.extend({}, JSON.parse(testConfigString), defaultConfig, configOverride)
 
   fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
   config.loadFile(config.configPath())
@@ -140,7 +141,7 @@ describe('Status', function () {
     describe('Authenticated', function () {
 
       beforeEach(function (done) {
-        updateConfigAndReloadApp({ "status": { "standalone": true } })
+        updateConfigAndReloadApp({ "status": { "standalone": true, "requireAuthentication": true } })
 
         app.start(function (err) {
           if (err) return done(err)
@@ -167,7 +168,10 @@ describe('Status', function () {
         client
           .post(statusRoute)
           .expect('content-type', 'application/json')
-          .expect(401, done)
+          .end(function(err, res) {
+            res.statusCode.should.eql(401)
+            done()
+          })
       })
 
       it('should return ok if token is given', function (done) {
