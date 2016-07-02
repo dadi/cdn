@@ -172,8 +172,16 @@ Server.prototype.stop = function (done) {
   this.readyState = 3
 
   this.server.close(function (err) {
-    self.readyState = 0
-    done && done(err)
+    // if statusServer is running in standalone, close that too
+    if (self.statusServer) {
+      self.statusServer.close(function (err) {
+        self.readyState = 0
+        done && done(err)
+      })
+    } else {
+      self.readyState = 0
+      done && done(err)
+    }
   })
 }
 
