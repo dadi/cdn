@@ -13,7 +13,7 @@ var imageHandler = require(__dirname + '/../../dadi/lib/handlers/image')
 var testConfigString
 
 describe('Controller', function () {
-  this.timeout(4000)
+  this.timeout(6000)
   var tokenRoute = config.get('auth.tokenUrl')
 
   beforeEach(function (done) {
@@ -96,7 +96,7 @@ describe('Controller', function () {
   })
 
   describe('Assets', function (done) {
-    this.timeout(5000)
+    this.timeout(10000)
 
     beforeEach(function (done) {
       var newTestConfig = JSON.parse(testConfigString)
