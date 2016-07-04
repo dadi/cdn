@@ -4,7 +4,6 @@ var path = require('path')
 var should = require('should')
 var sinon = require('sinon')
 var request = require('supertest')
-var _ = require('underscore')
 
 var cache = require(__dirname + '/../../dadi/lib/cache')
 var config = require(__dirname + '/../../config')
