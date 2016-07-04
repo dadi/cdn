@@ -135,6 +135,7 @@ Server.prototype.start = function (done) {
   })
 
   configWatcher.on('change', function (filePath) {
+    console.log(filePath)
     config.loadFile(filePath)
   })
 
@@ -147,6 +148,7 @@ Server.prototype.start = function (done) {
   })
 
   recipesWatcher.on('change', function (filePath) {
+    console.log(filePath)
     delete require.cache[filePath]
   })
 
