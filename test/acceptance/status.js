@@ -1,4 +1,4 @@
-var _ = require('lodash')
+var _ = require('underscore')
 var fs = require('fs')
 var path = require('path')
 var should = require('should')
