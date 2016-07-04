@@ -123,25 +123,25 @@ var conf = convict({
         doc: '',
         format: String,
         default: '',
-        env: 'AWS_S3_ACCESS_KEY'
+        env: 'AWS_S3_IMAGES_ACCESS_KEY'
       },
       secretKey: {
         doc: '',
         format: String,
         default: '',
-        env: 'AWS_S3_SECRET_KEY'
+        env: 'AWS_S3_IMAGES_SECRET_KEY'
       },
       bucketName: {
         doc: '',
         format: String,
         default: '',
-        env: 'AWS_S3_BUCKET_NAME'
+        env: 'AWS_S3_IMAGES_BUCKET_NAME'
       },
       region: {
         doc: '',
         format: String,
         default: '',
-        env: 'AWS_S3_REGION'
+        env: 'AWS_S3_IMAGES_REGION'
       }
     },
     remote: {
@@ -180,25 +180,25 @@ var conf = convict({
         doc: '',
         format: String,
         default: '',
-        env: 'AWS_S3_ACCESS_KEY'
+        env: 'AWS_S3_ASSETS_ACCESS_KEY'
       },
       secretKey: {
         doc: '',
         format: String,
         default: '',
-        env: 'AWS_S3_SECRET_KEY'
+        env: 'AWS_S3_ASSETS_SECRET_KEY'
       },
       bucketName: {
         doc: '',
         format: String,
         default: '',
-        env: 'AWS_S3_BUCKET_NAME'
+        env: 'AWS_S3_ASSETS_BUCKET_NAME'
       },
       region: {
         doc: '',
         format: String,
         default: '',
-        env: 'AWS_S3_REGION'
+        env: 'AWS_S3_ASSETS_REGION'
       }
     },
     remote: {
