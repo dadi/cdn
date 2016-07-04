@@ -297,4 +297,68 @@ describe('Recipes', function () {
         .expect(404, done)
     })
   })
+
+  describe('File change monitor', function () {
+    it('should reload the recipe when the file changes', function (done) {
+
+      // set some config values
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.caching.directory.enabled = false
+      newTestConfig.caching.redis.enabled = false
+      cache.reset()
+      newTestConfig.images.directory.enabled = true
+      newTestConfig.images.directory.path = './test/images'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+      config.loadFile(config.configPath())
+
+      var factory = require(__dirname + '/../../dadi/lib/handlers/factory')
+      var spy = sinon.spy(factory.HandlerFactory.prototype, 'createFromFormat')
+
+      help.getBearerToken(function (err, token) {
+        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+
+        sample.recipe = 'thumbnail'
+
+        client
+        .post('/api/recipes/new')
+        .send(sample)
+        .set('Authorization', 'Bearer ' + token)
+        .end(function(err ,res) {
+          res.statusCode.should.eql(201)
+
+          client
+          .get('/thumbnail/test.jpg')
+          .end(function(err ,res) {
+
+            factory.HandlerFactory.prototype.createFromFormat.restore()
+            spy.firstCall.args[0].should.eql('thumbnail')
+            spy.secondCall.args[0].should.eql('jpg')
+
+            // Change the format within the recipe
+            var recipeContent = fs.readFileSync(path.join(path.resolve(config.get('paths.recipes')), 'thumbnail.json'))
+            var recipe = JSON.parse(recipeContent.toString())
+            recipe.settings.format = 'png'
+
+            fs.writeFileSync(path.join(path.resolve(config.get('paths.recipes')), 'thumbnail.json'), JSON.stringify(recipe))
+
+            spy = sinon.spy(factory.HandlerFactory.prototype, 'createFromFormat')
+
+            setTimeout(function() {
+              client
+              .get('/thumbnail/test.jpg')
+              .end(function(err ,res) {
+
+                factory.HandlerFactory.prototype.createFromFormat.restore()
+                spy.firstCall.args[0].should.eql('thumbnail')
+                spy.secondCall.args[0].should.eql('png')
+
+                done()
+              })
+            }, 1000)
+          })
+        })
+      })
+    })
+  })
 })

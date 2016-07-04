@@ -1,6 +1,7 @@
 var site = require('../../package.json').name
 var version = require('../../package.json').version
 var nodeVersion = Number(process.version.match(/^v(\d+\.\d+)/)[1])
+var chokidar = require('chokidar')
 var colors = require('colors')
 var bodyParser = require('body-parser')
 var finalhandler = require('finalhandler')
@@ -125,6 +126,29 @@ Server.prototype.start = function (done) {
 
   var server = this.server = app.listen(config.get('server.port'))
   server.on('listening', function () { onListening(this) })
+
+  // Monitor config.json file and reload it on change
+  var configWatcher = chokidar.watch(configPath, {
+    depth: 0,
+    ignored: /[\/\\]\./,
+    ignoreInitial: true
+  })
+
+  configWatcher.on('change', function (filePath) {
+    config.loadFile(filePath)
+  })
+
+  // Monitor recipes folders and files
+  var recipeDir = path.resolve(config.get('paths.recipes'))
+
+  var recipesWatcher = chokidar.watch(recipeDir, {
+    ignored: /[\/\\]\./,
+    ignoreInitial: true
+  })
+
+  recipesWatcher.on('change', function (filePath) {
+    delete require.cache[filePath]
+  })
 
   this.readyState = 1
 

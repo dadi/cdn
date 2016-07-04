@@ -13,27 +13,12 @@ var logger = require('@dadi/logger')
 var configPath = path.resolve(__dirname + '/../../../config')
 var config = require(__dirname + '/../../../config')
 var help = require(__dirname + '/../help')
-var monitor = require(__dirname + '/../monitor')
 var HandlerFactory = require(__dirname + '/../handlers/factory')
 
 logger.init(config.get('logging'), config.get('aws'), config.get('env'))
 
 var Controller = function (router) {
   var self = this
-  this.monitors = {}
-
-  // Monitor config.json file
-  self.addMonitor(configPath, function (filename) {
-    delete require.cache[configPath]
-    config = require(configPath)
-  })
-
-  // Monitor recipes folders and files
-  var recipeDir = path.resolve(config.get('paths.recipes'))
-
-  self.addMonitor(recipeDir, function (filename) {
-    delete require.cache[recipeDir + '/' + filename]
-  })
 
   router.use(logger.requestLogger)
 
@@ -160,14 +145,6 @@ var Controller = function (router) {
       console.log(err)
     }
   })
-}
-
-Controller.prototype.addMonitor = function (filepath, callback) {
-  filepath = path.normalize(filepath)
-  if (this.monitors[filepath]) return
-  var m = monitor(filepath)
-  m.on('change', callback)
-  this.monitors[filepath] = m
 }
 
 Controller.prototype.validateRecipe = function (recipe) {
