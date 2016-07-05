@@ -84,17 +84,20 @@ var conf = convict({
     accessKeyId: {
       doc: '',
       format: String,
-      default: ''
+      default: '',
+      env: 'AWS_ACCESS_KEY'
     },
     secretAccessKey: {
       doc: '',
       format: String,
-      default: ''
+      default: '',
+      env: 'AWS_SECRET_KEY'
     },
     region: {
       doc: '',
       format: String,
-      default: ''
+      default: '',
+      env: 'AWS_REGION'
     }
   },
   images: {
@@ -119,22 +122,26 @@ var conf = convict({
       accessKey: {
         doc: '',
         format: String,
-        default: ''
+        default: '',
+        env: 'AWS_S3_IMAGES_ACCESS_KEY'
       },
       secretKey: {
         doc: '',
         format: String,
-        default: ''
+        default: '',
+        env: 'AWS_S3_IMAGES_SECRET_KEY'
       },
       bucketName: {
         doc: '',
         format: String,
-        default: ''
+        default: '',
+        env: 'AWS_S3_IMAGES_BUCKET_NAME'
       },
       region: {
         doc: '',
         format: String,
-        default: ''
+        default: '',
+        env: 'AWS_S3_IMAGES_REGION'
       }
     },
     remote: {
@@ -172,22 +179,26 @@ var conf = convict({
       accessKey: {
         doc: '',
         format: String,
-        default: ''
+        default: '',
+        env: 'AWS_S3_ASSETS_ACCESS_KEY'
       },
       secretKey: {
         doc: '',
         format: String,
-        default: ''
+        default: '',
+        env: 'AWS_S3_ASSETS_SECRET_KEY'
       },
       bucketName: {
         doc: '',
         format: String,
-        default: ''
+        default: '',
+        env: 'AWS_S3_ASSETS_BUCKET_NAME'
       },
       region: {
         doc: '',
         format: String,
-        default: ''
+        default: '',
+        env: 'AWS_S3_ASSETS_REGION'
       }
     },
     remote: {
@@ -230,30 +241,21 @@ var conf = convict({
       host: {
         doc: 'The Redis server host',
         format: String,
-        default: ''
+        default: '',
+        env: 'REDIS_HOST'
       },
       port: {
         doc: 'The port for the Redis server',
         format: 'port',
-        default: 6379
+        default: 6379,
+        env: 'REDIS_PORT'
       },
       password: {
         doc: '',
         format: String,
-        default: ''
+        default: '',
+        env: 'REDIS_PASSWORD'
       }
-    }
-  },
-  clientCache: {
-    cacheControl: {
-      doc: '',
-      format: String,
-      default: 'public, max-age=3600'
-    },
-    etag: {
-      doc: '',
-      format: String,
-      default: '15f0fff99ed5aae4edffdd6496d7131f'
     }
   },
   status: {
@@ -310,17 +312,20 @@ var conf = convict({
     clientId: {
       doc: '',
       format: String,
-      default: '1235488'
+      default: '1235488',
+      env: "AUTH_TOKEN_ID"
     },
     secret: {
       doc: '',
       format: String,
-      default: 'asd544see68e52'
+      default: 'asd544see68e52',
+      env: "AUTH_TOKEN_SECRET"
     },
     tokenTtl: {
       doc: '',
       format: Number,
-      default: 1800
+      default: 1800,
+      env: "AUTH_TOKEN_TTL"
     }
   },
   cloudfront: {
@@ -332,17 +337,20 @@ var conf = convict({
     accessKey: {
       doc: '',
       format: String,
-      default: 'AKIAJJHIE6YB7FVGVL7Q'
+      default: '',
+      env: "CLOUDFRONT_ACCESS_KEY"
     },
     secretKey: {
       doc: '',
       format: String,
-      default: 'OvIoiLgxQZszDuGCr5YWqKE/mNKlgSop+RqrkBTN'
+      default: '',
+      env: "CLOUDFRONT_SECRET_KEY"
     },
     distribution: {
       doc: '',
       format: String,
-      default: 'target_distribution'
+      default: '',
+      env: "CLOUDFRONT_DISTRIBUTION"
     }
   },
   cluster: {
@@ -361,6 +369,26 @@ var conf = convict({
     doc: "If true, uses gzip compression and adds a 'Content-Encoding:gzip' header to the response",
     format: Boolean,
     default: true
+  },
+  headers: {
+    useGzipCompression: {
+      doc: "If true, uses gzip compression and adds a 'Content-Encoding:gzip' header to the response.",
+      format: Boolean,
+      default: true
+    },
+    cacheControl: {
+      doc: "A set of cache control headers based on specified mimetypes or paths",
+      format: Object,
+      default: {
+        "default": "public, max-age=3600",
+        "paths": [],
+        "mimetypes": [
+          {"text/css": "public, max-age=86400"},
+          {"text/javascript": "public, max-age=86400"},
+          {"application/javascript": "public, max-age=86400"}
+        ]
+      }
+    }
   },
   feedback: {
     doc: '',

@@ -22,7 +22,8 @@ var AssetHandler = function (format, req) {
   this.supportedExtensions = ['ttf', 'otf', 'woff', 'svg', 'eot']
   this.format = format
   this.compress = '0'
-  this.factory = Object.create(StorageFactory)
+  this.storageFactory = Object.create(StorageFactory)
+  this.storageHandler = null
   this.cache = Cache()
 
   this.req = req
@@ -83,9 +84,9 @@ AssetHandler.prototype.get = function () {
         return resolve(stream)
       }
 
-      var storage = self.factory.create('asset', self.fullUrl, self.hasQuery)
+      self.storageHandler = self.storageFactory.create('asset', self.fullUrl, self.hasQuery)
 
-      storage.get().then(function (stream) {
+      self.storageHandler.get().then(function (stream) {
         // compress, returns stream
         self.compressFile(stream).then(function (stream) {
           // cache, returns stream
@@ -164,6 +165,16 @@ AssetHandler.prototype.contentType = function () {
   else if (this.fileExt === 'woff') {
     return 'application/font-woff'
   }
+}
+
+AssetHandler.prototype.getFilename = function () {
+  return this.fileName
+}
+
+AssetHandler.prototype.getLastModified = function () {
+  if (!this.storageHandler || !this.storageHandler.getLastModified) return null
+
+  return this.storageHandler.getLastModified()
 }
 
 module.exports = function (format, req) {
