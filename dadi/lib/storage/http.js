@@ -14,10 +14,10 @@ var HTTPStorage = function (settings, url) {
 
   this.url = url
   this.baseUrl = settings.remote.path
+}
 
-  this.getFullUrl = function () {
-    return urljoin(self.baseUrl, self.url.replace('/http/', ''))
-  }
+HTTPStorage.prototype.getFullUrl = function () {
+  return urljoin(this.baseUrl, this.url.replace('/http/', ''))
 }
 
 HTTPStorage.prototype.get = function () {

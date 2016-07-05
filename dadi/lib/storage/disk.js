@@ -11,10 +11,14 @@ var DiskStorage = function (settings, url) {
 
   this.url = nodeUrl.parse(url, true).pathname
   this.path = path.resolve(settings.directory.path)
+}
 
-  this.getFullUrl = function () {
-    return path.join(self.path, self.url.replace('disk', ''))
-  }
+DiskStorage.prototype.getFullUrl = function () {
+  return path.join(this.path, this.url.replace('disk', ''))
+}
+
+DiskStorage.prototype.getLastModified = function () {
+  return this.lastModified
 }
 
 DiskStorage.prototype.get = function () {
@@ -28,6 +32,8 @@ DiskStorage.prototype.get = function () {
       // check file size
       var stats = fs.statSync(self.getFullUrl())
       var fileSize = parseInt(stats.size)
+
+      self.lastModified = stats.mtime
 
       if (fileSize === 0) {
         var err = {

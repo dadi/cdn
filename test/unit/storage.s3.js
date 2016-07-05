@@ -172,7 +172,7 @@ describe('Storage', function (done) {
       var im = new imageHandler('jpg', req)
 
       // create the s3 handler
-      var storage = im.factory.create('image', req.url)
+      var storage = im.storageFactory.create('image', req.url)
 
       return storage.get().then(function (stream) {
       })
