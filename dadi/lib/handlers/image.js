@@ -29,7 +29,8 @@ var ImageHandler = function (format, req) {
   var self = this
 
   this.req = req
-  this.factory = Object.create(StorageFactory)
+  this.storageFactory = Object.create(StorageFactory)
+  this.storageHandler = null
   this.cache = Cache()
 
   var parsedUrl = url.parse(this.req.url, true)
@@ -91,9 +92,9 @@ ImageHandler.prototype.get = function () {
       }
 
       // not in cache, get image from source
-      var storage = self.factory.create('image', self.url)
+      self.storageHandler = self.storageFactory.create('image', self.url)
 
-      storage.get().then(function (stream) {
+      self.storageHandler.get().then(function (stream) {
         var cacheStream = new PassThrough()
         var convertStream = new PassThrough()
         var imageSizeStream = new PassThrough()
@@ -518,6 +519,16 @@ ImageHandler.prototype.contentType = function () {
     default:
       return 'image/jpeg'
   }
+}
+
+ImageHandler.prototype.getFilename = function () {
+  return this.fileName
+}
+
+ImageHandler.prototype.getLastModified = function () {
+  if (!this.storageHandler || !this.storageHandler.getLastModified) return null
+
+  return this.storageHandler.getLastModified()
 }
 
 module.exports = function (format, req) {

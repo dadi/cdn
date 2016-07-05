@@ -258,18 +258,6 @@ var conf = convict({
       }
     }
   },
-  clientCache: {
-    cacheControl: {
-      doc: '',
-      format: String,
-      default: 'public, max-age=3600'
-    },
-    etag: {
-      doc: '',
-      format: String,
-      default: '15f0fff99ed5aae4edffdd6496d7131f'
-    }
-  },
   status: {
   	enabled: {
       doc: "If true, status endpoint is enabled.",
@@ -381,6 +369,26 @@ var conf = convict({
     doc: "If true, uses gzip compression and adds a 'Content-Encoding:gzip' header to the response",
     format: Boolean,
     default: true
+  },
+  headers: {
+    useGzipCompression: {
+      doc: "If true, uses gzip compression and adds a 'Content-Encoding:gzip' header to the response.",
+      format: Boolean,
+      default: true
+    },
+    cacheControl: {
+      doc: "A set of cache control headers based on specified mimetypes or paths",
+      format: Object,
+      default: {
+        "default": "public, max-age=3600",
+        "paths": [],
+        "mimetypes": [
+          {"text/css": "public, max-age=86400"},
+          {"text/javascript": "public, max-age=86400"},
+          {"application/javascript": "public, max-age=86400"}
+        ]
+      }
+    }
   },
   feedback: {
     doc: '',

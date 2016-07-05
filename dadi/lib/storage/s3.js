@@ -22,7 +22,7 @@ var S3Storage = function (settings, url) {
   this.getBucket = function () {
     if (self.url.indexOf('s3') > 0) {
       return _.compact(self.urlParts())[0]
-    }else {
+    } else {
       return settings.s3.bucketName
     }
   }
@@ -35,7 +35,7 @@ var S3Storage = function (settings, url) {
     }
     else if (self.url.substring(1) === '/') {
       return self.url.substring(1)
-    }else {
+    } else {
       return self.url
     }
   }
@@ -47,10 +47,18 @@ var S3Storage = function (settings, url) {
     }
     else if (self.url.substring(1) === '/') {
       return self.url.substring(1).split('/')
-    }else {
+    } else {
       return self.url.split('/')
     }
   }
+}
+
+S3Storage.prototype.getFullUrl = function () {
+  return self.url.replace('/s3', '')
+}
+
+S3Storage.prototype.getLastModified = function () {
+  return this.lastModified
 }
 
 S3Storage.prototype.get = function () {
@@ -79,6 +87,11 @@ S3Storage.prototype.get = function () {
 
     promise.then(
       function (data) {
+
+        if (data.LastModified) {
+          self.lastModified = data.LastModified
+        }
+
         var bufferStream = new stream.PassThrough()
         bufferStream.push(data.Body)
         bufferStream.push(null)

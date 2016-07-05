@@ -1,7 +1,9 @@
 var cloudfront = require('cloudfront')
 var concat = require('concat-stream')
+var etag = require('etag')
 var fs = require('fs')
 var lengthStream = require('length-stream')
+var mime = require('mime')
 var PassThrough = require('stream').PassThrough
 var path = require('path')
 var sha1 = require('sha1')
@@ -27,22 +29,31 @@ var Controller = function (router) {
 
     factory.create(req).then(function (handler) {
       return handler.get().then(function (stream) {
-        if (handler.contentType()) {
-          res.setHeader('Content-Type', handler.contentType())
-        }
 
-        if (handler.cached) {
-          res.setHeader('X-Cache', 'HIT')
-        } else {
-          res.setHeader('X-Cache', 'MISS')
-        }
+        self.addContentTypeHeader(res, handler)
+        self.addCacheControlHeader(res, handler)
+        self.addLastModifiedHeader(res, handler)
 
         var contentLength = 0
 
         // receive the concatenated buffer and send the response
+        // unless the etag hasn't changed, then send 304 and end the response
         function sendBuffer (buffer) {
           res.setHeader('Content-Length', contentLength)
-          res.end(buffer)
+          res.setHeader('ETag', etag(buffer))
+
+          if (req.headers['if-none-match'] === etag(buffer) && handler.contentType() !== 'application/json') {
+            res.statusCode = 304
+            res.end()
+          } else {
+            if (handler.cached) {
+              res.setHeader('X-Cache', 'HIT')
+            } else {
+              res.setHeader('X-Cache', 'MISS')
+            }
+
+            res.end(buffer)
+          }
         }
 
         function lengthListener (length) {
@@ -51,8 +62,9 @@ var Controller = function (router) {
 
         var concatStream = concat(sendBuffer)
 
-        if (config.get('gzip') && handler.contentType() !== 'application/json') {
+        if (config.get('headers.useGzipCompression') && handler.contentType() !== 'application/json') {
           res.setHeader('Content-Encoding', 'gzip')
+
           var gzipStream = stream.pipe(zlib.createGzip())
           gzipStream = gzipStream.pipe(lengthStream(lengthListener))
           gzipStream.pipe(concatStream)
@@ -145,6 +157,58 @@ var Controller = function (router) {
       console.log(err)
     }
   })
+}
+
+Controller.prototype.addContentTypeHeader = function (res, handler) {
+  if (handler.contentType()) {
+    res.setHeader('Content-Type', handler.contentType())
+  }
+}
+
+Controller.prototype.addLastModifiedHeader = function (res, handler) {
+  if (!handler) return
+
+  if (handler.getLastModified) {
+    res.setHeader('Last-Modified', handler.getLastModified())
+  }
+}
+
+Controller.prototype.addCacheControlHeader = function (res, handler) {
+
+  var configHeaderSets = config.get('headers.cacheControl')
+
+  // If it matches, sets Cache-Control header using the file path
+  _.each(configHeaderSets.paths, function (obj) {
+    var key = Object.keys(obj)[0]
+    var value = obj[key]
+
+    if (handler.storageHandler.getFullUrl().indexOf(key) > -1) {
+      setHeader(value)
+    }
+  })
+
+  // If not already set, sets Cache-Control header using the file mimetype
+  _.each(configHeaderSets.mimetypes, function (obj) {
+    var key = Object.keys(obj)[0]
+    var value = obj[key]
+
+    if (mime.lookup(handler.getFilename()) === key) {
+      setHeader(value)
+    }
+  })
+
+  // If not already set, sets Cache-Control header using the default
+  setHeader(configHeaderSets.default)
+
+  function setHeader(value) {
+    if (_.isEmpty(value)) return
+
+    // already set
+    if (res._headers['cache-control']) return
+
+    // set the header
+    res.setHeader('Cache-Control', value)
+  }
 }
 
 Controller.prototype.validateRecipe = function (recipe) {

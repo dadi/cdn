@@ -27,6 +27,8 @@ var auth = require(__dirname + '/auth')
 var controller = require(__dirname + '/controller')
 var configPath = path.resolve(__dirname + '/../../config')
 var config = require(configPath)
+var configWatcher
+var recipesWatcher
 
 var Server = function () {}
 
@@ -117,8 +119,6 @@ Server.prototype.start = function (done) {
     res.setHeader('Server', config.get('server.name'))
     res.setHeader('Access-Control-Allow-Origin', '*')
 
-    if (config.get('clientCache.cacheControl')) res.setHeader('Cache-Control', config.get('clientCache.cacheControl'))
-    if (config.get('clientCache.etag')) res.setHeader('ETag', config.get('clientCache.etag'))
     if (req.url === '/api/status') res.setHeader('Cache-Control', 'no-cache')
 
     router(req, res, finalhandler(req, res))
@@ -128,27 +128,27 @@ Server.prototype.start = function (done) {
   server.on('listening', function () { onListening(this) })
 
   // Monitor config.json file and reload it on change
-  var configWatcher = chokidar.watch(configPath, {
+  configWatcher = chokidar.watch(configPath, {
     depth: 0,
     ignored: /[\/\\]\./,
     ignoreInitial: true
   })
 
   configWatcher.on('change', function (filePath) {
-    console.log(filePath)
+    //console.log(filePath)
     config.loadFile(filePath)
   })
 
   // Monitor recipes folders and files
   var recipeDir = path.resolve(config.get('paths.recipes'))
 
-  var recipesWatcher = chokidar.watch(recipeDir, {
+  recipesWatcher = chokidar.watch(recipeDir, {
     ignored: /[\/\\]\./,
     ignoreInitial: true
   })
 
   recipesWatcher.on('change', function (filePath) {
-    console.log(filePath)
+    //console.log(filePath)
     delete require.cache[filePath]
   })
 
@@ -196,6 +196,9 @@ function onStatusListening (server) {
 Server.prototype.stop = function (done) {
   var self = this
   this.readyState = 3
+
+  configWatcher.close()
+  recipesWatcher.close()
 
   this.server.close(function (err) {
     // if statusServer is running in standalone, close that too
