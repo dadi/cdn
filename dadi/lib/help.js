@@ -50,20 +50,7 @@ module.exports.sendBackJSONP = function (callbackName, results, res) {
 }
 
 /**
- * Display Error Page
- * status: status code
- * errorMessage: Error Message to display in the error page.
- */
-module.exports.displayErrorPage = function (status, errorMessage, res) {
-  res.statusCode = status || 500
-  res.setHeader('Content-Type', 'text/html')
-  res.write('<h1>Server Error</h1>')
-  res.write('<pre>' + errorMessage + '</pre>')
-  res.end()
-}
-
-/**
- * Display Unauthorization Error Page
+ * Display Unauthorized Error
  */
 module.exports.displayUnauthorizedError = function (res) {
   res.statusCode = 401
