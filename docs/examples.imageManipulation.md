@@ -12,7 +12,7 @@ Convert from one format to another with quality control.
 
 **Request**
 
-`http(s)://your-domain.media/png/100/0/0/1920/1080/0/0/0/0/0/0/0/path/to/image.jpg`
+`http://cdn.example.com/png/100/0/0/1920/1080/0/0/0/0/0/0/0/path/to/image.jpg`
 
 **Converted to PNG**
 
@@ -22,7 +22,7 @@ Convert from one format to another with quality control.
 
 **Request**
 
-`http(s)://your-domain.media/jpg/80/0/0/1920/1080/0/0/0/5/0/0/0/path/to/image.jpg`
+`http://cdn.example.com/jpg/80/0/0/1920/1080/0/0/0/5/0/0/0/path/to/image.jpg`
 
 **Output**
 
@@ -38,19 +38,19 @@ Resized images by specifying width and height. There are three resizing styles:
 
 **aspectfill**
 
-`http(s)://your-domain.media/jpg/100/0/0/1920/1080/aspectfill/center/0/0/0/0/0/path/to/image.jpg`
+`http://cdn.example.com/jpg/100/0/0/1920/1080/aspectfill/center/0/0/0/0/0/path/to/image.jpg`
 
 ![Original image](../assets/aspectfill.jpg)
 
 **aspectfit**
 
-`http(s)://your-domain.media/jpg/100/0/0/1920/1080/aspectfit/center/0/0/0/0/0/path/to/image.jpg`
+`http://cdn.example.com/jpg/100/0/0/1920/1080/aspectfit/center/0/0/0/0/0/path/to/image.jpg`
 
 ![Original image](../assets/aspectfit.jpg)
 
 **fill**
 
-`http(s)://your-domain.media/jpg/100/0/0/1920/1080/fill/center/0/0/0/0/0/path/to/image.jpg`
+`http://cdn.example.com/jpg/100/0/0/1920/1080/fill/center/0/0/0/0/0/path/to/image.jpg`
 
 ![Original image](../assets/fill.jpg)
 
@@ -60,24 +60,24 @@ Rotate and flip images, and combine the two to mirror.
 
 **Rotate 90º**
 
-`http(s)://your-domain.media/jpg/100/0/0/1920/1080/0/0/0/0/0/90/0/path/to/image.jpg`
+`http://cdn.example.com/jpg/100/0/0/1920/1080/0/0/0/0/0/90/0/path/to/image.jpg`
 
 ![Original image](../assets/rotate-90.jpg)
 
 **Rotate 180º**
 
-`http(s)://your-domain.media/jpg/100/0/0/1920/1080/0/0/0/0/0/180/0/path/to/image.jpg`
+`http://cdn.example.com/jpg/100/0/0/1920/1080/0/0/0/0/0/180/0/path/to/image.jpg`
 
 ![Original image](../assets/rotate-180.jpg)
 
 **Flip**
 
-`http(s)://your-domain.media/jpg/100/0/0/1920/1080/0/0/0/0/0/0/1/path/to/image.jpg`
+`http://cdn.example.com/jpg/100/0/0/1920/1080/0/0/0/0/0/0/1/path/to/image.jpg`
 
 ![Original image](../assets/flip.jpg)
 
 **Flip + rotate 180 degrees = mirror**
 
-`http(s)://your-domain.media/jpg/100/0/0/1920/1080/0/0/0/0/0/180/1/path/to/image.jpg`
+`http://cdn.example.com/jpg/100/0/0/1920/1080/0/0/0/0/0/180/1/path/to/image.jpg`
 
 ![Original image](../assets/mirror.jpg)
