@@ -349,19 +349,19 @@ var conf = convict({
     accessKey: {
       doc: '',
       format: String,
-      default: 'AKIAJJHIE6YB7FVGVL7Q',
+      default: '',
       env: "CLOUDFRONT_ACCESS_KEY"
     },
     secretKey: {
       doc: '',
       format: String,
-      default: 'OvIoiLgxQZszDuGCr5YWqKE/mNKlgSop+RqrkBTN',
+      default: '',
       env: "CLOUDFRONT_SECRET_KEY"
     },
     distribution: {
       doc: '',
       format: String,
-      default: 'target_distribution',
+      default: '',
       env: "CLOUDFRONT_DISTRIBUTION"
     }
   },
