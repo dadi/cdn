@@ -60,10 +60,6 @@
       "port": 6379
     }
   },
-  "clientCache": {
-    "cacheControl": "public, max-age=3600",
-    "etag": "15f0fff99ed5aae4edffdd6496d7131f"
-  },
   "security": {
     "maxWidth": 2048,
     "maxHeight": 1024
