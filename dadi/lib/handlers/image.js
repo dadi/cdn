@@ -315,8 +315,10 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
 }
 
 /**
- * Extract EXIF data from the specified image
- * @param {stream} stream - read stream from S3, local disk or url
+ * Extract coordinates for a crop based on the entropy of the image
+ * @param {image} image - LWIP image instance
+ * @param {number} width - Crop width
+ * @param {number} heifgt - Crop height
  */
 ImageHandler.prototype.extractEntropy = function (image, width, height) {
   return new Promise((resolve, reject) => {
