@@ -109,16 +109,16 @@ describe('Controller', function () {
   describe('Assets', function () {
     this.timeout(10000)
 
-    beforeEach(function (done) {
-      var newTestConfig = JSON.parse(testConfigString)
-      newTestConfig.assets.directory.enabled = true
-      newTestConfig.assets.directory.path = './test/assets'
-      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
-
-      config.loadFile(config.configPath())
-
-      done()
-    })
+    // beforeEach(function (done) {
+    //   var newTestConfig = JSON.parse(testConfigString)
+    //   newTestConfig.assets.directory.enabled = true
+    //   newTestConfig.assets.directory.path = './test/assets'
+    //   fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+    //
+    //   config.loadFile(config.configPath())
+    //
+    //   done()
+    // })
 
     it('should handle uncompressed JS file if uri is valid', function (done) {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
@@ -165,17 +165,20 @@ describe('Controller', function () {
       client
         .get('/fonts/test.ttf')
         .expect(200)
-        .end(function(err, res) {
-          console.log(res)
+        .end(function (err, res) {
+          res.statusCode.should.eql(200)
           done()
         })
     })
 
-    it.skip('should handle TTF file in subfolder if uri is valid', function (done) {
+    it('should handle TTF file in subfolder if uri is valid', function (done) {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/fonts/next-level/test.ttf')
-        .expect(200, done)
+        .end(function (err, res) {
+          res.statusCode.should.eql(200)
+          done()
+        })
     })
   })
 
@@ -307,12 +310,12 @@ describe('Controller', function () {
   })
 
   it('should return error if compress parameter is not 0 or 1', function (done) {
-    var newTestConfig = JSON.parse(testConfigString)
-    newTestConfig.assets.directory.enabled = true
-    newTestConfig.assets.directory.path = './test/assets'
-    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
-
-    config.loadFile(config.configPath())
+    // var newTestConfig = JSON.parse(testConfigString)
+    // newTestConfig.assets.directory.enabled = true
+    // newTestConfig.assets.directory.path = './test/assets'
+    // fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+    //
+    // config.loadFile(config.configPath())
 
     var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
     client
@@ -321,12 +324,12 @@ describe('Controller', function () {
   })
 
   it('should return error if font file type is not TTF, OTF, WOFF, SVG or EOT', function (done) {
-    var newTestConfig = JSON.parse(testConfigString)
-    newTestConfig.assets.directory.enabled = true
-    newTestConfig.assets.directory.path = './test/assets'
-    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
-
-    config.loadFile(config.configPath())
+    // var newTestConfig = JSON.parse(testConfigString)
+    // newTestConfig.assets.directory.enabled = true
+    // newTestConfig.assets.directory.path = './test/assets'
+    // fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+    //
+    // config.loadFile(config.configPath())
 
     var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
     client
