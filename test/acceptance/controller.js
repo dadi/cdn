@@ -200,6 +200,29 @@ describe('Controller', function () {
       })
   })
 
+  it.only('should extract entropy data from an image', function (done) {
+    var newTestConfig = JSON.parse(testConfigString)
+    newTestConfig.images.directory.enabled = true
+    newTestConfig.images.directory.path = './test/images'
+    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+    config.loadFile(config.configPath())
+
+    var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+    client
+      .get('/test.jpg?quality=100&width=180&height=180&resizeStyle=entropy&format=json')
+      .end(function(err, res) {
+        res.statusCode.should.eql(200)
+
+        res.body.entropy.should.have.property('x').and.be.type('number')
+        res.body.entropy.should.have.property('y').and.be.type('number')
+        res.body.entropy.should.have.property('width').and.be.type('number')
+        res.body.entropy.should.have.property('height').and.be.type('number')
+
+        done()
+      })
+  })
+
   it('should return error if image uri is invalid', function (done) {
     var newTestConfig = JSON.parse(testConfigString)
     newTestConfig.images.directory.enabled = true
