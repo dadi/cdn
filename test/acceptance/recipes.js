@@ -355,7 +355,7 @@ describe('Recipes', function () {
 
                 done()
               })
-            }, 1000)
+            }, 2500)
           })
         })
       })

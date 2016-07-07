@@ -128,14 +128,13 @@ Server.prototype.start = function (done) {
   server.on('listening', function () { onListening(this) })
 
   // Monitor config.json file and reload it on change
-  configWatcher = chokidar.watch(configPath, {
+  configWatcher = chokidar.watch(config.configPath(), {
     depth: 0,
     ignored: /[\/\\]\./,
     ignoreInitial: true
   })
 
   configWatcher.on('change', function (filePath) {
-    //console.log(filePath)
     config.loadFile(filePath)
   })
 
@@ -147,8 +146,7 @@ Server.prototype.start = function (done) {
     ignoreInitial: true
   })
 
-  recipesWatcher.on('change', function (filePath) {
-    //console.log(filePath)
+  recipesWatcher.on('all', function (filePath) {
     delete require.cache[filePath]
   })
 
