@@ -68,6 +68,7 @@ _Note: the format of the source image is automatically identified by DADI CDN_
 | fill | Forget the aspect ratio, get the exact provided size |
 | aspectfit | Keep the aspect ratio, get maximum image that fits inside provided size |
 | crop | x |
+| entropy | Provides a content aware crop based on entropy analysis |
 
 #### Image Data
 

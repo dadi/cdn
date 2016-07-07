@@ -62,3 +62,15 @@ The following image produces the colour palette shown below.
 ![Original image](../assets/original.jpg)
 
 ![Palette](../assets/palette.png)
+
+### Content aware crop
+
+By performing an entropy analysis, CDN provides a `entropyCrop` object containing the coordinates for a suggested crop given a set of dimensions.
+
+**Example**
+
+Requesting a 128x128 crop based on entropy on the following image results in the thumbnail shown below.
+
+![Original image](../assets/car-in-desert.jpg)
+
+![Thumbnail](../assets/car-in-desert-crop.jpg)
