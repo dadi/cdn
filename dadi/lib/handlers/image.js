@@ -238,7 +238,7 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                   break
                 case 'entropy':
                   if (entropy) {
-                    batch.crop(entropy.x, entropy.y, entropy.x + entropy.width, entropy.y + entropy.height)
+                    batch.crop(entropy.x1, entropy.y1, entropy.x2, entropy.y2)
                     batch.resize(parseInt(width), parseInt(height))
                   }
               }
@@ -299,7 +299,7 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                 var additionalData = {}
 
                 if (entropy) {
-                  additionalData.entropy = entropy
+                  additionalData.entropyCrop = entropy
                 }
 
                 return resolve({stream: bufferStream, data: additionalData})
@@ -334,7 +334,12 @@ ImageHandler.prototype.extractEntropy = function (image, width, height) {
           _lwip: clone
         }
       }).then((result) => {
-        return result.topCrop
+        return {
+          x1: result.topCrop.x,
+          x2: result.topCrop.x + result.topCrop.width,
+          y1: result.topCrop.y,
+          y2: result.topCrop.y + result.topCrop.height
+        }
       }))
     })
   })

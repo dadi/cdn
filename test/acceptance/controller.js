@@ -200,7 +200,7 @@ describe('Controller', function () {
       })
   })
 
-  it.only('should extract entropy data from an image', function (done) {
+  it('should extract entropy data from an image', function (done) {
     var newTestConfig = JSON.parse(testConfigString)
     newTestConfig.images.directory.enabled = true
     newTestConfig.images.directory.path = './test/images'
@@ -212,12 +212,13 @@ describe('Controller', function () {
     client
       .get('/test.jpg?quality=100&width=180&height=180&resizeStyle=entropy&format=json')
       .end(function(err, res) {
+
         res.statusCode.should.eql(200)
 
-        res.body.entropy.should.have.property('x').and.be.type('number')
-        res.body.entropy.should.have.property('y').and.be.type('number')
-        res.body.entropy.should.have.property('width').and.be.type('number')
-        res.body.entropy.should.have.property('height').and.be.type('number')
+        res.body.entropyCrop.should.have.property('x1').and.be.type('number')
+        res.body.entropyCrop.should.have.property('x2').and.be.type('number')
+        res.body.entropyCrop.should.have.property('y1').and.be.type('number')
+        res.body.entropyCrop.should.have.property('y2').and.be.type('number')
 
         done()
       })
