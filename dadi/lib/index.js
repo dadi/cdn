@@ -131,7 +131,8 @@ Server.prototype.start = function (done) {
   configWatcher = chokidar.watch(config.configPath(), {
     depth: 0,
     ignored: /[\/\\]\./,
-    ignoreInitial: true
+    ignoreInitial: true,
+    useFsEvents: false
   })
 
   configWatcher.on('change', function (filePath) {
@@ -143,10 +144,12 @@ Server.prototype.start = function (done) {
 
   recipesWatcher = chokidar.watch(recipeDir, {
     ignored: /[\/\\]\./,
-    ignoreInitial: true
+    ignoreInitial: true,
+    useFsEvents: false
   })
 
-  recipesWatcher.on('all', function (filePath) {
+  recipesWatcher.on('all', function (event, filePath) {
+    console.log(event, filePath)
     delete require.cache[filePath]
   })
 
