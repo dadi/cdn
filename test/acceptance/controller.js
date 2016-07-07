@@ -160,23 +160,21 @@ describe('Controller', function () {
         })
     })
 
-    it('should handle TTF file if uri is valid', function (done) {
+    it('should handle TTF file if uri is valid', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-      client
+      return client
         .get('/fonts/test.ttf')
         .end(function (err, res) {
           res.statusCode.should.eql(200)
-          done()
         })
     })
 
-    it('should handle TTF file in subfolder if uri is valid', function (done) {
+    it.skip('should handle TTF file in subfolder if uri is valid', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-      client
+      return client
         .get('/fonts/next-level/test.ttf')
         .end(function (err, res) {
           res.statusCode.should.eql(200)
-          done()
         })
     })
   })
