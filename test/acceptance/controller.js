@@ -166,7 +166,6 @@ describe('Controller', function () {
         .get('/fonts/test.ttf')
         .end(function (err, res) {
           res.statusCode.should.eql(200)
-          res.should.exist
           done()
         })
     })
@@ -177,7 +176,6 @@ describe('Controller', function () {
         .get('/fonts/next-level/test.ttf')
         .end(function (err, res) {
           res.statusCode.should.eql(200)
-          res.should.exist
           done()
         })
     })
