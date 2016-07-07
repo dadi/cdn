@@ -13,7 +13,7 @@ var imageHandler = require(__dirname + '/../../dadi/lib/handlers/image')
 var testConfigString
 
 describe('Recipes', function () {
-  this.timeout(4000)
+  this.timeout(8000)
   var tokenRoute = config.get('auth.tokenUrl')
 
   var sample = {}

@@ -67,8 +67,9 @@ Cache.prototype.initRedisClient = function () {
   })
 
   this.redisClient.on("error", function (err) {
-    console.log("Error " + err);
-    logger.error({module: 'cache'}, err);
+    console.log(err)
+    logger.error({module: 'cache'}, err)
+    logger.error({err: err});
 
     if (err.code === 'CONNECTION_BROKEN' || err.code === 'ECONNREFUSED') {
       logger.warn({module: 'cache'}, 'Resetting Redis client and cache instance. Falling back to directory cache.');

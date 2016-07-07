@@ -1,7 +1,7 @@
 {
   "server": {
-      "host": "0.0.0.0",
-      "port": 8111
+    "host": "0.0.0.0",
+    "port": 8111
   },
   "logging": {
     "enabled": true,
@@ -17,7 +17,7 @@
   "images": {
     "directory": {
       "enabled": true,
-      "path": "./images"
+      "path": "./test/images"
     },
     "s3": {
       "enabled": false,
@@ -34,7 +34,7 @@
   "assets": {
     "directory": {
       "enabled": true,
-      "path": "./public"
+      "path": "./test/assets"
     },
     "s3": {
       "enabled": false,
@@ -51,7 +51,7 @@
   "caching": {
     "ttl": 3600,
     "directory": {
-      "enabled": true,
+      "enabled": false,
       "path": "./cache/"
     },
     "redis": {
@@ -73,7 +73,7 @@
     "secretKey": ""
   },
   "headers": {
-    "useGzipCompression": true,
+    "useGzipCompression": false,
     "cacheControl": {
       "default": "public, max-age=3600",
       "paths": [
@@ -87,5 +87,17 @@
       ]
     }
   },
-  "feedback": false
+  "feedback": false,
+  "status": {
+    "enabled": true,
+    "requireAuthentication": true,
+    "standalone": false,
+    "port": 8112,
+    "routes": [
+      {
+        "route": "/test.jpg?format=png&quality=50&width=800&height=600",
+        "expectedResponseTime": 0.025
+      }
+    ]
+  }
 }
