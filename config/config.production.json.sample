@@ -81,6 +81,20 @@
     "secretKey": "",
     "distribution": ""
   },
-  "gzip": true,
+  "headers": {
+    "useGzipCompression": true,
+    "cacheControl": {
+      "default": "public, max-age=3600",
+      "paths": [
+
+      ],
+      "mimetypes": [
+        { "image/jpeg": "public, max-age=86400" },
+        { "text/css": "public, max-age=86400" },
+        { "text/javascript": "public, max-age=86400" },
+        { "application/javascript": "public, max-age=86400" }
+      ]
+    }
+  },
   "feedback": false
 }
