@@ -16,7 +16,23 @@ describe('Controller', function () {
   this.timeout(6000)
   var tokenRoute = config.get('auth.tokenUrl')
 
-  beforeEach(function (done) {
+  // beforeEach(function (done) {
+  //   delete require.cache[__dirname + '/../../config']
+  //   config = require(__dirname + '/../../config')
+  //
+  //   testConfigString = fs.readFileSync(config.configPath())
+  //
+  //   app.start(function (err) {
+  //     if (err) return done(err)
+  //
+  //     // give it a moment for http.Server to finish starting
+  //     setTimeout(function () {
+  //       done()
+  //     }, 500)
+  //   })
+  // })
+
+  before(function (done) {
     delete require.cache[__dirname + '/../../config']
     config = require(__dirname + '/../../config')
 
@@ -32,20 +48,9 @@ describe('Controller', function () {
     })
   })
 
-  afterEach(function (done) {
+  after(function (done) {
     //help.clearCache()
     app.stop(done)
-  })
-
-  it('should respond to the root', function (done) {
-    var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-    client
-      .get('/')
-      .end(function(err, res) {
-        res.statusCode.should.eql(200)
-        res.text.should.eql('Welcome to DADI CDN')
-        done()
-      })
   })
 
   describe('Options Discovery', function (done) {
@@ -120,6 +125,34 @@ describe('Controller', function () {
     //   done()
     // })
 
+    it('should return error if compress parameter is not 0 or 1', function (done) {
+      // var newTestConfig = JSON.parse(testConfigString)
+      // newTestConfig.assets.directory.enabled = true
+      // newTestConfig.assets.directory.path = './test/assets'
+      // fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+      //
+      // config.loadFile(config.configPath())
+
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/js/2/test.js')
+        .expect(400, done)
+    })
+
+    it('should return error if font file type is not TTF, OTF, WOFF, SVG or EOT', function (done) {
+      // var newTestConfig = JSON.parse(testConfigString)
+      // newTestConfig.assets.directory.enabled = true
+      // newTestConfig.assets.directory.path = './test/assets'
+      // fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+      //
+      // config.loadFile(config.configPath())
+
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/fonts/test.bad')
+        .expect(400, done)
+    })
+
     it('should handle uncompressed JS file if uri is valid', function (done) {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
@@ -165,158 +198,147 @@ describe('Controller', function () {
     })
   })
 
-  it('should handle test image if image uri is valid', function (done) {
-    var newTestConfig = JSON.parse(testConfigString)
-    newTestConfig.images.directory.enabled = true
-    newTestConfig.images.directory.path = './test/images'
-    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+  describe('Images', function () {
+    it('should handle test image if image uri is valid', function (done) {
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.images.directory.enabled = true
+      newTestConfig.images.directory.path = './test/images'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
 
-    config.loadFile(config.configPath())
+      config.loadFile(config.configPath())
 
-    var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-    client
-      .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
-      .end(function(err, res) {
-        res.statusCode.should.eql(200)
-        done()
-      })
-  })
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
+        .end(function(err, res) {
+          res.statusCode.should.eql(200)
+          done()
+        })
+    })
 
-  it('should return error if image uri is invalid', function (done) {
-    var newTestConfig = JSON.parse(testConfigString)
-    newTestConfig.images.directory.enabled = true
-    newTestConfig.images.directory.path = './test/images'
-    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+    it('should return error if image uri is invalid', function (done) {
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.images.directory.enabled = true
+      newTestConfig.images.directory.path = './test/images'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
 
-    config.loadFile(config.configPath())
+      config.loadFile(config.configPath())
 
-    var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-    client
-      .get('/jpg/50/0/0/801/478/0/0/0/aspectfit/North/0/0/test.jpg')
-      .end(function(err, res) {
-        res.statusCode.should.eql(404)
-        done()
-      })
-  })
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/jpg/50/0/0/801/478/0/0/0/aspectfit/North/0/0/test.jpg')
+        .end(function(err, res) {
+          res.statusCode.should.eql(404)
+          done()
+        })
+    })
 
-  it('should return image info when format = JSON', function (done) {
-    var newTestConfig = JSON.parse(testConfigString)
-    newTestConfig.images.directory.enabled = true
-    newTestConfig.images.directory.path = './test/images'
-    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+    it('should return image info when format = JSON', function (done) {
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.images.directory.enabled = true
+      newTestConfig.images.directory.path = './test/images'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
 
-    config.loadFile(config.configPath())
+      config.loadFile(config.configPath())
 
-    var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-    client
-      .get('/json/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
-      .end(function(err, res) {
-        res.statusCode.should.eql(200)
-        var info = res.body
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/json/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
+        .end(function(err, res) {
+          res.statusCode.should.eql(200)
+          var info = res.body
 
-        info.fileName.should.eql('test.jpg')
-        info.format.should.eql('jpeg')
-        done()
-      })
-  })
+          info.fileName.should.eql('test.jpg')
+          info.format.should.eql('jpeg')
+          done()
+        })
+    })
 
-  it('should return 400 when requested crop dimensions are larger than the original image', function (done) {
-    var newTestConfig = JSON.parse(testConfigString)
-    newTestConfig.images.directory.enabled = true
-    newTestConfig.images.directory.path = './test/images'
-    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+    it('should return 400 when requested crop dimensions are larger than the original image', function (done) {
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.images.directory.enabled = true
+      newTestConfig.images.directory.path = './test/images'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
 
-    config.loadFile(config.configPath())
+      config.loadFile(config.configPath())
 
-    var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-    client
-      .get('/test.jpg?width=2000&cropX=20&cropY=20')
-      .end(function(err, res) {
-        res.statusCode.should.eql(400)
-        res.body.message.should.exist
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/test.jpg?width=2000&cropX=20&cropY=20')
+        .end(function(err, res) {
+          res.statusCode.should.eql(400)
+          res.body.message.should.exist
 
-        done()
-      })
-  })
+          done()
+        })
+    })
 
-  it('should get image from cache if cache is enabled and cached item exists', function (done) {
-    this.timeout(4000)
+    it('should get image from cache if cache is enabled and cached item exists', function (done) {
+      this.timeout(4000)
 
-    var newTestConfig = JSON.parse(testConfigString)
-    newTestConfig.caching.directory.enabled = true
-    newTestConfig.images.directory.enabled = true
-    newTestConfig.images.directory.path = './test/images'
-    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+      help.clearCache()
 
-    config.loadFile(config.configPath())
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.caching.directory.enabled = true
+      newTestConfig.images.directory.enabled = true
+      newTestConfig.images.directory.path = './test/images'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
 
-    cache.reset()
+      config.loadFile(config.configPath())
 
-    var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-    client
-      .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
-      .end(function(err, res) {
-        res.statusCode.should.eql(200)
+      cache.reset()
 
-        res.headers['x-cache'].should.exist
-        res.headers['x-cache'].should.eql('MISS')
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
+        .end(function(err, res) {
+          res.statusCode.should.eql(200)
 
-        setTimeout(function () {
-          client
-            .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
-            .end(function(err, res) {
-              res.statusCode.should.eql(200)
+          res.headers['x-cache'].should.exist
+          res.headers['x-cache'].should.eql('MISS')
 
-              res.headers['x-cache'].should.exist
-              res.headers['x-cache'].should.eql('HIT')
-              done()
-            })
-        }, 1000)
-      })
-  })
+          setTimeout(function () {
+            client
+              .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
+              .end(function(err, res) {
+                res.statusCode.should.eql(200)
 
-  it('should handle requests for unknown formats', function (done) {
-    var newTestConfig = JSON.parse(testConfigString)
-    newTestConfig.images.directory.enabled = true
-    newTestConfig.images.directory.path = './test/images'
-    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
-
-    config.loadFile(config.configPath())
-
-    var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-    client
-    .get('/favicon.ico')
-    .end(function (err, res) {
-      res.statusCode.should.eql(404)
-      done()
+                res.headers['x-cache'].should.exist
+                res.headers['x-cache'].should.eql('HIT')
+                done()
+              })
+          }, 1000)
+        })
     })
   })
 
-  it('should return error if compress parameter is not 0 or 1', function (done) {
-    // var newTestConfig = JSON.parse(testConfigString)
-    // newTestConfig.assets.directory.enabled = true
-    // newTestConfig.assets.directory.path = './test/assets'
-    // fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
-    //
-    // config.loadFile(config.configPath())
+  describe('Other', function () {
+    it('should respond to the root', function (done) {
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/')
+        .end(function(err, res) {
+          res.statusCode.should.eql(200)
+          res.text.should.eql('Welcome to DADI CDN')
+          done()
+        })
+    })
 
-    var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-    client
-      .get('/js/2/test.js')
-      .expect(400, done)
-  })
+    it('should handle requests for unknown formats', function (done) {
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.images.directory.enabled = true
+      newTestConfig.images.directory.path = './test/images'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
 
-  it('should return error if font file type is not TTF, OTF, WOFF, SVG or EOT', function (done) {
-    // var newTestConfig = JSON.parse(testConfigString)
-    // newTestConfig.assets.directory.enabled = true
-    // newTestConfig.assets.directory.path = './test/assets'
-    // fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
-    //
-    // config.loadFile(config.configPath())
+      config.loadFile(config.configPath())
 
-    var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-    client
-      .get('/fonts/test.bad')
-      .expect(400, done)
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+      .get('/favicon.ico')
+      .end(function (err, res) {
+        res.statusCode.should.eql(404)
+        done()
+      })
+    })
   })
 })
