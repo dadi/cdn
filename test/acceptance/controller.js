@@ -33,7 +33,7 @@ describe('Controller', function () {
   })
 
   afterEach(function (done) {
-    help.clearCache()
+    //help.clearCache()
     app.stop(done)
   })
 
