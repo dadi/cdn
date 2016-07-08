@@ -13,6 +13,7 @@ var path = require('path')
 var Promise = require('bluebird')
 var Readable = require('stream').Readable
 var sha1 = require('sha1')
+var smartcrop = require('smartcrop-lwip')
 var url = require('url')
 var _ = require('underscore')
 
@@ -123,7 +124,10 @@ ImageHandler.prototype.get = function () {
           }
 
           // connvert image using specified options
-          self.convert(convertStream, imageInfo).then(function (convertedStream) {
+          self.convert(convertStream, imageInfo).then(function (result) {
+            var convertedStream = result.stream
+            var dataFromConvert = result.data || {}
+
             convertedStream.pipe(cacheStream)
             convertedStream.pipe(responseStream)
 
@@ -132,9 +136,13 @@ ImageHandler.prototype.get = function () {
               // return image info only, as json
               if (self.options.format === 'json') {
                 self.getImageInfo(convertedStream, imageInfo, function (data) {
+                  // Adding data from `convert()` to response
+                  data = _.extendOwn(data, dataFromConvert)
+
                   var returnStream = new Readable()
                   returnStream.push(JSON.stringify(data, null, 2))
                   returnStream.push(null)
+
                   return resolve(returnStream)
                 })
               } else {
@@ -159,14 +167,13 @@ ImageHandler.prototype.get = function () {
  */
 ImageHandler.prototype.convert = function (stream, imageInfo) {
   var self = this
+  var options = self.options
+
+  var dimensions = getDimensions(options, imageInfo)
+  var width = dimensions.width
+  var height = dimensions.height
 
   return new Promise(function (resolve, reject) {
-    var options = self.options
-
-    var dimensions = getDimensions(options, imageInfo)
-    var width = dimensions.width
-    var height = dimensions.height
-
     if (options.cropX && options.cropY) {
       var originalWidth = parseFloat(imageInfo.width)
       var originalHeight = parseFloat(imageInfo.height)
@@ -183,124 +190,158 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
 
         return reject(err)
       }
-
-      // options.cropX = options.cropX ? parseFloat(options.cropX) : 0
-      // options.cropY = options.cropY ? parseFloat(options.cropY) : 0
-      // width = width ? (parseFloat(width) + parseFloat(options.cropX)) : 0
-      // height = height ? (parseFloat(height) + parseFloat(options.cropY)) : 0
-
-    // console.log({
-    //   cropX: options.cropX,
-    //   cropY: options.cropY,
-    //   width: width,
-    //   height: height
-    // })
     }
 
     var concatStream = concat(processImage)
     stream.pipe(concatStream)
 
-    function processImage (image) {
-
+    function processImage (imageBuffer) {
       // obtain an image object
-      require('lwip').open(image, imageInfo.format, function (err, image) {
+      require('lwip').open(imageBuffer, imageInfo.format, function (err, image) {
         if (err) return reject(err)
 
-        // define a batch of manipulations
-        var batch = image.batch()
+        var shouldExtractEntropy = ((options.resizeStyle === 'entropy') && width && height) ? self.extractEntropy(image, parseInt(width), parseInt(height)) : false
 
-        var filter = options.filter ? options.filter.toLowerCase() : 'lanczos'
+        Promise.resolve(shouldExtractEntropy).then((entropy) => {
+          // define a batch of manipulations
+          var batch = image.batch()
 
-        // resize
-        if (options.resizeStyle) {
-          if (width && height) {
-            switch (options.resizeStyle) {
-              case 'aspectfit':
-                var size = fit(imageInfo.width, imageInfo.height, width, height)
-                batch.cover(Math.ceil(size.width), Math.ceil(size.height), filter)
-                break
-              case 'aspectfill':
-                batch.cover(parseInt(width), parseInt(height), filter)
-                break
-              case 'fill':
-                batch.resize(parseInt(width), parseInt(height), filter)
-                break
-              case 'crop':
-                if (options.crop) {
-                  var coords = options.crop.split(',')
-                  if (coords.length === 2) {
-                    batch.crop(parseInt(coords[0]), parseInt(coords[1]), parseInt(width - coords[0]), parseInt(height - coords[1]))
+          var filter = options.filter ? options.filter.toLowerCase() : 'lanczos'
+
+          // resize
+          if (options.resizeStyle) {
+            if (width && height) {
+              switch (options.resizeStyle) {
+                case 'aspectfit':
+                  var size = fit(imageInfo.width, imageInfo.height, width, height)
+                  batch.cover(Math.ceil(size.width), Math.ceil(size.height), filter)
+                  break
+                case 'aspectfill':
+                  batch.cover(parseInt(width), parseInt(height), filter)
+                  break
+                case 'fill':
+                  batch.resize(parseInt(width), parseInt(height), filter)
+                  break
+                case 'crop':
+                  if (options.crop) {
+                    var coords = options.crop.split(',')
+                    if (coords.length === 2) {
+                      batch.crop(parseInt(coords[0]), parseInt(coords[1]), parseInt(width - coords[0]), parseInt(height - coords[1]))
+                    }
+                    else if (coords.length === 4) {
+                      batch.crop(parseInt(coords[0]), parseInt(coords[1]), parseInt(coords[2]), parseInt(coords[3]))
+                    }
+                  } else { // width & height provided, crop from centre
+                    batch.crop(parseInt(width), parseInt(height))
                   }
-                  else if (coords.length === 4) {
-                    batch.crop(parseInt(coords[0]), parseInt(coords[1]), parseInt(coords[2]), parseInt(coords[3]))
-                  }
-                }else { // width & height provided, crop from centre
-                  batch.crop(parseInt(width), parseInt(height))
-                }
 
-                break
+                  break
+                case 'entropy':
+                  if (entropy) {
+                    batch.crop(entropy.x1, entropy.y1, entropy.x2, entropy.y2)
+                    batch.resize(parseInt(width), parseInt(height))
+                  }
+              }
             }
           }
-        }
-        else if (width && height && options.cropX && options.cropY) {
-          // console.log("%s %s %s %s", parseInt(options.cropX), parseInt(options.cropY), width-parseInt(options.cropX), height-parseInt(options.cropY))
-          batch.crop(parseInt(options.cropX), parseInt(options.cropY), width - parseInt(options.cropX), height - parseInt(options.cropY))
-        }
-        else if (width && height) {
-          batch.cover(parseInt(width), parseInt(height))
-        }
-        else if (width && !height) {
-          batch.resize(parseInt(width))
-        }
+          else if (width && height && options.cropX && options.cropY) {
+            // console.log("%s %s %s %s", parseInt(options.cropX), parseInt(options.cropY), width-parseInt(options.cropX), height-parseInt(options.cropY))
+            batch.crop(parseInt(options.cropX), parseInt(options.cropY), width - parseInt(options.cropX), height - parseInt(options.cropY))
+          }
+          else if (width && height) {
+            batch.cover(parseInt(width), parseInt(height))
+          }
+          else if (width && !height) {
+            batch.resize(parseInt(width))
+          }
 
-        if (options.blur) batch.blur(parseInt(options.blur))
-        if (options.flip) batch.flip(options.flip)
-        if (options.rotate) batch.rotate(parseInt(options.rotate), 'white')
+          if (options.blur) batch.blur(parseInt(options.blur))
+          if (options.flip) batch.flip(options.flip)
+          if (options.rotate) batch.rotate(parseInt(options.rotate), 'white')
 
-        // quality
-        var params = {}
-        var quality = parseInt(options.quality)
-        if (/jpe?g/.exec(imageInfo.format)) params.quality = quality
-        if (/png/.exec(imageInfo.format)) {
-          if (quality > 70) params.compression = 'none'
-          else if (quality > 50) params.compression = 'fast'
-          else params.compression = 'high'
-        }
+          // quality
+          var params = {}
+          var quality = parseInt(options.quality)
+          if (/jpe?g/.exec(imageInfo.format)) params.quality = quality
+          if (/png/.exec(imageInfo.format)) {
+            if (quality > 70) params.compression = 'none'
+            else if (quality > 50) params.compression = 'fast'
+            else params.compression = 'high'
+          }
 
-        // sharpening
-        if (quality >= 70) {
-          if (/jpe?g/.exec(imageInfo.format)) {
+          // sharpening
+          if (quality >= 70) {
+            if (/jpe?g/.exec(imageInfo.format)) {
+              batch.sharpen(5)
+            }
+            else if (/png/.exec(imageInfo.format)) {
+              batch.sharpen(5)
+            }
+          }
+          else if (options.cropX && options.cropY) {
             batch.sharpen(5)
           }
-          else if (/png/.exec(imageInfo.format)) {
-            batch.sharpen(5)
-          }
-        }
-        else if (options.cropX && options.cropY) {
-          batch.sharpen(5)
-        }
 
-        // give it a little colour
-        batch.saturate(0.1)
+          // give it a little colour
+          batch.saturate(0.1)
 
-        // format
-        var format = self.options.format === 'json' ? imageInfo.format : self.options.format
+          // format
+          var format = self.options.format === 'json' ? imageInfo.format : self.options.format
 
-        try {
-          batch.exec(function (err, image) {
-            image.toBuffer(format, params, function (err, buffer) {
-              if (err) return reject(err)
+          try {
+            batch.exec(function (err, image) {
+              image.toBuffer(format, params, function (err, buffer) {
+                if (err) return reject(err)
 
-              var bufferStream = new PassThrough()
-              bufferStream.end(buffer)
-              return resolve(bufferStream)
+                var bufferStream = new PassThrough()
+                bufferStream.end(buffer)
+
+                var additionalData = {}
+
+                if (entropy) {
+                  additionalData.entropyCrop = entropy
+                }
+
+                return resolve({stream: bufferStream, data: additionalData})
+              })
             })
-          })
-        } catch (err) {
-          return reject(err)
-        }
+          } catch (err) {
+            return reject(err)
+          }
+        })
       })
     }
+  })
+}
+
+/**
+ * Extract coordinates for a crop based on the entropy of the image
+ * @param {image} image - LWIP image instance
+ * @param {number} width - Crop width
+ * @param {number} heifgt - Crop height
+ */
+ImageHandler.prototype.extractEntropy = function (image, width, height) {
+  return new Promise((resolve, reject) => {
+    image.clone((err, clone) => {
+      if (err) return reject(err)
+
+      return resolve(require('smartcrop-lwip').crop(null, {
+        width: width,
+        height: height,
+        image: {
+          width: clone.width(),
+          height: clone.height(),
+          _lwip: clone
+        }
+      }).then((result) => {
+        return {
+          x1: result.topCrop.x,
+          x2: result.topCrop.x + result.topCrop.width,
+          y1: result.topCrop.y,
+          y2: result.topCrop.y + result.topCrop.height
+        }
+      }))
+    })
   })
 }
 
