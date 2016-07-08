@@ -87,7 +87,7 @@ describe('Storage', function (done) {
           var readable = new stream.Readable()
           readable.push('')
           readable.push(null)
-          resolve(readable)
+          resolve({stream:readable})
         })
       })
 

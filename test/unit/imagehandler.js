@@ -55,7 +55,8 @@ describe('ImageHandler', function (done) {
     var expected = path.join(path.resolve(config.get('images.directory.path')), '/test.jpg')
 
     // stub the get method so it doesn't do anything
-    var get = sinon.stub(DiskStorage.DiskStorage.prototype, 'get', function () { return new Promise(function (resolve, reject) {
+    var get = sinon.stub(DiskStorage.DiskStorage.prototype, 'get', function () {
+      return new Promise(function (resolve, reject) {
         var readable = new stream.Readable()
         readable.push('')
         readable.push(null)
@@ -68,7 +69,7 @@ describe('ImageHandler', function (done) {
         var readable = new stream.Readable()
         readable.push('')
         readable.push(null)
-        resolve(readable)
+        resolve({stream:readable})
       })
     })
 
@@ -124,7 +125,7 @@ describe('ImageHandler', function (done) {
         var readable = new stream.Readable()
         readable.push('')
         readable.push(null)
-        resolve(readable)
+        resolve({stream:readable})
       })
     })
 
@@ -182,7 +183,7 @@ describe('ImageHandler', function (done) {
         var readable = new stream.Readable()
         readable.push('')
         readable.push(null)
-        resolve(readable)
+        resolve({stream:readable})
       })
     })
 
@@ -239,7 +240,7 @@ describe('ImageHandler', function (done) {
         var readable = new stream.Readable()
         readable.push('')
         readable.push(null)
-        resolve(readable)
+        resolve({stream:readable})
       })
     })
 
