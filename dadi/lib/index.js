@@ -147,7 +147,6 @@ Server.prototype.start = function (done) {
   })
 
   recipesWatcher.on('all', function (event, filePath) {
-    console.log(event, filePath)
     delete require.cache[filePath]
   })
 
