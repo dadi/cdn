@@ -142,10 +142,8 @@ Server.prototype.start = function (done) {
   // Monitor recipes folders and files
   var recipeDir = path.resolve(config.get('paths.recipes'))
 
-  recipesWatcher = chokidar.watch(recipeDir, {
-    ignored: /[\/\\]\./,
-    ignoreInitial: true,
-    useFsEvents: false
+  recipesWatcher = chokidar.watch(recipeDir + '/*.json', {
+    usePolling: true
   })
 
   recipesWatcher.on('all', function (event, filePath) {
