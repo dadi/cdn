@@ -123,62 +123,45 @@ describe('Controller', function () {
     it('should handle uncompressed JS file if uri is valid', function (done) {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
-        .get('/js/0/test.js')
-        .expect(200, function (err, res) {
-          res.should.exist
-          done()
-        })
+      .get('/js/0/test.js')
+      .expect(200, done)
     })
 
     it('should handle uncompressed CSS file if uri is valid', function (done) {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
-        .get('/css/0/test.css')
-        .expect(200, function (err, res) {
-          res.should.exist
-          done()
-        })
+      .get('/css/0/test.css')
+      .expect(200, done)
     })
 
     it('should handle compressed JS file if uri is valid', function (done) {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
-        .get('/js/1/test.js')
-        .expect(200, function (err, res) {
-          res.should.exist
-          done()
-        })
+      .get('/js/1/test.js')
+      .expect(200, done)
     })
 
     it('should handle compressed CSS file if uri is valid', function (done) {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
-        .get('/css/1/test.css')
-        .end(function (err, res) {
-          res.statusCode.should.eql(200)
-          done()
-        })
+      .get('/css/1/test.css')
+      .expect(200, done)
     })
 
     it('should handle TTF file if uri is valid', function (done) {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
-        .get('/fonts/test.ttf')
-        .expect(200)
-        .end(function (err, res) {
-          res.statusCode.should.eql(200)
-          done()
-        })
+      .get('/fonts/test.ttf')
+      .expect('Content-Type', 'application/font-sfnt')
+      .expect(200, done)
     })
 
     it('should handle TTF file in subfolder if uri is valid', function (done) {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
-        .get('/fonts/next-level/test.ttf')
-        .end(function (err, res) {
-          res.statusCode.should.eql(200)
-          done()
-        })
+      .get('/fonts/next-level/test.ttf')
+      .expect('Content-Type', 'application/font-sfnt')
+      .expect(200, done)
     })
   })
 
