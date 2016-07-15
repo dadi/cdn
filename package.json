@@ -11,6 +11,7 @@
   "dependencies": {
     "@dadi/logger": "latest",
     "@dadi/status": "git+https://git@github.com/dadi/status.git",
+    "accept-language": "^2.0.17",
     "aspect-fill": "^1.0.1",
     "aspect-fit": "^1.0.2",
     "async": "^1.4.2",
@@ -32,6 +33,7 @@
     "imagesize": "~1.0.0",
     "length-stream": "~0.1.1",
     "lwip": "git+https://github.com/Pajk/lwip.git",
+    "maxmind": "^1.1.0",
     "mime": "^1.3.4",
     "node-minify": "1.3.2",
     "node-persist": "~0.0.8",
@@ -44,6 +46,7 @@
     "sha1": "~1.1.1",
     "smartcrop-lwip": "github:eduardoboucas/smartcrop-lwip",
     "stream-length": "^1.0.2",
+    "ua-parser-js": "^0.7.10",
     "underscore": "~1.8.3",
     "url-join": "^1.1.0",
     "validate-commit-message": "^3.0.1"

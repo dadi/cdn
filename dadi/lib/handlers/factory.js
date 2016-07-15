@@ -5,6 +5,7 @@ var url = require('url')
 var _ = require('underscore')
 var AssetHandler = require(__dirname + '/asset')
 var ImageHandler = require(__dirname + '/image')
+var Route = require(__dirname + '/../models/route')
 
 var config = require(__dirname + '/../../../config')
 
@@ -23,11 +24,17 @@ function getFormat (version, req) {
   }
 }
 
-var HandlerFactory = function () {}
+var HandlerFactory = function () {
+  this.handlers = []
+  this.currentHandler = -1
+
+  // Add handlers in order
+  this.handlers.push(this.createFromFormat)
+  this.handlers.push(this.createFromRoute)
+  this.handlers.push(this.createFromRecipe)
+}
 
 HandlerFactory.prototype.create = function (req) {
-  var self = this
-
   // set a default version
   var version = 'v1'
 
@@ -36,21 +43,28 @@ HandlerFactory.prototype.create = function (req) {
     version = 'v2'
   }
 
-  return new Promise(function (resolve, reject) {
-    var format = getFormat(version, req)
+  var format = getFormat(version, req)
 
-    self.createFromFormat(format, req).then(function (handler) {
-      return resolve(handler)
-    }).catch(function (err) {
-      return reject(err)
-    })
-  })
+  return this.callNextHandler(format, req)
+}
+
+HandlerFactory.prototype.callNextHandler = function (format, req) {
+  this.currentHandler++;
+
+  if (!this.handlers[this.currentHandler]) {
+    var error = new Error('Unknown URI')
+
+    error.statusCode = 404
+    error.detail = `'${format}' is not a valid route, recipe or image format`
+
+    return Promise.reject(error)    
+  }
+
+  return this.handlers[this.currentHandler].call(this, format, req)
 }
 
 HandlerFactory.prototype.createFromFormat = function (format, req) {
-  var self = this
-
-  return new Promise(function (resolve, reject) {
+  return new Promise((resolve, reject) => {
     switch (format) {
       case 'css':
       case 'js':
@@ -69,36 +83,50 @@ HandlerFactory.prototype.createFromFormat = function (format, req) {
         return resolve(new ImageHandler(format, req))
         break
       default:
-        self.createFromRecipe(format, req).then(function (handler) {
-          return resolve(handler)
-        }).catch(function (err) {
-          return reject(err)
-        })
-        break
+        return resolve(this.callNextHandler(format, req))
     }
   })
 }
 
-HandlerFactory.prototype.createFromRecipe = function (format, req) {
-  var self = this
+HandlerFactory.prototype.createFromRoute = function (format, req) {
+  return new Promise((resolve, reject) => {
+    var routePath = path.join(path.resolve(config.get('paths.routes')), format + '.json')
 
-  return new Promise(function (resolve, reject) {
+    fs.stat(routePath, (err, stats) => {
+      if ((err && (err.code === 'ENOENT')) || !stats.isFile()) {
+        return resolve(this.callNextHandler(format, req))
+      } else if (err) {
+        return reject(err)
+      }
+
+      var routeConfig = require(routePath)
+      var route = new Route(routeConfig, req)
+
+      return resolve(route.getRecipe().then((recipe) => {
+        if (recipe) {
+          return this.createFromRecipe(recipe, req)
+        }
+
+        return this.callNextHandler(format, req)
+      }))
+    })
+  })
+}
+
+HandlerFactory.prototype.createFromRecipe = function (format, req) {
+  return new Promise((resolve, reject) => {
     var recipePath = path.join(path.resolve(config.get('paths.recipes')), format + '.json')
 
-    fs.stat(recipePath, function (err, stats) {
-      if (err) {
-        if (err.code === 'ENOENT') {
-          var error = new Error("Unknown recipe")
-          error.statusCode = 404
-          error.detail = `Unknown recipe "${format}.json"`
-          return reject(error)
-        }
+    fs.stat(recipePath, (err, stats) => {
+      if ((err && (err.code === 'ENOENT')) || !stats.isFile()) {
+        return resolve(this.callNextHandler(format, req))
+      } else if (err) {
         return reject(err)
       }
 
       var recipe = require(recipePath)
 
-      self.createFromFormat(recipe.settings.format, req).then(function (handler) {
+      this.createFromFormat(recipe.settings.format, req).then((handler) => {
         var referencePath = recipe.path ? recipe.path : ''
         var filePath = parseUrl(req).pathname.replace(format, '')
         var fullPath = path.join(referencePath, filePath)
@@ -110,7 +138,7 @@ HandlerFactory.prototype.createFromRecipe = function (format, req) {
         handler.options = recipe.settings
 
         return resolve(handler)
-      }).catch(function (err) {
+      }).catch((err) => {
         return reject(err)
       })
     })

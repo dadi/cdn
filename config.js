@@ -362,7 +362,8 @@ var conf = convict({
     doc: "",
     format: Object,
     default: {
-      recipes: __dirname + '/workspace/recipes'
+      recipes: __dirname + '/workspace/recipes',
+      routes: __dirname + '/workspace/routes'
     }
   },
   gzip: {
@@ -401,6 +402,20 @@ var conf = convict({
     default: 'development',
     env: 'NODE_ENV',
     arg: 'node_env'
+  },
+  geolocation: {
+    maxmind: {
+      enabled: {
+        doc: 'If true, uses Maxmind for geolocation services',
+        format: Boolean,
+        default: false
+      },
+      countryDbPath: {
+        doc: 'Path to Maxmind country database',
+        format: String,
+        default: __dirname + '/vendor/maxmind-country.mmdb'
+      }
+    }
   }
 
 })
