@@ -1,19 +1,21 @@
 {
-	"name": "sample-route",
+	"route": "sample-route",
 	"branches": [
 		{
 			"condition": {
 				"device": "desktop",
 				"language": "en",
-				"country": ["GB", "US"]
+				"country": ["GB", "US"],
+				"network": "cable"
 			},
-			"recipe": "recipe1"
+			"recipe": "thumbnail"
 		},
 		{
 			"condition": {
 				"device": ["mobile", "tablet"],
 				"language": ["en", "pt"],
-				"country": "GB"
+				"country": "GB",
+				"network": ["cable", "dsl"]
 			},
 			"recipe": "recipe2"
 		},
