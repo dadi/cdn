@@ -15,7 +15,9 @@ Route.prototype.getRecipe = function () {
   return this.evaluateBranches(this.config.branches).then((match) => {
     if (match) return match.recipe
   }).catch((err) => {
-    console.log('** ERR:', err.stack)
+    logger.error({module: 'routes'}, err)
+
+    return Promise.resolve(null)
   })
 }
 
