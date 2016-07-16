@@ -423,7 +423,7 @@ var conf = convict({
     },
     remote: {
       url: {
-        doc: 'Remote URL to be used with geolocation. {key}, {secret} and {ip} will be replaced by the API key, secret and IP to locate, respectively',
+        doc: 'Remote URL to be used for geolocation. {key}, {secret} and {ip} will be replaced by the API key, secret and IP to locate, respectively',
         format: String,
         default: ''
       },
@@ -438,7 +438,36 @@ var conf = convict({
         format: String,
         default: '',
         env: 'GEOLOCATION_REMOTE_SECRET'
+      },
+      countryPath: {
+        doc: 'Path to the country code within the response object',
+        format: String,
+        default: 'location.country.isoCode'
       }
+    }
+  },
+  network: {
+    url: {
+      doc: 'Remote URL to be used for network test service. {key}, {secret} and {ip} will be replaced by the API key, secret and IP to locate, respectively',
+      format: String,
+      default: ''
+    },
+    key: {
+      doc: 'Key to be used with network test service',
+      format: String,
+      default: '',
+      env: 'NETWORK_REMOTE_KEY'
+    },
+    secret: {
+      doc: 'Secret to be used with network test service',
+      format: String,
+      default: '',
+      env: 'NETWORK_REMOTE_SECRET'
+    },
+    path: {
+      doc: 'Path to the network type within the response object',
+      format: String,
+      default: 'speed.connectionType'
     }
   }
 })
