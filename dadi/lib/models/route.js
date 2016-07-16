@@ -155,7 +155,7 @@ Route.prototype.getRemoteLocation = function () {
   ).then((response) => {
     return response && response.location && response.location.country && response.location.country.isoCode
   }).catch((err) => {
-    logger.error({module: 'routes'}, err);
+    logger.error({module: 'routes'}, err)
 
     return Promise.resolve(null)
   })

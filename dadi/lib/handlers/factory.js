@@ -49,7 +49,7 @@ HandlerFactory.prototype.create = function (req) {
 }
 
 HandlerFactory.prototype.callNextHandler = function (format, req) {
-  this.currentHandler++;
+  this.currentHandler++
 
   if (!this.handlers[this.currentHandler]) {
     var error = new Error('Unknown URI')
