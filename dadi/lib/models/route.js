@@ -1,37 +1,55 @@
 var config = require(__dirname + '/../../../config')
+var logger = require('@dadi/logger')
+var request = require('request-promise')
 
 var Route = function (config, req) {
   this.config = config
   this.headers = req.headers
   this.ip = req.connection.remoteAddress
-  this.ip = '154.57.245.210'
-
-  console.log('*** Location:', this.getLocation())
 }
 
 Route.prototype.getRecipe = function () {
   var match
+  var queue = []
 
-  this.config.branches.some((branch) => {
-    if (this.matchBranch(branch)) {
-      match = branch.recipe
-
-      return true
-    }
+  return this.evaluateBranches(this.config.branches).then((match) => {
+    if (match) return match.recipe
+  }).catch((err) => {
+    console.log('** ERR:', err.stack)
   })
+}
 
-  return Promise.resolve(match)
+Route.prototype.evaluateBranches = function (branches, index) {
+  index = index || 0
+
+  if (!branches[index]) {
+    return Promise.resolve(false)
+  }
+
+  return this.matchBranch(branches[index]).then((branchMatch) => {
+    if (branchMatch) {
+      return branches[index]
+    }
+
+    return this.evaluateBranches(branches, (index + 1))
+  })
 }
 
 Route.prototype.matchBranch = function (branch) {
-  if (!branch.condition) return true
+  if (!branch.condition) return Promise.resolve(branch)
 
   var match = true
+  var queue = []
 
   Object.keys(branch.condition).every((type) => {
     switch (type) {
       case 'device':
-        match = match && (branch.condition[type] === this.getDevice())
+        // Ensure `device` is an array
+        if (!(branch.condition[type] instanceof Array)) {
+          branch.condition[type] = [branch.condition[type]]
+        }
+
+        match = match && (branch.condition[type].indexOf(this.getDevice()) !== -1)
 
         break
 
@@ -54,12 +72,24 @@ Route.prototype.matchBranch = function (branch) {
         match = match && languageMatch
 
         break
+
+      case 'country':
+        // Ensure `language` is an array
+        if (!(branch.condition[type] instanceof Array)) {
+          branch.condition[type] = [branch.condition[type]]
+        }
+
+        queue.push(this.getLocation().then((location) => {
+          match = match && (branch.condition[type].indexOf(location) !== -1)
+        }))
     }
 
     return match
   })
 
-  return match
+  return Promise.all(queue).then(() => {
+    return match
+  })
 }
 
 Route.prototype.getDevice = function () {
@@ -82,6 +112,23 @@ Route.prototype.getLanguages = function (minQuality) {
 }
 
 Route.prototype.getLocation = function () {
+  if (!config.get('geolocation.enabled')) {
+    return Promise.reject('Geolocation is not enabled')
+  }
+
+  switch (config.get('geolocation.method')) {
+    case 'maxmind':
+      return this.getMaxmindLocation()
+
+    case 'remote':
+      return this.getRemoteLocation()
+
+    default:
+      return Promise.reject('Invalid geolocation method')
+  }
+}
+
+Route.prototype.getMaxmindLocation = function () {
   var Maxmind = require('maxmind')
   var countryDb = Maxmind.open(config.get('geolocation.maxmind.countryDbPath'), {
     cache: {
@@ -91,7 +138,27 @@ Route.prototype.getLocation = function () {
   })
   var country = countryDb.get(this.ip)
 
-  return country.country.iso_code
+  return Promise.resolve(country && country.country && country.country.iso_code)
+}
+
+Route.prototype.getRemoteLocation = function () {
+  var uri = config.get('geolocation.remote.url')
+
+  // Replace placeholders
+  url = url.replace('{ip}', this.ip)
+  url = url.replace('{key}', config.get('geolocation.remote.key'))
+  url = url.replace('{secret}', config.get('geolocation.remote.secret'))
+
+  return request({
+    uri: uri,
+    json:true}
+  ).then((response) => {
+    return response && response.location && response.location.country && response.location.country.isoCode
+  }).catch((err) => {
+    logger.error({module: 'routes'}, err);
+
+    return Promise.resolve(null)
+  })
 }
 
 module.exports = Route
