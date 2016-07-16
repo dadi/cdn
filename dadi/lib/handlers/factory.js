@@ -99,12 +99,16 @@ HandlerFactory.prototype.createFromRoute = function (format, req) {
         return reject(err)
       }
 
-      var routeConfig = require(routePath)
-      var route = new Route(routeConfig, req)
+      var route = new Route(require(routePath))
+
+      route.setIP(req.connection.remoteAddress)
+      route.setIP('154.57.245.210')
+      route.setLanguage(req.headers['accept-language'])
+      route.setUserAgent(req.headers['user-agent'])
 
       return resolve(route.getRecipe().then((recipe) => {
         if (recipe) {
-          return this.createFromRecipe(recipe, req)
+          return this.createFromRecipe(recipe, req, format)
         }
 
         return this.callNextHandler(format, req)
@@ -113,7 +117,7 @@ HandlerFactory.prototype.createFromRoute = function (format, req) {
   })
 }
 
-HandlerFactory.prototype.createFromRecipe = function (format, req) {
+HandlerFactory.prototype.createFromRecipe = function (format, req, fromRoute) {
   return new Promise((resolve, reject) => {
     var recipePath = path.join(path.resolve(config.get('paths.recipes')), format + '.json')
 
@@ -128,7 +132,7 @@ HandlerFactory.prototype.createFromRecipe = function (format, req) {
 
       this.createFromFormat(recipe.settings.format, req).then((handler) => {
         var referencePath = recipe.path ? recipe.path : ''
-        var filePath = parseUrl(req).pathname.replace(format, '')
+        var filePath = parseUrl(req).pathname.replace(format, '').replace(fromRoute, '')
         var fullPath = path.join(referencePath, filePath)
 
         handler.url = fullPath
