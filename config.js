@@ -404,20 +404,43 @@ var conf = convict({
     arg: 'node_env'
   },
   geolocation: {
+    enabled: {
+      doc: 'Enable geolocation',
+      format: Boolean,
+      default: false
+    },
+    method: {
+      doc: 'Method to use for geolocation',
+      format: ['maxmind', 'remote'],
+      default: 'maxmind'
+    },
     maxmind: {
-      enabled: {
-        doc: 'If true, uses Maxmind for geolocation services',
-        format: Boolean,
-        default: false
-      },
       countryDbPath: {
         doc: 'Path to Maxmind country database',
         format: String,
         default: __dirname + '/vendor/maxmind-country.mmdb'
       }
+    },
+    remote: {
+      url: {
+        doc: 'Remote URL to be used with geolocation. {key}, {secret} and {ip} will be replaced by the API key, secret and IP to locate, respectively',
+        format: String,
+        default: ''
+      },
+      key: {
+        doc: 'Key to be used with remote geolocation service',
+        format: String,
+        default: '',
+        env: 'GEOLOCATION_REMOTE_KEY'
+      },
+      secret: {
+        doc: 'Secret to be used with remote geolocation service',
+        format: String,
+        default: '',
+        env: 'GEOLOCATION_REMOTE_SECRET'
+      }
     }
   }
-
 })
 
 // Load environment dependent configuration
