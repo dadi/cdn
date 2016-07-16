@@ -1,0 +1,24 @@
+{
+	"name": "sample-route",
+	"branches": [
+		{
+			"condition": {
+				"device": "desktop",
+				"language": "en",
+				"country": ["GB", "US"]
+			},
+			"recipe": "recipe1"
+		},
+		{
+			"condition": {
+				"device": ["mobile", "tablet"],
+				"language": ["en", "pt"],
+				"country": "GB"
+			},
+			"recipe": "recipe2"
+		},
+		{
+			"recipe": "default-recipe"
+		}
+	]
+}
