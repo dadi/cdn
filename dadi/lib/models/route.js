@@ -76,7 +76,7 @@ Route.prototype.matchBranch = function (branch) {
         break
 
       case 'country':
-        // Ensure `language` is an array
+        // Ensure `country` is an array
         if (!(branch.condition[type] instanceof Array)) {
           branch.condition[type] = [branch.condition[type]]
         }
