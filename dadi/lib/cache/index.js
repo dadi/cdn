@@ -143,7 +143,11 @@ Cache.prototype.get = function (key) {
     var encryptedKey = sha1(key)
 
     if (settings.redis.enabled) {
-      // Redis
+      this.redisClient.get(encryptedKey, (err, data) => {
+        if (err) return resolve(null)
+
+        return resolve(data)
+      })
     } else {
       var cachePath = path.join(this.dir, encryptedKey)
 
@@ -212,7 +216,11 @@ Cache.prototype.set = function (key, value) {
     var encryptedKey = sha1(key)
 
     if (settings.redis.enabled) {
-      // Redis
+      this.redisClient.set(encryptedKey, value, (err, data) => {
+        if (err) return resolve(err)
+
+        return resolve(data)
+      })
     } else {
       var cacheDir = path.resolve(settings.directory.path)
       var file = fs.writeFile(path.join(cacheDir, encryptedKey), value, ((err) => {
