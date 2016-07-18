@@ -12,7 +12,7 @@ var imageHandler = require(__dirname + '/../../dadi/lib/handlers/image')
 
 var testConfigString
 
-describe('Recipes', function () {
+describe('Routes', function () {
   this.timeout(8000)
   var tokenRoute = config.get('auth.tokenUrl')
 
@@ -25,27 +25,30 @@ describe('Recipes', function () {
     testConfigString = fs.readFileSync(config.configPath())
 
     sample = {
-      "recipe": "sample-recipe",
-      "path": "/test",
-      "settings": {
-        "format": "jpg",
-        "quality": "80",
-        "trim": "0",
-        "trimFuzz": "0",
-        "width": "1024",
-        "height": "768",
-        "cropX": "0",
-        "cropY": "0",
-        "ratio": "0",
-        "devicePixelRatio": "0",
-        "resizeStyle": "0",
-        "gravity": "0",
-        "filter": "0",
-        "blur": "0",
-        "strip": "0",
-        "rotate": "0",
-        "flip": "0"
-      }
+      "route": "sample-route",
+      "branches": [
+        {
+          "condition": {
+            "device": "desktop",
+            "language": "en",
+            "country": ["GB", "US"],
+            "network": "cable"
+          },
+          "recipe": "thumbnail"
+        },
+        {
+          "condition": {
+            "device": ["mobile", "tablet"],
+            "language": ["en", "pt"],
+            "country": "GB",
+            "network": ["cable", "dsl"]
+          },
+          "recipe": "recipe2"
+        },
+        {
+          "recipe": "default-recipe"
+        }
+      ]
     }
 
     app.start(function (err) {
@@ -66,7 +69,7 @@ describe('Recipes', function () {
 
   after(function () {
     try {
-      fs.unlinkSync(path.join(path.resolve(config.get('paths.recipes')), 'thumbnail.json'))
+      fs.unlinkSync(path.join(path.resolve(config.get('paths.routes')), 'sample-route.json'))
     }
     catch (err) {
 
@@ -74,12 +77,12 @@ describe('Recipes', function () {
   })
 
   describe('Create', function () {
-    it('should not allow recipe create request without a valid token', function (done) {
+    it('should not allow route create request without a valid token', function (done) {
       help.getBearerToken(function (err, token) {
         var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
 
         client
-          .post('/api/recipes/new')
+          .post('/api/routes/new')
           .set('Authorization', 'Bearer ' + token.toString() + '1')
           .expect('content-type', 'application/json')
           .expect(401, done)
@@ -98,84 +101,72 @@ describe('Recipes', function () {
       })
     })
 
-    it('should return error if recipe name is missing', function (done) {
+    it('should return error if route name is missing', function (done) {
       help.getBearerToken(function (err, token) {
         var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
 
-        delete sample['recipe']
+        delete sample['route']
 
         client
-        .post('/api/recipes/new')
+        .post('/api/routes/new')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .expect(400)
         .end(function(err ,res) {
           res.body.error.should.be.Array
-          res.body.error[0].error.should.eql('Property "recipe" not found in recipe')
+          res.body.error.should.containEql('Route name is missing')
+
           done()
         })
       })
     })
 
-    it('should return error if recipe path is missing', function (done) {
+    it('should set the correct route filepath', function (done) {
       help.getBearerToken(function (err, token) {
         var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
 
-        delete sample['path']
-
-        client
-        .post('/api/recipes/new')
-        .send(sample)
-        .set('Authorization', 'Bearer ' + token)
-        .expect(400)
-        .end(function(err ,res) {
-          res.body.error.should.be.Array
-          res.body.error[0].error.should.eql('Property "path" not found in recipe')
-          done()
-        })
-      })
-    })
-
-    it('should return error if recipe settings are missing', function (done) {
-      help.getBearerToken(function (err, token) {
-        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-
-        delete sample['settings']
-
-        client
-        .post('/api/recipes/new')
-        .send(sample)
-        .set('Authorization', 'Bearer ' + token)
-        .expect(400)
-        .end(function(err ,res) {
-          res.body.error.should.be.Array
-          res.body.error[0].error.should.eql('Property "settings" not found in recipe')
-          done()
-        })
-      })
-    })
-
-    it('should set the correct recipe filepath', function (done) {
-      help.getBearerToken(function (err, token) {
-        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-
-        sample.recipe = 'thumbnail'
+        sample.route = 'my-route'
 
         var stub = sinon.stub(fs, 'writeFileSync', function (filePath, content) {
-          filePath.should.eql(path.join(path.resolve(config.get('paths.recipes')), 'thumbnail.json'))
+          filePath.should.eql(path.join(path.resolve(config.get('paths.routes')), 'my-route.json'))
         })
 
         client
-        .post('/api/recipes/new')
+        .post('/api/routes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
-        .end(function(err ,res) {
+        .end(function(err, res) {
           stub.called.should.eql(true)
           fs.writeFileSync.restore()
 
           done()
         })
       })
+    })
+
+    it.only('should return error when trying to create route with existing name', function (done) {
+     help.getBearerToken((err, token) => {
+       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+
+       sample.route = 'my-route'
+
+       var stub = sinon.stub(fs, 'writeFileSync', function (filePath, content) {
+         console.log('--> a:', filePath)
+         console.log('--> b:', path.join(path.resolve(config.get('paths.routes')), 'my-route.json'))
+         //filePath.should.eql(path.join(path.resolve(config.get('paths.routes')), 'my-route.json'))
+         filePath.should.eql('osdfhisudhf')
+         done()
+       })
+
+       client
+       .post('/api/routes')
+       .send(sample)
+       .set('Authorization', 'Bearer ' + token)
+       .end(function(err, res) {
+          console.log('** ERR:', err)
+          console.log('** RES:', res.body)
+        })
+     })
     })
 
     it('should save valid recipe to filesystem', function (done) {
