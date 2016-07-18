@@ -8,6 +8,7 @@ var cache = require(__dirname + '/../../dadi/lib/cache')
 var config = require(__dirname + '/../../config')
 var help = require(__dirname + '/help')
 var app = require(__dirname + '/../../dadi/lib/')
+var Route = require(__dirname + '/../../dadi/lib/models/route')
 var imageHandler = require(__dirname + '/../../dadi/lib/handlers/image')
 
 var testConfigString
@@ -150,21 +151,19 @@ describe('Routes', function () {
 
        sample.route = 'my-route'
 
-       var stub = sinon.stub(fs, 'writeFileSync', function (filePath, content) {
-         console.log('--> a:', filePath)
-         console.log('--> b:', path.join(path.resolve(config.get('paths.routes')), 'my-route.json'))
-         //filePath.should.eql(path.join(path.resolve(config.get('paths.routes')), 'my-route.json'))
-         filePath.should.eql('osdfhisudhf')
-         done()
-       })
+       //sinon.stub(Route.prototype, 'save').returns(true)  ---> make it fail
+       sinon.stub(Route.prototype, 'save').returns(false)
 
        client
        .post('/api/routes')
        .send(sample)
        .set('Authorization', 'Bearer ' + token)
        .end(function(err, res) {
-          console.log('** ERR:', err)
-          console.log('** RES:', res.body)
+          console.log(res.body)
+          Route.prototype.save.restore()
+
+          res.body.success.should.eql(false)
+          done()
         })
      })
     })
