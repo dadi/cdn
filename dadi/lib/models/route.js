@@ -1,3 +1,4 @@
+var cache = require(__dirname + '/../cache')()
 var config = require(__dirname + '/../../../config')
 var fs = require('fs')
 var logger = require('@dadi/logger')
@@ -18,6 +19,10 @@ Route.prototype._arrayIntersect = function (object, array) {
       return objectPart.toLowerCase() === element.toLowerCase()
     })
   })
+}
+
+Route.prototype._getCacheKey = function () {
+  return this.ip + this.config.route
 }
 
 Route.prototype._getPathInObject = function (path, object, breadcrumbs) {
@@ -196,15 +201,20 @@ Route.prototype.getMaxmindLocation = function () {
 }
 
 Route.prototype.getRecipe = function () {
-  var match
-  var queue = []
+  return cache.get(this._getCacheKey()).then((cachedRecipe) => {
+    if (cachedRecipe) return Promise.resolve(cachedRecipe)
 
-  return this.evaluateBranches(this.config.branches).then((match) => {
-    if (match) return match.recipe
-  }).catch((err) => {
-    logger.error({module: 'routes'}, err)
+    return this.processRoute().then((recipe) => {
+      if (recipe) {
+        return cache.set(this._getCacheKey(), recipe).then(() => {
+          return recipe
+        }).catch((err) => {
+          return recipe
+        })
+      }
 
-    return Promise.resolve(null)
+      return recipe
+    })
   })
 }
 
@@ -224,8 +234,21 @@ Route.prototype.getRemoteLocation = function () {
   })
 }
 
+Route.prototype.processRoute = function () {
+  var match
+  var queue = []
+
+  return this.evaluateBranches(this.config.branches).then((match) => {
+    if (match) return match.recipe
+  }).catch((err) => {
+    logger.error({module: 'routes'}, err)
+
+    return Promise.resolve(null)
+  })
+}
+
 Route.prototype.save = function () {
-  var filePath = path.join(config.get('paths.routes'), this.config.route + '.json')
+  var filePath = path.join(path.resolve(config.get('paths.routes')), this.config.route + '.json')
 
   try {
     fs.writeFileSync(filePath, JSON.stringify(this.config, null, 2))

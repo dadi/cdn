@@ -82,7 +82,7 @@ ImageHandler.prototype.get = function () {
     }
 
     // get from cache
-    self.cache.get(self.cacheKey, function (stream) {
+    self.cache.getStream(self.cacheKey, function (stream) {
 
       // if found in cache, return it
       if (stream) {

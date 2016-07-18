@@ -135,9 +135,39 @@ Cache.prototype.cacheFile = function(stream, key, cb) {
   }
 }
 
-Cache.prototype.get = function(key, cb) {
+Cache.prototype.get = function (key) {
+  return new Promise((resolve, reject) => {
+    if (!this.enabled) return resolve(null)
+
+    var settings = config.get('caching')
+    var encryptedKey = sha1(key)
+
+    if (settings.redis.enabled) {
+      // Redis
+    } else {
+      var cachePath = path.join(this.dir, encryptedKey)
+
+      fs.stat(cachePath, (err, stats) => {
+        if (err) return resolve(null)
+
+        var lastMod = stats && stats.mtime && stats.mtime.valueOf();
+
+        if (settings.ttl && lastMod && (Date.now() - lastMod) / 1000 <= settings.ttl) {
+          fs.readFile(cachePath, 'utf8', (err, data) => {
+            if (err) return resolve(null)
+
+            return resolve(data)
+          })
+        }
+      })
+    }
+  })
+}
+
+Cache.prototype.getStream = function(key, cb) {
   var self = this;
-    if (!self.enabled) return cb(null)
+
+  if (!self.enabled) return cb(null)
 
   var settings = config.get('caching');
   var encryptedKey = sha1(key);
@@ -172,6 +202,28 @@ Cache.prototype.get = function(key, cb) {
       }
     })
   }
+}
+
+Cache.prototype.set = function (key, value) {
+  return new Promise((resolve, reject) => {
+    if (!this.enabled) return resolve(null)
+
+    var settings = config.get('caching')
+    var encryptedKey = sha1(key)
+
+    if (settings.redis.enabled) {
+      // Redis
+    } else {
+      var cacheDir = path.resolve(settings.directory.path)
+      var file = fs.writeFile(path.join(cacheDir, encryptedKey), value, ((err) => {
+        if (err) {
+          return reject(err)
+        }
+
+        return resolve(value)
+      }))
+    }
+  })
 }
 
 module.exports.delete = function(pattern, callback) {
