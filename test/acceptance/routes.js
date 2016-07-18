@@ -12,6 +12,7 @@ var Route = require(__dirname + '/../../dadi/lib/models/route')
 var imageHandler = require(__dirname + '/../../dadi/lib/handlers/image')
 
 var testConfigString
+var sampleRoute = 'sample-route'
 
 describe('Routes', function () {
   this.timeout(8000)
@@ -26,7 +27,7 @@ describe('Routes', function () {
     testConfigString = fs.readFileSync(config.configPath())
 
     sample = {
-      "route": "sample-route",
+      "route": sampleRoute,
       "branches": [
         {
           "condition": {
@@ -70,14 +71,14 @@ describe('Routes', function () {
 
   after(function () {
     try {
-      fs.unlinkSync(path.join(path.resolve(config.get('paths.routes')), 'sample-route.json'))
+      fs.unlinkSync(path.join(path.resolve(config.get('paths.routes')), sampleRoute + '.json'))
     }
     catch (err) {
 
     }
   })
 
-  describe('Create', function () {
+  describe.only('Create', function () {
     it('should not allow route create request without a valid token', function (done) {
       help.getBearerToken(function (err, token) {
         var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
@@ -95,7 +96,7 @@ describe('Routes', function () {
         var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
 
         client
-          .post('/api/recipes/new')
+          .post('/api/routes')
           .send({})
           .set('Authorization', 'Bearer ' + token)
           .expect(400, done)
@@ -109,28 +110,27 @@ describe('Routes', function () {
         delete sample['route']
 
         client
-        .post('/api/routes/new')
+        .post('/api/routes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .expect(400)
         .end(function(err ,res) {
-          res.body.error.should.be.Array
-          res.body.error.should.containEql('Route name is missing')
+          res.body.success.should.eql(false)
+          res.body.errors.should.be.Array
+          res.body.errors.should.containEql('Route name is missing')
 
           done()
         })
       })
     })
 
-    it('should set the correct route filepath', function (done) {
+    it('should save route to filesystem', function (done) {
       help.getBearerToken(function (err, token) {
         var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
 
-        sample.route = 'my-route'
+        sample.route = sampleRoute
 
-        var stub = sinon.stub(fs, 'writeFileSync', function (filePath, content) {
-          filePath.should.eql(path.join(path.resolve(config.get('paths.routes')), 'my-route.json'))
-        })
+        var stub = sinon.spy(fs, 'writeFileSync')
 
         client
         .post('/api/routes')
@@ -138,6 +138,11 @@ describe('Routes', function () {
         .set('Authorization', 'Bearer ' + token)
         .end(function(err, res) {
           stub.called.should.eql(true)
+          stub.calledWith(path.join(path.resolve(config.get('paths.routes')), sampleRoute + '.json')).should.eql(true)
+
+          res.statusCode.should.eql(200)
+          res.body.success.should.eql(true)
+
           fs.writeFileSync.restore()
 
           done()
@@ -145,13 +150,12 @@ describe('Routes', function () {
       })
     })
 
-    it.only('should return error when trying to create route with existing name', function (done) {
+    it('should return error when trying to create route with existing name', function (done) {
      help.getBearerToken((err, token) => {
        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
 
-       sample.route = 'my-route'
+       sample.route = sampleRoute
 
-       //sinon.stub(Route.prototype, 'save').returns(true)  ---> make it fail
        sinon.stub(Route.prototype, 'save').returns(false)
 
        client
@@ -159,30 +163,12 @@ describe('Routes', function () {
        .send(sample)
        .set('Authorization', 'Bearer ' + token)
        .end(function(err, res) {
-          console.log(res.body)
           Route.prototype.save.restore()
 
           res.body.success.should.eql(false)
           done()
         })
      })
-    })
-
-    it('should save valid recipe to filesystem', function (done) {
-      help.getBearerToken(function (err, token) {
-        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-
-        sample.recipe = 'thumbnail'
-
-        client
-        .post('/api/recipes/new')
-        .send(sample)
-        .set('Authorization', 'Bearer ' + token)
-        .end(function(err ,res) {
-          res.statusCode.should.eql(201)
-          done()
-        })
-      })
     })
   })
 
