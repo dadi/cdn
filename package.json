@@ -42,7 +42,7 @@
     "request": "~2.65.0",
     "router": "~1.1.3",
     "sha1": "~1.1.1",
-    "smartcrop-lwip": "github:eduardoboucas/smartcrop-lwip",
+    "smartcrop-lwip": "git+https://github.com/eduardoboucas/smartcrop-lwip",
     "stream-length": "^1.0.2",
     "underscore": "~1.8.3",
     "url-join": "^1.1.0",
