@@ -44,14 +44,16 @@ Route.prototype._matchBranch = function (branch) {
   var queue = []
 
   Object.keys(branch.condition).every((type) => {
+    var condition = branch.condition[type]
+
     switch (type) {
       case 'device':
-        // Ensure `device` is an array
-        if (!(branch.condition[type] instanceof Array)) {
-          branch.condition[type] = [branch.condition[type]]
+        // Ensure the condition is in array format
+        if (!(condition instanceof Array)) {
+          condition = [condition]
         }
 
-        match = match && this._arrayIntersect(this.getDevice(), branch.condition[type])
+        match = match && this._arrayIntersect(this.getDevice(), condition)
 
         break
 
@@ -62,13 +64,13 @@ Route.prototype._matchBranch = function (branch) {
           minQuality = 1
         }
 
-        // Ensure `language` is an array
-        if (!(branch.condition[type] instanceof Array)) {
-          branch.condition[type] = [branch.condition[type]]
+        // Ensure the condition is in array format
+        if (!(condition instanceof Array)) {
+          condition = [condition]
         }
 
         var languageMatch = this.getLanguages(minQuality).some((language) => {
-          return this._arrayIntersect(language, branch.condition[type])
+          return this._arrayIntersect(language, condition)
         })
 
         match = match && languageMatch
@@ -76,25 +78,25 @@ Route.prototype._matchBranch = function (branch) {
         break
 
       case 'country':
-        // Ensure `country` is an array
-        if (!(branch.condition[type] instanceof Array)) {
-          branch.condition[type] = [branch.condition[type]]
+        // Ensure the condition is in array format
+        if (!(condition instanceof Array)) {
+          condition = [condition]
         }
 
         queue.push(this.getLocation().then((location) => {
-          match = match && this._arrayIntersect(location, branch.condition[type])
+          match = match && this._arrayIntersect(location, condition)
         }))
 
         break
 
       case 'network':
-        // Ensure `network` is an array
-        if (!(branch.condition[type] instanceof Array)) {
-          branch.condition[type] = [branch.condition[type]]
+        // Ensure the condition is in array format
+        if (!(condition instanceof Array)) {
+          condition = [condition]
         }
 
         queue.push(this.getNetwork().then((network) => {
-          match = match && this._arrayIntersect(network, branch.condition[type])
+          match = match && this._arrayIntersect(network, condition)
         }))
 
         break
