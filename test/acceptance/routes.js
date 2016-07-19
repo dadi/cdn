@@ -9,12 +9,8 @@ var config = require(__dirname + '/../../config')
 var help = require(__dirname + '/help')
 var app = require(__dirname + '/../../dadi/lib/')
 var Route = require(__dirname + '/../../dadi/lib/models/route')
-var imageHandler = require(__dirname + '/../../dadi/lib/handlers/image')
 
-var testConfigString
-var sampleRoute = 'sample-route'
-
-describe('Routes', function () {
+describe.only('Routes', function () {
   this.timeout(8000)
   var tokenRoute = config.get('auth.tokenUrl')
 
@@ -24,10 +20,8 @@ describe('Routes', function () {
     delete require.cache[__dirname + '/../../config']
     config = require(__dirname + '/../../config')
 
-    testConfigString = fs.readFileSync(config.configPath())
-
     sample = {
-      "route": sampleRoute,
+      "route": 'sample-route',
       "branches": [
         {
           "condition": {
@@ -37,15 +31,6 @@ describe('Routes', function () {
             "network": "cable"
           },
           "recipe": "thumbnail"
-        },
-        {
-          "condition": {
-            "device": ["mobile", "tablet"],
-            "language": ["en", "pt"],
-            "country": "GB",
-            "network": ["cable", "dsl"]
-          },
-          "recipe": "recipe2"
         },
         {
           "recipe": "default-recipe"
@@ -71,14 +56,14 @@ describe('Routes', function () {
 
   after(function () {
     try {
-      fs.unlinkSync(path.join(path.resolve(config.get('paths.routes')), sampleRoute + '.json'))
+      fs.unlinkSync(path.join(path.resolve(config.get('paths.routes')), sample.route + '.json'))
     }
     catch (err) {
 
     }
   })
 
-  describe.only('Create', function () {
+  describe('Create', function () {
     it('should not allow route create request without a valid token', function (done) {
       help.getBearerToken(function (err, token) {
         var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
@@ -106,8 +91,9 @@ describe('Routes', function () {
     it('should return error if route name is missing', function (done) {
       help.getBearerToken(function (err, token) {
         var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+        var routeName = sample.route
 
-        delete sample['route']
+        delete sample.route
 
         client
         .post('/api/routes')
@@ -119,6 +105,9 @@ describe('Routes', function () {
           res.body.errors.should.be.Array
           res.body.errors.should.containEql('Route name is missing')
 
+          // Restore route name
+          sample.route = routeName
+
           done()
         })
       })
@@ -127,9 +116,6 @@ describe('Routes', function () {
     it('should save route to filesystem', function (done) {
       help.getBearerToken(function (err, token) {
         var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-
-        sample.route = sampleRoute
-
         var stub = sinon.spy(fs, 'writeFileSync')
 
         client
@@ -138,7 +124,7 @@ describe('Routes', function () {
         .set('Authorization', 'Bearer ' + token)
         .end(function(err, res) {
           stub.called.should.eql(true)
-          stub.calledWith(path.join(path.resolve(config.get('paths.routes')), sampleRoute + '.json')).should.eql(true)
+          stub.calledWith(path.join(path.resolve(config.get('paths.routes')), sample.route + '.json')).should.eql(true)
 
           res.statusCode.should.eql(200)
           res.body.success.should.eql(true)
@@ -153,8 +139,6 @@ describe('Routes', function () {
     it('should return error when trying to create route with existing name', function (done) {
      help.getBearerToken((err, token) => {
        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-
-       sample.route = sampleRoute
 
        sinon.stub(Route.prototype, 'save').returns(false)
 
@@ -173,167 +157,21 @@ describe('Routes', function () {
   })
 
   describe('Apply', function () {
-    it('should apply the new recipe', function (done) {
-
-      // set some config values
-      var newTestConfig = JSON.parse(testConfigString)
-      newTestConfig.caching.directory.enabled = false
-      newTestConfig.caching.redis.enabled = false
-      cache.reset()
-      newTestConfig.images.directory.enabled = true
-      newTestConfig.images.directory.path = './test/images'
-      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
-
-      config.loadFile(config.configPath())
-
-      var factory = require(__dirname + '/../../dadi/lib/handlers/factory')
-      var spy = sinon.spy(factory.HandlerFactory.prototype, 'createFromRecipe')
-
-      help.getBearerToken(function (err, token) {
-        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-
-        sample.recipe = 'thumbnail'
-
-        client
-        .post('/api/recipes/new')
-        .send(sample)
-        .set('Authorization', 'Bearer ' + token)
-        .end(function(err ,res) {
-          res.statusCode.should.eql(201)
-
-          client
-          .get('/thumbnail/test.jpg')
-          .end(function(err ,res) {
-            factory.HandlerFactory.prototype.createFromRecipe.restore()
-            spy.called.should.eql(true)
-            spy.firstCall.args[0].should.eql('thumbnail')
-
-            res.statusCode.should.eql(200)
-            res.headers['content-type'].should.eql('image/jpeg')
-
-            done()
-          })
-        })
-      })
-    })
-
-    it('should return error if the recipe is not found', function (done) {
-
-      help.getBearerToken(function (err, token) {
-        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-
-        sample.recipe = 'thumbnail'
-
-        client
-        .post('/api/recipes/new')
-        .send(sample)
-        .set('Authorization', 'Bearer ' + token)
-        .end(function(err ,res) {
-          res.statusCode.should.eql(201)
-
-          client
-          .get('/thumbxx/test.jpg')
-          .end(function(err ,res) {
-            res.statusCode.should.eql(404)
-            res.body.statusCode.should.eql(404)
-            done()
-          })
-        })
-      })
-    })
-
-    it('should handle image if recipe is valid ', function (done) {
-      var newTestConfig = JSON.parse(testConfigString)
-      newTestConfig.images.directory.enabled = true
-      newTestConfig.images.directory.path = './test/images'
-      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
-
-      config.loadFile(config.configPath())
-
+    it('should evaluate route branches', function (done) {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-      client
-        .get('/sample-image-recipe/test.jpg')
-        .expect(200)
-        .end(function (err, res) {
-          done()
-        })
-    })
-
-    it('should return error if recipe is invalid ', function (done) {
-      var newTestConfig = JSON.parse(testConfigString)
-      newTestConfig.images.directory.enabled = true
-      newTestConfig.images.directory.path = './test/images'
-      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
-
-      config.loadFile(config.configPath())
-
-      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-      client
-        .get('/wrong_test_recipe/test.jpg')
-        .expect(404, done)
-    })
-  })
-
-  describe('File change monitor', function () {
-    it('should reload the recipe when the file changes', function (done) {
-
-      // set some config values
-      var newTestConfig = JSON.parse(testConfigString)
-      newTestConfig.caching.directory.enabled = false
-      newTestConfig.caching.redis.enabled = false
-      cache.reset()
-      newTestConfig.images.directory.enabled = true
-      newTestConfig.images.directory.path = './test/images'
-      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
-
-      config.loadFile(config.configPath())
-
       var factory = require(__dirname + '/../../dadi/lib/handlers/factory')
-      var spy = sinon.spy(factory.HandlerFactory.prototype, 'createFromFormat')
+      var Route = require(__dirname + '/../../dadi/lib/models/route')
 
-      help.getBearerToken(function (err, token) {
-        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      var processBranchesSpy = sinon.spy(Route.prototype, 'evaluateBranches')
 
-        sample.recipe = 'thumbnail'
+      client
+      .get('/' + sample.route + '/test.jpg')
+      .end(function(err, res) {
+        processBranchesSpy.calledTwice.should.eql(true)
+        JSON.stringify(processBranchesSpy.firstCall.args[0]).should.eql(JSON.stringify(sample.branches))
+        JSON.stringify(processBranchesSpy.secondCall.args[0]).should.eql(JSON.stringify(sample.branches))
 
-        client
-        .post('/api/recipes/new')
-        .send(sample)
-        .set('Authorization', 'Bearer ' + token)
-        .end(function(err ,res) {
-          res.statusCode.should.eql(201)
-
-          client
-          .get('/thumbnail/test.jpg')
-          .end(function(err ,res) {
-
-            factory.HandlerFactory.prototype.createFromFormat.restore()
-            spy.firstCall.args[0].should.eql('thumbnail')
-            spy.secondCall.args[0].should.eql('jpg')
-
-            // Change the format within the recipe
-            var recipeContent = fs.readFileSync(path.join(path.resolve(config.get('paths.recipes')), 'thumbnail.json'))
-            var recipe = JSON.parse(recipeContent.toString())
-            recipe.settings.format = 'png'
-
-            fs.writeFileSync(path.join(path.resolve(config.get('paths.recipes')), 'thumbnail.json'), JSON.stringify(recipe))
-
-            spy = sinon.spy(factory.HandlerFactory.prototype, 'createFromFormat')
-
-            setTimeout(function() {
-              client
-              .get('/thumbnail/test.jpg')
-              .end(function(err ,res) {
-
-                factory.HandlerFactory.prototype.createFromFormat.restore()
-                spy.firstCall.args[0].should.eql('thumbnail')
-                spy.secondCall.args[0].should.eql('png')
-
-                done()
-              })
-            }, 2500)
-          })
-        })
+        done()
       })
     })
   })
