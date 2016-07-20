@@ -1,4 +1,5 @@
 var nodeUrl = require('url')
+var path = require('path')
 var _ = require('underscore')
 var S3Storage = require(__dirname + '/s3')
 var DiskStorage = require(__dirname + '/disk')
@@ -27,7 +28,9 @@ module.exports = {
 
     if (version === 'v1') {
       if (type === 'image') {
-        if (url.split('/').length > 15) url = url.split('/').slice(18).join('/')
+        var parsedUrl = nodeUrl.parse(url, true)
+        //var urlPath = parsedUrl.pathname.replace('/' + path.basename(parsedUrl.pathname), '')
+        url = path.basename(parsedUrl.pathname)
       }
 
       // for version 1 assets we need the part of the url following
