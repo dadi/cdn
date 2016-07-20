@@ -29,8 +29,16 @@ module.exports = {
     if (version === 'v1') {
       if (type === 'image') {
         var parsedUrl = nodeUrl.parse(url, true)
-        //var urlPath = parsedUrl.pathname.replace('/' + path.basename(parsedUrl.pathname), '')
-        url = path.basename(parsedUrl.pathname)
+
+        // get the segments of the url that relate to image manipulation options 
+        var urlSegments = _.filter(parsedUrl.pathname.split('/'), function(segment, index) {
+          if (index > 0 && segment === '') return '0'
+          if (index < 13 || (index >= 13 && /^[0-1]$/.test(segment))) {
+            return segment
+          }
+        })
+
+        url = parsedUrl.pathname.replace(urlSegments.join('/') + '/', '')
       }
 
       // for version 1 assets we need the part of the url following

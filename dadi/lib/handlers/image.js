@@ -52,9 +52,15 @@ ImageHandler.prototype.get = function () {
     if (typeof this.options.format === 'undefined') this.options.format = this.fileExt
   }
   else if (!this.options) {
-    var urlPath = parsedUrl.pathname.replace('/' + path.basename(parsedUrl.pathname), '')
-    var optionsArray = _.compact(urlPath.split('/'))
-    this.options = getImageOptions(optionsArray)
+    // get the segments of the url that relate to image manipulation options 
+    var urlSegments = _.filter(parsedUrl.pathname.split('/'), function(segment, index) {
+      if (index > 0 && segment === '') return '0'
+      if (index < 13 || (index >= 13 && /^[0-1]$/.test(segment))) {
+        return segment
+      }
+    })
+
+    this.options = getImageOptions(urlSegments)
   }
 
   this.options = self.sanitiseOptions(this.options)
