@@ -643,7 +643,7 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
   if (options.cropY == 0) delete options.cropY
   if (options.ratio == 0) delete options.ratio
   if (options.devicePixelRatio == 0) delete options.devicePixelRatio
-  if (options.resizeStyle == 0) delete options.resizeStyle
+  if (options.resizeStyle == 0) options.resizeStyle = 'aspectfill'
   if (options.blur == 0) delete options.blur
   if (options.strip == 0) delete options.strip
   if (options.rotate == 0) delete options.rotate
