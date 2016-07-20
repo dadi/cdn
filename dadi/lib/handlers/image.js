@@ -21,6 +21,19 @@ var StorageFactory = require(__dirname + '/../storage/factory')
 var Cache = require(__dirname + '/../cache')
 var config = require(__dirname + '/../../../config')
 
+var GRAVITY_TYPES = {
+  NW: 'NorthWest',
+  N: 'North',
+  NE: 'NorthEast',
+  W: 'West',
+  C: 'Center',
+  E: 'East',
+  SW: 'SouthWest',
+  S: 'South',
+  SE: 'SouthEast',
+  NONE: 'None'
+}
+
 /**
  * Performs checks on the supplied URL and fetches the image
  * @param {String} format - the type of image requested
@@ -52,7 +65,7 @@ ImageHandler.prototype.get = function () {
     if (typeof this.options.format === 'undefined') this.options.format = this.fileExt
   }
   else if (!this.options) {
-    // get the segments of the url that relate to image manipulation options 
+    // get the segments of the url that relate to image manipulation options
     var urlSegments = _.filter(parsedUrl.pathname.split('/'), function(segment, index) {
       if (index > 0 && segment === '') return '0'
       if (index < 13 || (index >= 13 && /^[0-1]$/.test(segment))) {
@@ -219,12 +232,23 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
           if (options.resizeStyle) {
             if (width && height) {
               switch (options.resizeStyle) {
+                /*
+                Aspect Fit: Will size your image until the whole image fits within your area.
+                You are left with the extra space on top and bottom.
+                */
                 case 'aspectfit':
                   var size = fit(imageInfo.width, imageInfo.height, width, height)
                   batch.cover(Math.ceil(size.width), Math.ceil(size.height), filter)
                   break
+                /*
+                Aspect Fill: Will size your image proportionally until the whole area is full of your image.
+                Your image is clipped. It will size proportionally to make sure there is no blank space left in your area.
+                */
                 case 'aspectfill':
-                  batch.cover(parseInt(width), parseInt(height), filter)
+                  var crops = self.getCropOffsetsByGravity(options.gravity, imageInfo, dimensions)
+
+                  batch.scale(parseInt(width)/parseInt(imageInfo.width))
+                  batch.crop(parseInt(crops.x1), parseInt(crops.y1), parseInt(crops.x2), parseInt(crops.y2))
                   break
                 case 'fill':
                   batch.resize(parseInt(width), parseInt(height), filter)
@@ -319,6 +343,80 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
       })
     }
   })
+}
+
+/**
+ *
+ */
+ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, originalDimensions, croppedDimensions) {
+  var originalWidth = parseInt(originalDimensions.width)
+  var originalHeight = parseInt(originalDimensions.height)
+
+  var croppedWidth = parseInt(croppedDimensions.width)
+  var croppedHeight = parseInt(croppedDimensions.height)
+
+  var scale = parseInt(croppedDimensions.width)/parseInt(originalWidth)
+  var resizedWidth = parseInt(originalWidth) * scale
+  var resizedHeight = parseInt(originalHeight) * scale
+
+  // console.log(arguments)
+  // console.log(resizedWidth)
+  // console.log(resizedHeight)
+
+  // No vertical offset for northern gravity
+  var verticalOffset = 0
+  var horizontalOffset = 0
+
+  switch (gravity) {
+    case GRAVITY_TYPES.NW:
+    case GRAVITY_TYPES.N:
+    case GRAVITY_TYPES.NE:
+      verticalOffset = 0
+      break
+    case GRAVITY_TYPES.C:
+    case GRAVITY_TYPES.E:
+    case GRAVITY_TYPES.W:
+      verticalOffset = getMaxOfArray([ parseInt((resizedHeight - croppedHeight) / 2.0), 0 ])
+      break
+    case GRAVITY_TYPES.SW:
+    case GRAVITY_TYPES.S:
+    case GRAVITY_TYPES.SE:
+      verticalOffset = parseInt(resizedHeight - croppedHeight)
+      break
+    default:
+      verticalOffset = 0
+  }
+
+  switch (gravity) {
+    case GRAVITY_TYPES.NW:
+    case GRAVITY_TYPES.W:
+    case GRAVITY_TYPES.SW:
+      horizontalOffset = 0
+      break
+    case GRAVITY_TYPES.C:
+    case GRAVITY_TYPES.N:
+    case GRAVITY_TYPES.S:
+      horizontalOffset = getMaxOfArray([ parseInt((resizedWidth - croppedWidth) / 2.0), 0 ])
+      break
+    case GRAVITY_TYPES.NE:
+    case GRAVITY_TYPES.E:
+    case GRAVITY_TYPES.SE:
+      horizontalOffset = parseInt(resizedWidth) - parseInt(croppedWidth)
+      break
+    default:
+      horizontalOffset = 0
+  }
+
+  function getMaxOfArray (numArray) {
+    return Math.max.apply(null, numArray)
+  }
+
+  return {
+    x1: horizontalOffset,
+    x2: horizontalOffset + croppedWidth,
+    y1: verticalOffset,
+    y2: verticalOffset + croppedHeight
+  }
 }
 
 /**
