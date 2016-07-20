@@ -349,6 +349,23 @@ describe('Controller', function () {
         })
     })
 
+    it('should handle test image with spaces', function (done) {
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.images.directory.enabled = true
+      newTestConfig.images.directory.path = './test/images'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+      config.loadFile(config.configPath())
+
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test%20copy.jpg')
+        .end(function(err, res) {
+          res.statusCode.should.eql(200)
+          done()
+        })
+    })
+
     it('should return error if image uri is invalid', function (done) {
       var newTestConfig = JSON.parse(testConfigString)
       newTestConfig.images.directory.enabled = true
