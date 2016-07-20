@@ -52,7 +52,8 @@ ImageHandler.prototype.get = function () {
     if (typeof this.options.format === 'undefined') this.options.format = this.fileExt
   }
   else if (!this.options) {
-    var optionsArray = _.compact(parsedUrl.pathname.split('/')).slice(0, 17)
+    var urlPath = parsedUrl.pathname.replace('/' + path.basename(parsedUrl.pathname), '')
+    var optionsArray = _.compact(urlPath.split('/'))
     this.options = getImageOptions(optionsArray)
   }
 
@@ -494,8 +495,11 @@ function getDimensions (options, imageInfo) {
  * @returns {object}
  */
 function getImageOptions (optionsArray) {
-  var gravity = optionsArray[11].substring(0, 1).toUpperCase() + optionsArray[11].substring(1)
-  var filter = optionsArray[12].substring(0, 1).toUpperCase() + optionsArray[12].substring(1)
+
+  var legacyURLFormat = optionsArray.length < 17
+
+  var gravity = optionsArray[optionsArray.length-6].substring(0, 1).toUpperCase() + optionsArray[optionsArray.length-6].substring(1)
+  var filter = optionsArray[optionsArray.length-5].substring(0, 1).toUpperCase() + optionsArray[optionsArray.length-5].substring(1)
 
   options = {
     format: optionsArray[0],
@@ -504,17 +508,20 @@ function getImageOptions (optionsArray) {
     trimFuzz: optionsArray[3],
     width: optionsArray[4],
     height: optionsArray[5],
-    cropX: optionsArray[6],
-    cropY: optionsArray[7],
-    ratio: optionsArray[8],
-    devicePixelRatio: optionsArray[9],
-    resizeStyle: optionsArray[10],
+
+    /* legacy client applications don't send the next 4 */
+    cropX: legacyURLFormat ? 0 : optionsArray[6],
+    cropY: legacyURLFormat ? 0 : optionsArray[7],
+    ratio: legacyURLFormat ? 0 : optionsArray[8],
+    devicePixelRatio: legacyURLFormat ? 1 : optionsArray[9],
+
+    resizeStyle: optionsArray[optionsArray.length-7],
     gravity: gravity,
     filter: filter,
-    blur: optionsArray[13],
-    strip: optionsArray[14],
-    rotate: optionsArray[15],
-    flip: optionsArray[16]
+    blur: optionsArray[optionsArray.length-4],
+    strip: optionsArray[optionsArray.length-3],
+    rotate: optionsArray[optionsArray.length-2],
+    flip: optionsArray[optionsArray.length-1]
   }
 
   return options

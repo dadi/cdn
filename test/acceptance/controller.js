@@ -54,7 +54,7 @@ describe('Controller', function () {
   })
 
   describe('Options Discovery', function (done) {
-    it('should extract options from url path if no querystring', function (done) {
+    it('v1: should extract options from url path if no querystring', function (done) {
       // spy on the sanitiseOptions method to access the provided arguments
       var method = sinon.spy(imageHandler.ImageHandler.prototype, 'sanitiseOptions')
 
@@ -68,6 +68,49 @@ describe('Controller', function () {
           options.quality.should.eql(50)
           options.width.should.eql(801)
           options.height.should.eql(478)
+          options.resizeStyle.should.eql('aspectfit')
+          done()
+        })
+    })
+
+    it('v1: should extract options from url path if using legacyURLFormat', function (done) {
+      // spy on the sanitiseOptions method to access the provided arguments
+      var method = sinon.spy(imageHandler.ImageHandler.prototype, 'sanitiseOptions')
+
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/jpg/50/0/0/801/478/aspectfit/North/0/0/0/0/0/test.jpg')
+        .expect(200)
+        .end(function (err, res) {
+          imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
+          var options = method.firstCall.args[0]
+
+          options.quality.should.eql(50)
+          options.width.should.eql(801)
+          options.height.should.eql(478)
+          options.resizeStyle.should.eql('aspectfit')
+
+          done()
+        })
+    })
+
+    it('v1: should extract options from url path if using legacyURLFormat with missing params', function (done) {
+      // spy on the sanitiseOptions method to access the provided arguments
+      var method = sinon.spy(imageHandler.ImageHandler.prototype, 'sanitiseOptions')
+
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/jpg/50/0/0/801/478/0/0/0//0/North/0/0/0/0/0/test.jpg')
+        .expect(200)
+        .end(function (err, res) {
+          imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
+          var options = method.firstCall.args[0]
+
+          options.quality.should.eql(50)
+          options.width.should.eql(801)
+          options.height.should.eql(478)
+          options.gravity.should.eql('North')
+
           done()
         })
     })
