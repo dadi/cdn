@@ -14,7 +14,7 @@ var DiskStorage = function (settings, url) {
 }
 
 DiskStorage.prototype.getFullUrl = function () {
-  return path.join(this.path, this.url.replace('disk', ''))
+  return decodeURI(path.join(this.path, this.url.replace('disk', '')))
 }
 
 DiskStorage.prototype.getLastModified = function () {
