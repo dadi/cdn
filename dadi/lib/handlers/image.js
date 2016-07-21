@@ -126,21 +126,39 @@ ImageHandler.prototype.get = function () {
         // response. this saves requesting the same data a second time.
         stream.pipe(imageSizeStream)
         stream.pipe(convertStream)
-        stream.pipe(exifStream)
+
+        // pipe the stream to a temporary file
+        // to avoid back pressure buildup while we wait for
+        // the exif data to be processed
+        var tmpFilename = path.join(path.resolve(__dirname + '/../../../workspace'), sha1(self.url))
+        stream.pipe(exifStream).pipe(fs.createWriteStream(tmpFilename))
 
         // get the image size and format
         imagesize(imageSizeStream, function (err, imageInfo) {
 
           // extract exif data if available
           if (imageInfo && /jpe?g/.exec(imageInfo.format)) {
-            self.extractExifData(exifStream).then(function (exifData) {
+            self.extractExifData(tmpFilename).then(function (exifData) {
               self.exifData = exifData
+
+              // remove the temporary exifData file
+              try {
+                fs.unlinkSync(tmpFilename)
+              } catch (err) {
+                console.log(err)
+              }
+
             }).catch(function (err) {
               // no exif data
-              exifStream = null
+              console.log(err)
             })
           } else {
-            exifStream = null
+            // remove the temporary exifData file
+            try {
+              fs.unlinkSync(tmpFilename)
+            } catch (err) {
+              console.log(err)
+            }
           }
 
           // connvert image using specified options
@@ -454,13 +472,13 @@ ImageHandler.prototype.extractEntropy = function (image, width, height) {
  * Extract EXIF data from the specified image
  * @param {stream} stream - read stream from S3, local disk or url
  */
-ImageHandler.prototype.extractExifData = function (stream) {
+ImageHandler.prototype.extractExifData = function (file) {
   var self = this
 
   return new Promise(function (resolve, reject) {
     var image
     var concatStream = concat(gotImage)
-    stream.pipe(concatStream)
+    fs.createReadStream(file).pipe(concatStream)
 
     function gotImage (buffer) {
       new ExifImage({ image: buffer }, function (err, data) {

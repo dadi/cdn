@@ -39,6 +39,8 @@ describe('ImageHandler', function (done) {
     newTestConfig.caching.redis.enabled = false
     cache.reset()
     newTestConfig.images.directory.enabled = false
+    newTestConfig.images.s3.enabled = false
+    newTestConfig.images.remote.enabled = false
     newTestConfig.images.directory.path = './test/images'
     fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
 
@@ -96,6 +98,8 @@ describe('ImageHandler', function (done) {
     newTestConfig.caching.redis.enabled = false
     cache.reset()
     newTestConfig.images.directory.enabled = true
+    newTestConfig.images.s3.enabled = false
+    newTestConfig.images.remote.enabled = false
     newTestConfig.images.directory.path = './test/images'
     fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
 
@@ -152,6 +156,7 @@ describe('ImageHandler', function (done) {
     newTestConfig.caching.redis.enabled = false
     cache.reset()
     newTestConfig.images.directory.enabled = false
+    newTestConfig.images.s3.enabled = false
     newTestConfig.images.remote.enabled = true
     newTestConfig.images.remote.path = 'https://nodejs.org'
     fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
@@ -210,8 +215,8 @@ describe('ImageHandler', function (done) {
     newTestConfig.caching.redis.enabled = false
     cache.reset()
     newTestConfig.images.directory.enabled = false
-    newTestConfig.images.remote.enabled = false
     newTestConfig.images.s3.enabled = true
+    newTestConfig.images.remote.enabled = false
     // newTestConfig.images.remote.path = 'https://nodejs.org'
     fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
 
