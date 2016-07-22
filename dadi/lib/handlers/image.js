@@ -140,17 +140,16 @@ ImageHandler.prototype.get = function () {
           if (imageInfo && /jpe?g/.exec(imageInfo.format)) {
             self.extractExifData(tmpFilename).then(function (exifData) {
               self.exifData = exifData
-
+            }).catch(function (err) {
+              // no exif data
+              console.log(err)
+            }).then(function () {
               // remove the temporary exifData file
               try {
                 fs.unlinkSync(tmpFilename)
               } catch (err) {
                 console.log(err)
               }
-
-            }).catch(function (err) {
-              // no exif data
-              console.log(err)
             })
           } else {
             // remove the temporary exifData file
