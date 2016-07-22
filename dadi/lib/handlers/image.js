@@ -288,12 +288,24 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                   break
                 case 'crop':
                   if (options.crop) {
-                    var coords = options.crop.split(',')
+                    var coords = options.crop.split(',').map((coordStr) => {
+                      return parseInt(coordStr)
+                    })
+
+                    // Checking for crops on the last pixels
+                    if (coords[2] === imageInfo.width) {
+                      coords[2]--
+                    }
+
+                    if (coords[3] === imageInfo.height) {
+                      coords[3]--
+                    }
+
                     if (coords.length === 2) {
-                      batch.crop(parseInt(coords[0]), parseInt(coords[1]), parseInt(width - coords[0]), parseInt(height - coords[1]))
+                      batch.crop(coords[0], coords[1], width - cords[0], height - oords[1])
                     }
                     else if (coords.length === 4) {
-                      batch.crop(parseInt(coords[0]), parseInt(coords[1]), parseInt(coords[2]), parseInt(coords[3]))
+                      batch.crop(coords[0], coords[1], coords[2], coords[3])
                     }
                   } else { // width & height provided, crop from centre
                     batch.crop(width, height)
@@ -302,6 +314,15 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                   break
                 case 'entropy':
                   if (entropy) {
+                    // Checking for crops on the last pixels
+                    if (entropy.x2 === imageInfo.width) {
+                      entropy.x2--
+                    }
+
+                    if (entropy.y2 === imageInfo.height) {
+                      entropy.y2--
+                    }
+
                     batch.crop(entropy.x1, entropy.y1, entropy.x2, entropy.y2)
                     batch.resize(width, height)
                   }
