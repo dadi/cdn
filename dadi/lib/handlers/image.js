@@ -208,8 +208,8 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
   var options = self.options
 
   var dimensions = getDimensions(options, imageInfo)
-  var width = dimensions.width
-  var height = dimensions.height
+  var width = parseInt(dimensions.width)
+  var height = parseInt(dimensions.height)
 
   return new Promise(function (resolve, reject) {
     if (options.cropX && options.cropY) {
@@ -238,7 +238,7 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
       require('lwip').open(imageBuffer, imageInfo.format, function (err, image) {
         if (err) return reject(err)
 
-        var shouldExtractEntropy = ((options.resizeStyle === 'entropy') && width && height) ? self.extractEntropy(image, parseInt(width), parseInt(height)) : false
+        var shouldExtractEntropy = ((options.resizeStyle === 'entropy') && width && height) ? self.extractEntropy(image, width, height) : false
 
         Promise.resolve(shouldExtractEntropy).then((entropy) => {
           // define a batch of manipulations
@@ -263,13 +263,28 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                 Your image is clipped. It will size proportionally to make sure there is no blank space left in your area.
                 */
                 case 'aspectfill':
-                  var crops = self.getCropOffsetsByGravity(options.gravity, imageInfo, dimensions)
+                  var scaleWidth = (width / parseInt(imageInfo.width))
+                  var scaleHeight = (height / parseInt(imageInfo.height))
+                  var scale = Math.max(scaleWidth, scaleHeight)
+                  var crops = self.getCropOffsetsByGravity(options.gravity, imageInfo, dimensions, scale)
 
-                  batch.scale(parseInt(width)/parseInt(imageInfo.width))
-                  batch.crop(parseInt(crops.x1), parseInt(crops.y1), parseInt(crops.x2), parseInt(crops.y2))
+                  batch.scale(scale)
+
+                  // Only crop if the aspect ratio is not the same
+                  if ((width / height) !== (imageInfo.width / imageInfo.height)) {
+                    // A black border is added when cropping on the last pixel, so we compensate for that
+                    if ((scaleHeight > scaleWidth) && (height === crops.y2)) {
+                      crops.y2--
+                    } else if ((scaleWidth > scaleHeight) && (width === crops.x2)) {
+                      crops.x2--
+                    }
+
+                    batch.crop(crops.x1, crops.y1, crops.x2, crops.y2)
+                  }
+
                   break
                 case 'fill':
-                  batch.resize(parseInt(width), parseInt(height), filter)
+                  batch.resize(width, height, filter)
                   break
                 case 'crop':
                   if (options.crop) {
@@ -281,14 +296,14 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                       batch.crop(parseInt(coords[0]), parseInt(coords[1]), parseInt(coords[2]), parseInt(coords[3]))
                     }
                   } else { // width & height provided, crop from centre
-                    batch.crop(parseInt(width), parseInt(height))
+                    batch.crop(width, height)
                   }
 
                   break
                 case 'entropy':
                   if (entropy) {
                     batch.crop(entropy.x1, entropy.y1, entropy.x2, entropy.y2)
-                    batch.resize(parseInt(width), parseInt(height))
+                    batch.resize(width, height)
                   }
               }
             }
@@ -298,10 +313,10 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
             batch.crop(parseInt(options.cropX), parseInt(options.cropY), width - parseInt(options.cropX), height - parseInt(options.cropY))
           }
           else if (width && height) {
-            batch.cover(parseInt(width), parseInt(height))
+            batch.cover(width, height)
           }
           else if (width && !height) {
-            batch.resize(parseInt(width))
+            batch.resize(width)
           }
 
           if (options.blur) batch.blur(parseInt(options.blur))
@@ -366,20 +381,16 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
 /**
  *
  */
-ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, originalDimensions, croppedDimensions) {
+ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, originalDimensions, croppedDimensions, scale) {
   var originalWidth = parseInt(originalDimensions.width)
   var originalHeight = parseInt(originalDimensions.height)
 
   var croppedWidth = parseInt(croppedDimensions.width)
   var croppedHeight = parseInt(croppedDimensions.height)
 
-  var scale = parseInt(croppedDimensions.width)/parseInt(originalWidth)
-  var resizedWidth = parseInt(originalWidth) * scale
-  var resizedHeight = parseInt(originalHeight) * scale
-
-  // console.log(arguments)
-  // console.log(resizedWidth)
-  // console.log(resizedHeight)
+  var scale = croppedWidth / originalWidth
+  var resizedWidth = originalWidth * scale
+  var resizedHeight = originalHeight * scale
 
   // No vertical offset for northern gravity
   var verticalOffset = 0
@@ -394,12 +405,12 @@ ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, originalDime
     case GRAVITY_TYPES.C:
     case GRAVITY_TYPES.E:
     case GRAVITY_TYPES.W:
-      verticalOffset = getMaxOfArray([ parseInt((resizedHeight - croppedHeight) / 2.0), 0 ])
+      verticalOffset = getMaxOfArray([(resizedHeight - croppedHeight) / 2.0, 0 ])
       break
     case GRAVITY_TYPES.SW:
     case GRAVITY_TYPES.S:
     case GRAVITY_TYPES.SE:
-      verticalOffset = parseInt(resizedHeight - croppedHeight)
+      verticalOffset = resizedHeight - croppedHeight
       break
     default:
       verticalOffset = 0
@@ -414,12 +425,12 @@ ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, originalDime
     case GRAVITY_TYPES.C:
     case GRAVITY_TYPES.N:
     case GRAVITY_TYPES.S:
-      horizontalOffset = getMaxOfArray([ parseInt((resizedWidth - croppedWidth) / 2.0), 0 ])
+      horizontalOffset = getMaxOfArray([(resizedWidth - croppedWidth) / 2.0, 0 ])
       break
     case GRAVITY_TYPES.NE:
     case GRAVITY_TYPES.E:
     case GRAVITY_TYPES.SE:
-      horizontalOffset = parseInt(resizedWidth) - parseInt(croppedWidth)
+      horizontalOffset = resizedWidth - croppedWidth
       break
     default:
       horizontalOffset = 0
