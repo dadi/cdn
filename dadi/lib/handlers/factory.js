@@ -64,6 +64,7 @@ HandlerFactory.prototype.createFromFormat = function (format, req) {
         break
       case 'gif':
       case 'jpg':
+      case 'jpeg':
       case 'json':
       case 'png':
         return resolve(new ImageHandler(format, req))
