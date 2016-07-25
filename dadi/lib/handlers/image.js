@@ -278,13 +278,6 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
 
                   // Only crop if the aspect ratio is not the same
                   if ((width / height) !== (imageInfo.width / imageInfo.height)) {
-                    // A black border is added when cropping on the last pixel, so we compensate for that
-                    if ((scaleHeight > scaleWidth) && (height === crops.y2)) {
-                      crops.y2--
-                    } else if ((scaleWidth > scaleHeight) && (width === crops.x2)) {
-                      crops.x2--
-                    }
-
                     batch.crop(crops.x1, crops.y1, crops.x2, crops.y2)
                   }
 
@@ -298,14 +291,9 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                       return parseInt(coordStr)
                     })
 
-                    // Checking for crops on the last pixels
-                    if (coords[2] === imageInfo.width) {
-                      coords[2]--
-                    }
-
-                    if (coords[3] === imageInfo.height) {
-                      coords[3]--
-                    }
+                    // Reduce 1 pixel on the edges
+                    coords[2] = (coords[2] > 0) ? (coords[2] - 1) : coords[2]
+                    coords[3] = (coords[3] > 0) ? (coords[3] - 1) : coords[3]
 
                     if (coords.length === 2) {
                       batch.crop(coords[0], coords[1], width - cords[0], height - oords[1])
@@ -320,16 +308,11 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                   break
                 case 'entropy':
                   if (entropy) {
-                    // Checking for crops on the last pixels
-                    if (entropy.x2 === imageInfo.width) {
-                      entropy.x2--
-                    }
+                    // Reduce 1 pixel on the edges
+                    entropy.x2 = (entropy.x2 > 0) ? (entropy.x2 - 1) : entropy.x2
+                    entropy.y2 = (entropy.y2 > 0) ? (entropy.y2 - 1) : entropy.y2
 
-                    if (entropy.y2 === imageInfo.height) {
-                      entropy.y2--
-                    }
-
-                    batch.crop(entropy.x1, entropy.y1, entropy.x2, entropy.y2)
+                    batch.crop(entropy.x1, entropy.y1, entropy.x2 - 1, entropy.y2 - 1)
                     batch.resize(width, height)
                   }
               }
@@ -468,10 +451,10 @@ ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, originalDime
   }
 
   return {
-    x1: horizontalOffset,
-    x2: horizontalOffset + croppedWidth,
-    y1: verticalOffset,
-    y2: verticalOffset + croppedHeight
+    x1: Math.floor(horizontalOffset),
+    x2: Math.floor(horizontalOffset + croppedWidth) - 1,
+    y1: Math.floor(verticalOffset),
+    y2: Math.floor(verticalOffset + croppedHeight) - 1
   }
 }
 
