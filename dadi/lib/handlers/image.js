@@ -22,16 +22,16 @@ var Cache = require(__dirname + '/../cache')
 var config = require(__dirname + '/../../../config')
 
 var GRAVITY_TYPES = {
-  NW: 'NorthWest',
-  N: 'North',
-  NE: 'NorthEast',
-  W: 'West',
-  C: 'Center',
-  E: 'East',
-  SW: 'SouthWest',
-  S: 'South',
-  SE: 'SouthEast',
-  NONE: 'None'
+  NW: 'northwest',
+  N: 'north',
+  NE: 'northeast',
+  W: 'west',
+  C: 'center',
+  E: 'east',
+  SW: 'southwest',
+  S: 'south',
+  SE: 'southeast',
+  NONE: 'none'
 }
 
 /**
@@ -60,9 +60,11 @@ ImageHandler.prototype.get = function () {
   self.cached = false
 
   var parsedUrl = url.parse(this.req.url, true)
+
+  // get the image options provided as querystring or path
   if (parsedUrl.search) {
+    // get image options from the querystring
     this.options = parsedUrl.query
-    if (typeof this.options.format === 'undefined') this.options.format = this.fileExt
   }
   else if (!this.options) {
     // get the segments of the url that relate to image manipulation options
@@ -76,7 +78,12 @@ ImageHandler.prototype.get = function () {
     this.options = getImageOptions(urlSegments)
   }
 
+  // clean the options array up
   this.options = self.sanitiseOptions(this.options)
+
+  if (typeof this.options.format === 'undefined') this.options.format = this.fileExt
+
+  console.log(this.options)
 
   if (this.options.format === 'json') {
     if (this.fileExt === this.fileName) {
@@ -416,7 +423,7 @@ ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, originalDime
   var verticalOffset = 0
   var horizontalOffset = 0
 
-  switch (gravity) {
+  switch (gravity.toLowerCase()) {
     case GRAVITY_TYPES.NW:
     case GRAVITY_TYPES.N:
     case GRAVITY_TYPES.NE:
@@ -681,24 +688,56 @@ function getImageOptions (optionsArray) {
 }
 
 ImageHandler.prototype.sanitiseOptions = function (options) {
-  if (options.filter == 'None' || options.filter == 0) delete options.filter
-  if (options.gravity == 0) delete options.gravity
-  if (options.width == 0) delete options.width
-  if (options.height == 0) delete options.height
-  if (options.quality == 0) delete options.quality
-  if (options.trim == 0) delete options.trim
-  if (options.trimFuzz == 0) delete options.trimFuzz
-  if (options.cropX == 0) delete options.cropX
-  if (options.cropY == 0) delete options.cropY
-  if (options.ratio == 0) delete options.ratio
-  if (options.devicePixelRatio == 0) delete options.devicePixelRatio
-  if (options.resizeStyle == 0) options.resizeStyle = 'aspectfill'
-  if (options.blur == 0) delete options.blur
-  if (options.strip == 0) delete options.strip
-  if (options.rotate == 0) delete options.rotate
-  if (options.flip == 0) delete options.flip
+  // check the options for aliases
+  // e.g. "dpr" === "devicePixelRatio"
 
-  return options
+  var optionSettings = [
+    { name: 'format', aliases: ['fmt'] },
+    { name: 'quality', aliases: ['q'], default: 75 },
+    { name: 'width', aliases: ['w'] },
+    { name: 'height', aliases: ['h'] },
+    { name: 'ratio', aliases: ['rx'] },
+    { name: 'cropX', aliases: ['cx'] },
+    { name: 'cropY', aliases: ['cy'] },
+    { name: 'crop', aliases: ['coords'] },
+    { name: 'resizeStyle', aliases: ['resize'], default: 'aspectfill' },
+    { name: 'devicePixelRatio', aliases: ['dpr'] },
+    { name: 'gravity', aliases: ['g'], default: 'None' },
+    { name: 'filter', aliases: ['f'] },
+    { name: 'trim', aliases: ['t'] },
+    { name: 'trimFuzz', aliases: ['tf'] },
+    { name: 'blur', aliases: ['b'] },
+    { name: 'strip', aliases: ['s'] },
+    { name: 'rotate', aliases: ['r'] },
+    { name: 'flip', aliases: ['fl'] }
+  ]
+
+  var imageOptions = {}
+
+  _.each(Object.keys(options), function(key) {
+    var settings = _.filter(optionSettings, function (setting) {
+      return setting.name === key || _.contains(setting.aliases, key)
+    })
+
+    if (settings && settings[0]) {
+    	if (options[key] !== '0' || settings[0].default) {
+	      imageOptions[settings[0].name] = options[key] !== '0' ? options[key] : settings[0].default
+      }
+    }
+  })
+
+  // ensure we have defaults for options not specified
+  var defaults = _.filter(optionSettings, function (setting) {
+    return setting.default
+  })
+
+  _.each(defaults, function(setting) {
+    if (!imageOptions[setting.name]) {
+      imageOptions[setting.name] = setting.default
+    }
+  })
+
+  return imageOptions
 }
 
 ImageHandler.prototype.contentType = function () {
