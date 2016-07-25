@@ -653,9 +653,9 @@ function getImageOptions (optionsArray) {
     height: optionsArray[5],
 
     /* legacy client applications don't send the next 4 */
-    cropX: legacyURLFormat ? 0 : optionsArray[6],
-    cropY: legacyURLFormat ? 0 : optionsArray[7],
-    ratio: legacyURLFormat ? 0 : optionsArray[8],
+    cropX: legacyURLFormat ? '0' : optionsArray[6],
+    cropY: legacyURLFormat ? '0' : optionsArray[7],
+    ratio: legacyURLFormat ? '0' : optionsArray[8],
     devicePixelRatio: legacyURLFormat ? 1 : optionsArray[9],
 
     resizeStyle: optionsArray[optionsArray.length-7],
