@@ -41,7 +41,7 @@ var S3Storage = function (settings, url) {
       url = self.url
     }
 
-    return decodeURI(url)
+    return decodeURIComponent(url)
   }
 
   this.urlParts = function () {
