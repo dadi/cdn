@@ -126,7 +126,8 @@ describe('Controller', function () {
           imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
 
           method.called.should.eql(true)
-          var options = method.firstCall.args[0]
+
+          var options = method.returnValues[0]
 
           options.quality.should.eql(50)
           options.width.should.eql(801)
@@ -136,18 +137,19 @@ describe('Controller', function () {
         })
     })
 
-    it.skip('v2: should extract options from querystring using abbreviated params', function (done) {
+    it('v2: should extract options from querystring using abbreviated params', function (done) {
       // spy on the sanitiseOptions method to access the provided arguments
       var method = sinon.spy(imageHandler.ImageHandler.prototype, 'sanitiseOptions')
 
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
-        .get('/test.jpg?q=50&w=801&h=478&g=North&rs=aspectfit&dpr=2')
+        .get('/test.jpg?q=50&w=801&h=478&g=North&resize=aspectfit&dpr=2')
         .end(function (err, res) {
           imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
 
           method.called.should.eql(true)
-          var options = method.firstCall.args[0]
+
+          var options = method.returnValues[0]
 
           options.quality.should.eql(50)
           options.width.should.eql(801)

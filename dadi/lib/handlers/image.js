@@ -83,7 +83,7 @@ ImageHandler.prototype.get = function () {
 
   if (typeof this.options.format === 'undefined') this.options.format = this.fileExt
 
-  console.log(this.options)
+  //console.log(this.options)
 
   if (this.options.format === 'json') {
     if (this.fileExt === this.fileName) {
