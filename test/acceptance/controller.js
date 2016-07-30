@@ -64,7 +64,7 @@ describe('Controller', function () {
         .expect(200)
         .end(function (err, res) {
           imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
-          var options = method.firstCall.args[0]
+          var options = method.returnValues[0]
           options.quality.should.eql(50)
           options.width.should.eql(801)
           options.height.should.eql(478)
@@ -83,7 +83,7 @@ describe('Controller', function () {
         .expect(200)
         .end(function (err, res) {
           imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
-          var options = method.firstCall.args[0]
+          var options = method.returnValues[0]
 
           options.quality.should.eql(50)
           options.width.should.eql(801)
@@ -104,7 +104,7 @@ describe('Controller', function () {
         .expect(200)
         .end(function (err, res) {
           imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
-          var options = method.firstCall.args[0]
+          var options = method.returnValues[0]
 
           options.quality.should.eql(50)
           options.width.should.eql(801)
