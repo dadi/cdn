@@ -83,8 +83,6 @@ ImageHandler.prototype.get = function () {
 
   if (typeof this.options.format === 'undefined') this.options.format = this.fileExt
 
-  console.log(this.options)
-
   if (this.options.format === 'json') {
     if (this.fileExt === this.fileName) {
       this.format = 'PNG'
@@ -344,20 +342,20 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
           }
 
           // sharpening
-          if (quality >= 70) {
+          if (options.sharp != 5) {
+            batch.sharpen(options.sharp)
+          } else if (quality >= 70) {
             if (/jpe?g/.exec(imageInfo.format)) {
               batch.sharpen(5)
-            }
-            else if (/png/.exec(imageInfo.format)) {
+            } else if (/png/.exec(imageInfo.format)) {
               batch.sharpen(5)
             }
-          }
-          else if (options.cropX && options.cropY) {
+          } else if (options.cropX && options.cropY) {
             batch.sharpen(5)
           }
 
           // give it a little colour
-          batch.saturate(0.1)
+          batch.saturate(options.saturate)
 
           // format
           var format = self.options.format === 'json' ? imageInfo.format : self.options.format
@@ -677,6 +675,8 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
   var optionSettings = [
     { name: 'format', aliases: ['fmt'] },
     { name: 'quality', aliases: ['q'], default: 75 },
+    { name: 'sharpen', aliases: ['sh'], default: 5 },
+    { name: 'saturate', aliases: ['sat'], default: 0.1 },
     { name: 'width', aliases: ['w'] },
     { name: 'height', aliases: ['h'] },
     { name: 'ratio', aliases: ['rx'] },
@@ -704,7 +704,11 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
 
     if (settings && settings[0]) {
     	if (options[key] !== '0' || settings[0].default) {
-	      imageOptions[settings[0].name] = options[key] !== '0' ? options[key] : settings[0].default
+        if (options[key] !== '0') {
+          imageOptions[settings[0].name] = _.isNaN(parseFloat(options[key])) ? options[key] : parseFloat(options[key])
+        } else {
+          imageOptions[settings[0].name] = settings[0].default
+        }
       }
     }
   })
