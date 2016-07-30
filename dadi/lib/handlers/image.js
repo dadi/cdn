@@ -275,6 +275,9 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                   batch.scale(scale)
 
                   // Only crop if the aspect ratio is not the same
+                  // if ((width / height) !== (imageInfo.width / imageInfo.height) && !self.storageHandler.notFound) {
+                  //   batch.crop(crops.x1, crops.y1, crops.x2, crops.y2)
+                  // }
                   if ((width / height) !== (imageInfo.width / imageInfo.height)) {
                     batch.crop(crops.x1, crops.y1, crops.x2, crops.y2)
                   }
@@ -342,16 +345,16 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
           }
 
           // sharpening
-          if (options.sharp != 5) {
-            batch.sharpen(options.sharp)
+          if (options.sharpen != 5) {
+            batch.sharpen(options.sharpen)
           } else if (quality >= 70) {
             if (/jpe?g/.exec(imageInfo.format)) {
               batch.sharpen(5)
             } else if (/png/.exec(imageInfo.format)) {
               batch.sharpen(5)
+            } else if (options.cropX && options.cropY) {
+              batch.sharpen(5)
             }
-          } else if (options.cropX && options.cropY) {
-            batch.sharpen(5)
           }
 
           // give it a little colour

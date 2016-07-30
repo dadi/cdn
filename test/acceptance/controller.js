@@ -126,7 +126,7 @@ describe('Controller', function () {
           imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
 
           method.called.should.eql(true)
-          var options = method.firstCall.args[0]
+          var options = method.returnValues[0]
 
           options.quality.should.eql(50)
           options.width.should.eql(801)
@@ -136,7 +136,7 @@ describe('Controller', function () {
         })
     })
 
-    it.skip('v2: should extract options from querystring using abbreviated params', function (done) {
+    it('v2: should extract options from querystring using abbreviated params', function (done) {
       // spy on the sanitiseOptions method to access the provided arguments
       var method = sinon.spy(imageHandler.ImageHandler.prototype, 'sanitiseOptions')
 
@@ -147,7 +147,7 @@ describe('Controller', function () {
           imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
 
           method.called.should.eql(true)
-          var options = method.firstCall.args[0]
+          var options = method.returnValues[0]
 
           options.quality.should.eql(50)
           options.width.should.eql(801)
@@ -169,7 +169,7 @@ describe('Controller', function () {
           imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
 
           method.called.should.eql(true)
-          var options = method.firstCall.args[0]
+          var options = method.returnValues[0]
           options.format.should.eql('png')
           done()
         })
