@@ -19,7 +19,7 @@ function getFormat (version, req) {
     return _.compact(parsedPath.split('/'))[0]
   }
   else if (version === 'v2') {
-    return path.extname(parsedPath).replace('.', '')
+    return path.extname(parsedPath).replace('.', '').toLowerCase()
   }
 }
 
