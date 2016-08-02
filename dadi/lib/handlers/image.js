@@ -83,6 +83,8 @@ ImageHandler.prototype.get = function () {
 
   if (typeof this.options.format === 'undefined') this.options.format = this.fileExt
 
+  //console.log(this.options)
+
   if (this.options.format === 'json') {
     if (this.fileExt === this.fileName) {
       this.format = 'PNG'
@@ -275,9 +277,6 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                   batch.scale(scale)
 
                   // Only crop if the aspect ratio is not the same
-                  // if ((width / height) !== (imageInfo.width / imageInfo.height) && !self.storageHandler.notFound) {
-                  //   batch.crop(crops.x1, crops.y1, crops.x2, crops.y2)
-                  // }
                   if ((width / height) !== (imageInfo.width / imageInfo.height)) {
                     batch.crop(crops.x1, crops.y1, crops.x2, crops.y2)
                   }
@@ -345,23 +344,23 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
           }
 
           // sharpening
-          if (options.sharpen != 5) {
-            batch.sharpen(options.sharpen)
-          } else if (quality >= 70) {
+          if (quality >= 70) {
             if (/jpe?g/.exec(imageInfo.format)) {
               batch.sharpen(5)
-            } else if (/png/.exec(imageInfo.format)) {
-              batch.sharpen(5)
-            } else if (options.cropX && options.cropY) {
+            }
+            else if (/png/.exec(imageInfo.format)) {
               batch.sharpen(5)
             }
           }
+          else if (options.cropX && options.cropY) {
+            batch.sharpen(5)
+          }
 
           // give it a little colour
-          batch.saturate(options.saturate)
+          batch.saturate(0.1)
 
           // format
-          var format = self.options.format === 'json' ? imageInfo.format : self.options.format
+          var format = (self.options.format === 'json' ? imageInfo.format : self.options.format).toLowerCase()
 
           try {
             batch.exec(function (err, image) {
@@ -678,8 +677,6 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
   var optionSettings = [
     { name: 'format', aliases: ['fmt'] },
     { name: 'quality', aliases: ['q'], default: 75 },
-    { name: 'sharpen', aliases: ['sh'], default: 5 },
-    { name: 'saturate', aliases: ['sat'], default: 0.1 },
     { name: 'width', aliases: ['w'] },
     { name: 'height', aliases: ['h'] },
     { name: 'ratio', aliases: ['rx'] },
@@ -707,11 +704,7 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
 
     if (settings && settings[0]) {
     	if (options[key] !== '0' || settings[0].default) {
-        if (options[key] !== '0') {
-          imageOptions[settings[0].name] = _.isNaN(parseFloat(options[key])) ? options[key] : parseFloat(options[key])
-        } else {
-          imageOptions[settings[0].name] = settings[0].default
-        }
+	      imageOptions[settings[0].name] = options[key] !== '0' ? options[key] : settings[0].default
       }
     }
   })
