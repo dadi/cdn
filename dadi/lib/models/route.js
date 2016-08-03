@@ -1,3 +1,4 @@
+var cache = require(__dirname + '/../cache')()
 var config = require(__dirname + '/../../../config')
 var fs = require('fs')
 var logger = require('@dadi/logger')
@@ -20,6 +21,10 @@ Route.prototype._arrayIntersect = function (object, array) {
   })
 }
 
+Route.prototype._getCacheKey = function () {
+  return this.ip + this.config.route
+}
+
 Route.prototype._getPathInObject = function (path, object, breadcrumbs) {
   breadcrumbs = breadcrumbs || path.split('.')
 
@@ -39,14 +44,16 @@ Route.prototype._matchBranch = function (branch) {
   var queue = []
 
   Object.keys(branch.condition).every((type) => {
+    var condition = branch.condition[type]
+
     switch (type) {
       case 'device':
-        // Ensure `device` is an array
-        if (!(branch.condition[type] instanceof Array)) {
-          branch.condition[type] = [branch.condition[type]]
+        // Ensure the condition is in array format
+        if (!(condition instanceof Array)) {
+          condition = [condition]
         }
 
-        match = match && this._arrayIntersect(this.getDevice(), branch.condition[type])
+        match = match && this._arrayIntersect(this.getDevice(), condition)
 
         break
 
@@ -57,13 +64,13 @@ Route.prototype._matchBranch = function (branch) {
           minQuality = 1
         }
 
-        // Ensure `language` is an array
-        if (!(branch.condition[type] instanceof Array)) {
-          branch.condition[type] = [branch.condition[type]]
+        // Ensure the condition is in array format
+        if (!(condition instanceof Array)) {
+          condition = [condition]
         }
 
         var languageMatch = this.getLanguages(minQuality).some((language) => {
-          return this._arrayIntersect(language, branch.condition[type])
+          return this._arrayIntersect(language, condition)
         })
 
         match = match && languageMatch
@@ -71,25 +78,25 @@ Route.prototype._matchBranch = function (branch) {
         break
 
       case 'country':
-        // Ensure `country` is an array
-        if (!(branch.condition[type] instanceof Array)) {
-          branch.condition[type] = [branch.condition[type]]
+        // Ensure the condition is in array format
+        if (!(condition instanceof Array)) {
+          condition = [condition]
         }
 
         queue.push(this.getLocation().then((location) => {
-          match = match && this._arrayIntersect(location, branch.condition[type])
+          match = match && this._arrayIntersect(location, condition)
         }))
 
         break
 
       case 'network':
-        // Ensure `network` is an array
-        if (!(branch.condition[type] instanceof Array)) {
-          branch.condition[type] = [branch.condition[type]]
+        // Ensure the condition is in array format
+        if (!(condition instanceof Array)) {
+          condition = [condition]
         }
 
         queue.push(this.getNetwork().then((network) => {
-          match = match && this._arrayIntersect(network, branch.condition[type])
+          match = match && this._arrayIntersect(network, condition)
         }))
 
         break
@@ -196,15 +203,20 @@ Route.prototype.getMaxmindLocation = function () {
 }
 
 Route.prototype.getRecipe = function () {
-  var match
-  var queue = []
+  return cache.get(this._getCacheKey()).then((cachedRecipe) => {
+    if (cachedRecipe) return Promise.resolve(cachedRecipe)
 
-  return this.evaluateBranches(this.config.branches).then((match) => {
-    if (match) return match.recipe
-  }).catch((err) => {
-    logger.error({module: 'routes'}, err)
+    return this.processRoute().then((recipe) => {
+      if (recipe) {
+        return cache.set(this._getCacheKey(), recipe).then(() => {
+          return recipe
+        }).catch((err) => {
+          return recipe
+        })
+      }
 
-    return Promise.resolve(null)
+      return recipe
+    })
   })
 }
 
@@ -224,8 +236,21 @@ Route.prototype.getRemoteLocation = function () {
   })
 }
 
+Route.prototype.processRoute = function () {
+  var match
+  var queue = []
+
+  return this.evaluateBranches(this.config.branches).then((match) => {
+    if (match) return match.recipe
+  }).catch((err) => {
+    logger.error({module: 'routes'}, err)
+
+    return Promise.resolve(null)
+  })
+}
+
 Route.prototype.save = function () {
-  var filePath = path.join(config.get('paths.routes'), this.config.route + '.json')
+  var filePath = path.join(path.resolve(config.get('paths.routes')), this.config.route + '.json')
 
   try {
     fs.writeFileSync(filePath, JSON.stringify(this.config, null, 2))

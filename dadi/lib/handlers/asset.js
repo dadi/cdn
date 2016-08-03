@@ -78,7 +78,7 @@ AssetHandler.prototype.get = function () {
     }
 
     // get from cache
-    self.cache.get(self.cacheKey, function (stream) {
+    self.cache.getStream(self.cacheKey, function (stream) {
       if (stream) {
         self.cached = true
         return resolve(stream)
