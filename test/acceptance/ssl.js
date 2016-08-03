@@ -18,8 +18,10 @@ describe('SSL', () => {
   })
 
   beforeEach((done) => {
-    // give the server a chance to close & release the port
-    setTimeout(done, 500)
+    delete require.cache[require.resolve(__dirname + '/../../dadi/lib/')]
+    app = require(__dirname + '/../../dadi/lib/')
+
+    done()
   })
 
   afterEach((done) => {
@@ -28,44 +30,93 @@ describe('SSL', () => {
     config.set('server.sslPrivateKeyPath', '')
     config.set('server.sslCertificatePath', '')
 
-    app.stop(done)
-  })
-
-  after((done) => {
-    done()
+    // try and close the server, unless it's crashed (as with SSL errors)
+    try {
+      app.stop(done)
+    } catch (ex) {
+      done()
+    }
   })
 
   it('should respond to a http request when ssl is disabled', (done) => {
     app.start(function (err) {
       if (err) return done(err)
 
-      console.log('app started')
-
       client
         .get('/')
         .end((err, res) => {
           if (err) throw err
           res.statusCode.should.eql(200)
+          done()
         })
-
-      done()
     })
   })
 
-  it.skip('should respond to a https request when using unprotected ssl key without a passphrase', (done) => {
-    // TODO
+  it('should respond to a https request when using unprotected ssl key without a passphrase', (done) => {
+    config.set('server.protocol', 'https')
+    config.set('server.sslPrivateKeyPath', 'test/ssl/unprotected/key.pem')
+    config.set('server.sslCertificatePath', 'test/ssl/unprotected/cert.pem')
+
+    app.start(function (err) {
+      if (err) return done(err)
+
+      secureClient
+        .get('/')
+        .end((err, res) => {
+          if (err) throw err
+          res.statusCode.should.eql(200)
+          done()
+        })
+    })
   })
 
-  it.skip('should respond to a https request when using protected ssl key with a passphrase', (done) => {
-    // TODO
+  it('should respond to a https request when using protected ssl key with a passphrase', (done) => {
+    config.set('server.protocol', 'https')
+    config.set('server.sslPrivateKeyPath', 'test/ssl/protected/key.pem')
+    config.set('server.sslCertificatePath', 'test/ssl/protected/cert.pem')
+    config.set('server.sslPassphrase', 'changeme')
+
+    app.start(function (err) {
+      if (err) return done(err)
+
+      secureClient
+        .get('/')
+        .end((err, res) => {
+          if (err) throw err
+          res.statusCode.should.eql(200)
+          done()
+        })
+    })
   })
 
-  it.skip('should throw a bad password read exception when using protected ssl key with the wrong passphrase', (done) => {
-    // TODO
+  it('should throw a bad password read exception when using protected ssl key with the wrong passphrase', (done) => {
+    config.set('server.protocol', 'https')
+    config.set('server.sslPrivateKeyPath', 'test/ssl/protected/key.pem')
+    config.set('server.sslCertificatePath', 'test/ssl/protected/cert.pem')
+    config.set('server.sslPassphrase', 'incorrectamundo')
+
+    try {
+      app.start(() => {})
+    } catch (ex) {
+      ex.message.should.eql('error starting https server: incorrect ssl passphrase')
+    }
+
+    done()
   })
 
-  it.skip('should throw a bad password read exception when using protected ssl key without a passphrase', (done) => {
-    // TODO
+  it('should throw a bad password read exception when using protected ssl key without a passphrase', (done) => {
+    config.set('server.protocol', 'https')
+    config.set('server.sslPrivateKeyPath', 'test/ssl/protected/key.pem')
+    config.set('server.sslCertificatePath', 'test/ssl/protected/cert.pem')
+    config.set('server.sslPassphrase', '')
+
+    try {
+      app.start(() => {})
+    } catch (ex) {
+      ex.message.should.eql('error starting https server: required ssl passphrase not provided')
+    }
+
+    done()
   })
 
 })

@@ -7,6 +7,7 @@ var bodyParser = require('body-parser')
 var finalhandler = require('finalhandler')
 var fs = require('fs')
 var http = require('http')
+var https = require('https')
 var path = require('path')
 var Router = require('router')
 var router = Router()
@@ -155,7 +156,7 @@ Server.prototype.start = function (done) {
   done && done()
 }
 
-function createServer (listener) {
+function createServer(listener) {
   var protocol = config.get('server.protocol') || 'http'
 
   if (protocol === 'https') {
