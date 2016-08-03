@@ -383,6 +383,23 @@ describe('Controller', function () {
         })
     })
 
+    it('should handle image uri with uppercase extension', function (done) {
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.images.directory.enabled = true
+      newTestConfig.images.directory.path = './test/images'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+      config.loadFile(config.configPath())
+
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/shane%20long%20new%20contract.JPG?quality=100')
+        .end(function(err, res) {
+          res.statusCode.should.eql(200)
+          done()
+        })
+    })
+
     it('should return error if image uri is invalid', function (done) {
       var newTestConfig = JSON.parse(testConfigString)
       newTestConfig.images.directory.enabled = true
