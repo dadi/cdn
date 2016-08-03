@@ -28,15 +28,28 @@ describe('SSL', () => {
     config.set('server.sslPrivateKeyPath', '')
     config.set('server.sslCertificatePath', '')
 
-    done()
+    app.stop(done)
   })
 
   after((done) => {
     done()
   })
 
-  it.skip('should respond to a http request when ssl is disabled', (done) => {
-    // TODO
+  it('should respond to a http request when ssl is disabled', (done) => {
+    app.start(function (err) {
+      if (err) return done(err)
+
+      console.log('app started')
+
+      client
+        .get('/')
+        .end((err, res) => {
+          if (err) throw err
+          res.statusCode.should.eql(200)
+        })
+
+      done()
+    })
   })
 
   it.skip('should respond to a https request when using unprotected ssl key without a passphrase', (done) => {
