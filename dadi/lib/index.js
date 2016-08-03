@@ -113,7 +113,7 @@ Server.prototype.start = function (done) {
 
   controller(router)
 
-  var app = http.createServer(function (req, res) {
+  var app = createServer((req, res) => {
     config.updateConfigDataForDomain(req.headers.host)
 
     res.setHeader('Server', config.get('server.name'))
@@ -153,6 +153,60 @@ Server.prototype.start = function (done) {
   this.readyState = 1
 
   done && done()
+}
+
+function createServer (listener) {
+  var protocol = config.get('server.protocol') || 'http'
+
+  if (protocol === 'https') {
+    var readFileSyncSafe = (path) => {
+      try { return fs.readFileSync(path) } catch (ex) {}
+      return null
+    }
+
+    var passphrase = config.get('server.sslPassphrase')
+    var caPath = config.get('server.sslIntermediateCertificatePath')
+    var caPaths = config.get('server.sslIntermediateCertificatePaths')
+    var serverOptions = {
+      key: readFileSyncSafe(config.get('server.sslPrivateKeyPath')),
+      cert: readFileSyncSafe(config.get('server.sslCertificatePath'))
+    }
+
+    if (passphrase && passphrase.length >= 4) {
+      serverOptions.passphrase = passphrase
+    }
+
+    if (caPaths && caPaths.length > 0) {
+      serverOptions.ca = []
+      caPaths.forEach((path) => {
+        var data = readFileSyncSafe(path)
+        data && serverOptions.ca.push(data)
+      })
+    } else if (caPath && caPath.length > 0) {
+      serverOptions.ca = readFileSyncSafe(caPath)
+    }
+
+    // we need to catch any errors resulting from bad parameters
+    // such as incorrect passphrase or no passphrase provided
+    try {
+      return https.createServer(serverOptions, listener)
+    } catch (ex) {
+      var exPrefix = 'error starting https server: '
+      switch (ex.message) {
+        case 'error:06065064:digital envelope routines:EVP_DecryptFinal_ex:bad decrypt':
+          throw new Error(exPrefix + 'incorrect ssl passphrase')
+          break;
+        case 'error:0906A068:PEM routines:PEM_do_header:bad password read':
+          throw new Error(exPrefix + 'required ssl passphrase not provided')
+          break;
+        default:
+          throw new Error(exPrefix + ex.message)
+      }
+    }
+  } else {
+    // default to http
+    return http.createServer(listener)
+  }
 }
 
 function onListening (server) {
