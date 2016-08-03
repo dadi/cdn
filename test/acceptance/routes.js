@@ -123,13 +123,16 @@ describe('Routes', function () {
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .end(function(err, res) {
-          method.called.should.eql(true)
-          method.calledWith(path.join(path.resolve(config.get('paths.routes')), sample.route + '.json')).should.eql(true)
 
-          res.statusCode.should.eql(200)
-          res.body.success.should.eql(true)
+          setTimeout(function() {
+            method.called.should.eql(true)
+            method.calledWith(path.join(path.resolve(config.get('paths.routes')), sample.route + '.json')).should.eql(true)
 
-          done()
+            res.statusCode.should.eql(200)
+            res.body.success.should.eql(true)
+
+            done()
+          }, 1000)
         })
       })
     })
@@ -165,11 +168,14 @@ describe('Routes', function () {
       client
       .get('/' + sample.route + '/test.jpg')
       .end(function(err, res) {
-        processBranchesSpy.calledTwice.should.eql(true)
-        JSON.stringify(processBranchesSpy.firstCall.args[0]).should.eql(JSON.stringify(sample.branches))
-        JSON.stringify(processBranchesSpy.secondCall.args[0]).should.eql(JSON.stringify(sample.branches))
 
-        done()
+        setTimeout(function() {
+          processBranchesSpy.calledTwice.should.eql(true)
+          JSON.stringify(processBranchesSpy.firstCall.args[0]).should.eql(JSON.stringify(sample.branches))
+          JSON.stringify(processBranchesSpy.secondCall.args[0]).should.eql(JSON.stringify(sample.branches))
+
+          done()
+        }, 1000)
       })
     })
   })
