@@ -124,7 +124,7 @@ AssetHandler.prototype.compressFile = function (stream) {
         callback: function (err, min) {
           if (err) {
             return reject(err)
-          }else {
+          } else {
             fs.unlinkSync(fileIn)
             stream = fs.createReadStream(fileOut)
 
