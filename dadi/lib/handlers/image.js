@@ -132,36 +132,36 @@ ImageHandler.prototype.get = function () {
         stream.pipe(imageSizeStream)
         stream.pipe(convertStream)
 
-        // pipe the stream to a temporary file
-        // to avoid back pressure buildup while we wait for
-        // the exif data to be processed
-        var tmpFilename = path.join(path.resolve(__dirname + '/../../../workspace'), sha1(self.url))
-        stream.pipe(exifStream).pipe(fs.createWriteStream(tmpFilename))
+        // pipe the stream to a temporary file to avoid back pressure buildup
+        // while we wait for the exif data to be processed
+        var tmpExifFile = path.join(path.resolve(__dirname + '/../../../workspace'), sha1(self.url))
+        stream.pipe(exifStream).pipe(fs.createWriteStream(tmpExifFile))
 
         // get the image size and format
         imagesize(imageSizeStream, function (err, imageInfo) {
 
           // extract exif data if available
           if (imageInfo && /jpe?g/.exec(imageInfo.format)) {
-            self.extractExifData(tmpFilename).then(function (exifData) {
+            self.extractExifData(tmpExifFile).then(function (exifData) {
               self.exifData = exifData
             }).catch(function (err) {
               // no exif data
-              console.log(err)
             }).then(function () {
               // remove the temporary exifData file
               try {
-                fs.unlinkSync(tmpFilename)
+                fs.unlinkSync(tmpExifFile)
               } catch (err) {
-                console.log(err)
+                //console.log(err)
               }
             })
           } else {
-            // remove the temporary exifData file
+            // not a JPEG, remove the temporary exifData file
+            // and release the stream
+            exifStream = null
             try {
-              fs.unlinkSync(tmpFilename)
+              fs.unlinkSync(tmpExifFile)
             } catch (err) {
-              console.log(err)
+              //console.log(err)
             }
           }
 
@@ -361,7 +361,7 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
           batch.saturate(options.saturate)
 
           // format
-          var format = self.options.format === 'json' ? imageInfo.format : self.options.format
+          var format = (self.options.format === 'json' ? imageInfo.format : self.options.format).toLowerCase()
 
           try {
             batch.exec(function (err, image) {
