@@ -260,7 +260,7 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                 */
                 case 'aspectfit':
                   var size = fit(imageInfo.width, imageInfo.height, width, height)
-                  batch.cover(Math.ceil(size.width), Math.ceil(size.height), filter)
+                  batch.cover(parseInt(size.width), parseInt(size.height), filter)
                   break
                 /*
                 Aspect Fill: Will size your image proportionally until the whole area is full of your image.
@@ -300,7 +300,12 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                       batch.crop(coords[0], coords[1], width - cords[0], height - oords[1])
                     }
                     else if (coords.length === 4) {
+                      // image.crop(left, top, right, bottom, callback)
                       batch.crop(coords[0], coords[1], coords[2], coords[3])
+
+                      if (width && height) {
+                        batch.resize(width, height, filter)
+                      }
                     }
                   } else { // width & height provided, crop from centre
                     batch.crop(width, height)
@@ -689,7 +694,7 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
     { name: 'resizeStyle', aliases: ['resize'], default: 'aspectfill' },
     { name: 'devicePixelRatio', aliases: ['dpr'] },
     { name: 'gravity', aliases: ['g'], default: 'None' },
-    { name: 'filter', aliases: ['f'] },
+    { name: 'filter', aliases: ['f'], default: 'lanczos', lowercase: true },
     { name: 'trim', aliases: ['t'] },
     { name: 'trimFuzz', aliases: ['tf'] },
     { name: 'blur', aliases: ['b'] },
@@ -708,7 +713,9 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
     if (settings && settings[0]) {
     	if (options[key] !== '0' || settings[0].default) {
         if (options[key] !== '0') {
-          imageOptions[settings[0].name] = _.isNaN(parseFloat(options[key])) ? options[key] : parseFloat(options[key])
+          var value = options[key]
+          if (settings[0].lowercase) value = value.toLowerCase()
+          imageOptions[settings[0].name] = _.isFinite(value) ? parseFloat(value) : value
         } else {
           imageOptions[settings[0].name] = settings[0].default
         }

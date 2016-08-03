@@ -114,22 +114,20 @@ describe('Routes', function () {
     })
 
     it('should save route to filesystem', function (done) {
-      help.getBearerToken(function (err, token) {
+      return help.getBearerToken((err, token) => {
         var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-        var stub = sinon.spy(fs, 'writeFileSync')
+        var method = sinon.spy(fs, 'writeFileSync')
 
-        client
+        return client
         .post('/api/routes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .end(function(err, res) {
-          stub.called.should.eql(true)
-          stub.calledWith(path.join(path.resolve(config.get('paths.routes')), sample.route + '.json')).should.eql(true)
+          method.called.should.eql(true)
+          method.calledWith(path.join(path.resolve(config.get('paths.routes')), sample.route + '.json')).should.eql(true)
 
           res.statusCode.should.eql(200)
           res.body.success.should.eql(true)
-
-          fs.writeFileSync.restore()
 
           done()
         })
