@@ -28,16 +28,20 @@ var S3Storage = function (settings, url) {
   }
 
   this.getKey = function () {
+    var url
+
     if (self.url.indexOf('s3') > 0) {
       var parts = _.compact(self.urlParts())
       parts.shift()
-      return parts.join('/')
+      url = parts.join('/')
     }
     else if (self.url.substring(0,1) === '/') {
-      return self.url.substring(1)
+      url = self.url.substring(1)
     } else {
-      return self.url
+      url = self.url
     }
+
+    return decodeURIComponent(url)
   }
 
   this.urlParts = function () {

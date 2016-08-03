@@ -47,31 +47,11 @@ var conf = convict({
       format: String,
       default: 'log'
     },
-    fileRotationPeriod: {
-      doc: "The period at which to rotate the log file. This is a string of the format '$number$scope' where '$scope' is one of 'ms' (milliseconds), 'h' (hours), 'd' (days), 'w' (weeks), 'm' (months), 'y' (years). The following names can be used 'hourly' (= '1h'), 'daily (= '1d'), 'weekly' ('1w'), 'monthly' ('1m'), 'yearly' ('1y').",
-      format: String,
-      default: '' // disabled
-    },
-    fileRetentionCount: {
-      doc: 'The number of rotated log files to keep.',
-      format: Number,
-      default: 7 // keep 7 back copies
-    },
     accessLog: {
       enabled: {
         doc: "If true, HTTP access logging is enabled. The log file name is similar to the setting used for normal logging, with the addition of 'access'. For example `cdn.access.log`.",
         format: Boolean,
         default: true
-      },
-      fileRotationPeriod: {
-        doc: "The period at which to rotate the access log file. This is a string of the format '$number$scope' where '$scope' is one of 'ms' (milliseconds), 'h' (hours), 'd' (days), 'w' (weeks), 'm' (months), 'y' (years). The following names can be used 'hourly' (= '1h'), 'daily (= '1d'), 'weekly' ('1w'), 'monthly' ('1m'), 'yearly' ('1y').",
-        format: String,
-        default: '1d' // daily rotation
-      },
-      fileRetentionCount: {
-        doc: 'The number of rotated log files to keep.',
-        format: Number,
-        default: 7 // keep 7 back copies
       },
       kinesisStream: {
         doc: 'An AWS Kinesis stream to write to log records to.',
@@ -101,6 +81,18 @@ var conf = convict({
     }
   },
   images: {
+    // missing: {
+    //   enabled: {
+    //     doc: 'If true, returns a default image when request returns a 404',
+    //     format: Boolean,
+    //     default: false
+    //   },
+    //   path: {
+    //     doc: 'The path to the default image',
+    //     format: String,
+    //     default: './images/missing.png'
+    //   }
+    // },
     directory: {
       enabled: {
         doc: 'If true, image files will be loaded from the filesystem',

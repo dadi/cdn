@@ -21,6 +21,19 @@ var StorageFactory = require(__dirname + '/../storage/factory')
 var Cache = require(__dirname + '/../cache')
 var config = require(__dirname + '/../../../config')
 
+var GRAVITY_TYPES = {
+  NW: 'northwest',
+  N: 'north',
+  NE: 'northeast',
+  W: 'west',
+  C: 'center',
+  E: 'east',
+  SW: 'southwest',
+  S: 'south',
+  SE: 'southeast',
+  NONE: 'none'
+}
+
 /**
  * Performs checks on the supplied URL and fetches the image
  * @param {String} format - the type of image requested
@@ -47,16 +60,28 @@ ImageHandler.prototype.get = function () {
   self.cached = false
 
   var parsedUrl = url.parse(this.req.url, true)
+
+  // get the image options provided as querystring or path
   if (parsedUrl.search) {
+    // get image options from the querystring
     this.options = parsedUrl.query
-    if (typeof this.options.format === 'undefined') this.options.format = this.fileExt
   }
   else if (!this.options) {
-    var optionsArray = _.compact(parsedUrl.pathname.split('/')).slice(0, 17)
-    this.options = getImageOptions(optionsArray)
+    // get the segments of the url that relate to image manipulation options
+    var urlSegments = _.filter(parsedUrl.pathname.split('/'), function(segment, index) {
+      if (index > 0 && segment === '') return '0'
+      if (index < 13 || (index >= 13 && /^[0-1]$/.test(segment))) {
+        return segment
+      }
+    })
+
+    this.options = getImageOptions(urlSegments)
   }
 
+  // clean the options array up
   this.options = self.sanitiseOptions(this.options)
+
+  if (typeof this.options.format === 'undefined') this.options.format = this.fileExt
 
   if (this.options.format === 'json') {
     if (this.fileExt === this.fileName) {
@@ -106,21 +131,38 @@ ImageHandler.prototype.get = function () {
         // response. this saves requesting the same data a second time.
         stream.pipe(imageSizeStream)
         stream.pipe(convertStream)
-        stream.pipe(exifStream)
+
+        // pipe the stream to a temporary file to avoid back pressure buildup
+        // while we wait for the exif data to be processed
+        var tmpExifFile = path.join(path.resolve(__dirname + '/../../../workspace'), sha1(self.url))
+        stream.pipe(exifStream).pipe(fs.createWriteStream(tmpExifFile))
 
         // get the image size and format
         imagesize(imageSizeStream, function (err, imageInfo) {
 
           // extract exif data if available
           if (imageInfo && /jpe?g/.exec(imageInfo.format)) {
-            self.extractExifData(exifStream).then(function (exifData) {
+            self.extractExifData(tmpExifFile).then(function (exifData) {
               self.exifData = exifData
             }).catch(function (err) {
               // no exif data
-              exifStream = null
+            }).then(function () {
+              // remove the temporary exifData file
+              try {
+                fs.unlinkSync(tmpExifFile)
+              } catch (err) {
+                //console.log(err)
+              }
             })
           } else {
+            // not a JPEG, remove the temporary exifData file
+            // and release the stream
             exifStream = null
+            try {
+              fs.unlinkSync(tmpExifFile)
+            } catch (err) {
+              //console.log(err)
+            }
           }
 
           // connvert image using specified options
@@ -170,8 +212,8 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
   var options = self.options
 
   var dimensions = getDimensions(options, imageInfo)
-  var width = dimensions.width
-  var height = dimensions.height
+  var width = parseInt(dimensions.width)
+  var height = parseInt(dimensions.height)
 
   return new Promise(function (resolve, reject) {
     if (options.cropX && options.cropY) {
@@ -200,7 +242,7 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
       require('lwip').open(imageBuffer, imageInfo.format, function (err, image) {
         if (err) return reject(err)
 
-        var shouldExtractEntropy = ((options.resizeStyle === 'entropy') && width && height) ? self.extractEntropy(image, parseInt(width), parseInt(height)) : false
+        var shouldExtractEntropy = ((options.resizeStyle === 'entropy') && width && height) ? self.extractEntropy(image, width, height) : false
 
         Promise.resolve(shouldExtractEntropy).then((entropy) => {
           // define a batch of manipulations
@@ -212,34 +254,67 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
           if (options.resizeStyle) {
             if (width && height) {
               switch (options.resizeStyle) {
+                /*
+                Aspect Fit: Will size your image until the whole image fits within your area.
+                You are left with the extra space on top and bottom.
+                */
                 case 'aspectfit':
                   var size = fit(imageInfo.width, imageInfo.height, width, height)
                   batch.cover(Math.ceil(size.width), Math.ceil(size.height), filter)
                   break
+                /*
+                Aspect Fill: Will size your image proportionally until the whole area is full of your image.
+                Your image is clipped. It will size proportionally to make sure there is no blank space left in your area.
+                */
                 case 'aspectfill':
-                  batch.cover(parseInt(width), parseInt(height), filter)
+                  var scaleWidth = (width / parseInt(imageInfo.width))
+                  var scaleHeight = (height / parseInt(imageInfo.height))
+                  var scale = Math.max(scaleWidth, scaleHeight)
+                  var crops = self.getCropOffsetsByGravity(options.gravity, imageInfo, dimensions, scale)
+
+                  batch.scale(scale)
+
+                  // Only crop if the aspect ratio is not the same
+                  // if ((width / height) !== (imageInfo.width / imageInfo.height) && !self.storageHandler.notFound) {
+                  //   batch.crop(crops.x1, crops.y1, crops.x2, crops.y2)
+                  // }
+                  if ((width / height) !== (imageInfo.width / imageInfo.height)) {
+                    batch.crop(crops.x1, crops.y1, crops.x2, crops.y2)
+                  }
+
                   break
                 case 'fill':
-                  batch.resize(parseInt(width), parseInt(height), filter)
+                  batch.resize(width, height, filter)
                   break
                 case 'crop':
                   if (options.crop) {
-                    var coords = options.crop.split(',')
+                    var coords = options.crop.split(',').map((coordStr) => {
+                      return parseInt(coordStr)
+                    })
+
+                    // Reduce 1 pixel on the edges
+                    coords[2] = (coords[2] > 0) ? (coords[2] - 1) : coords[2]
+                    coords[3] = (coords[3] > 0) ? (coords[3] - 1) : coords[3]
+
                     if (coords.length === 2) {
-                      batch.crop(parseInt(coords[0]), parseInt(coords[1]), parseInt(width - coords[0]), parseInt(height - coords[1]))
+                      batch.crop(coords[0], coords[1], width - cords[0], height - oords[1])
                     }
                     else if (coords.length === 4) {
-                      batch.crop(parseInt(coords[0]), parseInt(coords[1]), parseInt(coords[2]), parseInt(coords[3]))
+                      batch.crop(coords[0], coords[1], coords[2], coords[3])
                     }
                   } else { // width & height provided, crop from centre
-                    batch.crop(parseInt(width), parseInt(height))
+                    batch.crop(width, height)
                   }
 
                   break
                 case 'entropy':
                   if (entropy) {
-                    batch.crop(entropy.x1, entropy.y1, entropy.x2, entropy.y2)
-                    batch.resize(parseInt(width), parseInt(height))
+                    // Reduce 1 pixel on the edges
+                    entropy.x2 = (entropy.x2 > 0) ? (entropy.x2 - 1) : entropy.x2
+                    entropy.y2 = (entropy.y2 > 0) ? (entropy.y2 - 1) : entropy.y2
+
+                    batch.crop(entropy.x1, entropy.y1, entropy.x2 - 1, entropy.y2 - 1)
+                    batch.resize(width, height)
                   }
               }
             }
@@ -249,10 +324,10 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
             batch.crop(parseInt(options.cropX), parseInt(options.cropY), width - parseInt(options.cropX), height - parseInt(options.cropY))
           }
           else if (width && height) {
-            batch.cover(parseInt(width), parseInt(height))
+            batch.cover(width, height)
           }
           else if (width && !height) {
-            batch.resize(parseInt(width))
+            batch.resize(width)
           }
 
           if (options.blur) batch.blur(parseInt(options.blur))
@@ -270,23 +345,23 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
           }
 
           // sharpening
-          if (quality >= 70) {
+          if (options.sharpen != 5) {
+            batch.sharpen(options.sharpen)
+          } else if (quality >= 70) {
             if (/jpe?g/.exec(imageInfo.format)) {
               batch.sharpen(5)
-            }
-            else if (/png/.exec(imageInfo.format)) {
+            } else if (/png/.exec(imageInfo.format)) {
+              batch.sharpen(5)
+            } else if (options.cropX && options.cropY) {
               batch.sharpen(5)
             }
-          }
-          else if (options.cropX && options.cropY) {
-            batch.sharpen(5)
           }
 
           // give it a little colour
-          batch.saturate(0.1)
+          batch.saturate(options.saturate)
 
           // format
-          var format = self.options.format === 'json' ? imageInfo.format : self.options.format
+          var format = (self.options.format === 'json' ? imageInfo.format : self.options.format).toLowerCase()
 
           try {
             batch.exec(function (err, image) {
@@ -312,6 +387,76 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
       })
     }
   })
+}
+
+/**
+ *
+ */
+ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, originalDimensions, croppedDimensions, scale) {
+  var originalWidth = parseInt(originalDimensions.width)
+  var originalHeight = parseInt(originalDimensions.height)
+
+  var croppedWidth = parseInt(croppedDimensions.width)
+  var croppedHeight = parseInt(croppedDimensions.height)
+
+  var scale = croppedWidth / originalWidth
+  var resizedWidth = originalWidth * scale
+  var resizedHeight = originalHeight * scale
+
+  // No vertical offset for northern gravity
+  var verticalOffset = 0
+  var horizontalOffset = 0
+
+  switch (gravity.toLowerCase()) {
+    case GRAVITY_TYPES.NW:
+    case GRAVITY_TYPES.N:
+    case GRAVITY_TYPES.NE:
+      verticalOffset = 0
+      break
+    case GRAVITY_TYPES.C:
+    case GRAVITY_TYPES.E:
+    case GRAVITY_TYPES.W:
+      verticalOffset = getMaxOfArray([(resizedHeight - croppedHeight) / 2.0, 0 ])
+      break
+    case GRAVITY_TYPES.SW:
+    case GRAVITY_TYPES.S:
+    case GRAVITY_TYPES.SE:
+      verticalOffset = resizedHeight - croppedHeight
+      break
+    default:
+      verticalOffset = 0
+  }
+
+  switch (gravity) {
+    case GRAVITY_TYPES.NW:
+    case GRAVITY_TYPES.W:
+    case GRAVITY_TYPES.SW:
+      horizontalOffset = 0
+      break
+    case GRAVITY_TYPES.C:
+    case GRAVITY_TYPES.N:
+    case GRAVITY_TYPES.S:
+      horizontalOffset = getMaxOfArray([(resizedWidth - croppedWidth) / 2.0, 0 ])
+      break
+    case GRAVITY_TYPES.NE:
+    case GRAVITY_TYPES.E:
+    case GRAVITY_TYPES.SE:
+      horizontalOffset = resizedWidth - croppedWidth
+      break
+    default:
+      horizontalOffset = 0
+  }
+
+  function getMaxOfArray (numArray) {
+    return Math.max.apply(null, numArray)
+  }
+
+  return {
+    x1: Math.floor(horizontalOffset),
+    x2: Math.floor(horizontalOffset + croppedWidth) - 1,
+    y1: Math.floor(verticalOffset),
+    y2: Math.floor(verticalOffset + croppedHeight) - 1
+  }
 }
 
 /**
@@ -349,13 +494,13 @@ ImageHandler.prototype.extractEntropy = function (image, width, height) {
  * Extract EXIF data from the specified image
  * @param {stream} stream - read stream from S3, local disk or url
  */
-ImageHandler.prototype.extractExifData = function (stream) {
+ImageHandler.prototype.extractExifData = function (file) {
   var self = this
 
   return new Promise(function (resolve, reject) {
     var image
     var concatStream = concat(gotImage)
-    stream.pipe(concatStream)
+    fs.createReadStream(file).pipe(concatStream)
 
     function gotImage (buffer) {
       new ExifImage({ image: buffer }, function (err, data) {
@@ -494,8 +639,11 @@ function getDimensions (options, imageInfo) {
  * @returns {object}
  */
 function getImageOptions (optionsArray) {
-  var gravity = optionsArray[11].substring(0, 1).toUpperCase() + optionsArray[11].substring(1)
-  var filter = optionsArray[12].substring(0, 1).toUpperCase() + optionsArray[12].substring(1)
+
+  var legacyURLFormat = optionsArray.length < 17
+
+  var gravity = optionsArray[optionsArray.length-6].substring(0, 1).toUpperCase() + optionsArray[optionsArray.length-6].substring(1)
+  var filter = optionsArray[optionsArray.length-5].substring(0, 1).toUpperCase() + optionsArray[optionsArray.length-5].substring(1)
 
   options = {
     format: optionsArray[0],
@@ -504,41 +652,82 @@ function getImageOptions (optionsArray) {
     trimFuzz: optionsArray[3],
     width: optionsArray[4],
     height: optionsArray[5],
-    cropX: optionsArray[6],
-    cropY: optionsArray[7],
-    ratio: optionsArray[8],
-    devicePixelRatio: optionsArray[9],
-    resizeStyle: optionsArray[10],
+
+    /* legacy client applications don't send the next 4 */
+    cropX: legacyURLFormat ? '0' : optionsArray[6],
+    cropY: legacyURLFormat ? '0' : optionsArray[7],
+    ratio: legacyURLFormat ? '0' : optionsArray[8],
+    devicePixelRatio: legacyURLFormat ? 1 : optionsArray[9],
+
+    resizeStyle: optionsArray[optionsArray.length-7],
     gravity: gravity,
     filter: filter,
-    blur: optionsArray[13],
-    strip: optionsArray[14],
-    rotate: optionsArray[15],
-    flip: optionsArray[16]
+    blur: optionsArray[optionsArray.length-4],
+    strip: optionsArray[optionsArray.length-3],
+    rotate: optionsArray[optionsArray.length-2],
+    flip: optionsArray[optionsArray.length-1]
   }
 
   return options
 }
 
 ImageHandler.prototype.sanitiseOptions = function (options) {
-  if (options.filter == 'None' || options.filter == 0) delete options.filter
-  if (options.gravity == 0) delete options.gravity
-  if (options.width == 0) delete options.width
-  if (options.height == 0) delete options.height
-  if (options.quality == 0) delete options.quality
-  if (options.trim == 0) delete options.trim
-  if (options.trimFuzz == 0) delete options.trimFuzz
-  if (options.cropX == 0) delete options.cropX
-  if (options.cropY == 0) delete options.cropY
-  if (options.ratio == 0) delete options.ratio
-  if (options.devicePixelRatio == 0) delete options.devicePixelRatio
-  if (options.resizeStyle == 0) delete options.resizeStyle
-  if (options.blur == 0) delete options.blur
-  if (options.strip == 0) delete options.strip
-  if (options.rotate == 0) delete options.rotate
-  if (options.flip == 0) delete options.flip
+  // check the options for aliases
+  // e.g. "dpr" === "devicePixelRatio"
 
-  return options
+  var optionSettings = [
+    { name: 'format', aliases: ['fmt'] },
+    { name: 'quality', aliases: ['q'], default: 75 },
+    { name: 'sharpen', aliases: ['sh'], default: 5 },
+    { name: 'saturate', aliases: ['sat'], default: 0.1 },
+    { name: 'width', aliases: ['w'] },
+    { name: 'height', aliases: ['h'] },
+    { name: 'ratio', aliases: ['rx'] },
+    { name: 'cropX', aliases: ['cx'] },
+    { name: 'cropY', aliases: ['cy'] },
+    { name: 'crop', aliases: ['coords'] },
+    { name: 'resizeStyle', aliases: ['resize'], default: 'aspectfill' },
+    { name: 'devicePixelRatio', aliases: ['dpr'] },
+    { name: 'gravity', aliases: ['g'], default: 'None' },
+    { name: 'filter', aliases: ['f'] },
+    { name: 'trim', aliases: ['t'] },
+    { name: 'trimFuzz', aliases: ['tf'] },
+    { name: 'blur', aliases: ['b'] },
+    { name: 'strip', aliases: ['s'] },
+    { name: 'rotate', aliases: ['r'] },
+    { name: 'flip', aliases: ['fl'] }
+  ]
+
+  var imageOptions = {}
+
+  _.each(Object.keys(options), function(key) {
+    var settings = _.filter(optionSettings, function (setting) {
+      return setting.name === key || _.contains(setting.aliases, key)
+    })
+
+    if (settings && settings[0]) {
+    	if (options[key] !== '0' || settings[0].default) {
+        if (options[key] !== '0') {
+          imageOptions[settings[0].name] = _.isNaN(parseFloat(options[key])) ? options[key] : parseFloat(options[key])
+        } else {
+          imageOptions[settings[0].name] = settings[0].default
+        }
+      }
+    }
+  })
+
+  // ensure we have defaults for options not specified
+  var defaults = _.filter(optionSettings, function (setting) {
+    return setting.default
+  })
+
+  _.each(defaults, function(setting) {
+    if (!imageOptions[setting.name]) {
+      imageOptions[setting.name] = setting.default
+    }
+  })
+
+  return imageOptions
 }
 
 ImageHandler.prototype.contentType = function () {

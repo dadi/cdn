@@ -1,4 +1,5 @@
 var nodeUrl = require('url')
+var path = require('path')
 var _ = require('underscore')
 var S3Storage = require(__dirname + '/s3')
 var DiskStorage = require(__dirname + '/disk')
@@ -27,7 +28,17 @@ module.exports = {
 
     if (version === 'v1') {
       if (type === 'image') {
-        if (url.split('/').length > 15) url = url.split('/').slice(18).join('/')
+        var parsedUrl = nodeUrl.parse(url, true)
+
+        // get the segments of the url that relate to image manipulation options 
+        var urlSegments = _.filter(parsedUrl.pathname.split('/'), function(segment, index) {
+          if (index > 0 && segment === '') return '0'
+          if (index < 13 || (index >= 13 && /^[0-1]$/.test(segment))) {
+            return segment
+          }
+        })
+
+        url = parsedUrl.pathname.replace(urlSegments.join('/') + '/', '')
       }
 
       // for version 1 assets we need the part of the url following

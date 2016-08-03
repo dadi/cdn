@@ -4,6 +4,7 @@ var path = require('path')
 var Promise = require('bluebird')
 var _ = require('underscore')
 
+var Missing = require(__dirname + '/missing')
 var config = require(__dirname + '/../../../config')
 
 var DiskStorage = function (settings, url) {
@@ -14,7 +15,7 @@ var DiskStorage = function (settings, url) {
 }
 
 DiskStorage.prototype.getFullUrl = function () {
-  return path.join(this.path, this.url.replace('disk', ''))
+  return decodeURIComponent(path.join(this.path, this.url.replace('disk', '')))
 }
 
 DiskStorage.prototype.getLastModified = function () {
@@ -53,6 +54,13 @@ DiskStorage.prototype.get = function () {
         message: 'File not found: ' + self.getFullUrl()
       }
 
+      // return new Missing().get().then((stream) => {
+      //   self.notFound = true
+      //   self.lastModified = new Date()
+      //   return resolve(stream)
+      // }).catch((e) => {
+      //   return reject(err)
+      // })
       return reject(err)
     })
   })
