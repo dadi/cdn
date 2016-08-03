@@ -10,7 +10,7 @@ var help = require(__dirname + '/help')
 var app = require(__dirname + '/../../dadi/lib/')
 var Route = require(__dirname + '/../../dadi/lib/models/route')
 
-describe.only('Routes', function () {
+describe('Routes', function () {
   this.timeout(8000)
   var tokenRoute = config.get('auth.tokenUrl')
 

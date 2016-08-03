@@ -117,10 +117,10 @@ AssetHandler.prototype.compressFile = function (stream) {
     var fileOut = path.join(path.resolve('./tmp'), newFileName)
 
     stream.pipe(fs.createWriteStream(fileIn)).on('finish', function () {
-      new compressor.minify({
-        type: compression,
-        fileIn: fileIn,
-        fileOut: fileOut,
+      compressor.minify({
+        compressor: compression,
+        input: fileIn,
+        output: fileOut,
         callback: function (err, min) {
           if (err) {
             return reject(err)

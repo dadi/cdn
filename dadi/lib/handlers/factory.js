@@ -57,7 +57,7 @@ HandlerFactory.prototype.callNextHandler = function (format, req) {
     error.statusCode = 404
     error.detail = `'${format}' is not a valid route, recipe or image format`
 
-    return Promise.reject(error)    
+    return Promise.reject(error)
   }
 
   return this.handlers[this.currentHandler].call(this, format, req)
@@ -103,7 +103,6 @@ HandlerFactory.prototype.createFromRoute = function (format, req) {
       var route = new Route(require(routePath))
 
       route.setIP(req.connection.remoteAddress)
-      route.setIP('154.57.245.210')
       route.setLanguage(req.headers['accept-language'])
       route.setUserAgent(req.headers['user-agent'])
 
