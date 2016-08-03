@@ -259,7 +259,7 @@ describe('Recipes', function () {
           .get('/thumbxx/test.jpg')
           .end(function(err ,res) {
             res.statusCode.should.eql(404)
-            res.body.should.eql({ statusCode: 404, detail: 'Unknown recipe "thumbxx.json"' })
+            res.body.statusCode.should.eql(404)
             done()
           })
         })

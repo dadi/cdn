@@ -78,7 +78,7 @@ AssetHandler.prototype.get = function () {
     }
 
     // get from cache
-    self.cache.get(self.cacheKey, function (stream) {
+    self.cache.getStream(self.cacheKey, function (stream) {
       if (stream) {
         self.cached = true
         return resolve(stream)
@@ -117,10 +117,10 @@ AssetHandler.prototype.compressFile = function (stream) {
     var fileOut = path.join(path.resolve('./tmp'), newFileName)
 
     stream.pipe(fs.createWriteStream(fileIn)).on('finish', function () {
-      new compressor.minify({
-        type: compression,
-        fileIn: fileIn,
-        fileOut: fileOut,
+      compressor.minify({
+        compressor: compression,
+        input: fileIn,
+        output: fileOut,
         callback: function (err, min) {
           if (err) {
             return reject(err)

@@ -354,7 +354,8 @@ var conf = convict({
     doc: "",
     format: Object,
     default: {
-      recipes: __dirname + '/workspace/recipes'
+      recipes: __dirname + '/workspace/recipes',
+      routes: __dirname + '/workspace/routes'
     }
   },
   gzip: {
@@ -393,8 +394,74 @@ var conf = convict({
     default: 'development',
     env: 'NODE_ENV',
     arg: 'node_env'
+  },
+  geolocation: {
+    enabled: {
+      doc: 'Enable geolocation',
+      format: Boolean,
+      default: false
+    },
+    method: {
+      doc: 'Method to use for geolocation',
+      format: ['maxmind', 'remote'],
+      default: 'maxmind'
+    },
+    maxmind: {
+      countryDbPath: {
+        doc: 'Path to Maxmind country database',
+        format: String,
+        default: __dirname + '/vendor/maxmind-country.mmdb'
+      }
+    },
+    remote: {
+      url: {
+        doc: 'Remote URL to be used for geolocation. {key}, {secret} and {ip} will be replaced by the API key, secret and IP to locate, respectively',
+        format: String,
+        default: ''
+      },
+      key: {
+        doc: 'Key to be used with remote geolocation service',
+        format: String,
+        default: '',
+        env: 'GEOLOCATION_REMOTE_KEY'
+      },
+      secret: {
+        doc: 'Secret to be used with remote geolocation service',
+        format: String,
+        default: '',
+        env: 'GEOLOCATION_REMOTE_SECRET'
+      },
+      countryPath: {
+        doc: 'Path to the country code within the response object',
+        format: String,
+        default: 'location.country.isoCode'
+      }
+    }
+  },
+  network: {
+    url: {
+      doc: 'Remote URL to be used for network test service. {key}, {secret} and {ip} will be replaced by the API key, secret and IP to locate, respectively',
+      format: String,
+      default: ''
+    },
+    key: {
+      doc: 'Key to be used with network test service',
+      format: String,
+      default: '',
+      env: 'NETWORK_REMOTE_KEY'
+    },
+    secret: {
+      doc: 'Secret to be used with network test service',
+      format: String,
+      default: '',
+      env: 'NETWORK_REMOTE_SECRET'
+    },
+    path: {
+      doc: 'Path to the network type within the response object',
+      format: String,
+      default: 'speed.connectionType'
+    }
   }
-
 })
 
 // Load environment dependent configuration

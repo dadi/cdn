@@ -16,6 +16,7 @@ var configPath = path.resolve(__dirname + '/../../../config')
 var config = require(__dirname + '/../../../config')
 var help = require(__dirname + '/../help')
 var HandlerFactory = require(__dirname + '/../handlers/factory')
+var RouteController = require(__dirname + '/route')
 
 logger.init(config.get('logging'), config.get('aws'), config.get('env'))
 
@@ -156,6 +157,10 @@ var Controller = function (router) {
     catch (err) {
       console.log(err)
     }
+  })
+
+  router.post('/api/routes', function (req, res) {
+    return RouteController.post(req, res)
   })
 }
 
