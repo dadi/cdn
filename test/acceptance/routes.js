@@ -49,17 +49,16 @@ describe('Routes', function () {
   })
 
   afterEach(function (done) {
-    help.clearCache()
     app.stop(done)
   })
 
 
-  after(function () {
+  after(function (done) {
     try {
       fs.unlinkSync(path.join(path.resolve(config.get('paths.routes')), sample.route + '.json'))
-    }
-    catch (err) {
-
+    } catch (err) {
+    } finally {
+      done()
     }
   })
 
@@ -116,20 +115,24 @@ describe('Routes', function () {
     it('should save route to filesystem', function (done) {
       return help.getBearerToken((err, token) => {
         var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-        var method = sinon.spy(fs, 'writeFileSync')
 
         return client
         .post('/api/routes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .end(function(err, res) {
-          method.called.should.eql(true)
-          method.calledWith(path.join(path.resolve(config.get('paths.routes')), sample.route + '.json')).should.eql(true)
 
-          res.statusCode.should.eql(200)
-          res.body.success.should.eql(true)
+          setTimeout(function() {
+            var expectedPath = path.join(path.resolve(config.get('paths.routes')), sample.route + '.json')
+            fs.stat(expectedPath, (err, stats) => {
+              (err === null).should.eql(true)
 
-          done()
+              res.statusCode.should.eql(200)
+              res.body.success.should.eql(true)
+
+              done()
+            })
+          }, 1000)
         })
       })
     })
@@ -165,11 +168,14 @@ describe('Routes', function () {
       client
       .get('/' + sample.route + '/test.jpg')
       .end(function(err, res) {
-        processBranchesSpy.calledTwice.should.eql(true)
-        JSON.stringify(processBranchesSpy.firstCall.args[0]).should.eql(JSON.stringify(sample.branches))
-        JSON.stringify(processBranchesSpy.secondCall.args[0]).should.eql(JSON.stringify(sample.branches))
 
-        done()
+        setTimeout(function() {
+          processBranchesSpy.calledTwice.should.eql(true)
+          JSON.stringify(processBranchesSpy.firstCall.args[0]).should.eql(JSON.stringify(sample.branches))
+          JSON.stringify(processBranchesSpy.secondCall.args[0]).should.eql(JSON.stringify(sample.branches))
+
+          done()
+        }, 1000)
       })
     })
   })
