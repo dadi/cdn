@@ -49,17 +49,16 @@ describe('Routes', function () {
   })
 
   afterEach(function (done) {
-    help.clearCache()
     app.stop(done)
   })
 
 
-  after(function () {
+  after(function (done) {
     try {
       fs.unlinkSync(path.join(path.resolve(config.get('paths.routes')), sample.route + '.json'))
-    }
-    catch (err) {
-
+    } catch (err) {
+    } finally {
+      done()
     }
   })
 
@@ -116,7 +115,6 @@ describe('Routes', function () {
     it('should save route to filesystem', function (done) {
       return help.getBearerToken((err, token) => {
         var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-        var method = sinon.spy(fs, 'writeFileSync')
 
         return client
         .post('/api/routes')
@@ -125,13 +123,15 @@ describe('Routes', function () {
         .end(function(err, res) {
 
           setTimeout(function() {
-            method.called.should.eql(true)
-            method.calledWith(path.join(path.resolve(config.get('paths.routes')), sample.route + '.json')).should.eql(true)
+            var expectedPath = path.join(path.resolve(config.get('paths.routes')), sample.route + '.json')
+            fs.stat(expectedPath, (err, stats) => {
+              (err === null).should.eql(true)
 
-            res.statusCode.should.eql(200)
-            res.body.success.should.eql(true)
+              res.statusCode.should.eql(200)
+              res.body.success.should.eql(true)
 
-            done()
+              done()
+            })
           }, 1000)
         })
       })
