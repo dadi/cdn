@@ -59,7 +59,7 @@
     "aws-sdk-mock": "^1.4.0",
     "env-test": "^1.0.0",
     "fakeredis": "^1.0.2",
-    "greenkeeper-postpublish": "^1.0.0",
+    "greenkeeper-postpublish": "^1.0.1",
     "istanbul": "^0.4.4",
     "istanbul-cobertura-badger": "^1.2.1",
     "mocha": "^3.0.0",
