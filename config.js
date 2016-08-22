@@ -116,19 +116,26 @@ var conf = convict({
       env: 'AWS_REGION'
     }
   },
+  notFound: {
+    statusCode: {
+      doc: 'If set, overrides the status code in the case of a 404',
+      format: Number,
+      default: 404
+    },
+    images: {
+      enabled: {
+        doc: 'If true, returns a default image when request returns a 404',
+        format: Boolean,
+        default: false
+      },
+      path: {
+        doc: 'The path to the default image',
+        format: String,
+        default: './images/missing.png'
+      }
+    }
+  },
   images: {
-    // missing: {
-    //   enabled: {
-    //     doc: 'If true, returns a default image when request returns a 404',
-    //     format: Boolean,
-    //     default: false
-    //   },
-    //   path: {
-    //     doc: 'The path to the default image',
-    //     format: String,
-    //     default: './images/missing.png'
-    //   }
-    // },
     directory: {
       enabled: {
         doc: 'If true, image files will be loaded from the filesystem',

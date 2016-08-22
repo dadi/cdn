@@ -5,11 +5,10 @@ var stream = require('stream')
 var urljoin = require('url-join')
 var _ = require('underscore')
 
+var Missing = require(__dirname + '/missing')
 var config = require(__dirname + '/../../../config')
 
 var HTTPStorage = function (settings, url) {
-  var self = this
-
   if (!settings.remote.path) throw new Error('Remote address not specified')
 
   this.url = url
@@ -21,12 +20,10 @@ HTTPStorage.prototype.getFullUrl = function () {
 }
 
 HTTPStorage.prototype.get = function () {
-  var self = this
-
-  return new Promise(function (resolve, reject) {
+  return new Promise((resolve, reject) => {
     request
-      .get(self.getFullUrl())
-      .on('response', function (response) {
+      .get(this.getFullUrl())
+      .on('response', (response) => {
         if (response.statusCode === 200) {
           var bufferStream = new stream.PassThrough()
           response.pipe(bufferStream)
@@ -34,13 +31,23 @@ HTTPStorage.prototype.get = function () {
         } else {
           var err = {
             statusCode: response.statusCode,
-            message: response.statusMessage + ': ' + self.getFullUrl()
+            message: response.statusMessage + ': ' + this.getFullUrl()
+          }
+
+          if (err.statusCode === 404) {
+            return new Missing().get().then((stream) => {
+              this.notFound = true
+              this.lastModified = new Date()
+              return resolve(stream)
+            }).catch((e) => {
+              return reject(e)
+            })
           }
 
           return reject(err)
         }
       })
-      .on('error', function (err) {
+      .on('error', (err) => {
         return reject(err)
       })
   })

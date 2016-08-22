@@ -1,32 +1,27 @@
+var _ = require('underscore')
 var fs = require('fs')
 var nodeUrl = require('url')
 var path = require('path')
 var Promise = require('bluebird')
-var _ = require('underscore')
 
 var config = require(__dirname + '/../../../config')
 
 var Missing = function () {
-  this.url = config.get('images.missing.enabled') ? config.get('images.missing.path') : null
+  this.url = config.get('notFound.images.enabled') ? config.get('notFound.images.path') : null
 }
 
 Missing.prototype.get = function () {
-  var self = this
-
-  return new Promise(function (resolve, reject) {
-
-    console.log(self)
-
-    if (!self.url) {
-      return reject({statusCode: 404})
+  return new Promise((resolve, reject) => {
+    if (!this.url) {
+      return reject({ statusCode: 404 })
     }
 
     // attempt to open
-    var stream = fs.createReadStream(self.url)
+    var stream = fs.createReadStream(this.url)
 
-    stream.on('open', function () {
+    stream.on('open', () => {
       // check file size
-      var stats = fs.statSync(self.url)
+      var stats = fs.statSync(this.url)
       var fileSize = parseInt(stats.size)
 
       if (fileSize === 0) {
@@ -41,10 +36,10 @@ Missing.prototype.get = function () {
       return resolve(stream)
     })
 
-    stream.on('error', function () {
+    stream.on('error', () => {
       var err = {
         statusCode: 404,
-        message: 'File not found: ' + self.url
+        message: 'File not found: ' + this.url
       }
 
       return reject(err)
