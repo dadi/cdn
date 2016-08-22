@@ -179,25 +179,7 @@ describe('Controller', function () {
   describe('Assets', function () {
     this.timeout(10000)
 
-    // beforeEach(function (done) {
-    //   var newTestConfig = JSON.parse(testConfigString)
-    //   newTestConfig.assets.directory.enabled = true
-    //   newTestConfig.assets.directory.path = './test/assets'
-    //   fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
-    //
-    //   config.loadFile(config.configPath())
-    //
-    //   done()
-    // })
-
     it('should return error if compress parameter is not 0 or 1', function (done) {
-      // var newTestConfig = JSON.parse(testConfigString)
-      // newTestConfig.assets.directory.enabled = true
-      // newTestConfig.assets.directory.path = './test/assets'
-      // fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
-      //
-      // config.loadFile(config.configPath())
-
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/js/2/test.js')
@@ -205,13 +187,6 @@ describe('Controller', function () {
     })
 
     it('should return error if font file type is not TTF, OTF, WOFF, SVG or EOT', function (done) {
-      // var newTestConfig = JSON.parse(testConfigString)
-      // newTestConfig.assets.directory.enabled = true
-      // newTestConfig.assets.directory.path = './test/assets'
-      // fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
-      //
-      // config.loadFile(config.configPath())
-
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/fonts/test.bad')
@@ -417,6 +392,57 @@ describe('Controller', function () {
         })
     })
 
+    it('should return a placeholder image if image is not found', function (done) {
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.images.directory.enabled = true
+      newTestConfig.images.directory.path = './test/images'
+
+      newTestConfig.notFound = {
+        images: {
+          enabled: true,
+          path: './test/images/missing.png'
+        }
+      }
+
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+      config.loadFile(config.configPath())
+
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/testxxx.jpg')
+        .end(function(err, res) {
+          res.statusCode.should.eql(404)
+          done()
+        })
+    })
+
+    it('should return configured statusCode if image is not found', function (done) {
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.images.directory.enabled = true
+      newTestConfig.images.directory.path = './test/images'
+
+      newTestConfig.notFound = {
+        statusCode: 410,
+        images: {
+          enabled: true,
+          path: './test/images/missing.png'
+        }
+      }
+
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+      config.loadFile(config.configPath())
+
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/testxxx.jpg')
+        .end(function(err, res) {
+          res.statusCode.should.eql(410)
+          done()
+        })
+    })
+
     it('should return image info when format = JSON', function (done) {
       var newTestConfig = JSON.parse(testConfigString)
       newTestConfig.images.directory.enabled = true
@@ -498,7 +524,7 @@ describe('Controller', function () {
 
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
-        .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
+        .get('/jpg/50/0/0/801/478/0/0/0/1/aspectfit/North/0/0/0/0/0/test.jpg')
         .end(function(err, res) {
           res.statusCode.should.eql(200)
 
@@ -507,7 +533,7 @@ describe('Controller', function () {
 
           setTimeout(function () {
             client
-              .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
+              .get('/jpg/50/0/0/801/478/0/0/0/1/aspectfit/North/0/0/0/0/0/test.jpg')
               .end(function(err, res) {
                 res.statusCode.should.eql(200)
 

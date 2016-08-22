@@ -35,6 +35,10 @@ var Controller = function (router) {
         self.addCacheControlHeader(res, handler)
         self.addLastModifiedHeader(res, handler)
 
+        if (handler.storageHandler && handler.storageHandler.notFound) {
+          res.statusCode = config.get('notFound.statusCode') || 404
+        }
+
         var contentLength = 0
 
         // receive the concatenated buffer and send the response

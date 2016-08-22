@@ -4,6 +4,7 @@ var stream = require('stream')
 var _ = require('underscore')
 
 var logger = require('@dadi/logger')
+var Missing = require(__dirname + '/missing')
 var config = require(__dirname + '/../../../config')
 
 var S3Storage = function (settings, url) {
@@ -65,15 +66,13 @@ S3Storage.prototype.getLastModified = function () {
 }
 
 S3Storage.prototype.get = function () {
-  var self = this
-
-  return new Promise(function (resolve, reject) {
+  return new Promise((resolve, reject) => {
     var requestData = {
-      Bucket: self.getBucket(),
-      Key: self.getKey()
+      Bucket: this.getBucket(),
+      Key: this.getKey()
     }
 
-    logger.info('S3 Request (' + self.url + '):' + JSON.stringify(requestData))
+    logger.info('S3 Request (' + this.url + '):' + JSON.stringify(requestData))
 
     if (requestData.Bucket === '' || requestData.Key === '') {
       var err = {
@@ -84,26 +83,33 @@ S3Storage.prototype.get = function () {
     }
 
     // create the AWS.Request object
-    var request = self.s3.getObject(requestData)
+    var request = this.s3.getObject(requestData)
 
     var promise = request.promise()
 
-    promise.then(
-      function (data) {
-
-        if (data.LastModified) {
-          self.lastModified = data.LastModified
-        }
-
-        var bufferStream = new stream.PassThrough()
-        bufferStream.push(data.Body)
-        bufferStream.push(null)
-        resolve(bufferStream)
-      },
-      function (error) {
-        reject(error)
+    promise.then((data) => {
+      if (data.LastModified) {
+        this.lastModified = data.LastModified
       }
-    )
+
+      var bufferStream = new stream.PassThrough()
+      bufferStream.push(data.Body)
+      bufferStream.push(null)
+      resolve(bufferStream)
+    },
+    (error) => {
+      if (error.statusCode === 404) {
+        return new Missing().get().then((stream) => {
+          this.notFound = true
+          this.lastModified = new Date()
+          return resolve(stream)
+        }).catch((e) => {
+          return reject(e)
+        })
+      }
+
+      return reject(error)
+    })
   })
 }
 

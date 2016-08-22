@@ -23,18 +23,16 @@ DiskStorage.prototype.getLastModified = function () {
 }
 
 DiskStorage.prototype.get = function () {
-  var self = this
-
-  return new Promise(function (resolve, reject) {
+  return new Promise((resolve, reject) => {
     // attempt to open
-    var stream = fs.createReadStream(self.getFullUrl())
+    var stream = fs.createReadStream(this.getFullUrl())
 
-    stream.on('open', function () {
+    stream.on('open', () => {
       // check file size
-      var stats = fs.statSync(self.getFullUrl())
+      var stats = fs.statSync(this.getFullUrl())
       var fileSize = parseInt(stats.size)
 
-      self.lastModified = stats.mtime
+      this.lastModified = stats.mtime
 
       if (fileSize === 0) {
         var err = {
@@ -48,19 +46,20 @@ DiskStorage.prototype.get = function () {
       return resolve(stream)
     })
 
-    stream.on('error', function () {
+    stream.on('error', () => {
       var err = {
         statusCode: 404,
-        message: 'File not found: ' + self.getFullUrl()
+        message: 'File not found: ' + this.getFullUrl()
       }
 
-      // return new Missing().get().then((stream) => {
-      //   self.notFound = true
-      //   self.lastModified = new Date()
-      //   return resolve(stream)
-      // }).catch((e) => {
-      //   return reject(err)
-      // })
+      return new Missing().get().then((stream) => {
+        this.notFound = true
+        this.lastModified = new Date()
+        return resolve(stream)
+      }).catch((e) => {
+        return reject(e)
+      })
+
       return reject(err)
     })
   })
