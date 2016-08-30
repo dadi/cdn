@@ -64,7 +64,7 @@
     "istanbul-cobertura-badger": "^1.2.1",
     "mocha": "^3.0.2",
     "proxyquire": "~1.7.4",
-    "should": "~11.0.0",
+    "should": "~11.1.0",
     "sinon": "~1.17.5",
     "supertest": "~2.0.0"
   },
