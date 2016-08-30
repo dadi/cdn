@@ -16,7 +16,7 @@
     "aspect-fill": "^1.0.1",
     "aspect-fit": "^1.0.2",
     "async": "^2.0.1",
-    "aws-sdk": "2.5.0",
+    "aws-sdk": "2.5.2",
     "bluebird": "latest",
     "body-parser": "~1.15.2",
     "chokidar": "^1.x.x",
