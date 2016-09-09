@@ -2,7 +2,7 @@ var site = require('../../package.json').name
 var version = require('../../package.json').version
 var nodeVersion = Number(process.version.match(/^v(\d+\.\d+)/)[1])
 var chokidar = require('chokidar')
-var colors = require('colors')
+var colors = require('colors') // eslint-disable-line
 var bodyParser = require('body-parser')
 var finalhandler = require('finalhandler')
 var fs = require('fs')
@@ -11,22 +11,20 @@ var https = require('https')
 var path = require('path')
 var Router = require('router')
 var router = Router()
-var _ = require('underscore')
 var dadiStatus = require('@dadi/status')
 
 // let's ensure there's at least a dev config file here
-var devConfigPath = __dirname + '/../../config/config.development.json'
-try {
-  var stats = fs.statSync(devConfigPath)
-} catch (err) {
-  if (err.code === 'ENOENT') {
+var devConfigPath = path.join(__dirname, '/../../config/config.development.json')
+
+fs.stat(devConfigPath, (err, stats) => {
+  if (err && err.code === 'ENOENT') {
     fs.writeFileSync(devConfigPath, fs.readFileSync(devConfigPath + '.sample'))
   }
-}
+})
 
-var auth = require(__dirname + '/auth')
-var controller = require(__dirname + '/controller')
-var configPath = path.resolve(__dirname + '/../../config')
+var auth = require(path.join(__dirname, '/auth'))
+var controller = require(path.join(__dirname, '/controller'))
+var configPath = path.resolve(path.join(__dirname, '/../../config'))
 var config = require(configPath)
 var configWatcher
 var recipesWatcher
@@ -34,8 +32,6 @@ var recipesWatcher
 var Server = function () {}
 
 Server.prototype.start = function (done) {
-  var self = this
-
   router.use(bodyParser.json({limit: '50mb'}))
 
   router.get('/', function (req, res, next) {
@@ -60,7 +56,7 @@ Server.prototype.start = function (done) {
         }
       }
 
-      dadiStatus(params, function(err, data) {
+      dadiStatus(params, function (err, data) {
         if (err) return next(err)
 
         var responseMessages = {
@@ -156,12 +152,17 @@ Server.prototype.start = function (done) {
   done && done()
 }
 
-function createServer(listener) {
+function createServer (listener) {
   var protocol = config.get('server.protocol') || 'http'
 
   if (protocol === 'https') {
     var readFileSyncSafe = (path) => {
-      try { return fs.readFileSync(path) } catch (ex) {}
+      try {
+        return fs.readFileSync(path)
+      } catch (ex) {
+        console.log(ex)
+      }
+
       return null
     }
 
@@ -196,10 +197,8 @@ function createServer(listener) {
       switch (ex.message) {
         case 'error:06065064:digital envelope routines:EVP_DecryptFinal_ex:bad decrypt':
           throw new Error(exPrefix + 'incorrect ssl passphrase')
-          break;
         case 'error:0906A068:PEM routines:PEM_do_header:bad password read':
           throw new Error(exPrefix + 'required ssl passphrase not provided')
-          break;
         default:
           throw new Error(exPrefix + ex.message)
       }
@@ -236,7 +235,7 @@ function onStatusListening (server) {
 
   if (env !== 'test') {
     var startText = '\n  ----------------------------\n'
-    startText += "  Started standalone status endpoint\n"
+    startText += '  Started standalone status endpoint\n'
     startText += '  ----------------------------\n'
     startText += '  Server:      '.green + address.address + ':' + address.port + '\n'
     startText += '  ----------------------------\n'

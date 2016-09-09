@@ -1,10 +1,8 @@
-var _ = require('underscore')
 var fs = require('fs')
-var nodeUrl = require('url')
 var path = require('path')
 var Promise = require('bluebird')
 
-var config = require(__dirname + '/../../../config')
+var config = require(path.join(__dirname, '/../../../config'))
 
 var Missing = function () {
   this.url = config.get('notFound.images.enabled') ? config.get('notFound.images.path') : null
