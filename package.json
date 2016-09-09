@@ -12,7 +12,7 @@
   "dependencies": {
     "@dadi/logger": "latest",
     "@dadi/status": "git+https://git@github.com/dadi/status.git",
-    "accept-language": "^2.0.17",
+    "accept-language": "^3.0.5",
     "aspect-fill": "^1.0.1",
     "aspect-fit": "^1.0.2",
     "async": "^2.0.1",
