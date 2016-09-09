@@ -1,15 +1,12 @@
+var _ = require('underscore')
 var compressor = require('node-minify')
 var fs = require('fs')
 var path = require('path')
-var PassThrough = require('stream').PassThrough
 var Promise = require('bluebird')
 var url = require('url')
-var _ = require('underscore')
 
-var logger = require('@dadi/logger')
-var StorageFactory = require(__dirname + '/../storage/factory')
-var Cache = require(__dirname + '/../cache')
-var config = require(__dirname + '/../../../config')
+var StorageFactory = require(path.join(__dirname, '/../storage/factory'))
+var Cache = require(path.join(__dirname, '/../cache'))
 
 /**
  * Performs checks on the supplied URL and fetches the asset
@@ -17,8 +14,6 @@ var config = require(__dirname + '/../../../config')
  * @param {Object} req - the original HTTP request
  */
 var AssetHandler = function (format, req) {
-  var self = this
-
   this.supportedExtensions = ['ttf', 'otf', 'woff', 'svg', 'eot']
   this.format = format
   this.compress = '0'
@@ -42,15 +37,14 @@ var AssetHandler = function (format, req) {
     this.fileExt = this.format
     this.fileName = this.hasQuery ? this.urlParts[1] : this.urlParts[2]
     this.compress = this.hasQuery ? parsedUrl.query.compress : this.urlParts[1]
-  }
-  else if (this.format === 'fonts') {
+  } else if (this.format === 'fonts') {
     this.url = this.urlParts.splice(1).join('/')
     this.fullUrl = this.url
     this.fileName = path.basename(this.url)
     this.fileExt = path.extname(this.fileName).replace('.', '')
   }
 
-  this.cacheKey = this.req.url;
+  this.cacheKey = this.req.url
 }
 
 AssetHandler.prototype.get = function () {
@@ -145,24 +139,19 @@ AssetHandler.prototype.compressFile = function (stream) {
 AssetHandler.prototype.contentType = function () {
   if (this.format === 'js') {
     return 'application/javascript'
-  }
-  else if (this.format === 'css') {
+  } else if (this.format === 'css') {
     return 'text/css'
   }
 
   if (this.fileExt === 'eot') {
     return 'application/vnd.ms-fontobject'
-  }
-  else if (this.fileExt === 'otf') {
+  } else if (this.fileExt === 'otf') {
     return 'application/font-sfnt'
-  }
-  else if (this.fileExt === 'svg') {
+  } else if (this.fileExt === 'svg') {
     return 'image/svg+xml'
-  }
-  else if (this.fileExt === 'ttf') {
+  } else if (this.fileExt === 'ttf') {
     return 'application/font-sfnt'
-  }
-  else if (this.fileExt === 'woff') {
+  } else if (this.fileExt === 'woff') {
     return 'application/font-woff'
   }
 }

@@ -3,8 +3,8 @@ var path = require('path')
 var Promise = require('bluebird')
 var streamLength = require('stream-length')
 
-var config = require(path.resolve(__dirname + '/../../config'))
-var cache = require(__dirname + '/cache')
+var config = require(path.resolve(path.join(__dirname, '/../../config')))
+var cache = require(path.join(__dirname, '/cache'))
 
 module.exports.contentLength = function (stream) {
   return new Promise(function (resolve, reject) {
@@ -73,6 +73,7 @@ module.exports.clearCache = function (pathname, callback) {
   if (Cache.client()) {
     setTimeout(function () {
       Cache.delete(pathname, function (err) {
+        if (err) console.log(err)
         return callback(null)
       })
     }, 200)
@@ -91,7 +92,7 @@ module.exports.clearCache = function (pathname, callback) {
           fs.unlinkSync(file)
           i++
           // finished, all files processed
-          if (i == files.length) {
+          if (i === files.length) {
             return callback(null)
           }
         })

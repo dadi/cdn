@@ -2,14 +2,10 @@ var fs = require('fs')
 var nodeUrl = require('url')
 var path = require('path')
 var Promise = require('bluebird')
-var _ = require('underscore')
 
-var Missing = require(__dirname + '/missing')
-var config = require(__dirname + '/../../../config')
+var Missing = require(path.join(__dirname, '/missing'))
 
 var DiskStorage = function (settings, url) {
-  var self = this
-
   this.url = nodeUrl.parse(url, true).pathname
   this.path = path.resolve(settings.directory.path)
 }
@@ -57,10 +53,9 @@ DiskStorage.prototype.get = function () {
         this.lastModified = new Date()
         return resolve(stream)
       }).catch((e) => {
-        return reject(e)
+        console.log(e)
+        return reject(err)
       })
-
-      return reject(err)
     })
   })
 }

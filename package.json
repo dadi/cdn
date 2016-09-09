@@ -5,7 +5,7 @@
   "scripts": {
     "init": "validate-commit-msg",
     "start": "node index.js --node_env=development",
-    "test": "env NODE_ENV=test ./node_modules/.bin/istanbul cover -x '**/workspace/**' -x '**/app/**' --report cobertura --report text --report html --report lcov ./node_modules/.bin/_mocha test",
+    "test": "standard 'dadi/**/*.js' && env NODE_ENV=test ./node_modules/.bin/istanbul cover -x '**/workspace/**' -x '**/app/**' --report cobertura --report text --report html --report lcov ./node_modules/.bin/_mocha test",
     "posttest": "./scripts/coverage.js",
     "postpublish": "greenkeeper-postpublish"
   },
@@ -66,6 +66,7 @@
     "proxyquire": "~1.7.4",
     "should": "~11.1.0",
     "sinon": "~1.17.5",
+    "standard": "*",
     "supertest": "~2.0.0"
   },
   "repository": {

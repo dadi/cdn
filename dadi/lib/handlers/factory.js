@@ -1,13 +1,14 @@
+var _ = require('underscore')
 var fs = require('fs')
 var path = require('path')
 var Promise = require('bluebird')
 var url = require('url')
-var _ = require('underscore')
-var AssetHandler = require(__dirname + '/asset')
-var ImageHandler = require(__dirname + '/image')
-var Route = require(__dirname + '/../models/route')
 
-var config = require(__dirname + '/../../../config')
+var AssetHandler = require(path.join(__dirname, '/asset'))
+var ImageHandler = require(path.join(__dirname, '/image'))
+var Route = require(path.join(__dirname, '/../models/route'))
+
+var config = require(path.join(__dirname, '/../../../config'))
 
 function parseUrl (req) {
   return url.parse(req.url, true)
@@ -18,8 +19,7 @@ function getFormat (version, req) {
 
   if (version === 'v1') {
     return _.compact(parsedPath.split('/'))[0]
-  }
-  else if (version === 'v2') {
+  } else if (version === 'v2') {
     return path.extname(parsedPath).replace('.', '').toLowerCase()
   }
 }
@@ -75,14 +75,12 @@ HandlerFactory.prototype.createFromFormat = function (format, req) {
       case 'svg':
       case 'eot':
         return resolve(new AssetHandler(format, req))
-        break
       case 'gif':
       case 'jpg':
       case 'jpeg':
       case 'json':
       case 'png':
         return resolve(new ImageHandler(format, req))
-        break
       default:
         return resolve(this.callNextHandler(format, req))
     }

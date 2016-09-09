@@ -3,23 +3,23 @@ var concat = require('concat-stream')
 var ColorThief = require('color-thief')
 var colorThief = new ColorThief()
 var ExifImage = require('exif').ExifImage
-var fill = require('aspect-fill')
+// var fill = require('aspect-fill')
 var fit = require('aspect-fit')
 var imagesize = require('imagesize')
 var lengthStream = require('length-stream')
-var logger = require('@dadi/logger')
+// var logger = require('@dadi/logger')
 var PassThrough = require('stream').PassThrough
 var path = require('path')
 var Promise = require('bluebird')
 var Readable = require('stream').Readable
 var sha1 = require('sha1')
-var smartcrop = require('smartcrop-lwip')
+// var smartcrop = require('smartcrop-lwip')
 var url = require('url')
 var _ = require('underscore')
 
-var StorageFactory = require(__dirname + '/../storage/factory')
-var Cache = require(__dirname + '/../cache')
-var config = require(__dirname + '/../../../config')
+var StorageFactory = require(path.join(__dirname, '/../storage/factory'))
+var Cache = require(path.join(__dirname, '/../cache'))
+var config = require(path.join(__dirname, '/../../../config'))
 
 var GRAVITY_TYPES = {
   NW: 'northwest',
@@ -40,8 +40,6 @@ var GRAVITY_TYPES = {
  * @param {Object} req - the original HTTP request
  */
 var ImageHandler = function (format, req) {
-  var self = this
-
   this.req = req
   this.storageFactory = Object.create(StorageFactory)
   this.storageHandler = null
@@ -65,10 +63,9 @@ ImageHandler.prototype.get = function () {
   if (parsedUrl.search) {
     // get image options from the querystring
     this.options = parsedUrl.query
-  }
-  else if (!this.options) {
+  } else if (!this.options) {
     // get the segments of the url that relate to image manipulation options
-    var urlSegments = _.filter(parsedUrl.pathname.split('/'), function(segment, index) {
+    var urlSegments = _.filter(parsedUrl.pathname.split('/'), function (segment, index) {
       if (index > 0 && segment === '') return '0'
       if (index < 13 || (index >= 13 && /^[0-1]$/.test(segment))) {
         return segment
@@ -108,7 +105,6 @@ ImageHandler.prototype.get = function () {
 
     // get from cache
     self.cache.getStream(self.cacheKey, function (stream) {
-
       // if found in cache, return it
       if (stream) {
         if (self.options.format !== 'json') {
@@ -134,11 +130,12 @@ ImageHandler.prototype.get = function () {
 
         // pipe the stream to a temporary file to avoid back pressure buildup
         // while we wait for the exif data to be processed
-        var tmpExifFile = path.join(path.resolve(__dirname + '/../../../workspace'), sha1(self.url))
+        var tmpExifFile = path.join(path.resolve(path.join(__dirname, '/../../../workspace')), sha1(self.url))
         stream.pipe(exifStream).pipe(fs.createWriteStream(tmpExifFile))
 
         // get the image size and format
         imagesize(imageSizeStream, function (err, imageInfo) {
+          if (err) console.log(err)
 
           // extract exif data if available
           if (imageInfo && /jpe?g/.exec(imageInfo.format)) {
@@ -146,12 +143,13 @@ ImageHandler.prototype.get = function () {
               self.exifData = exifData
             }).catch(function (err) {
               // no exif data
+              if (err) console.log(err)
             }).then(function () {
               // remove the temporary exifData file
               try {
                 fs.unlinkSync(tmpExifFile)
               } catch (err) {
-                //console.log(err)
+                // console.log(err)
               }
             })
           } else {
@@ -161,7 +159,7 @@ ImageHandler.prototype.get = function () {
             try {
               fs.unlinkSync(tmpExifFile)
             } catch (err) {
-              //console.log(err)
+              // console.log(err)
             }
           }
 
@@ -297,9 +295,8 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                     coords[3] = (coords[3] > 0) ? (coords[3] - 1) : coords[3]
 
                     if (coords.length === 2) {
-                      batch.crop(coords[0], coords[1], width - cords[0], height - oords[1])
-                    }
-                    else if (coords.length === 4) {
+                      batch.crop(coords[0], coords[1], width - coords[0], height - coords[1])
+                    } else if (coords.length === 4) {
                       // image.crop(left, top, right, bottom, callback)
                       batch.crop(coords[0], coords[1], coords[2], coords[3])
 
@@ -323,15 +320,12 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                   }
               }
             }
-          }
-          else if (width && height && options.cropX && options.cropY) {
+          } else if (width && height && options.cropX && options.cropY) {
             // console.log("%s %s %s %s", parseInt(options.cropX), parseInt(options.cropY), width-parseInt(options.cropX), height-parseInt(options.cropY))
             batch.crop(parseInt(options.cropX), parseInt(options.cropY), width - parseInt(options.cropX), height - parseInt(options.cropY))
-          }
-          else if (width && height) {
+          } else if (width && height) {
             batch.cover(width, height)
-          }
-          else if (width && !height) {
+          } else if (width && !height) {
             batch.resize(width)
           }
 
@@ -342,7 +336,9 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
           // quality
           var params = {}
           var quality = parseInt(options.quality)
+
           if (/jpe?g/.exec(imageInfo.format)) params.quality = quality
+
           if (/png/.exec(imageInfo.format)) {
             if (quality > 70) params.compression = 'none'
             else if (quality > 50) params.compression = 'fast'
@@ -350,7 +346,7 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
           }
 
           // sharpening
-          if (options.sharpen != 5) {
+          if (options.sharpen !== 5) {
             batch.sharpen(options.sharpen)
           } else if (quality >= 70) {
             if (/jpe?g/.exec(imageInfo.format)) {
@@ -370,6 +366,8 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
 
           try {
             batch.exec(function (err, image) {
+              if (err) console.log(err)
+
               image.toBuffer(format, params, function (err, buffer) {
                 if (err) return reject(err)
 
@@ -404,7 +402,7 @@ ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, originalDime
   var croppedWidth = parseInt(croppedDimensions.width)
   var croppedHeight = parseInt(croppedDimensions.height)
 
-  var scale = croppedWidth / originalWidth
+  if (!scale) scale = croppedWidth / originalWidth
   var resizedWidth = originalWidth * scale
   var resizedHeight = originalHeight * scale
 
@@ -421,7 +419,7 @@ ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, originalDime
     case GRAVITY_TYPES.C:
     case GRAVITY_TYPES.E:
     case GRAVITY_TYPES.W:
-      verticalOffset = getMaxOfArray([(resizedHeight - croppedHeight) / 2.0, 0 ])
+      verticalOffset = getMaxOfArray([(resizedHeight - croppedHeight) / 2.0, 0])
       break
     case GRAVITY_TYPES.SW:
     case GRAVITY_TYPES.S:
@@ -441,7 +439,7 @@ ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, originalDime
     case GRAVITY_TYPES.C:
     case GRAVITY_TYPES.N:
     case GRAVITY_TYPES.S:
-      horizontalOffset = getMaxOfArray([(resizedWidth - croppedWidth) / 2.0, 0 ])
+      horizontalOffset = getMaxOfArray([(resizedWidth - croppedWidth) / 2.0, 0])
       break
     case GRAVITY_TYPES.NE:
     case GRAVITY_TYPES.E:
@@ -500,19 +498,17 @@ ImageHandler.prototype.extractEntropy = function (image, width, height) {
  * @param {stream} stream - read stream from S3, local disk or url
  */
 ImageHandler.prototype.extractExifData = function (file) {
-  var self = this
-
   return new Promise(function (resolve, reject) {
-    var image
     var concatStream = concat(gotImage)
     fs.createReadStream(file).pipe(concatStream)
 
     function gotImage (buffer) {
-      new ExifImage({ image: buffer }, function (err, data) {
-        if (err)
+      ExifImage({ image: buffer }, function (err, data) {
+        if (err) {
           return reject(err)
-        else
+        } else {
           return resolve(data)
+        }
       })
     }
   })
@@ -561,14 +557,14 @@ ImageHandler.prototype.getImageInfo = function (stream, imageInfo, cb) {
 
   var ls = lengthStream(lengthListener)
   stream.pipe(ls)
-    .on('error', function (err) { console.log(err); })
-    .on('data', function (data) { buffers.push(data); })
+    .on('error', function (err) { console.log(err) })
+    .on('data', function (data) { buffers.push(data) })
     .on('end', function () {
       var buffer = Buffer.concat(buffers)
       var colour = colorThief.getColor(buffer)
       var primaryColour = RGBtoHex(colour[0], colour[1], colour[2])
       var palette = colorThief.getPalette(buffer, options.colours ? options.colours : 6)
-      var paletteHex = _.map(palette, function(colour) {
+      var paletteHex = _.map(palette, function (colour) {
         return RGBtoHex(colour[0], colour[1], colour[2])
       })
 
@@ -610,12 +606,10 @@ function getDimensions (options, imageInfo) {
     if (!dimensions.width && parseFloat(dimensions.height) > 0) {
       dimensions.width = parseFloat(dimensions.height) * (parseFloat(ratio[0]) / parseFloat(ratio[1]))
       dimensions.height = parseFloat(dimensions.height)
-    }
-    else if (!dimensions.height && parseFloat(dimensions.width) > 0) {
+    } else if (!dimensions.height && parseFloat(dimensions.width) > 0) {
       dimensions.height = parseFloat(dimensions.width) * (parseFloat(ratio[1]) / parseFloat(ratio[0]))
       dimensions.width = parseFloat(dimensions.width)
-    }
-    else if (!dimensions.height && !dimensions.height) {
+    } else if (!dimensions.height && !dimensions.height) {
       dimensions.width = parseFloat(imageInfo.height) * (parseFloat(ratio[0]) / parseFloat(ratio[1]))
       dimensions.height = parseFloat(imageInfo.width) * (parseFloat(ratio[1]) / parseFloat(ratio[0]))
     }
@@ -624,10 +618,13 @@ function getDimensions (options, imageInfo) {
     dimensions.height = dimensions.height || imageInfo.height
   }
 
-  if (config.get('security.maxWidth') && config.get('security.maxWidth') < dimensions.width)
+  if (config.get('security.maxWidth') && config.get('security.maxWidth') < dimensions.width) {
     dimensions.width = config.get('security.maxWidth')
-  if (config.get('security.maxHeight') && config.get('security.maxHeight') < dimensions.height)
+  }
+
+  if (config.get('security.maxHeight') && config.get('security.maxHeight') < dimensions.height) {
     dimensions.height = config.get('security.maxHeight')
+  }
 
   if (options.devicePixelRatio && options.devicePixelRatio < 4) {
     // http://devicepixelratio.com/
@@ -644,13 +641,12 @@ function getDimensions (options, imageInfo) {
  * @returns {object}
  */
 function getImageOptions (optionsArray) {
-
   var legacyURLFormat = optionsArray.length < 17
 
-  var gravity = optionsArray[optionsArray.length-6].substring(0, 1).toUpperCase() + optionsArray[optionsArray.length-6].substring(1)
-  var filter = optionsArray[optionsArray.length-5].substring(0, 1).toUpperCase() + optionsArray[optionsArray.length-5].substring(1)
+  var gravity = optionsArray[optionsArray.length - 6].substring(0, 1).toUpperCase() + optionsArray[optionsArray.length - 6].substring(1)
+  var filter = optionsArray[optionsArray.length - 5].substring(0, 1).toUpperCase() + optionsArray[optionsArray.length - 5].substring(1)
 
-  options = {
+  var options = {
     format: optionsArray[0],
     quality: optionsArray[1],
     trim: optionsArray[2],
@@ -664,13 +660,13 @@ function getImageOptions (optionsArray) {
     ratio: legacyURLFormat ? '0' : optionsArray[8],
     devicePixelRatio: legacyURLFormat ? 1 : optionsArray[9],
 
-    resizeStyle: optionsArray[optionsArray.length-7],
+    resizeStyle: optionsArray[optionsArray.length - 7],
     gravity: gravity,
     filter: filter,
-    blur: optionsArray[optionsArray.length-4],
-    strip: optionsArray[optionsArray.length-3],
-    rotate: optionsArray[optionsArray.length-2],
-    flip: optionsArray[optionsArray.length-1]
+    blur: optionsArray[optionsArray.length - 4],
+    strip: optionsArray[optionsArray.length - 3],
+    rotate: optionsArray[optionsArray.length - 2],
+    flip: optionsArray[optionsArray.length - 1]
   }
 
   return options
@@ -705,13 +701,13 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
 
   var imageOptions = {}
 
-  _.each(Object.keys(options), function(key) {
+  _.each(Object.keys(options), function (key) {
     var settings = _.filter(optionSettings, function (setting) {
       return setting.name === key || _.contains(setting.aliases, key)
     })
 
     if (settings && settings[0]) {
-    	if (options[key] !== '0' || settings[0].default) {
+      if (options[key] !== '0' || settings[0].default) {
         if (options[key] !== '0') {
           var value = options[key]
           if (settings[0].lowercase) value = value.toLowerCase()
@@ -728,7 +724,7 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
     return setting.default
   })
 
-  _.each(defaults, function(setting) {
+  _.each(defaults, function (setting) {
     if (!imageOptions[setting.name]) {
       imageOptions[setting.name] = setting.default
     }
@@ -745,14 +741,11 @@ ImageHandler.prototype.contentType = function () {
   switch (this.format.toLowerCase()) {
     case 'png':
       return 'image/png'
-      break
     case 'jpg':
     case 'jpeg':
       return 'image/jpeg'
-      break
     case 'gif':
       return 'image/gif'
-      break
     default:
       return 'image/jpeg'
   }
