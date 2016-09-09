@@ -135,7 +135,9 @@ ImageHandler.prototype.get = function () {
 
         // get the image size and format
         imagesize(imageSizeStream, function (err, imageInfo) {
-          if (err) console.log(err)
+          if (err && err !== 'invalid') {
+            console.log(err)
+          }
 
           // extract exif data if available
           if (imageInfo && /jpe?g/.exec(imageInfo.format)) {
