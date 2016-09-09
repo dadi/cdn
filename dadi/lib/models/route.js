@@ -1,9 +1,10 @@
-var cache = require(__dirname + '/../cache')()
-var config = require(__dirname + '/../../../config')
 var fs = require('fs')
 var logger = require('@dadi/logger')
 var path = require('path')
 var request = require('request-promise')
+
+var cache = require(path.join(__dirname, '/../cache'))()
+var config = require(path.join(__dirname, '/../../../config'))
 
 var Route = function (config) {
   this.config = config
@@ -155,7 +156,7 @@ Route.prototype.getNetwork = function () {
 
 Route.prototype.getDevice = function () {
   var ua = require('ua-parser-js')(this.userAgent)
-  
+
   return ua.device.type || 'desktop'
 }
 
@@ -211,6 +212,7 @@ Route.prototype.getRecipe = function () {
         return cache.set(this._getCacheKey(), recipe).then(() => {
           return recipe
         }).catch((err) => {
+          console.log(err)
           return recipe
         })
       }
@@ -237,9 +239,6 @@ Route.prototype.getRemoteLocation = function () {
 }
 
 Route.prototype.processRoute = function () {
-  var match
-  var queue = []
-
   return this.evaluateBranches(this.config.branches).then((match) => {
     if (match) return match.recipe
   }).catch((err) => {

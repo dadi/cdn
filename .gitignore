@@ -19,4 +19,5 @@ coverage/
 scripts/coverage.svg
 
 persist
+.node-persist/**/*
 public/**/*

@@ -4,7 +4,6 @@ var etag = require('etag')
 var fs = require('fs')
 var lengthStream = require('length-stream')
 var mime = require('mime')
-var PassThrough = require('stream').PassThrough
 var path = require('path')
 var sha1 = require('sha1')
 var zlib = require('zlib')
@@ -12,11 +11,10 @@ var _ = require('underscore')
 
 var logger = require('@dadi/logger')
 
-var configPath = path.resolve(__dirname + '/../../../config')
-var config = require(__dirname + '/../../../config')
-var help = require(__dirname + '/../help')
-var HandlerFactory = require(__dirname + '/../handlers/factory')
-var RouteController = require(__dirname + '/route')
+var config = require(path.join(__dirname, '/../../../config'))
+var help = require(path.join(__dirname, '/../help'))
+var HandlerFactory = require(path.join(__dirname, '/../handlers/factory'))
+var RouteController = require(path.join(__dirname, '/route'))
 
 logger.init(config.get('logging'), config.get('aws'), config.get('env'))
 
@@ -30,7 +28,6 @@ var Controller = function (router) {
 
     factory.create(req).then(function (handler) {
       return handler.get().then(function (stream) {
-
         self.addContentTypeHeader(res, handler)
         self.addCacheControlHeader(res, handler)
         self.addLastModifiedHeader(res, handler)
@@ -89,14 +86,21 @@ var Controller = function (router) {
   router.post('/api', function (req, res) {
     if (req.body.invalidate) {
       var invalidate = ''
-      if (req.body.invalidate && req.body.invalidate !== '*')
+      if (req.body.invalidate && req.body.invalidate !== '*') {
         invalidate = sha1(req.body.invalidate)
+      }
 
       help.clearCache(invalidate, function (err) {
+        if (err) console.log(err)
+
         if (config.get('cloudfront.enabled')) {
           var cf = cloudfront.createClient(config.get('cloudfront.accessKey'), config.get('cloudfront.secretKey'))
+
           cf.getDistribution(config.get('cloudfront.distribution'), function (err, distribution) {
+            if (err) console.log(err)
+
             var callerReference = (new Date()).toString()
+
             distribution.invalidate(callerReference, ['/' + req.body.invalidate], function (err, invalidation) {
               if (err) console.log(err)
 
@@ -122,7 +126,6 @@ var Controller = function (router) {
   })
 
   router.post('/api/recipes/new', function (req, res) {
-
     // Don't accept an empty POST
     if (_.isEmpty(req.body)) {
       return help.sendBackJSON(400, {
@@ -133,8 +136,7 @@ var Controller = function (router) {
     // Valid JSON?
     try {
       var recipe = typeof req.body === 'object' ? req.body : JSON.parse(req.body)
-    }
-    catch(err) {
+    } catch (err) {
       return help.sendBackJSON(400, {
         message: 'Invalid JSON Syntax'
       }, res)
@@ -142,6 +144,7 @@ var Controller = function (router) {
 
     // Check for expected properties
     var validation = self.validateRecipe(recipe)
+
     if (!validation.success) {
       return help.sendBackJSON(400, {
         error: validation.errors
@@ -157,8 +160,7 @@ var Controller = function (router) {
         result: 'success',
         message: `Recipe "${recipe.recipe}" created`
       }, res)
-    }
-    catch (err) {
+    } catch (err) {
       console.log(err)
     }
   })
@@ -183,7 +185,6 @@ Controller.prototype.addLastModifiedHeader = function (res, handler) {
 }
 
 Controller.prototype.addCacheControlHeader = function (res, handler) {
-
   var configHeaderSets = config.get('headers.cacheControl')
 
   // If it matches, sets Cache-Control header using the file path
@@ -209,7 +210,7 @@ Controller.prototype.addCacheControlHeader = function (res, handler) {
   // If not already set, sets Cache-Control header using the default
   setHeader(configHeaderSets.default)
 
-  function setHeader(value) {
+  function setHeader (value) {
     if (_.isEmpty(value)) return
 
     // already set
@@ -223,6 +224,7 @@ Controller.prototype.addCacheControlHeader = function (res, handler) {
 Controller.prototype.validateRecipe = function (recipe) {
   var required = ['recipe', 'path', 'settings']
   var errors = []
+
   for (var key in required) {
     if (!recipe.hasOwnProperty(required[key])) {
       errors.push({ error: `Property "${required[key]}" not found in recipe` })

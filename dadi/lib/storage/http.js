@@ -1,12 +1,10 @@
+var path = require('path')
 var Promise = require('bluebird')
-var Readable = require('stream').Readable
 var request = require('request')
 var stream = require('stream')
 var urljoin = require('url-join')
-var _ = require('underscore')
 
-var Missing = require(__dirname + '/missing')
-var config = require(__dirname + '/../../../config')
+var Missing = require(path.join(__dirname, '/missing'))
 
 var HTTPStorage = function (settings, url) {
   if (!settings.remote.path) throw new Error('Remote address not specified')
