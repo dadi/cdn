@@ -1,11 +1,11 @@
 var AWS = require('aws-sdk')
+var path = require('path')
 var Promise = require('bluebird')
 var stream = require('stream')
 var _ = require('underscore')
 
 var logger = require('@dadi/logger')
-var Missing = require(__dirname + '/missing')
-var config = require(__dirname + '/../../../config')
+var Missing = require(path.join(__dirname, '/missing'))
 
 var S3Storage = function (settings, url) {
   var self = this
@@ -13,7 +13,7 @@ var S3Storage = function (settings, url) {
   AWS.config.setPromisesDependency(require('bluebird'))
   AWS.config.update({ accessKeyId: settings.s3.accessKey, secretAccessKey: settings.s3.secretKey })
 
-  if (settings.s3.region && settings.s3.region != '') {
+  if (settings.s3.region && settings.s3.region !== '') {
     AWS.config.update({ region: settings.s3.region })
   }
 
@@ -35,8 +35,7 @@ var S3Storage = function (settings, url) {
       var parts = _.compact(self.urlParts())
       parts.shift()
       url = parts.join('/')
-    }
-    else if (self.url.substring(0,1) === '/') {
+    } else if (self.url.substring(0, 1) === '/') {
       url = self.url.substring(1)
     } else {
       url = self.url
@@ -48,8 +47,7 @@ var S3Storage = function (settings, url) {
   this.urlParts = function () {
     if (self.url.indexOf('/s3') === 0) {
       return self.url.replace('/s3', '').split('/')
-    }
-    else if (self.url.substring(0,1) === '/') {
+    } else if (self.url.substring(0, 1) === '/') {
       return self.url.substring(1).split('/')
     } else {
       return self.url.split('/')
@@ -58,7 +56,7 @@ var S3Storage = function (settings, url) {
 }
 
 S3Storage.prototype.getFullUrl = function () {
-  return self.url.replace('/s3', '')
+  return this.url.replace('/s3', '')
 }
 
 S3Storage.prototype.getLastModified = function () {

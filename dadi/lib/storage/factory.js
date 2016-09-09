@@ -1,11 +1,11 @@
+var _ = require('underscore')
 var nodeUrl = require('url')
 var path = require('path')
-var _ = require('underscore')
-var S3Storage = require(__dirname + '/s3')
-var DiskStorage = require(__dirname + '/disk')
-var HTTPStorage = require(__dirname + '/http')
+var S3Storage = require(path.join(__dirname, '/s3'))
+var DiskStorage = require(path.join(__dirname, '/disk'))
+var HTTPStorage = require(path.join(__dirname, '/http'))
 
-var config = require(__dirname + '/../../../config')
+var config = require(path.join(__dirname, '/../../../config'))
 
 module.exports = {
   create: function create (type, url, hasQuery) {
@@ -21,8 +21,7 @@ module.exports = {
 
     if (type === 'image') {
       configBlock = config.get('images')
-    }
-    else if (type === 'asset') {
+    } else if (type === 'asset') {
       configBlock = config.get('assets')
     }
 
@@ -30,8 +29,8 @@ module.exports = {
       if (type === 'image') {
         var parsedUrl = nodeUrl.parse(url, true)
 
-        // get the segments of the url that relate to image manipulation options 
-        var urlSegments = _.filter(parsedUrl.pathname.split('/'), function(segment, index) {
+        // get the segments of the url that relate to image manipulation options
+        var urlSegments = _.filter(parsedUrl.pathname.split('/'), function (segment, index) {
           if (index > 0 && segment === '') return '0'
           if (index < 13 || (index >= 13 && /^[0-1]$/.test(segment))) {
             return segment
@@ -50,6 +49,8 @@ module.exports = {
         url = url.replace(fontsre, '')
       }
     }
+
+    var adapterKey
 
     // get storage adapter from the first part of the url
     if (version === 'v2') {
@@ -74,16 +75,12 @@ module.exports = {
     switch (adapterKey) {
       case 'disk':
         return new DiskStorage(configBlock, url)
-        break
       case 'http':
         return new HTTPStorage(configBlock, url)
-        break
       case 's3':
         return new S3Storage(configBlock, url)
-        break
       default:
         return new DiskStorage(configBlock, url)
-        break
     }
   }
 }
