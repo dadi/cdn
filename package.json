@@ -65,7 +65,7 @@
     "mocha": "^3.0.2",
     "proxyquire": "~1.7.4",
     "should": "~11.1.0",
-    "sinon": "~1.17.5",
+    "sinon": "~1.17.6",
     "standard": "*",
     "supertest": "~2.0.0"
   },
