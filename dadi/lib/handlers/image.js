@@ -130,8 +130,11 @@ ImageHandler.prototype.get = function () {
 
         // pipe the stream to a temporary file to avoid back pressure buildup
         // while we wait for the exif data to be processed
-        var tmpExifFile = path.join(path.resolve(path.join(__dirname, '/../../../workspace')), sha1(self.url))
-        stream.pipe(exifStream).pipe(fs.createWriteStream(tmpExifFile))
+        var tmpExifFile
+        if (self.options.format === 'json') {
+          tmpExifFile = path.join(path.resolve(path.join(__dirname, '/../../../workspace')), sha1(self.url))
+          stream.pipe(exifStream).pipe(fs.createWriteStream(tmpExifFile))
+        }
 
         // get the image size and format
         imagesize(imageSizeStream, function (err, imageInfo) {
@@ -140,28 +143,21 @@ ImageHandler.prototype.get = function () {
           }
 
           // extract exif data if available
-          if (imageInfo && /jpe?g/.exec(imageInfo.format)) {
+          if (imageInfo && /jpe?g/.exec(imageInfo.format) && self.options.format === 'json') {
             self.extractExifData(tmpExifFile).then(function (exifData) {
               self.exifData = exifData
             }).catch(function (err) {
               // no exif data
               if (err) console.log(err)
-            }).then(function () {
-              // remove the temporary exifData file
-              try {
-                fs.unlinkSync(tmpExifFile)
-              } catch (err) {
-                // console.log(err)
-              }
             })
-          } else {
-            // not a JPEG, remove the temporary exifData file
-            // and release the stream
-            exifStream = null
+          }
+
+          if (tmpExifFile) {
+            // remove the temporary exifData file
             try {
               fs.unlinkSync(tmpExifFile)
             } catch (err) {
-              // console.log(err)
+              console.log(err)
             }
           }
 
