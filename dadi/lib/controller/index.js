@@ -36,6 +36,10 @@ var Controller = function (router) {
           res.statusCode = config.get('notFound.statusCode') || 404
         }
 
+        if (handler.storageHandler && handler.storageHandler.cleanUp) {
+          handler.storageHandler.cleanUp()
+        }
+
         var contentLength = 0
 
         // receive the concatenated buffer and send the response
