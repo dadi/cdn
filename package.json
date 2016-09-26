@@ -67,7 +67,7 @@
     "proxyquire": "~1.7.4",
     "should": "~11.1.0",
     "sinon": "~1.17.5",
-    "standard": "*",
+    "standard": "8.2.0",
     "supertest": "~2.0.0"
   },
   "repository": {
