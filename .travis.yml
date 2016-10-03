@@ -2,13 +2,14 @@ language: node_js
 node_js:
   - "4"
 env:
-  - CXX=g++-4.8
+  - CXX=g++-4.9
 addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
     packages:
-      - g++-4.8
+      - g++-4.9
 before_install:
   - if [[ `npm -v` != 3* ]]; then npm i -g npm@3; fi
   - sudo apt-get install libcairo2-dev libjpeg-dev libgif-dev
+  - sudo npm install -g sqwish
