@@ -397,6 +397,7 @@ var conf = convict({
     doc: "",
     format: Object,
     default: {
+      processors: __dirname + '/workspace/processors',
       recipes: __dirname + '/workspace/recipes',
       routes: __dirname + '/workspace/routes'
     }
