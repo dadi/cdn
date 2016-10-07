@@ -158,8 +158,6 @@ describe('Routes', function () {
   })
 
   describe('Apply', function () {
-    this.timeout(4000)
-
     it('should evaluate route branches', function (done) {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       var factory = require(__dirname + '/../../dadi/lib/handlers/factory')
@@ -169,13 +167,14 @@ describe('Routes', function () {
 
       client
       .get('/' + sample.route + '/test.jpg')
+      .set('accept-language', 'en-GB')
       .end(function(err, res) {
         setTimeout(function() {
           processBranchesSpy.calledTwice.should.eql(true)
           JSON.stringify(processBranchesSpy.firstCall.args[0]).should.eql(JSON.stringify(sample.branches))
           JSON.stringify(processBranchesSpy.secondCall.args[0]).should.eql(JSON.stringify(sample.branches))
           done()
-        }, 2000)
+        }, 1000)
       })
     })
   })
