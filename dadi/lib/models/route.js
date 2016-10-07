@@ -71,6 +71,8 @@ Route.prototype._matchBranch = function (branch) {
         }
 
         var languageMatch = this.getLanguages(minQuality).some((language) => {
+          console.log(language)
+          console.log(condition)
           return this._arrayIntersect(language, condition)
         })
 
@@ -164,11 +166,15 @@ Route.prototype.getLanguages = function (minQuality) {
   var languages = require('accept-language').parse(this.language)
   var result = []
 
+  console.log(languages)
+
   languages.forEach((language) => {
     if ((result.indexOf(language.language) === -1) && (language.quality >= minQuality)) {
       result.push(language.language)
     }
   })
+
+  console.log(result)
 
   return result
 }
