@@ -26,8 +26,8 @@ describe('Routes', function () {
         {
           "condition": {
             "device": "desktop",
-            "language": "en",
-            "country": ["GB", "US"],
+            "language": "en-GB",
+            //"country": ["GB", "US"],
             "network": "cable"
           },
           "recipe": "thumbnail"

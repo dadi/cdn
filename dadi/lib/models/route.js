@@ -82,8 +82,6 @@ Route.prototype._matchBranch = function (branch) {
         }
 
         var languageMatch = this.getLanguages(minQuality).some((language) => {
-          console.log(language)
-          console.log(condition)
           return this._arrayIntersect(language, condition)
         })
 
@@ -110,7 +108,7 @@ Route.prototype._matchBranch = function (branch) {
         }
 
         queue.push(this.getNetwork().then((network) => {
-          match = match && this._arrayIntersect(network, condition)
+          match = match && network && this._arrayIntersect(network, condition)
         }))
 
         break
@@ -174,20 +172,12 @@ Route.prototype.getDevice = function () {
 }
 
 Route.prototype.getLanguages = function (minQuality) {
-  var languages = acceptLanguage.get(this.language)
-  var result = []
+  var language = acceptLanguage.get(this.language)
+  if (!(language instanceof Array)) {
+    language = [language]
+  }
 
-  console.log(languages)
-
-  languages.forEach((language) => {
-    if ((result.indexOf(language.language) === -1) && (language.quality >= minQuality)) {
-      result.push(language.language)
-    }
-  })
-
-  console.log(result)
-
-  return result
+  return language
 }
 
 Route.prototype.getLocation = function () {
