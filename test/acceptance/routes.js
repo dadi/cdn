@@ -26,8 +26,8 @@ describe('Routes', function () {
         {
           "condition": {
             "device": "desktop",
-            "language": "en",
-            "country": ["GB", "US"],
+            "language": "en-GB",
+            //"country": ["GB", "US"],
             "network": "cable"
           },
           "recipe": "thumbnail"
@@ -170,6 +170,7 @@ describe('Routes', function () {
       .set('accept-language', 'en-GB')
       .end(function(err, res) {
         setTimeout(function() {
+          console.log(processBranchesSpy)
           processBranchesSpy.calledTwice.should.eql(true)
           JSON.stringify(processBranchesSpy.firstCall.args[0]).should.eql(JSON.stringify(sample.branches))
           JSON.stringify(processBranchesSpy.secondCall.args[0]).should.eql(JSON.stringify(sample.branches))
