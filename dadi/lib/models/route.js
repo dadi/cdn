@@ -273,6 +273,8 @@ Route.prototype.setIP = function (ip) {
 }
 
 Route.prototype.setLanguage = function (language) {
+  console.log('setLanguage')
+  console.log(language)
   this.language = language
 }
 
