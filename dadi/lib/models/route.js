@@ -163,6 +163,7 @@ Route.prototype.getDevice = function () {
 }
 
 Route.prototype.getLanguages = function (minQuality) {
+  console.log(this.language)
   var languages = require('accept-language').parse(this.language)
   var result = []
 
@@ -276,6 +277,7 @@ Route.prototype.setLanguage = function (language) {
   console.log('setLanguage')
   console.log(language)
   this.language = language
+  console.log(this.language)
 }
 
 Route.prototype.setUserAgent = function (userAgent) {
