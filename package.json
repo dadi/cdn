@@ -23,7 +23,7 @@
     "cloudfront": "~0.4.0",
     "color-thief": "~2.2.1",
     "colors": "^1.1.2",
-    "concat-stream": "^1.5.1",
+    "concat-stream": "^1.5.2",
     "console-stamp": "^0.2.2",
     "convict": "^1.5.0",
     "etag": "^1.7.0",
