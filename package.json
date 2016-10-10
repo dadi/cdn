@@ -42,7 +42,7 @@
     "redis": "~2.6.2",
     "redis-rstream": "~0.1.2",
     "redis-wstream": "~0.2.5",
-    "request": "~2.74.0",
+    "request": "~2.75.0",
     "request-promise": "^4.1.1",
     "router": "~1.1.3",
     "sha1": "~1.1.1",
