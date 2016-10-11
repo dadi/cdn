@@ -426,6 +426,23 @@ var conf = convict({
       }
     }
   },
+  upload: {
+    enabled: {
+      doc: 'If true, files can be uploaded the CDN with a POST request',
+      format: Boolean,
+      default: false
+    },
+    requireAuthentication: {
+      doc: 'If true, POST requests must include the authentication credentials specified in the `auth` property',
+      format: Boolean,
+      default: true
+    },
+    pathFormat: {
+      doc: '',
+      format: ['none', 'date', 'datetime', 'sha1/4', 'sha1/5', 'sha1/8'],
+      default: 'datetime'
+    }
+  },
   feedback: {
     doc: '',
     format: Boolean,

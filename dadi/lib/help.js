@@ -27,9 +27,8 @@ module.exports.sendBackJSON = function (successCode, results, res) {
   var resBody = JSON.stringify(results)
 
   res.setHeader('Server', config.get('server.name'))
-  res.setHeader('content-type', 'application/json')
-  res.setHeader('content-length', Buffer.byteLength(resBody))
-  res.setHeader('X-Cache', 'HIT')
+  res.setHeader('Content-Type', 'application/json')
+  res.setHeader('Content-Length', Buffer.byteLength(resBody))
   res.end(resBody)
 }
 
@@ -43,9 +42,8 @@ module.exports.sendBackJSONP = function (callbackName, results, res) {
   resBody = callbackName + '(' + resBody + ');'
 
   res.setHeader('Server', config.get('server.name'))
-  res.setHeader('content-type', 'text/javascript')
-  res.setHeader('content-length', Buffer.byteLength(resBody))
-  res.setHeader('X-Cache', 'HIT')
+  res.setHeader('Content-Type', 'text/javascript')
+  res.setHeader('Content-Length', Buffer.byteLength(resBody))
   res.end(resBody)
 }
 

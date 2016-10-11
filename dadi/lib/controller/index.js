@@ -14,6 +14,7 @@ var logger = require('@dadi/logger')
 var config = require(path.join(__dirname, '/../../../config'))
 var help = require(path.join(__dirname, '/../help'))
 var HandlerFactory = require(path.join(__dirname, '/../handlers/factory'))
+var PostController = require(path.join(__dirname, '/post'))
 var RouteController = require(path.join(__dirname, '/route'))
 
 logger.init(config.get('logging'), config.get('aws'), config.get('env'))
@@ -171,6 +172,14 @@ var Controller = function (router) {
 
   router.post('/api/routes', function (req, res) {
     return RouteController.post(req, res)
+  })
+
+  router.post('/api/upload', function (req, res, next) {
+    if (!config.get('upload.enabled')) {
+      return next()
+    }
+
+    return PostController.post(req, res)
   })
 }
 

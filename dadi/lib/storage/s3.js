@@ -1,8 +1,10 @@
+var _ = require('underscore')
 var AWS = require('aws-sdk')
+var concat = require('concat-stream')
+var lengthStream = require('length-stream')
 var path = require('path')
 var Promise = require('bluebird')
 var stream = require('stream')
-var _ = require('underscore')
 
 var logger = require('@dadi/logger')
 var Missing = require(path.join(__dirname, '/missing'))
@@ -108,6 +110,72 @@ S3Storage.prototype.get = function () {
 
       return reject(error)
     })
+  })
+}
+
+/**
+ *
+ */
+S3Storage.prototype.put = function (stream, folderPath) {
+  return new Promise((resolve, reject) => {
+
+    var fullPath = this.getKey().replace(path.basename(this.getKey()), path.join(folderPath, path.basename(this.getKey())))
+
+    var requestData = {
+      Bucket: this.getBucket(),
+      Key: fullPath
+    }
+
+    if (requestData.Bucket === '' || requestData.Key === '' ) {
+      var err = {
+        statusCode: 400,
+        statusText: 'Bad Request',
+        message: 'Either no Bucket or Key provided: ' + JSON.stringify(requestData)
+      }
+      return reject(err)
+    }
+
+    var contentLength = 0
+
+    function lengthListener (length) {
+      contentLength = length
+    }
+
+    // receive the concatenated buffer and send the response
+    // unless the etag hasn't changed, then send 304 and end the response
+    var sendBuffer = (buffer) => {
+      requestData.Body = buffer
+      requestData.ContentLength = contentLength
+
+      logger.info('S3 PUT Request:' + JSON.stringify({
+        Bucket: requestData.Bucket,
+        Key: requestData.Key,
+        //fileName: fileName,
+        ContentLength: requestData.ContentLength
+      }))
+
+      // create the AWS.Request object
+      var putObjectPromise = this.s3.putObject(requestData).promise()
+
+      putObjectPromise.then((data) => {
+        data.message = 'File uploaded'
+        data.path = requestData.Key
+        data.awsUrl = `https://${requestData.Bucket}.s3.amazonaws.com/${requestData.Key}`
+
+        return resolve(data)
+      }).catch((error) => {
+        console.log(error)
+        return reject(error)
+      })
+    }
+
+    var concatStream = concat(sendBuffer)
+
+    // send the file stream through:
+    // 1) lengthStream to obtain contentLength
+    // 2) concatStream to get a buffer, which then passes the buffer to sendBuffer
+    // for sending to AWS
+    stream.pipe(lengthStream(lengthListener)).pipe(concatStream)
   })
 }
 

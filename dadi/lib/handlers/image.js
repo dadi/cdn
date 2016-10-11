@@ -53,6 +53,16 @@ var ImageHandler = function (format, req) {
   this.exifData = {}
 }
 
+ImageHandler.prototype.put = function (stream, folderPath) {
+  return new Promise((resolve, reject) => {
+    this.storageHandler = this.storageFactory.create('image', this.url)
+
+    this.storageHandler.put(stream, folderPath).then((result) => {
+      return resolve(result)
+    })
+  })
+}
+
 ImageHandler.prototype.get = function () {
   var self = this
   self.cached = false
