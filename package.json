@@ -12,7 +12,7 @@
   "dependencies": {
     "@dadi/logger": "latest",
     "@dadi/status": "git+https://git@github.com/dadi/status.git",
-    "accept-language": "^3.0.9",
+    "accept-language-parser": "^1.2.0",
     "aspect-fill": "^1.0.1",
     "aspect-fit": "^1.0.2",
     "async": "^2.0.1",
@@ -25,7 +25,7 @@
     "colors": "^1.1.2",
     "concat-stream": "^1.5.1",
     "console-stamp": "^0.2.2",
-    "convict": "^1.0.1",
+    "convict": "^1.5.0",
     "etag": "^1.7.0",
     "exif": "^0.6.0",
     "exif2": "0.0.1",
