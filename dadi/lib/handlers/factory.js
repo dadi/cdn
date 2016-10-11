@@ -33,6 +33,7 @@ var HandlerFactory = function () {
   this.handlers.push(this.createFromFormat)
   this.handlers.push(this.createFromRoute)
   this.handlers.push(this.createFromRecipe)
+  this.handlers.push(this.getProcessor)
 }
 
 HandlerFactory.prototype.create = function (req, mimetype) {
@@ -61,7 +62,7 @@ HandlerFactory.prototype.callNextHandler = function (format, req) {
     var error = new Error('Unknown URI')
 
     error.statusCode = 404
-    error.detail = `'${format}' is not a valid route, recipe or image format`
+    error.detail = `'${format}' is not a valid route, recipe, processor or image format`
 
     return Promise.reject(error)
   }
@@ -90,6 +91,24 @@ HandlerFactory.prototype.createFromFormat = function (format, req) {
       default:
         return resolve(this.callNextHandler(format, req))
     }
+  })
+}
+
+HandlerFactory.prototype.getProcessor = function (format, req) {
+  return new Promise((resolve, reject) => {
+    var processorPath = path.join(path.resolve(config.get('paths.processors')), format + '.js')
+
+    fs.stat(processorPath, (err, stats) => {
+      if ((err && (err.code === 'ENOENT')) || !stats.isFile()) {
+        return resolve(this.callNextHandler(format, req))
+      } else if (err) {
+        return reject(err)
+      }
+
+      var Processor = require(processorPath)
+
+      return resolve(new Processor(format, req))
+    })
   })
 }
 
