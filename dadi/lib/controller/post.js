@@ -1,4 +1,3 @@
-var fs = require('fs')
 var path = require('path')
 var sha1 = require('sha1')
 
@@ -9,7 +8,6 @@ var help = require(path.join(__dirname, '/../help'))
 var PassThrough = require('stream').PassThrough
 
 module.exports.post = (req, res) => {
-  var settings = config.get('upload')
   var busboy = new Busboy({ headers: req.headers })
   this.data = []
   this.fileName = ''
@@ -44,7 +42,7 @@ module.exports.post = (req, res) => {
   req.pipe(busboy)
 }
 
-function writeFile(req, fileName, mimetype, data) {
+function writeFile (req, fileName, mimetype, data) {
   return new Promise((resolve, reject) => {
     var bufferStream = new PassThrough()
     bufferStream.end(Buffer.concat(data))
@@ -63,7 +61,7 @@ function writeFile(req, fileName, mimetype, data) {
   })
 }
 
-function getPath(fileName) {
+function getPath (fileName) {
   var settings = config.get('upload')
   var reSplitter
 
@@ -86,7 +84,7 @@ function getPath(fileName) {
   }
 }
 
-function formatDate(includeTime) {
+function formatDate (includeTime) {
   var d = new Date()
   var dateParts = [
     d.getFullYear(),

@@ -118,7 +118,6 @@ S3Storage.prototype.get = function () {
  */
 S3Storage.prototype.put = function (stream, folderPath) {
   return new Promise((resolve, reject) => {
-
     var fullPath = this.getKey().replace(path.basename(this.getKey()), path.join(folderPath, path.basename(this.getKey())))
 
     var requestData = {
@@ -126,7 +125,7 @@ S3Storage.prototype.put = function (stream, folderPath) {
       Key: fullPath
     }
 
-    if (requestData.Bucket === '' || requestData.Key === '' ) {
+    if (requestData.Bucket === '' || requestData.Key === '') {
       var err = {
         statusCode: 400,
         statusText: 'Bad Request',
@@ -150,7 +149,7 @@ S3Storage.prototype.put = function (stream, folderPath) {
       logger.info('S3 PUT Request:' + JSON.stringify({
         Bucket: requestData.Bucket,
         Key: requestData.Key,
-        //fileName: fileName,
+        // fileName: fileName,
         ContentLength: requestData.ContentLength
       }))
 

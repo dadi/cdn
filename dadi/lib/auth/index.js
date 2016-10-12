@@ -74,8 +74,6 @@ module.exports = function (router) {
       var clientId = req.body.clientId
       var secret = req.body.secret
 
-      console.log(req)
-
       if (clientId === config.get('auth.clientId') && secret === config.get('auth.secret')) {
         var token = uuid.v4()
 
