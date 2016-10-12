@@ -72,6 +72,13 @@
     "standard": "*",
     "supertest": "~2.0.0"
   },
+  "greenkeeper": {
+    "ignore": [
+      "standard",
+      "mocha",
+      "aws-sdk"
+    ]
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dadi/cdn.git"
