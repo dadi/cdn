@@ -7,8 +7,9 @@ var Promise = require('bluebird')
 var Missing = require(path.join(__dirname, '/missing'))
 
 var DiskStorage = function (settings, url) {
+  this.settings = settings
   this.url = nodeUrl.parse(url, true).pathname
-  this.path = path.resolve(settings.directory.path)
+  this.path = path.resolve(this.settings.directory.path)
 }
 
 DiskStorage.prototype.getFullUrl = function () {
@@ -75,7 +76,7 @@ DiskStorage.prototype.put = function (stream, folderPath) {
 
       var data = {
         message: 'File uploaded',
-        path: this.getFullUrl()
+        path: this.getFullUrl().replace(path.resolve(this.settings.directory.path), '')
       }
 
       return resolve(data)
