@@ -5,7 +5,7 @@ var Busboy = require('busboy')
 var config = require(path.join(__dirname, '/../../../config'))
 var HandlerFactory = require(path.join(__dirname, '/../handlers/factory'))
 var help = require(path.join(__dirname, '/../help'))
-var PassThrough = require('stream').PassThrough
+var streamifier = require('streamifier')
 
 module.exports.post = (req, res) => {
   var busboy = new Busboy({ headers: req.headers })
@@ -22,7 +22,7 @@ module.exports.post = (req, res) => {
     })
 
     file.on('end', () => {
-      // console.log('Finished with ' + fieldname)
+      console.log('Finished with ' + fieldname)
     })
   })
 
@@ -33,7 +33,9 @@ module.exports.post = (req, res) => {
 
   // Listen for event when Busboy is finished parsing the form
   busboy.on('finish', () => {
-    return writeFile(req, this.fileName, this.mimetype, this.data).then((result) => {
+    console.log('finished')
+    var data = Buffer.concat(this.data)
+    return writeFile(req, this.fileName, this.mimetype, data).then((result) => {
       help.sendBackJSON(201, result, res)
     })
   })
@@ -44,15 +46,14 @@ module.exports.post = (req, res) => {
 
 function writeFile (req, fileName, mimetype, data) {
   return new Promise((resolve, reject) => {
-    var bufferStream = new PassThrough()
-    bufferStream.end(Buffer.concat(data))
+    var stream = streamifier.createReadStream(data)
 
     req.url = fileName
 
     var folderPath = getPath(fileName)
 
     new HandlerFactory().create(req, mimetype).then((handler) => {
-      handler.put(bufferStream, folderPath).then((result) => {
+      handler.put(stream, folderPath).then((result) => {
         return resolve(result)
       }).catch((err) => {
         return reject(err)

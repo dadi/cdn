@@ -622,8 +622,12 @@ function getDimensions (options, imageInfo) {
       dimensions.height = parseFloat(imageInfo.width) * (parseFloat(ratio[1]) / parseFloat(ratio[0]))
     }
   } else {
-    dimensions.width = dimensions.width || imageInfo.width
-    dimensions.height = dimensions.height || imageInfo.height
+    console.log(imageInfo)
+    console.log(dimensions)
+    if (imageInfo) {
+      dimensions.width = imageInfo.width
+      dimensions.height = imageInfo.height
+    }
   }
 
   if (config.get('security.maxWidth') && config.get('security.maxWidth') < dimensions.width) {

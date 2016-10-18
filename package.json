@@ -51,6 +51,7 @@
     "smartcrop-lwip": "git+https://github.com/eduardoboucas/smartcrop-lwip",
     "sqwish": "^0.2.2",
     "stream-length": "^1.0.2",
+    "streamifier": "^0.1.1",
     "ua-parser-js": "^0.7.10",
     "uglifyjs": "^2.4.10",
     "underscore": "~1.8.3",
