@@ -7,7 +7,17 @@ var HandlerFactory = require(path.join(__dirname, '/../handlers/factory'))
 var help = require(path.join(__dirname, '/../help'))
 var streamifier = require('streamifier')
 
-module.exports.post = (req, res) => {
+var PostController = function () {
+
+}
+
+module.exports = function () {
+  return new PostController()
+}
+
+module.exports.PostController = PostController
+
+PostController.prototype.post = (req, res) => {
   var busboy = new Busboy({ headers: req.headers })
   this.data = []
   this.fileName = ''
@@ -16,6 +26,12 @@ module.exports.post = (req, res) => {
   busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
     this.fileName = filename
     this.mimetype = mimetype
+
+    console.log(fieldname)
+    console.log(file)
+    console.log(filename)
+    console.log(encoding)
+    console.log(mimetype)
 
     file.on('data', (chunk) => {
       this.data.push(chunk)
@@ -34,6 +50,7 @@ module.exports.post = (req, res) => {
   // Listen for event when Busboy is finished parsing the form
   busboy.on('finish', () => {
     console.log('finished')
+    console.log(this)
     var data = Buffer.concat(this.data)
     return writeFile(req, this.fileName, this.mimetype, data).then((result) => {
       help.sendBackJSON(201, result, res)

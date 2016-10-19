@@ -179,7 +179,7 @@ var Controller = function (router) {
       return next()
     }
 
-    return PostController.post(req, res)
+    return new PostController().post(req, res)
   })
 }
 
