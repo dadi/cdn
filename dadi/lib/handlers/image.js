@@ -297,7 +297,6 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                     coords[2] = (coords[2] > 0) ? (coords[2] - 1) : coords[2]
                     coords[3] = (coords[3] > 0) ? (coords[3] - 1) : coords[3]
 
-
                     // NOTE! passed in URL as top, left, bottom, right
                     console.log('left: ', coords[1])
                     console.log('top: ', coords[0])
