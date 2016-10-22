@@ -298,19 +298,28 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                       return parseInt(coordStr)
                     })
 
-                    // Reduce 1 pixel on the edges
+                    if (coords.length === 2) {
+                      coords.push(height - coords[0])
+                      coords.push(width - coords[1])
+                    }
+
+                    // Reduce 1 pixel on the right & bottom edges
                     coords[2] = (coords[2] > 0) ? (coords[2] - 1) : coords[2]
                     coords[3] = (coords[3] > 0) ? (coords[3] - 1) : coords[3]
 
-                    if (coords.length === 2) {
-                      batch.crop(coords[0], coords[1], width - coords[0], height - coords[1])
-                    } else if (coords.length === 4) {
-                      // image.crop(left, top, right, bottom, callback)
-                      batch.crop(coords[0], coords[1], coords[2], coords[3])
 
-                      if (width && height) {
-                        batch.resize(width, height, filter)
-                      }
+                    // NOTE! passed in URL as top, left, bottom, right
+                    console.log('left: ', coords[1])
+                    console.log('top: ', coords[0])
+                    console.log('right: ', coords[3])
+                    console.log('bottom: ', coords[2])
+
+                    // image.crop(left, top, right, bottom, callback)
+                    batch.crop(coords[1], coords[0], coords[3], coords[2])
+
+                    // resize if options.width or options.height are explicitly set
+                    if (options.width || options.height) {
+                      batch.resize(width, height, filter)
                     }
                   } else { // width & height provided, crop from centre
                     batch.crop(width, height)
@@ -329,7 +338,7 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
               }
             }
           } else if (width && height && options.cropX && options.cropY) {
-            // console.log("%s %s %s %s", parseInt(options.cropX), parseInt(options.cropY), width-parseInt(options.cropX), height-parseInt(options.cropY))
+            console.log("%s %s %s %s", parseInt(options.cropX), parseInt(options.cropY), width-parseInt(options.cropX), height-parseInt(options.cropY))
             batch.crop(parseInt(options.cropX), parseInt(options.cropY), width - parseInt(options.cropX), height - parseInt(options.cropY))
           } else if (width && height) {
             batch.cover(width, height)
@@ -622,8 +631,6 @@ function getDimensions (options, imageInfo) {
       dimensions.height = parseFloat(imageInfo.width) * (parseFloat(ratio[1]) / parseFloat(ratio[0]))
     }
   } else {
-    console.log(imageInfo)
-    console.log(dimensions)
     if (imageInfo) {
       dimensions.width = imageInfo.width
       dimensions.height = imageInfo.height
