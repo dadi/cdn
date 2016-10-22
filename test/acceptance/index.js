@@ -38,16 +38,14 @@ describe('Index', function () {
 
       var configContent = JSON.parse(fs.readFileSync(config.configPath()).toString())
 
-      config.get('logging.level').should.eql('info')
-
-      configContent.logging.level = 'warn'
+      configContent.logging.level = 'trace'
 
       fs.writeFileSync(config.configPath(), JSON.stringify(configContent, null, 2))
 
       // reload
       setTimeout(function() {
         config = require(__dirname + '/../../config')
-        config.get('logging.level').should.eql('warn')
+        config.get('logging.level').should.eql('trace')
         done()
       }, 1000)
     })
