@@ -27,18 +27,12 @@ PostController.prototype.post = (req, res) => {
     this.fileName = filename
     this.mimetype = mimetype
 
-    console.log(fieldname)
-    console.log(file)
-    console.log(filename)
-    console.log(encoding)
-    console.log(mimetype)
-
     file.on('data', (chunk) => {
       this.data.push(chunk)
     })
 
     file.on('end', () => {
-      console.log('Finished with ' + fieldname)
+      // console.log('Finished with ' + fieldname)
     })
   })
 
@@ -49,8 +43,6 @@ PostController.prototype.post = (req, res) => {
 
   // Listen for event when Busboy is finished parsing the form
   busboy.on('finish', () => {
-    console.log('finished')
-    console.log(this)
     var data = Buffer.concat(this.data)
     return writeFile(req, this.fileName, this.mimetype, data).then((result) => {
       help.sendBackJSON(201, result, res)

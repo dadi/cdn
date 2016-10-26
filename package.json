@@ -22,6 +22,7 @@
     "busboy": "^0.2.13",
     "chokidar": "^1.x.x",
     "cloudfront": "~0.4.0",
+    "color-namer": "^1.1.0",
     "color-thief": "~2.2.1",
     "colors": "^1.1.2",
     "concat-stream": "^1.5.1",

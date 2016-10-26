@@ -429,19 +429,24 @@ var conf = convict({
   },
   upload: {
     enabled: {
-      doc: 'If true, files can be uploaded the CDN with a POST request',
+      doc: 'If true, files can be uploaded to CDN with a POST request',
       format: Boolean,
       default: false
     },
     requireAuthentication: {
-      doc: 'If true, POST requests must include the authentication credentials specified in the `auth` property',
+      doc: 'If true, POST requests must include the authentication credentials specified in the `auth` property of the configuration file',
+      format: Boolean,
+      default: true
+    },
+    extractColours: {
+      doc: 'If true, extracts colour information from the uploaded image and returns as JSON along with the file upload result',
       format: Boolean,
       default: true
     },
     pathFormat: {
-      doc: '',
+      doc: 'Determines the format for subdirectories that are created to store uploads',
       format: ['none', 'date', 'datetime', 'sha1/4', 'sha1/5', 'sha1/8'],
-      default: 'datetime'
+      default: 'date'
     }
   },
   feedback: {
