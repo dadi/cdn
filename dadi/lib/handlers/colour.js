@@ -16,8 +16,15 @@ var ColourHandler = function () {
  */
 ColourHandler.prototype.getColours = function (buffer) {
   var dominantColour = colorThief.getColor(buffer)
-  var palette = colorThief.getPalette(buffer)
+  var palette = colorThief.getPalette(buffer, 5)
 
+  return {
+    flattened: this.getFlattenedColours(dominantColour, palette),
+    full: this.getFullColours(dominantColour, palette)
+  }
+}
+
+ColourHandler.prototype.getFullColours = function (dominantColour, palette) {
   var primaryColourHex = this.RGBtoHex(dominantColour[0], dominantColour[1], dominantColour[2])
   var primaryColourHSL = this.RGBtoHSL(dominantColour[0], dominantColour[1], dominantColour[2])
   var humanColour = new HumanColours(primaryColourHSL)
@@ -38,11 +45,10 @@ ColourHandler.prototype.getColours = function (buffer) {
         saturation: humanColourPalette.saturationName(),
         hue: humanColourPalette.hueName()
       }
-      // colourNames: this.getColourNames(colour)
     }
   })
 
-  var data = {
+  return {
     primaryColour: {
       rgb: dominantColour,
       hsl: primaryColourHSL,
@@ -56,8 +62,63 @@ ColourHandler.prototype.getColours = function (buffer) {
     },
     palette: paletteColours
   }
+}
 
-  return data
+ColourHandler.prototype.getFlattenedColours = function (dominantColour, palette) {
+  var primaryColourHex = this.RGBtoHex(dominantColour[0], dominantColour[1], dominantColour[2])
+  var primaryColourHSL = this.RGBtoHSL(dominantColour[0], dominantColour[1], dominantColour[2])
+  var humanColour = new HumanColours(primaryColourHSL)
+
+  var colourNames = colourNamer(dominantColour)
+  var colours = _.sortBy([colourNames.basic[0], colourNames.roygbiv[0], colourNames.html[0], colourNames.pantone[0]], 'distance')
+  var names = _.pluck(colours, 'name')
+  var primaryColourArrays = {
+    names: _.map(names, (name) => { return name.toLowerCase() }),
+    hex: _.pluck(colours, 'hex')
+  }
+
+  primaryColourArrays.names.push(humanColour.hueName())
+  primaryColourArrays.names = _.uniq(primaryColourArrays.names)
+
+  var colourPalette = _.map(palette, (colour) => {
+    var pc = this.RGBtoHex(colour[0], colour[1], colour[2])
+    var hsl = this.RGBtoHSL(colour[0], colour[1], colour[2])
+    var humanColour = new HumanColours(hsl)
+    var names = colourNamer(pc)
+
+    return {
+      primary: pc,
+      basic: names.basic[0],
+      roygbiv: names.roygbiv[0],
+      html: names.html[0],
+      pantone: names.pantone[0],
+      human: humanColour.hueName()
+    }
+  })
+
+  var colourArrays = _.map(colourPalette, (colour) => {
+    var colours = _.sortBy([colour.basic, colour.roygbiv, colour.html, colour.pantone], 'distance')
+    return {
+      names: [colours[0].name.toLowerCase(), colour.human.toLowerCase()],
+      hex: [colours[0].hex]
+    }
+  })
+
+  var nameArray = _.uniq(_.flatten(_.pluck(colourArrays, 'names')))
+  var hexArray = _.uniq(_.flatten(_.pluck(colourArrays, 'hex')))
+
+  return {
+    primary: {
+      rgb: dominantColour,
+      hex: primaryColourHex,
+      nameArray: primaryColourArrays.names,
+      hexArray: primaryColourArrays.hex
+    },
+    palette: {
+      nameArray: nameArray,
+      hexArray: hexArray
+    }
+  }
 }
 
 /**
