@@ -37,8 +37,8 @@ ColourHandler.prototype.getColours = function (buffer) {
         lightness: humanColourPalette.lightnessName(),
         saturation: humanColourPalette.saturationName(),
         hue: humanColourPalette.hueName()
-      },
-      colourNames: this.getColourNames(colour)
+      }
+      // colourNames: this.getColourNames(colour)
     }
   })
 
@@ -70,6 +70,8 @@ ColourHandler.prototype.getColourNames = function (colour) {
   _.each(Object.keys(obj), (group) => {
     data[group] = obj[group][0]
   })
+
+  return data
 }
 
 /**
