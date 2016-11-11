@@ -23,7 +23,9 @@ Please follow the instructions here: https://github.com/Automattic/node-canvas/w
 
 Most problems can be solved by using Homebrew and running `brew install cairo`
 
+## Documentation
 
+Documentation can be found at the [DADI Docs site](http://docs.dadi.tech/cdn/).
 
 ## Licence
 
