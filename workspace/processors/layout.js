@@ -195,7 +195,16 @@ ImageLayoutProcessor.prototype.get = function () {
               var scaleHeight = (600 / originalImageSize.height)
               var scale = Math.max(scaleWidth, scaleHeight)
 
-              inputImage = imageLib(obj).resize(originalImageSize.width * scale, originalImageSize.height * scale)
+              var calculatedWidth = originalImageSize.width * scale
+              var calculatedHeight = originalImageSize.height * scale
+              var sc = Math.max(input.width/calculatedWidth, input.height/calculatedHeight)
+              var resizedWidth = calculatedWidth * sc
+              var resizedHeight = calculatedHeight * sc
+
+              input.l = resizedWidth === input.width ? 0 : (resizedWidth - input.width)/2
+              input.t = resizedHeight === input.height ? 0 : (resizedHeight - input.height)/2
+
+              inputImage = imageLib(obj).resize(resizedWidth, resizedHeight)
             } else {
               inputImage = obj
             }
