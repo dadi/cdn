@@ -161,7 +161,6 @@ ImageLayoutProcessor.prototype.get = function () {
 
       var i = 0
       var self = this
-      var originalImageSize
 
       _.each(this.inputs, (input) => {
         if (input.fileName) {
@@ -177,7 +176,7 @@ ImageLayoutProcessor.prototype.get = function () {
             stream.pipe(imageStream)
 
             imagesize(imageSizeStream, (err, imageInfo) => {
-              originalImageSize = imageInfo
+              input.originalImageSize = imageInfo
               imageStream.pipe(concatStream)
             })
           })
@@ -191,12 +190,12 @@ ImageLayoutProcessor.prototype.get = function () {
 
           try {
             if (obj instanceof Buffer) {
-              var scaleWidth = (600 / originalImageSize.width)
-              var scaleHeight = (600 / originalImageSize.height)
+              var scaleWidth = (600 / input.originalImageSize.width)
+              var scaleHeight = (600 / input.originalImageSize.height)
               var scale = Math.max(scaleWidth, scaleHeight)
 
-              var calculatedWidth = originalImageSize.width * scale
-              var calculatedHeight = originalImageSize.height * scale
+              var calculatedWidth = input.originalImageSize.width * scale
+              var calculatedHeight = input.originalImageSize.height * scale
               var sc = Math.max(input.width/calculatedWidth, input.height/calculatedHeight)
               var resizedWidth = calculatedWidth * sc
               var resizedHeight = calculatedHeight * sc
