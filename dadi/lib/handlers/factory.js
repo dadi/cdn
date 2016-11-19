@@ -38,10 +38,19 @@ var HandlerFactory = function () {
 HandlerFactory.prototype.create = function (req) {
   // set a default version
   var version = 'v1'
+  var parsedUrl = url.parse(req.url, true)
+  var pathComponents = parsedUrl.pathname.slice(1).split('/')
 
-  // set version 2 if the url was supplied with a querystring
-  if (require('url').parse(req.url, true).search) {
+  // Set version 2 if the path doesn't contain any slashes that aren't part
+  // of an external image URL
+  if ((pathComponents.length === 1) || (['http:', 'https:'].indexOf(pathComponents[0]) === 0)) {
     version = 'v2'
+
+    if (!parsedUrl.search) {
+      parsedUrl.search = '?version=v2'
+
+      req.url = url.format(parsedUrl)
+    }
   }
 
   var format = getFormat(version, req)

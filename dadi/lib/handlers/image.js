@@ -46,11 +46,17 @@ var ImageHandler = function (format, req) {
   this.cache = Cache()
 
   var parsedUrl = url.parse(this.req.url, true)
+  var pathname = parsedUrl.pathname.slice(1)
+
   this.url = req.url
   this.cacheKey = this.req.url
   this.fileName = path.basename(parsedUrl.pathname)
   this.fileExt = path.extname(this.fileName).substring(1)
   this.exifData = {}
+
+  if (!pathname.indexOf('http://') || !pathname.indexOf('https://')) {
+    this.externalUrl = pathname
+  }
 }
 
 ImageHandler.prototype.get = function () {
@@ -88,6 +94,13 @@ ImageHandler.prototype.get = function () {
     }
   } else {
     this.format = this.options.format
+  }
+
+  if (this.externalUrl) {
+    // We're dealing with an external image. We need to have a method (probably
+    // in the ImageHandler prototype) that fetches it and uses the response as
+    // the source. It also needs to write the image to cache.
+    console.log('** External URL:', this.externalUrl)
   }
 
   return new Promise(function (resolve, reject) {
