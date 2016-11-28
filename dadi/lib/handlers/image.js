@@ -18,6 +18,7 @@ var url = require('url')
 var _ = require('underscore')
 
 var StorageFactory = require(path.join(__dirname, '/../storage/factory'))
+var HTTPStorage = require(path.join(__dirname, '/../storage/http'))
 var Cache = require(path.join(__dirname, '/../cache'))
 var config = require(path.join(__dirname, '/../../../config'))
 
@@ -96,12 +97,12 @@ ImageHandler.prototype.get = function () {
     this.format = this.options.format
   }
 
-  if (this.externalUrl) {
-    // We're dealing with an external image. We need to have a method (probably
-    // in the ImageHandler prototype) that fetches it and uses the response as
-    // the source. It also needs to write the image to cache.
-    console.log('** External URL:', this.externalUrl)
-  }
+  // if (this.externalUrl) {
+  //   // We're dealing with an external image. We need to have a method (probably
+  //   // in the ImageHandler prototype) that fetches it and uses the response as
+  //   // the source. It also needs to write the image to cache.
+  //   console.log('** External URL:', this.externalUrl)
+  // }
 
   return new Promise(function (resolve, reject) {
     var message
@@ -127,7 +128,11 @@ ImageHandler.prototype.get = function () {
       }
 
       // not in cache, get image from source
-      self.storageHandler = self.storageFactory.create('image', self.url)
+      if (self.externalUrl) {
+        self.storageHandler = new HTTPStorage(null, self.externalUrl)
+      } else {
+        self.storageHandler = self.storageFactory.create('image', self.url)
+      }
 
       self.storageHandler.get().then(function (stream) {
         var cacheStream = new PassThrough()
