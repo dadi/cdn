@@ -53,30 +53,18 @@ Cache.prototype.cacheFile = function (stream, key, cb) {
  *
  */
 Cache.prototype.get = function (key) {
-  return new Promise((resolve, reject) => {
-    if (!this.enabled) return resolve(null)
+  if (!this.enabled) return Promise.resolve(null)
 
-    cache.get(key).then((value) => {
-      return resolve(value)
-    }).catch((err) => {
-      return reject(err)
-    })
-  })
+  return cache.get(key)
 }
 
 /**
  *
  */
 Cache.prototype.set = function (key, value) {
-  return new Promise((resolve, reject) => {
-    if (!this.enabled) return resolve(null)
+  if (!this.enabled) return Promise.resolve(null)
 
-    cache.set(key, value).then(() => {
-      return resolve()
-    }).catch((err) => {
-      return reject(err)
-    })
-  })
+  return cache.set(key, value)
 }
 
 /**
