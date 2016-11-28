@@ -1,7 +1,7 @@
-# DADI CDN
+<img src="http://52.209.207.148/assets/products/dadi-cdn-full.png" alt="DADI CDN" height="65"/>
 
 [![npm (scoped)](https://img.shields.io/npm/v/@dadi/cdn.svg?maxAge=10800&style=flat-square)](https://www.npmjs.com/package/@dadi/cdn)
-[![coverage](https://img.shields.io/badge/coverage-66%25-yellow.svg?style=flat-square)](https://github.com/dadi/cdn)
+[![coverage](https://img.shields.io/badge/coverage-79%25-yellow.svg?style=flat-square)](https://github.com/dadi/cdn)
 [![Build Status](https://travis-ci.org/dadi/cdn.svg?branch=master)](https://travis-ci.org/dadi/cdn)
 [![JavaScript Style Guide](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat-square)](http://standardjs.com/)
 
@@ -23,7 +23,9 @@ Please follow the instructions here: https://github.com/Automattic/node-canvas/w
 
 Most problems can be solved by using Homebrew and running `brew install cairo`
 
+## Documentation
 
+Documentation can be found at the [DADI Docs site](http://docs.dadi.tech/cdn/).
 
 ## Licence
 
