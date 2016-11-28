@@ -43,7 +43,7 @@ HandlerFactory.prototype.create = function (req) {
 
   // Set version 2 if the path doesn't contain any slashes that aren't part
   // of an external image URL
-  if ((pathComponents.length === 1) || (['http:', 'https:'].indexOf(pathComponents[0]) === 0)) {
+  if (pathComponents.length === 1 || /http:|https:/.test(pathComponents[0])) {
     version = 'v2'
 
     if (!parsedUrl.search) {
