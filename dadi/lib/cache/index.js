@@ -90,6 +90,8 @@ Cache.prototype.getStream = function (key, cb) {
   cache.get(encryptedKey).then((stream) => {
     return cb(stream)
   }).catch((err) => {
+    // key doesn't exist
+    console.log(err)
     return cb(null)
   })
 }
