@@ -20,8 +20,10 @@
     "aws-sdk": "2.5.4",
     "bluebird": "latest",
     "body-parser": "~1.15.2",
+    "busboy": "^0.2.13",
     "chokidar": "^1.x.x",
     "cloudfront": "~0.4.0",
+    "color-namer": "^1.1.0",
     "color-thief": "~2.2.1",
     "colors": "^1.1.2",
     "concat-stream": "^1.5.1",
@@ -51,6 +53,7 @@
     "smartcrop-lwip": "git+https://github.com/eduardoboucas/smartcrop-lwip",
     "sqwish": "^0.2.2",
     "stream-length": "^1.0.2",
+    "streamifier": "^0.1.1",
     "ua-parser-js": "^0.7.10",
     "uglifyjs": "^2.4.10",
     "underscore": "~1.8.3",
@@ -71,6 +74,13 @@
     "sinon": "~1.17.5",
     "standard": "*",
     "supertest": "~2.0.0"
+  },
+  "greenkeeper": {
+    "ignore": [
+      "standard",
+      "mocha",
+      "aws-sdk"
+    ]
   },
   "repository": {
     "type": "git",

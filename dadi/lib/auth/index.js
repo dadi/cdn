@@ -6,6 +6,10 @@ var config = require(path.join(__dirname, '/../../../config.js'))
 var help = require(path.join(__dirname, '/../help'))
 
 function mustAuthenticate (requestUrl) {
+  if (requestUrl.indexOf('/api/upload') > -1 && config.get('upload.requireAuthentication') === false) {
+    return false
+  }
+
   // all /api requests must be authenticated
   return requestUrl.indexOf('/api') === 0
 }
@@ -25,7 +29,8 @@ module.exports = function (router) {
   // Authorize
   router.use(function (req, res, next) {
     // Let requests for tokens through, along with endpoints configured to not use authentication
-    if (req.url === tokenRoute || !mustAuthenticate(req.url)) return next()
+    if (req.url === tokenRoute) return next()
+    if (!mustAuthenticate(req.url)) return next()
 
     // require an authorization header for every request
     if (!(req.headers && req.headers.authorization)) {

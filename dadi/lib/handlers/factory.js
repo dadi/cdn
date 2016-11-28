@@ -1,5 +1,6 @@
 var _ = require('underscore')
 var fs = require('fs')
+var mime = require('mime')
 var path = require('path')
 var Promise = require('bluebird')
 var url = require('url')
@@ -35,16 +36,21 @@ var HandlerFactory = function () {
   this.handlers.push(this.getProcessor)
 }
 
-HandlerFactory.prototype.create = function (req) {
+HandlerFactory.prototype.create = function (req, mimetype) {
   // set a default version
   var version = 'v1'
+  var format
 
   // set version 2 if the url was supplied with a querystring
   if (require('url').parse(req.url, true).search) {
     version = 'v2'
   }
 
-  var format = getFormat(version, req)
+  if (!mimetype) {
+    format = getFormat(version, req)
+  } else {
+    format = mime.extension(mimetype)
+  }
 
   return this.callNextHandler(format, req)
 }
