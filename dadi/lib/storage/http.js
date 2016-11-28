@@ -9,21 +9,33 @@ var wget = require('wget-improved')
 // var Missing = require(path.join(__dirname, '/missing'))
 
 var HTTPStorage = function (settings, url) {
-  if (!settings.remote.path) throw new Error('Remote address not specified')
+  if (settings && !settings.remote.path) throw new Error('Remote address not specified')
 
   this.url = url
-  this.baseUrl = settings.remote.path
+
+  if (settings) {
+    this.baseUrl = settings.remote.path
+  }
 }
 
 HTTPStorage.prototype.getFullUrl = function () {
-  return urljoin(this.baseUrl, this.url.replace('/http/', ''))
+  if (this.baseUrl) {
+    return urljoin(this.baseUrl, this.url.replace('/http/', ''))
+  } else {
+    return this.url
+  }
 }
 
 HTTPStorage.prototype.get = function () {
   return new Promise((resolve, reject) => {
     this.tmpFile = path.join(path.resolve(path.join(__dirname, '/../../../workspace')), sha1(this.url) + '-' + Date.now() + path.extname(this.url))
 
-    var options = {}
+    var options = {
+      headers: {
+        'User-Agent': 'DADI CDN'
+      }
+    }
+
     var download = wget.download(this.getFullUrl(), this.tmpFile, options)
 
     download.on('error', (error) => {
@@ -40,6 +52,7 @@ HTTPStorage.prototype.get = function () {
     // download.on('start', function (fileSize) { })
 
     download.on('end', (output) => {
+      console.log(output)
       return resolve(fs.createReadStream(this.tmpFile))
     })
 
