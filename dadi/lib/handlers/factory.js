@@ -88,6 +88,9 @@ HandlerFactory.prototype.createFromFormat = function (format, req) {
       case 'json':
       case 'png':
         return resolve(new ImageHandler(format, req))
+      case 'bin':
+        format = 'jpg'
+        return resolve(new ImageHandler(format, req))
       default:
         return resolve(this.callNextHandler(format, req))
     }

@@ -48,6 +48,15 @@ var ImageHandler = function (format, req) {
   this.cacheKey = this.req.url
   this.fileName = path.basename(parsedUrl.pathname)
   this.fileExt = path.extname(this.fileName).substring(1)
+
+  if (this.fileExt === '') {
+    this.fileExt = format
+  }
+
+  if (path.extname(this.url) === '') {
+    this.url = this.fileName + '.' + this.fileExt
+  }
+
   this.exifData = {}
 }
 
