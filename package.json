@@ -1,15 +1,16 @@
 {
   "name": "@dadi/cdn",
-  "version": "1.6.2",
+  "version": "1.7.0-rc.1",
   "description": "A high performance, just-in-time asset manipulation and delivery layer designed as a modern content distribution solution.",
   "scripts": {
     "init": "validate-commit-msg",
     "start": "node index.js --node_env=development",
-    "test": "standard 'dadi/**/*.js' && env NODE_ENV=test ./node_modules/.bin/istanbul cover -x '**/workspace/**' -x '**/app/**' --report cobertura --report text --report html --report lcov ./node_modules/.bin/_mocha test",
+    "test": "standard 'dadi/**/*.js' && env NODE_ENV=test ./node_modules/.bin/istanbul cover -x '**/workspace/**' --report cobertura --report text --report html --report lcov ./node_modules/.bin/_mocha test",
     "posttest": "./scripts/coverage.js",
     "postpublish": "greenkeeper-postpublish"
   },
   "dependencies": {
+    "@dadi/cache": "^1.1.1",
     "@dadi/logger": "latest",
     "@dadi/status": "git+https://git@github.com/dadi/status.git",
     "accept-language-parser": "^1.2.0",
@@ -19,8 +20,10 @@
     "aws-sdk": "2.5.4",
     "bluebird": "latest",
     "body-parser": "~1.15.2",
+    "busboy": "^0.2.13",
     "chokidar": "^1.x.x",
     "cloudfront": "~0.4.0",
+    "color-namer": "^1.1.0",
     "color-thief": "~2.2.1",
     "colors": "^1.1.2",
     "concat-stream": "^1.5.1",
@@ -50,6 +53,7 @@
     "smartcrop-lwip": "git+https://github.com/eduardoboucas/smartcrop-lwip",
     "sqwish": "^0.2.2",
     "stream-length": "^1.0.2",
+    "streamifier": "^0.1.1",
     "ua-parser-js": "^0.7.10",
     "uglifyjs": "^2.4.10",
     "underscore": "~1.8.3",
@@ -70,6 +74,13 @@
     "sinon": "~1.17.5",
     "standard": "*",
     "supertest": "~2.0.0"
+  },
+  "greenkeeper": {
+    "ignore": [
+      "standard",
+      "mocha",
+      "aws-sdk"
+    ]
   },
   "repository": {
     "type": "git",

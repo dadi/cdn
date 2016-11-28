@@ -1,4 +1,3 @@
-var fs = require('fs')
 var path = require('path')
 var Promise = require('bluebird')
 var streamLength = require('stream-length')
@@ -27,9 +26,8 @@ module.exports.sendBackJSON = function (successCode, results, res) {
   var resBody = JSON.stringify(results)
 
   res.setHeader('Server', config.get('server.name'))
-  res.setHeader('content-type', 'application/json')
-  res.setHeader('content-length', Buffer.byteLength(resBody))
-  res.setHeader('X-Cache', 'HIT')
+  res.setHeader('Content-Type', 'application/json')
+  res.setHeader('Content-Length', Buffer.byteLength(resBody))
   res.end(resBody)
 }
 
@@ -43,9 +41,8 @@ module.exports.sendBackJSONP = function (callbackName, results, res) {
   resBody = callbackName + '(' + resBody + ');'
 
   res.setHeader('Server', config.get('server.name'))
-  res.setHeader('content-type', 'text/javascript')
-  res.setHeader('content-length', Buffer.byteLength(resBody))
-  res.setHeader('X-Cache', 'HIT')
+  res.setHeader('Content-Type', 'text/javascript')
+  res.setHeader('Content-Length', Buffer.byteLength(resBody))
   res.end(resBody)
 }
 
@@ -66,40 +63,8 @@ module.exports.displayUnauthorizedError = function (res) {
 }
 
 module.exports.clearCache = function (pathname, callback) {
-  var Cache = cache()
-  var cachePath = path.join(config.get('caching.directory.path'), pathname)
-
-  // delete using Redis client
-  if (Cache.client()) {
-    setTimeout(function () {
-      Cache.delete(pathname, function (err) {
-        if (err) console.log(err)
-        return callback(null)
-      })
-    }, 200)
-  } else {
-    var i = 0
-    var exists = fs.existsSync(cachePath)
-
-    if (!exists) {
-      return callback(null)
-    } else {
-      if (fs.statSync(cachePath).isDirectory()) {
-        var files = fs.readdirSync(cachePath)
-        if (files.length === 0) return callback(null)
-        files.forEach(function (filename) {
-          var file = path.join(cachePath, filename)
-          fs.unlinkSync(file)
-          i++
-          // finished, all files processed
-          if (i === files.length) {
-            return callback(null)
-          }
-        })
-      } else {
-        fs.unlinkSync(cachePath)
-        return callback(null)
-      }
-    }
-  }
+  cache.delete(pathname, function (err) {
+    if (err) console.log(err)
+    return callback(null)
+  })
 }

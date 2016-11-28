@@ -1,4 +1,5 @@
 var fs = require('fs')
+var mkdirp = require('mkdirp')
 var nodeUrl = require('url')
 var path = require('path')
 var Promise = require('bluebird')
@@ -6,8 +7,9 @@ var Promise = require('bluebird')
 var Missing = require(path.join(__dirname, '/missing'))
 
 var DiskStorage = function (settings, url) {
+  this.settings = settings
   this.url = nodeUrl.parse(url, true).pathname
-  this.path = path.resolve(settings.directory.path)
+  this.path = path.resolve(this.settings.directory.path)
 }
 
 DiskStorage.prototype.getFullUrl = function () {
@@ -56,6 +58,28 @@ DiskStorage.prototype.get = function () {
         console.log(e)
         return reject(err)
       })
+    })
+  })
+}
+
+DiskStorage.prototype.put = function (stream, folderPath) {
+  this.path = path.join(this.path, folderPath)
+
+  return new Promise((resolve, reject) => {
+    mkdirp(this.path, (err, made) => {
+      if (err) {
+        return reject(err)
+      }
+
+      var writeStream = fs.createWriteStream(this.getFullUrl())
+      stream.pipe(writeStream)
+
+      var data = {
+        message: 'File uploaded',
+        path: this.getFullUrl().replace(path.resolve(this.settings.directory.path), '')
+      }
+
+      return resolve(data)
     })
   })
 }

@@ -44,6 +44,7 @@ describe('Index', function () {
 
       // reload
       setTimeout(function() {
+        delete require.cache[__dirname + '/../../config']
         config = require(__dirname + '/../../config')
         config.get('logging.level').should.eql('trace')
         done()

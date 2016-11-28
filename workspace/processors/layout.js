@@ -5,6 +5,7 @@ http://localhost:8001/layout/i:test.jpg,h_200,w_200,y_0,x_400|c:01ee88,h_200,w_2
 var concat = require('concat-stream')
 // var logger = require('@dadi/logger')
 var imageLib = require('images')
+var imagesize = require('imagesize')
 var PassThrough = require('stream').PassThrough
 var path = require('path')
 var Promise = require('bluebird')
@@ -90,6 +91,12 @@ ImageLayoutProcessor.prototype.getInput = function (type, inputStr) {
       case 'y':
         input.y = getValue(part)
         break
+      case 'l':
+        input.l = getValue(part)
+        break
+      case 't':
+        input.t = getValue(part)
+        break
     }
   })
 
@@ -160,8 +167,18 @@ ImageLayoutProcessor.prototype.get = function () {
           var storageHandler = this.storageFactory.create('image', input.fileName)
 
           storageHandler.get().then((stream) => {
+            var imageSizeStream = new PassThrough()
+            var imageStream = new PassThrough()
+
             var concatStream = concat(addImage)
-            stream.pipe(concatStream)
+
+            stream.pipe(imageSizeStream)
+            stream.pipe(imageStream)
+
+            imagesize(imageSizeStream, (err, imageInfo) => {
+              input.originalImageSize = imageInfo
+              imageStream.pipe(concatStream)
+            })
           })
         } else if (input.colour) {
           var rgb = hexToRgbA('#' + input.colour)
@@ -171,13 +188,32 @@ ImageLayoutProcessor.prototype.get = function () {
         function addImage (obj) {
           var inputImage
 
-          if (obj instanceof Buffer) {
-            inputImage = imageLib(obj).resize(input.width, input.height)
-          } else {
-            inputImage = obj
-          }
+          try {
+            if (obj instanceof Buffer) {
+              var scaleWidth = (600 / input.originalImageSize.width)
+              var scaleHeight = (600 / input.originalImageSize.height)
+              var scale = Math.max(scaleWidth, scaleHeight)
 
-          newImage.draw(inputImage, input.x, input.y)
+              var calculatedWidth = input.originalImageSize.width * scale
+              var calculatedHeight = input.originalImageSize.height * scale
+              var sc = Math.max(input.width/calculatedWidth, input.height/calculatedHeight)
+              var resizedWidth = calculatedWidth * sc
+              var resizedHeight = calculatedHeight * sc
+
+              input.l = resizedWidth === input.width ? 0 : (resizedWidth - input.width)/2
+              input.t = resizedHeight === input.height ? 0 : (resizedHeight - input.height)/2
+
+              inputImage = imageLib(obj).resize(resizedWidth, resizedHeight)
+            } else {
+              inputImage = obj
+            }
+
+            var extractedImage = imageLib(inputImage, input.l, input.t, input.width, input.height)
+
+            newImage.draw(extractedImage, input.x, input.y)
+          } catch (err) {
+
+          }
 
           if (++i === self.inputs.length) {
             var outBuffer = newImage.encode(self.format, { operation: 100 })
@@ -261,3 +297,4 @@ module.exports = function (format, req) {
 }
 
 module.exports.ImageLayoutProcessor = ImageLayoutProcessor
+
