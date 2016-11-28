@@ -127,7 +127,7 @@ Server.prototype.start = function (done) {
   // Monitor config.json file and reload it on change
   configWatcher = chokidar.watch(config.configPath(), {
     depth: 0,
-    ignored: /[\/\\]\./,
+    ignored: /[\\]\./,
     ignoreInitial: true,
     useFsEvents: false
   })

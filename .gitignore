@@ -6,8 +6,8 @@ config.production.json
 config.qa.json
 config.test.json
 
-cache/
-!/dadi/lib/cache/**/*
+cache/*
+!/dadi/lib/cache/index.js
 
 # Log
 log/

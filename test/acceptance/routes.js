@@ -170,7 +170,7 @@ describe('Routes', function () {
       .set('accept-language', 'en-GB')
       .end(function(err, res) {
         setTimeout(function() {
-          console.log(processBranchesSpy)
+          //console.log(processBranchesSpy)
           processBranchesSpy.calledTwice.should.eql(true)
           JSON.stringify(processBranchesSpy.firstCall.args[0]).should.eql(JSON.stringify(sample.branches))
           JSON.stringify(processBranchesSpy.secondCall.args[0]).should.eql(JSON.stringify(sample.branches))
