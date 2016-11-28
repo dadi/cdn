@@ -82,19 +82,16 @@ describe('Cache', function (done) {
     done()
   })
 
-  it("should cache if the app's redis config settings allow", function (done) {
+  it("should receive null from cache.getStream() if the caching is disabled", function (done) {
     var newTestConfig = JSON.parse(testConfigString)
     newTestConfig.caching.directory.enabled = false
-    newTestConfig.caching.redis.enabled = true
-    newTestConfig.caching.redis.host = '127.0.0.1'
+    newTestConfig.caching.directory.path = './cache'
+
     fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
 
     config.loadFile(config.configPath())
 
     cache.reset()
-
-    // stub calls the redis createClient
-    sinon.stub(redis, 'createClient', fakeredis.createClient)
 
     var req = {
       url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
@@ -102,78 +99,18 @@ describe('Cache', function (done) {
 
     var im = new imageHandler('jpg', req)
 
-    redis.createClient.restore()
+    var getStream = sinon.spy(im.cache, 'getStream')
 
-    im.cache.redisClient.should.exist
+    im.get().then(function (stream) {
+      getStream.restore()
 
-    done()
-  })
+      var args = getStream.firstCall.args
+      args[0].should.eql(req.url)
 
-  it("should fallback to directory caching when Redis errors with CONNECTION_BROKEN", function (done) {
-    var newTestConfig = JSON.parse(testConfigString)
-    newTestConfig.caching.directory.enabled = false
-    newTestConfig.caching.redis.enabled = true
-    newTestConfig.caching.redis.host = '127.0.0.1'
-    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+      var returnValue = getStream.firstCall.returnValue
+      should.not.exist(returnValue)
 
-    config.loadFile(config.configPath())
-
-    cache.reset()
-
-    // stub calls the redis createClient
-    sinon.stub(redis, 'createClient', fakeredis.createClient)
-
-    var req = {
-      url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
-    }
-
-    var im = new imageHandler('jpg', req)
-
-    redis.createClient.restore()
-
-    config.get('caching.directory.enabled').should.eql(false)
-    config.get('caching.redis.enabled').should.eql(true)
-
-    cache().redisClient.should.exist
-    cache().redisClient.emit('error', { code: 'CONNECTION_BROKEN' })
-
-    config.get('caching.directory.enabled').should.eql(true)
-    config.get('caching.redis.enabled').should.eql(false)
-
-    done()
-  })
-
-  it("should fallback to directory caching when Redis errors with ECONNREFUSED", function (done) {
-    var newTestConfig = JSON.parse(testConfigString)
-    newTestConfig.caching.directory.enabled = false
-    newTestConfig.caching.redis.enabled = true
-    newTestConfig.caching.redis.host = '127.0.0.1'
-    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
-
-    config.loadFile(config.configPath())
-
-    cache.reset()
-
-    // stub calls the redis createClient
-    sinon.stub(redis, 'createClient', fakeredis.createClient)
-
-    var req = {
-      url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
-    }
-
-    var im = new imageHandler('jpg', req)
-
-    redis.createClient.restore()
-
-    config.get('caching.directory.enabled').should.eql(false)
-    config.get('caching.redis.enabled').should.eql(true)
-
-    cache().redisClient.should.exist
-    cache().redisClient.emit('error', { code: 'ECONNREFUSED' })
-
-    config.get('caching.directory.enabled').should.eql(true)
-    config.get('caching.redis.enabled').should.eql(false)
-
-    done()
+      done()
+    })
   })
 })

@@ -12,3 +12,4 @@ addons:
 before_install:
   - if [[ `npm -v` != 3* ]]; then npm i -g npm@3; fi
   - sudo apt-get install libcairo2-dev libjpeg-dev libgif-dev
+  - sudo npm install -g sqwish
