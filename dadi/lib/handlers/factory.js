@@ -18,6 +18,11 @@ function parseUrl (req) {
 function getFormat (version, req) {
   var parsedPath = parseUrl(req).pathname
 
+  // add default jpg extension
+  if (path.extname(parsedPath) === '') {
+    parsedPath += '.jpg'
+  }
+
   if (version === 'v1') {
     return _.compact(parsedPath.split('/'))[0]
   } else if (version === 'v2') {
@@ -37,13 +42,25 @@ var HandlerFactory = function () {
 }
 
 HandlerFactory.prototype.create = function (req, mimetype) {
-  // set a default version
-  var version = 'v1'
+  var version
+  var parsedUrl = url.parse(req.url, true)
+  var pathComponents = parsedUrl.pathname.slice(1).split('/')
   var format
 
-  // set version 2 if the url was supplied with a querystring
-  if (require('url').parse(req.url, true).search) {
+  // version 1 matches a string like /jpg/80/0/0/640/480/10/10/16-9/1/aspectfill/North/lanczos/3/0/45/x/cars/aston-martin.jpg
+  var v1pattern = /[a-z]+\/[0-9]+\/[0-9]+\/[0-9]+\/[0-9]+\/[0-9]+\//g
+
+  if (v1pattern.test(parsedUrl.pathname) || /fonts|css|js/.test(pathComponents[0]) || /^[a-z_-]+$/.test(pathComponents[0])) {
+    version = 'v1'
+  } else {
     version = 'v2'
+
+    // add a default querystring if one wasn't supplied
+    if (!parsedUrl.search) {
+      parsedUrl.search = '?version=2'
+
+      req.url = url.format(parsedUrl)
+    }
   }
 
   if (!mimetype) {
