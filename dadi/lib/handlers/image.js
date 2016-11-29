@@ -16,6 +16,7 @@ var url = require('url')
 
 var ColourHandler = require(path.join(__dirname, '/colour'))
 var StorageFactory = require(path.join(__dirname, '/../storage/factory'))
+var HTTPStorage = require(path.join(__dirname, '/../storage/http'))
 var Cache = require(path.join(__dirname, '/../cache'))
 var config = require(path.join(__dirname, '/../../../config'))
 
@@ -44,6 +45,8 @@ var ImageHandler = function (format, req) {
   this.cache = Cache()
 
   var parsedUrl = url.parse(this.req.url, true)
+  var pathname = parsedUrl.pathname.slice(1)
+
   this.url = req.url
   this.cacheKey = this.req.url
   this.fileName = path.basename(parsedUrl.pathname)
@@ -58,6 +61,10 @@ var ImageHandler = function (format, req) {
   }
 
   this.exifData = {}
+
+  if (!pathname.indexOf('http://') || !pathname.indexOf('https://')) {
+    this.externalUrl = pathname
+  }
 }
 
 ImageHandler.prototype.put = function (stream, folderPath) {
@@ -151,7 +158,11 @@ ImageHandler.prototype.get = function () {
       }
 
       // not in cache, get image from source
-      this.storageHandler = this.storageFactory.create('image', this.url)
+      if (this.externalUrl) {
+        this.storageHandler = new HTTPStorage(null, this.externalUrl)
+      } else {
+        this.storageHandler = this.storageFactory.create('image', this.url)
+      }
 
       this.storageHandler.get().then((stream) => {
         var cacheStream = new PassThrough()
