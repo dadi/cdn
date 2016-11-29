@@ -39,13 +39,16 @@ HTTPStorage.prototype.get = function () {
     var download = wget.download(this.getFullUrl(), this.tmpFile, options)
 
     download.on('error', (error) => {
+      var err
       if (error.indexOf('404') > -1) {
-        var err = {
+        err = {
           statusCode: '404',
           message: 'Not Found: ' + this.getFullUrl()
         }
 
         return reject(err)
+      } else {
+        return reject(error)
       }
     })
 
