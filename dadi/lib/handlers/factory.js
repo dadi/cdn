@@ -47,10 +47,10 @@ HandlerFactory.prototype.create = function (req, mimetype) {
   var pathComponents = parsedUrl.pathname.slice(1).split('/')
   var format
 
-  // version 1 matches a string like /jpg/80/0/0/640/480/10/10/16-9/1/aspectfill/North/lanczos/3/0/45/x/cars/aston-martin.jpg
-  var v1pattern = /[a-z]+\/[0-9]+\/[0-9]+\/[0-9]+\/[0-9]+\/[0-9]+\//g
+  // version 1 matches a string like /jpg/80/0/0/640/480/ at the beginning of the url pathname
+  var v1pattern = /^\/[a-z]{3,4}\/[0-9]+\/[0-1]+\/[0-1]+\/[0-9]+\/[0-9]+\//gi
 
-  if (v1pattern.test(parsedUrl.pathname) || /fonts|css|js/.test(pathComponents[0]) || /^[a-z_-]+$/.test(pathComponents[0])) {
+  if (v1pattern.test(parsedUrl.pathname) || /fonts|css|js/.test(pathComponents[0]) || /^[A-Za-z-_]{5,}$/.test(pathComponents[0])) {
     version = 'v1'
   } else {
     version = 'v2'
