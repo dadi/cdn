@@ -1,6 +1,6 @@
 var path = require('path')
 var persist = require('node-persist')
-var uuid = require('node-uuid')
+var uuid = require('uuid')
 
 var config = require(path.join(__dirname, '/../../../config.js'))
 var help = require(path.join(__dirname, '/../help'))

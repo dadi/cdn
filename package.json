@@ -43,7 +43,7 @@
     "nock": "^9.0.2",
     "node-minify": "^2.0.0-beta.1",
     "node-persist": "~2.0.2",
-    "node-uuid": "~1.4.7",
+    "uuid": "latest",
     "redis": "~2.6.2",
     "redis-rstream": "~0.1.2",
     "redis-wstream": "~0.2.5",
