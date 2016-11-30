@@ -71,15 +71,28 @@ DiskStorage.prototype.put = function (stream, folderPath) {
         return reject(err)
       }
 
-      var writeStream = fs.createWriteStream(this.getFullUrl())
-      stream.pipe(writeStream)
+      var filePath = this.getFullUrl()
 
-      var data = {
-        message: 'File uploaded',
-        path: this.getFullUrl().replace(path.resolve(this.settings.directory.path), '')
-      }
+      fs.stat(filePath, (err, stats) => {
+        if (err) {
+          // file not found on disk, so ok to write it with no filename changes
+        } else {
+          // file exists, give it a new name
+          var pathParts = path.parse(filePath)
+          var newFileName = pathParts.name + '-' + Date.now().toString()
+          filePath = path.join(this.path, newFileName + pathParts.ext)
+        }
 
-      return resolve(data)
+        var writeStream = fs.createWriteStream(filePath)
+        stream.pipe(writeStream)
+
+        var data = {
+          message: 'File uploaded',
+          path: filePath.replace(path.resolve(this.settings.directory.path), '')
+        }
+
+        return resolve(data)
+      })
     })
   })
 }
