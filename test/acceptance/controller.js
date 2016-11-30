@@ -578,6 +578,34 @@ describe('Controller', function () {
         })
     })
 
+    it('should return 404 if there is no configured robots.txt file', function (done) {
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/robots.txt')
+        .end(function(err, res) {
+          res.statusCode.should.eql(404)
+          res.text.should.eql('File not found')
+          done()
+        })
+    })
+
+    it('should return a configured robots.txt file', function (done) {
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.robots = 'test/robots.txt'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+      config.loadFile(config.configPath())
+
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/robots.txt')
+        .end(function(err, res) {
+          res.statusCode.should.eql(200)
+          res.text.should.eql('User-Agent: *\nDisallow: /')
+          done()
+        })
+    })
+
     it('should handle requests for unknown formats', function (done) {
       var newTestConfig = JSON.parse(testConfigString)
       newTestConfig.images.directory.enabled = true

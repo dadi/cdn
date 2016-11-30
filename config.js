@@ -454,6 +454,11 @@ var conf = convict({
     format: Boolean,
     default: false
   },
+  robots: {
+    doc: 'The path to a robots.txt file',
+    format: String,
+    default: ''
+  },
   env: {
     doc: 'The applicaton environment.',
     format: ['production', 'development', 'test', 'qa'],

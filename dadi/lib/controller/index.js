@@ -24,6 +24,19 @@ var Controller = function (router) {
 
   router.use(logger.requestLogger)
 
+  router.get('/robots.txt', function (req, res) {
+    var robotsFile = config.get('robots')
+    try {
+      var file = fs.readFileSync(robotsFile)
+
+      res.statusCode = 200
+      res.end(file.toString())
+    } catch (err) {
+      res.statusCode = 404
+      return res.end('File not found')
+    }
+  })
+
   router.get(/(.+)/, function (req, res) {
     var factory = new HandlerFactory()
 
