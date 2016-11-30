@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.7.0] - 2016-11-30
+
+### Added
+* image upload (https://github.com/dadi/cdn/issues/130). Allows configuration of CDN to accept image uploads. See documentation at http://docs.dadi.tech/cdn/concepts/upload
+* external image requests now possible (https://github.com/dadi/cdn/issues/151). See documentation at http://docs.dadi.tech/cdn/
+* CDN can be configured to respond to the route `/robots.txt` (https://github.com/dadi/cdn/issues/153). Specify the path to a robots.txt file in the configuration file:
+
+```json
+"robots": "path/to/robots.txt"
+```
+
+### Changed
+* image is now returned even if no query is specified (https://github.com/dadi/cdn/issues/160)
+* [@dadi/cache](http://www.npmjs.org/@dadi/cache) module now used in place of custom caching (https://github.com/dadi/cdn/issues/155)
+
 ## [1.6.2] - 2016-10-22
 ### Changed
 When specifying only two crop coordinates, the crop rectangle wasn't being correctly set.
