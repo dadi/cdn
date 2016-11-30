@@ -1,6 +1,5 @@
 var fs = require('fs')
 var path = require('path')
-var Promise = require('bluebird')
 var sha1 = require('sha1')
 // var stream = require('stream')
 var urljoin = require('url-join')

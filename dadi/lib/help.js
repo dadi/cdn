@@ -1,5 +1,4 @@
 var path = require('path')
-var Promise = require('bluebird')
 var streamLength = require('stream-length')
 
 var config = require(path.resolve(path.join(__dirname, '/../../config')))

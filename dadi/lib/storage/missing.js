@@ -1,6 +1,5 @@
 var fs = require('fs')
 var path = require('path')
-var Promise = require('bluebird')
 
 var config = require(path.join(__dirname, '/../../../config'))
 

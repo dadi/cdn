@@ -9,7 +9,6 @@ var imagesize = require('imagesize')
 var lengthStream = require('length-stream')
 var PassThrough = require('stream').PassThrough
 var path = require('path')
-var Promise = require('bluebird')
 var Readable = require('stream').Readable
 var sha1 = require('sha1')
 var url = require('url')

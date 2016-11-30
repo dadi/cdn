@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 * image is now returned even if no query is specified (https://github.com/dadi/cdn/issues/160)
 * [@dadi/cache](http://www.npmjs.org/@dadi/cache) module now used in place of custom caching (https://github.com/dadi/cdn/issues/155)
+* replaced Bluebird Promises with native Promises
+* removed Redis dependencies, as these are now handled in @dadi/cache
 
 ## [1.6.2] - 2016-10-22
 ### Changed

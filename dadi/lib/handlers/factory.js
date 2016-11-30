@@ -2,7 +2,6 @@ var _ = require('underscore')
 var fs = require('fs')
 var mime = require('mime')
 var path = require('path')
-var Promise = require('bluebird')
 var url = require('url')
 
 var AssetHandler = require(path.join(__dirname, '/asset'))

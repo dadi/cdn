@@ -3,7 +3,6 @@ var AWS = require('aws-sdk')
 var concat = require('concat-stream')
 var lengthStream = require('length-stream')
 var path = require('path')
-var Promise = require('bluebird')
 var stream = require('stream')
 
 var logger = require('@dadi/logger')

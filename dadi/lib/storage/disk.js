@@ -2,7 +2,6 @@ var fs = require('fs')
 var mkdirp = require('mkdirp')
 var nodeUrl = require('url')
 var path = require('path')
-var Promise = require('bluebird')
 
 var Missing = require(path.join(__dirname, '/missing'))
 
