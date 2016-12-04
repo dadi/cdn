@@ -79,7 +79,7 @@ describe('Recipes', function () {
         var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
 
         client
-          .post('/api/recipes/new')
+          .post('/api/recipes')
           .set('Authorization', 'Bearer ' + token.toString() + '1')
           .expect('content-type', 'application/json')
           .expect(401, done)
@@ -91,7 +91,7 @@ describe('Recipes', function () {
         var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
 
         client
-          .post('/api/recipes/new')
+          .post('/api/recipes')
           .send({})
           .set('Authorization', 'Bearer ' + token)
           .expect(400, done)
@@ -105,7 +105,7 @@ describe('Recipes', function () {
         delete sample['recipe']
 
         client
-        .post('/api/recipes/new')
+        .post('/api/recipes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .expect(400)
@@ -125,7 +125,7 @@ describe('Recipes', function () {
         sample['recipe'] = 'xxxx'
 
         client
-        .post('/api/recipes/new')
+        .post('/api/recipes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .expect(400)
@@ -145,7 +145,7 @@ describe('Recipes', function () {
         delete sample['path']
 
         client
-        .post('/api/recipes/new')
+        .post('/api/recipes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .expect(400)
@@ -165,7 +165,7 @@ describe('Recipes', function () {
         delete sample['settings']
 
         client
-        .post('/api/recipes/new')
+        .post('/api/recipes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .expect(400)
@@ -189,7 +189,7 @@ describe('Recipes', function () {
         })
 
         client
-        .post('/api/recipes/new')
+        .post('/api/recipes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .end(function(err ,res) {
@@ -208,7 +208,7 @@ describe('Recipes', function () {
         sample.recipe = 'thumbnail'
 
         client
-        .post('/api/recipes/new')
+        .post('/api/recipes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .end(function(err ,res) {
@@ -242,7 +242,7 @@ describe('Recipes', function () {
         sample.recipe = 'thumbnail'
 
         client
-        .post('/api/recipes/new')
+        .post('/api/recipes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .end(function(err ,res) {
@@ -272,7 +272,7 @@ describe('Recipes', function () {
         sample.recipe = 'thumbnail'
 
         client
-        .post('/api/recipes/new')
+        .post('/api/recipes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .end(function(err ,res) {
@@ -344,7 +344,7 @@ describe('Recipes', function () {
         sample.recipe = 'thumbnail'
 
         client
-        .post('/api/recipes/new')
+        .post('/api/recipes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .end(function(err ,res) {
