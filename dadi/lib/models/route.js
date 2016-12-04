@@ -282,6 +282,11 @@ Route.prototype.validate = function () {
     errors.push('Route name is missing')
   }
 
+  // Check for name pattern
+  if (/^[A-Za-z-_]{5,}$/.test(this.config.route) === false) {
+    errors.push('Route name must be 5 characters or longer and contain only uppercase and lowercase letters, dashes and underscores')
+  }
+
   if (this.config.branches && (this.config.branches instanceof Array)) {
     // Check for `recipe` in branches
     this.config.branches.forEach((branch, index) => {
