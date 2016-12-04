@@ -7,19 +7,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [1.7.0] - 2016-11-30
 
 ### Added
-* image upload (https://github.com/dadi/cdn/issues/130). Allows configuration of CDN to accept image uploads. See documentation at http://docs.dadi.tech/cdn/concepts/upload
-* external image requests now possible (https://github.com/dadi/cdn/issues/151). See documentation at http://docs.dadi.tech/cdn/
-* CDN can be configured to respond to the route `/robots.txt` (https://github.com/dadi/cdn/issues/153). Specify the path to a robots.txt file in the configuration file:
+* [#130](https://github.com/dadi/cdn/issues/130): Add image upload support, allowing configuration of CDN to accept image uploads. See documentation at http://docs.dadi.tech/cdn/concepts/upload
+* [#151](https://github.com/dadi/cdn/issues/151): Add external image support. See documentation at http://docs.dadi.tech/cdn/
+* [#153](https://github.com/dadi/cdn/issues/153): CDN can be configured to respond to the route `/robots.txt`. Specify the path to a robots.txt file in the configuration file:
 
 ```json
 "robots": "path/to/robots.txt"
 ```
 
 ### Changed
+* [#155](https://github.com/dadi/cdn/issues/155): [@dadi/cache](http://www.npmjs.org/@dadi/cache) module now used in place of custom caching
+* [#160](https://github.com/dadi/cdn/issues/160): Fix: image is now returned even if no query is specified
 * validation added to route and recipe names, to ensure they are 5 or more characters and only a mix of letters, dashes and underscores
 * creating a Recipe by sending a POST request must now be sent to `/api/recipes`, not `/api/recipes/new`
-* image is now returned even if no query is specified (https://github.com/dadi/cdn/issues/160)
-* [@dadi/cache](http://www.npmjs.org/@dadi/cache) module now used in place of custom caching (https://github.com/dadi/cdn/issues/155)
 * replaced Bluebird Promises with native Promises
 * removed Redis dependencies, as these are now handled in @dadi/cache
 
