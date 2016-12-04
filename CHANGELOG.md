@@ -9,7 +9,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 * image upload (https://github.com/dadi/cdn/issues/130). Allows configuration of CDN to accept image uploads. See documentation at http://docs.dadi.tech/cdn/concepts/upload
 * external image requests now possible (https://github.com/dadi/cdn/issues/151). See documentation at http://docs.dadi.tech/cdn/
-* validation added to route and recipe names, to ensure they are more than 5 characters
 * CDN can be configured to respond to the route `/robots.txt` (https://github.com/dadi/cdn/issues/153). Specify the path to a robots.txt file in the configuration file:
 
 ```json
@@ -17,6 +16,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ```
 
 ### Changed
+* validation added to route and recipe names, to ensure they are 5 or more characters and only a mix of letters, dashes and underscores
+* creating a Recipe by sending a POST request must now be sent to `/api/recipes`, not `/api/recipes/new`
 * image is now returned even if no query is specified (https://github.com/dadi/cdn/issues/160)
 * [@dadi/cache](http://www.npmjs.org/@dadi/cache) module now used in place of custom caching (https://github.com/dadi/cdn/issues/155)
 * replaced Bluebird Promises with native Promises
