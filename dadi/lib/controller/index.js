@@ -147,6 +147,7 @@ var Controller = function (router) {
     // Don't accept an empty POST
     if (_.isEmpty(req.body)) {
       return help.sendBackJSON(400, {
+        success: false,
         message: 'Bad Request'
       }, res)
     }
@@ -156,6 +157,7 @@ var Controller = function (router) {
       var recipe = typeof req.body === 'object' ? req.body : JSON.parse(req.body)
     } catch (err) {
       return help.sendBackJSON(400, {
+        success: false,
         message: 'Invalid JSON Syntax'
       }, res)
     }
@@ -165,7 +167,8 @@ var Controller = function (router) {
 
     if (!validation.success) {
       return help.sendBackJSON(400, {
-        error: validation.errors
+        success: false,
+        errors: validation.errors
       }, res)
     }
 
@@ -182,6 +185,10 @@ var Controller = function (router) {
       console.log(err)
     }
   })
+
+  // router.post('/api/recipes', function (req, res) {
+  //   return RecipeController.post(req, res)
+  // })
 
   router.post('/api/routes', function (req, res) {
     return RouteController.post(req, res)
@@ -255,6 +262,11 @@ Controller.prototype.validateRecipe = function (recipe) {
     if (!recipe.hasOwnProperty(required[key])) {
       errors.push({ error: `Property "${required[key]}" not found in recipe` })
     }
+  }
+
+  // validate name pattern
+  if (/^[A-Za-z-_]{5,}$/.test(recipe.recipe) === false) {
+    errors.push({ error: 'Recipe name must be 5 characters or longer and contain only uppercase and lowercase letters, dashes and underscores' })
   }
 
   return {
