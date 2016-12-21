@@ -15,7 +15,7 @@ module.exports = {
     var version = 'v1'
 
     // set version 2 if the url was supplied with a querystring
-    if (hasQuery || require('url').parse(url, true).search) {
+    if (hasQuery || nodeUrl.parse(url, true).search) {
       version = 'v2'
     }
 
@@ -31,11 +31,17 @@ module.exports = {
 
         // get the segments of the url that relate to image manipulation options
         var urlSegments = _.filter(parsedUrl.pathname.split('/'), function (segment, index) {
-          if (index > 0 && segment === '') return '0'
-          if (index < 13 || (index >= 13 && /^[0-1]$/.test(segment))) {
+          if (index > 0 && segment === '') {
+            return '0'
+          } else if (index > 0 && index < 13 || (index >= 13 && /^[0-1]$/.test(segment))) {
             return segment
           }
         })
+
+        // `/png/80/0/0/640/480/0/0/0/1/aspectfill/North/lanczos/0/0/0/0/`
+        // urlSegments = _.filter(urlSegments, (segment) => {
+        //   return typeof segment !== 'undefined'
+        // })
 
         url = parsedUrl.pathname.replace(urlSegments.join('/') + '/', '')
       }

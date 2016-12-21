@@ -79,7 +79,7 @@ describe('Recipes', function () {
         var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
 
         client
-          .post('/api/recipes/new')
+          .post('/api/recipes')
           .set('Authorization', 'Bearer ' + token.toString() + '1')
           .expect('content-type', 'application/json')
           .expect(401, done)
@@ -91,7 +91,7 @@ describe('Recipes', function () {
         var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
 
         client
-          .post('/api/recipes/new')
+          .post('/api/recipes')
           .send({})
           .set('Authorization', 'Bearer ' + token)
           .expect(400, done)
@@ -105,13 +105,34 @@ describe('Recipes', function () {
         delete sample['recipe']
 
         client
-        .post('/api/recipes/new')
+        .post('/api/recipes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .expect(400)
         .end(function(err ,res) {
-          res.body.error.should.be.Array
-          res.body.error[0].error.should.eql('Property "recipe" not found in recipe')
+          res.body.success.should.eql(false)
+          res.body.errors.should.be.Array
+          res.body.errors[0].error.should.eql('Property "recipe" not found in recipe')
+          done()
+        })
+      })
+    })
+
+    it('should return error if recipe name is too short', function (done) {
+      help.getBearerToken(function (err, token) {
+        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+
+        sample['recipe'] = 'xxxx'
+
+        client
+        .post('/api/recipes')
+        .send(sample)
+        .set('Authorization', 'Bearer ' + token)
+        .expect(400)
+        .end(function(err ,res) {
+          res.body.success.should.eql(false)
+          res.body.errors.should.be.Array
+          res.body.errors[0].error.should.eql('Recipe name must be 5 characters or longer and contain only uppercase and lowercase letters, dashes and underscores')
           done()
         })
       })
@@ -124,13 +145,14 @@ describe('Recipes', function () {
         delete sample['path']
 
         client
-        .post('/api/recipes/new')
+        .post('/api/recipes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .expect(400)
         .end(function(err ,res) {
-          res.body.error.should.be.Array
-          res.body.error[0].error.should.eql('Property "path" not found in recipe')
+          res.body.success.should.eql(false)
+          res.body.errors.should.be.Array
+          res.body.errors[0].error.should.eql('Property "path" not found in recipe')
           done()
         })
       })
@@ -143,13 +165,14 @@ describe('Recipes', function () {
         delete sample['settings']
 
         client
-        .post('/api/recipes/new')
+        .post('/api/recipes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .expect(400)
         .end(function(err ,res) {
-          res.body.error.should.be.Array
-          res.body.error[0].error.should.eql('Property "settings" not found in recipe')
+          res.body.success.should.eql(false)
+          res.body.errors.should.be.Array
+          res.body.errors[0].error.should.eql('Property "settings" not found in recipe')
           done()
         })
       })
@@ -166,7 +189,7 @@ describe('Recipes', function () {
         })
 
         client
-        .post('/api/recipes/new')
+        .post('/api/recipes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .end(function(err ,res) {
@@ -185,7 +208,7 @@ describe('Recipes', function () {
         sample.recipe = 'thumbnail'
 
         client
-        .post('/api/recipes/new')
+        .post('/api/recipes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .end(function(err ,res) {
@@ -219,7 +242,7 @@ describe('Recipes', function () {
         sample.recipe = 'thumbnail'
 
         client
-        .post('/api/recipes/new')
+        .post('/api/recipes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .end(function(err ,res) {
@@ -249,7 +272,7 @@ describe('Recipes', function () {
         sample.recipe = 'thumbnail'
 
         client
-        .post('/api/recipes/new')
+        .post('/api/recipes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .end(function(err ,res) {
@@ -321,7 +344,7 @@ describe('Recipes', function () {
         sample.recipe = 'thumbnail'
 
         client
-        .post('/api/recipes/new')
+        .post('/api/recipes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .end(function(err ,res) {

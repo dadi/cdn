@@ -1,23 +1,21 @@
+var _ = require('underscore')
 var fs = require('fs')
 var concat = require('concat-stream')
 var ColorThief = require('color-thief')
 var colorThief = new ColorThief()
 var ExifImage = require('exif').ExifImage
-// var fill = require('aspect-fill')
 var fit = require('aspect-fit')
 var imagesize = require('imagesize')
 var lengthStream = require('length-stream')
-// var logger = require('@dadi/logger')
 var PassThrough = require('stream').PassThrough
 var path = require('path')
-var Promise = require('bluebird')
 var Readable = require('stream').Readable
 var sha1 = require('sha1')
-// var smartcrop = require('smartcrop-lwip')
 var url = require('url')
-var _ = require('underscore')
 
+var ColourHandler = require(path.join(__dirname, '/colour'))
 var StorageFactory = require(path.join(__dirname, '/../storage/factory'))
+var HTTPStorage = require(path.join(__dirname, '/../storage/http'))
 var Cache = require(path.join(__dirname, '/../cache'))
 var config = require(path.join(__dirname, '/../../../config'))
 
@@ -46,16 +44,61 @@ var ImageHandler = function (format, req) {
   this.cache = Cache()
 
   var parsedUrl = url.parse(this.req.url, true)
+  var pathname = parsedUrl.pathname.slice(1)
+
   this.url = req.url
   this.cacheKey = this.req.url
   this.fileName = path.basename(parsedUrl.pathname)
   this.fileExt = path.extname(this.fileName).substring(1)
+
+  if (this.fileExt === '') {
+    this.fileExt = format
+  }
+
+  if (path.extname(this.url) === '') {
+    this.url = this.fileName + '.' + this.fileExt
+  }
+
   this.exifData = {}
+
+  if (!pathname.indexOf('http://') || !pathname.indexOf('https://')) {
+    this.externalUrl = pathname
+  }
+}
+
+ImageHandler.prototype.put = function (stream, folderPath) {
+  return new Promise((resolve, reject) => {
+    this.storageHandler = this.storageFactory.create('image', this.url)
+
+    var colourInfoStream = new PassThrough()
+    var writeStream = new PassThrough()
+
+    stream.pipe(colourInfoStream)
+    stream.pipe(writeStream)
+
+    var concatStream = concat(getColourInfo)
+    colourInfoStream.pipe(concatStream)
+
+    var self = this
+
+    function getColourInfo (buffer) {
+      var colourHandler = new ColourHandler()
+      var colours = {}
+
+      if (config.get('upload.extractColours')) {
+        colours = colourHandler.getColours(buffer)
+      }
+
+      self.storageHandler.put(writeStream, folderPath).then((result) => {
+        if (!_.isEmpty(colours)) result.colours = colours
+        return resolve(result)
+      })
+    }
+  })
 }
 
 ImageHandler.prototype.get = function () {
-  var self = this
-  self.cached = false
+  this.cached = false
 
   var parsedUrl = url.parse(this.req.url, true)
 
@@ -76,7 +119,7 @@ ImageHandler.prototype.get = function () {
   }
 
   // clean the options array up
-  this.options = self.sanitiseOptions(this.options)
+  this.options = this.sanitiseOptions(this.options)
 
   if (typeof this.options.format === 'undefined') this.options.format = this.fileExt
 
@@ -90,7 +133,7 @@ ImageHandler.prototype.get = function () {
     this.format = this.options.format
   }
 
-  return new Promise(function (resolve, reject) {
+  return new Promise((resolve, reject) => {
     var message
 
     // TODO: is there an error to raise here?
@@ -104,19 +147,23 @@ ImageHandler.prototype.get = function () {
     }
 
     // get from cache
-    self.cache.getStream(self.cacheKey, function (stream) {
+    this.cache.getStream(this.cacheKey, (stream) => {
       // if found in cache, return it
       if (stream) {
-        if (self.options.format !== 'json') {
-          self.cached = true
+        if (this.options.format !== 'json') {
+          this.cached = true
           return resolve(stream)
         }
       }
 
       // not in cache, get image from source
-      self.storageHandler = self.storageFactory.create('image', self.url)
+      if (this.externalUrl) {
+        this.storageHandler = new HTTPStorage(null, this.externalUrl)
+      } else {
+        this.storageHandler = this.storageFactory.create('image', this.url)
+      }
 
-      self.storageHandler.get().then(function (stream) {
+      this.storageHandler.get().then((stream) => {
         var cacheStream = new PassThrough()
         var convertStream = new PassThrough()
         var imageSizeStream = new PassThrough()
@@ -131,21 +178,21 @@ ImageHandler.prototype.get = function () {
         // pipe the stream to a temporary file to avoid back pressure buildup
         // while we wait for the exif data to be processed
         var tmpExifFile
-        if (self.options.format === 'json') {
-          tmpExifFile = path.join(path.resolve(path.join(__dirname, '/../../../workspace')), sha1(self.url))
+        if (this.options.format === 'json') {
+          tmpExifFile = path.join(path.resolve(path.join(__dirname, '/../../../workspace')), sha1(this.url))
           stream.pipe(exifStream).pipe(fs.createWriteStream(tmpExifFile))
         }
 
         // get the image size and format
-        imagesize(imageSizeStream, function (err, imageInfo) {
+        imagesize(imageSizeStream, (err, imageInfo) => {
           if (err && err !== 'invalid') {
             console.log(err)
           }
 
           // extract exif data if available
-          if (imageInfo && /jpe?g/.exec(imageInfo.format) && self.options.format === 'json') {
-            self.extractExifData(tmpExifFile).then(function (exifData) {
-              self.exifData = exifData
+          if (imageInfo && /jpe?g/.exec(imageInfo.format) && this.options.format === 'json') {
+            this.extractExifData(tmpExifFile).then((exifData) => {
+              this.exifData = exifData
             }).catch(function (err) {
               // no exif data
               if (err) console.log(err)
@@ -162,7 +209,7 @@ ImageHandler.prototype.get = function () {
           }
 
           // connvert image using specified options
-          self.convert(convertStream, imageInfo).then(function (result) {
+          this.convert(convertStream, imageInfo).then((result) => {
             var convertedStream = result.stream
             var dataFromConvert = result.data || {}
 
@@ -170,10 +217,10 @@ ImageHandler.prototype.get = function () {
             convertedStream.pipe(responseStream)
 
             // cache the file if enabled
-            self.cache.cacheFile(cacheStream, self.cacheKey, function () {
+            this.cache.cacheFile(cacheStream, this.cacheKey, () => {
               // return image info only, as json
-              if (self.options.format === 'json') {
-                self.getImageInfo(convertedStream, imageInfo, function (data) {
+              if (this.options.format === 'json') {
+                this.getImageInfo(convertedStream, imageInfo, (data) => {
                   // Adding data from `convert()` to response
                   data = _.extendOwn(data, dataFromConvert)
 
@@ -211,7 +258,7 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
   var width = parseInt(dimensions.width)
   var height = parseInt(dimensions.height)
 
-  return new Promise(function (resolve, reject) {
+  return new Promise((resolve, reject) => {
     if (options.cropX && options.cropY) {
       var originalWidth = parseFloat(imageInfo.width)
       var originalHeight = parseFloat(imageInfo.height)
@@ -235,7 +282,7 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
 
     function processImage (imageBuffer) {
       // obtain an image object
-      require('lwip').open(imageBuffer, imageInfo.format, function (err, image) {
+      require('lwip').open(imageBuffer, imageInfo.format, (err, image) => {
         if (err) return reject(err)
 
         var shouldExtractEntropy = ((options.resizeStyle === 'entropy') && width && height) ? self.extractEntropy(image, width, height) : false
@@ -298,10 +345,10 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                     coords[3] = (coords[3] > 0) ? (coords[3] - 1) : coords[3]
 
                     // NOTE! passed in URL as top, left, bottom, right
-                    console.log('left: ', coords[1])
-                    console.log('top: ', coords[0])
-                    console.log('right: ', coords[3])
-                    console.log('bottom: ', coords[2])
+                    // console.log('left: ', coords[1])
+                    // console.log('top: ', coords[0])
+                    // console.log('right: ', coords[3])
+                    // console.log('bottom: ', coords[2])
 
                     // image.crop(left, top, right, bottom, callback)
                     batch.crop(coords[1], coords[0], coords[3], coords[2])
@@ -371,10 +418,13 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
           var format = (self.options.format === 'json' ? imageInfo.format : self.options.format).toLowerCase()
 
           try {
-            batch.exec(function (err, image) {
-              if (err) console.log(err)
+            batch.exec((err, image) => {
+              if (err) {
+                console.log(err)
+                return reject(err)
+              }
 
-              image.toBuffer(format, params, function (err, buffer) {
+              image.toBuffer(format, params, (err, buffer) => {
                 if (err) return reject(err)
 
                 var bufferStream = new PassThrough()

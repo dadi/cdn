@@ -14,6 +14,8 @@ var logger = require('@dadi/logger')
 var config = require(path.join(__dirname, '/../../../config'))
 var help = require(path.join(__dirname, '/../help'))
 var HandlerFactory = require(path.join(__dirname, '/../handlers/factory'))
+var PostController = require(path.join(__dirname, '/post'))
+var RecipeController = require(path.join(__dirname, '/recipe'))
 var RouteController = require(path.join(__dirname, '/route'))
 
 logger.init(config.get('logging'), config.get('aws'), config.get('env'))
@@ -22,6 +24,19 @@ var Controller = function (router) {
   var self = this
 
   router.use(logger.requestLogger)
+
+  router.get('/robots.txt', function (req, res) {
+    var robotsFile = config.get('robots')
+    try {
+      var file = fs.readFileSync(robotsFile)
+
+      res.statusCode = 200
+      res.end(file.toString())
+    } catch (err) {
+      res.statusCode = 404
+      return res.end('File not found')
+    }
+  })
 
   router.get(/(.+)/, function (req, res) {
     var factory = new HandlerFactory()
@@ -129,48 +144,20 @@ var Controller = function (router) {
     }
   })
 
-  router.post('/api/recipes/new', function (req, res) {
-    // Don't accept an empty POST
-    if (_.isEmpty(req.body)) {
-      return help.sendBackJSON(400, {
-        message: 'Bad Request'
-      }, res)
-    }
-
-    // Valid JSON?
-    try {
-      var recipe = typeof req.body === 'object' ? req.body : JSON.parse(req.body)
-    } catch (err) {
-      return help.sendBackJSON(400, {
-        message: 'Invalid JSON Syntax'
-      }, res)
-    }
-
-    // Check for expected properties
-    var validation = self.validateRecipe(recipe)
-
-    if (!validation.success) {
-      return help.sendBackJSON(400, {
-        error: validation.errors
-      }, res)
-    }
-
-    var recipePath = path.join(config.get('paths.recipes'), recipe.recipe) + '.json'
-
-    try {
-      fs.writeFileSync(recipePath, JSON.stringify(recipe, null, 2))
-
-      help.sendBackJSON(201, {
-        result: 'success',
-        message: `Recipe "${recipe.recipe}" created`
-      }, res)
-    } catch (err) {
-      console.log(err)
-    }
+  router.post('/api/recipes', function (req, res) {
+    return RecipeController.post(req, res)
   })
 
   router.post('/api/routes', function (req, res) {
     return RouteController.post(req, res)
+  })
+
+  router.post('/api/upload', function (req, res, next) {
+    if (!config.get('upload.enabled')) {
+      return next()
+    }
+
+    return new PostController().post(req, res)
   })
 }
 
@@ -222,22 +209,6 @@ Controller.prototype.addCacheControlHeader = function (res, handler) {
 
     // set the header
     res.setHeader('Cache-Control', value)
-  }
-}
-
-Controller.prototype.validateRecipe = function (recipe) {
-  var required = ['recipe', 'path', 'settings']
-  var errors = []
-
-  for (var key in required) {
-    if (!recipe.hasOwnProperty(required[key])) {
-      errors.push({ error: `Property "${required[key]}" not found in recipe` })
-    }
-  }
-
-  return {
-    success: errors.length === 0,
-    errors: errors
   }
 }
 

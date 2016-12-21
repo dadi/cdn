@@ -1,13 +1,14 @@
 var fs = require('fs')
+var mkdirp = require('mkdirp')
 var nodeUrl = require('url')
 var path = require('path')
-var Promise = require('bluebird')
 
 var Missing = require(path.join(__dirname, '/missing'))
 
 var DiskStorage = function (settings, url) {
+  this.settings = settings
   this.url = nodeUrl.parse(url, true).pathname
-  this.path = path.resolve(settings.directory.path)
+  this.path = path.resolve(this.settings.directory.path)
 }
 
 DiskStorage.prototype.getFullUrl = function () {
@@ -55,6 +56,41 @@ DiskStorage.prototype.get = function () {
       }).catch((e) => {
         console.log(e)
         return reject(err)
+      })
+    })
+  })
+}
+
+DiskStorage.prototype.put = function (stream, folderPath) {
+  this.path = path.join(this.path, folderPath)
+
+  return new Promise((resolve, reject) => {
+    mkdirp(this.path, (err, made) => {
+      if (err) {
+        return reject(err)
+      }
+
+      var filePath = this.getFullUrl()
+
+      fs.stat(filePath, (err, stats) => {
+        if (err) {
+          // file not found on disk, so ok to write it with no filename changes
+        } else {
+          // file exists, give it a new name
+          var pathParts = path.parse(filePath)
+          var newFileName = pathParts.name + '-' + Date.now().toString()
+          filePath = path.join(this.path, newFileName + pathParts.ext)
+        }
+
+        var writeStream = fs.createWriteStream(filePath)
+        stream.pipe(writeStream)
+
+        var data = {
+          message: 'File uploaded',
+          path: filePath.replace(path.resolve(this.settings.directory.path), '')
+        }
+
+        return resolve(data)
       })
     })
   })

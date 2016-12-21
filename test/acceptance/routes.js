@@ -112,6 +112,31 @@ describe('Routes', function () {
       })
     })
 
+    it('should return error if route name is too short', function (done) {
+      help.getBearerToken(function (err, token) {
+        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+        var routeName = sample.route
+
+        sample.route = 'xxxx'
+
+        client
+        .post('/api/routes')
+        .send(sample)
+        .set('Authorization', 'Bearer ' + token)
+        .expect(400)
+        .end(function(err ,res) {
+          res.body.success.should.eql(false)
+          res.body.errors.should.be.Array
+          res.body.errors.should.containEql('Route name must be 5 characters or longer and contain only uppercase and lowercase letters, dashes and underscores')
+
+          // Restore route name
+          sample.route = routeName
+
+          done()
+        })
+      })
+    })
+
     it('should save route to filesystem', function (done) {
       return help.getBearerToken((err, token) => {
         var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
@@ -170,6 +195,7 @@ describe('Routes', function () {
       .set('accept-language', 'en-GB')
       .end(function(err, res) {
         setTimeout(function() {
+          //console.log(processBranchesSpy)
           processBranchesSpy.calledTwice.should.eql(true)
           JSON.stringify(processBranchesSpy.firstCall.args[0]).should.eql(JSON.stringify(sample.branches))
           JSON.stringify(processBranchesSpy.secondCall.args[0]).should.eql(JSON.stringify(sample.branches))

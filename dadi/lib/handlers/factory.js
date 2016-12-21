@@ -1,7 +1,7 @@
 var _ = require('underscore')
 var fs = require('fs')
+var mime = require('mime')
 var path = require('path')
-var Promise = require('bluebird')
 var url = require('url')
 
 var AssetHandler = require(path.join(__dirname, '/asset'))
@@ -16,6 +16,11 @@ function parseUrl (req) {
 
 function getFormat (version, req) {
   var parsedPath = parseUrl(req).pathname
+
+  // add default jpg extension
+  if (path.extname(parsedPath) === '') {
+    parsedPath += '.jpg'
+  }
 
   if (version === 'v1') {
     return _.compact(parsedPath.split('/'))[0]
@@ -35,16 +40,33 @@ var HandlerFactory = function () {
   this.handlers.push(this.getProcessor)
 }
 
-HandlerFactory.prototype.create = function (req) {
-  // set a default version
-  var version = 'v1'
+HandlerFactory.prototype.create = function (req, mimetype) {
+  var version
+  var parsedUrl = url.parse(req.url, true)
+  var pathComponents = parsedUrl.pathname.slice(1).split('/')
+  var format
 
-  // set version 2 if the url was supplied with a querystring
-  if (require('url').parse(req.url, true).search) {
+  // version 1 matches a string like /jpg/80/0/0/640/480/ at the beginning of the url pathname
+  var v1pattern = /^\/[a-z]{3,4}\/[0-9]+\/[0-1]+\/[0-1]+\/[0-9]+\/[0-9]+\//gi
+
+  if (v1pattern.test(parsedUrl.pathname) || /fonts|css|js/.test(pathComponents[0]) || /^[A-Za-z-_]{5,}$/.test(pathComponents[0])) {
+    version = 'v1'
+  } else {
     version = 'v2'
+
+    // add a default querystring if one wasn't supplied
+    if (!parsedUrl.search) {
+      parsedUrl.search = '?version=2'
+
+      req.url = url.format(parsedUrl)
+    }
   }
 
-  var format = getFormat(version, req)
+  if (!mimetype) {
+    format = getFormat(version, req)
+  } else {
+    format = mime.extension(mimetype)
+  }
 
   return this.callNextHandler(format, req)
 }
@@ -81,6 +103,9 @@ HandlerFactory.prototype.createFromFormat = function (format, req) {
       case 'jpeg':
       case 'json':
       case 'png':
+        return resolve(new ImageHandler(format, req))
+      case 'bin':
+        format = 'jpg'
         return resolve(new ImageHandler(format, req))
       default:
         return resolve(this.callNextHandler(format, req))

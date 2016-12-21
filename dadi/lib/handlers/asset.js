@@ -2,7 +2,6 @@ var _ = require('underscore')
 var compressor = require('node-minify')
 var fs = require('fs')
 var path = require('path')
-var Promise = require('bluebird')
 var url = require('url')
 
 var StorageFactory = require(path.join(__dirname, '/../storage/factory'))

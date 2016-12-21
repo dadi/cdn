@@ -13,7 +13,7 @@ var imageHandler = require(__dirname + '/../../dadi/lib/handlers/image')
 var testConfigString
 
 describe('Controller', function () {
-  this.timeout(6000)
+  this.timeout(10000)
   var tokenRoute = config.get('auth.tokenUrl')
 
   // beforeEach(function (done) {
@@ -170,6 +170,26 @@ describe('Controller', function () {
 
           method.called.should.eql(true)
           var options = method.returnValues[0]
+          options.format.should.eql('png')
+          done()
+        })
+    })
+
+    it('v2: should extract options from querystring if an external URL is provided', function (done) {
+      // spy on the sanitiseOptions method to access the provided arguments
+      var method = sinon.spy(imageHandler.ImageHandler.prototype, 'sanitiseOptions')
+
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/https://www.google.co.uk/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png?quality=50&width=80&height=478&gravity=North&resizeStyle=aspectfit&devicePixelRatio=2')
+        .end(function (err, res) {
+          imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
+
+          method.called.should.eql(true)
+          var options = method.returnValues[0]
+
+          options.quality.should.eql(50)
+          options.width.should.eql(80)
           options.format.should.eql('png')
           done()
         })
@@ -554,6 +574,34 @@ describe('Controller', function () {
         .end(function(err, res) {
           res.statusCode.should.eql(200)
           res.text.should.eql('Welcome to DADI CDN')
+          done()
+        })
+    })
+
+    it('should return 404 if there is no configured robots.txt file', function (done) {
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/robots.txt')
+        .end(function(err, res) {
+          res.statusCode.should.eql(404)
+          res.text.should.eql('File not found')
+          done()
+        })
+    })
+
+    it('should return a configured robots.txt file', function (done) {
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.robots = 'test/robots.txt'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+      config.loadFile(config.configPath())
+
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/robots.txt')
+        .end(function(err, res) {
+          res.statusCode.should.eql(200)
+          res.text.should.eql('User-Agent: *\nDisallow: /')
           done()
         })
     })
