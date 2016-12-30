@@ -5,14 +5,14 @@
   "scripts": {
     "init": "validate-commit-msg",
     "start": "node index.js --node_env=development",
-    "test": "standard 'dadi/**/*.js' && env NODE_ENV=test ./node_modules/.bin/istanbul cover -x '**/workspace/**' --report cobertura --report text --report html --report lcov ./node_modules/.bin/_mocha test",
+    "test": "standard 'dadi/**/*.js' && env NODE_ENV=test ./node_modules/.bin/istanbul cover -x '**/workspace/**' --report cobertura --report text --report html --report lcov ./node_modules/mocha/bin/_mocha test -- --require babel-register",
     "posttest": "./scripts/coverage.js",
     "postpublish": "greenkeeper-postpublish"
   },
   "dependencies": {
-    "@dadi/cache": "^1.1.1",
+    "@dadi/cache": "^1.0.0",
     "@dadi/logger": "latest",
-    "@dadi/status": "git+https://git@github.com/dadi/status.git",
+    "@dadi/status": "latest",
     "accept-language-parser": "^1.2.0",
     "aspect-fill": "^1.0.1",
     "aspect-fit": "^1.0.2",
@@ -61,10 +61,11 @@
   },
   "devDependencies": {
     "aws-sdk-mock": "^1.5.0",
+    "babel-register": "^6.18.0",
     "env-test": "^1.0.0",
     "fakeredis": "^1.0.2",
     "greenkeeper-postpublish": "^1.0.1",
-    "istanbul": "^0.4.5",
+    "istanbul": "^1.1.0-alpha.1",
     "istanbul-cobertura-badger": "^1.2.1",
     "mocha": "^3.2.0",
     "proxyquire": "~1.7.4",
