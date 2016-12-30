@@ -390,9 +390,9 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
           var params = {}
           var quality = parseInt(options.quality)
 
-          if (/jpe?g/.exec(imageInfo.format)) params.quality = quality
-
-          if (/png/.exec(imageInfo.format)) {
+          if (/jpe?g/.exec(imageInfo.format) || /jpe?g/.exec(options.format)) {
+            params.quality = quality
+          } else if (/png/.exec(imageInfo.format) || /png/.exec(options.format)) {
             if (quality > 70) params.compression = 'none'
             else if (quality > 50) params.compression = 'fast'
             else params.compression = 'high'
@@ -402,9 +402,9 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
           if (options.sharpen !== 5) {
             batch.sharpen(options.sharpen)
           } else if (quality >= 70) {
-            if (/jpe?g/.exec(imageInfo.format)) {
+            if (/jpe?g/.exec(imageInfo.format) || /jpe?g/.exec(options.format)) {
               batch.sharpen(5)
-            } else if (/png/.exec(imageInfo.format)) {
+            } else if (/png/.exec(imageInfo.format) || /png/.exec(options.format)) {
               batch.sharpen(5)
             } else if (options.cropX && options.cropY) {
               batch.sharpen(5)
