@@ -71,7 +71,7 @@
     "should": "~11.1.0",
     "sinon": "~1.17.5",
     "standard": "*",
-    "supertest": "~2.0.0"
+    "supertest": "~2.0.1"
   },
   "greenkeeper": {
     "ignore": [
