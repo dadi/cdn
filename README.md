@@ -19,6 +19,10 @@ CDN is part of DADI, a suite of components covering the full development stack, 
 
 Please follow the instructions here: https://github.com/Automattic/node-canvas/wiki/Installation---OSX
 
+## Windows
+
+Please follow the instructions here: https://github.com/Automattic/node-canvas/wiki/Installation---Windows
+
 ### Troubleshooting
 
 Most problems can be solved by using Homebrew and running `brew install cairo`
