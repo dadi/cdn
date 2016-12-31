@@ -1,7 +1,7 @@
 <img src="http://52.209.207.148/assets/products/dadi-cdn-full.png" alt="DADI CDN" height="65"/>
 
 [![npm (scoped)](https://img.shields.io/npm/v/@dadi/cdn.svg?maxAge=10800&style=flat-square)](https://www.npmjs.com/package/@dadi/cdn)
-[![coverage](https://img.shields.io/badge/coverage-68%25-yellow.svg?style=flat-square)](https://github.com/dadi/cdn)
+[![coverage](https://img.shields.io/badge/coverage-69%25-yellow.svg?style=flat-square)](https://github.com/dadi/cdn)
 [![Build Status](https://travis-ci.org/dadi/cdn.svg?branch=master)](https://travis-ci.org/dadi/cdn)
 [![JavaScript Style Guide](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat-square)](http://standardjs.com/)
 
@@ -14,18 +14,6 @@ You can consider a full installation of DADI CDN as being analogous to a traditi
 It has full support for caching, header control, image manipulation, image compression and image format conversion. An authenticated API allows for fine grained cache control in the form of content invalidation on an individual file or collective path basis.
 
 CDN is part of DADI, a suite of components covering the full development stack, built for performance and scale.
-
-## Mac OS X
-
-Please follow the instructions here: https://github.com/Automattic/node-canvas/wiki/Installation---OSX
-
-## Windows
-
-Please follow the instructions here: https://github.com/Automattic/node-canvas/wiki/Installation---Windows
-
-### Troubleshooting
-
-Most problems can be solved by using Homebrew and running `brew install cairo`
 
 ## Documentation
 
