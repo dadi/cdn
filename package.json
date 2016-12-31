@@ -36,7 +36,7 @@
     "images": "^3.0.0",
     "imagesize": "~1.0.0",
     "length-stream": "~0.1.1",
-    "lwip": "git+https://github.com/Pajk/lwip.git",
+    "lwip": "git+https://github.com/pajk/lwip",
     "maxmind": "^1.1.0",
     "mime": "^1.3.4",
     "mkdirp": "^0.5.1",
