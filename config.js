@@ -88,11 +88,6 @@ var conf = convict({
         doc: "If true, HTTP access logging is enabled. The log file name is similar to the setting used for normal logging, with the addition of 'access'. For example `cdn.access.log`.",
         format: Boolean,
         default: true
-      },
-      kinesisStream: {
-        doc: 'An AWS Kinesis stream to write to log records to.',
-        format: String,
-        default: ''
       }
     }
   },

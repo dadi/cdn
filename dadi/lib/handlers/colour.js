@@ -1,7 +1,6 @@
 var _ = require('underscore')
 var colourNamer = require('color-namer')
-var ColorThief = require('color-thief')
-var colorThief = new ColorThief()
+var Vibrant = require('node-vibrant')
 
 /**
  * Handles colour-related tasks for CDN images
@@ -15,29 +14,45 @@ var ColourHandler = function () {
  * @returns {object}
  */
 ColourHandler.prototype.getColours = function (buffer) {
-  var dominantColour = colorThief.getColor(buffer)
-  var palette = colorThief.getPalette(buffer, 5)
+  var v = new Vibrant(buffer, { colorCount: 12, quality: 1 })
 
-  return {
-    flattened: this.getFlattenedColours(dominantColour, palette),
-    full: this.getFullColours(dominantColour, palette)
-  }
+  v.getSwatches((err, swatches) => {
+    if (err) {
+      console.log(err)
+    }
+
+    // remove empty swatches and sort by population descending
+    swatches = _.compact(_.sortBy(swatches, 'population')).reverse()
+
+    var dominantColour = swatches[0]
+    var palette = swatches.slice(1)
+
+    return {
+      flattened: this.getFlattenedColours(dominantColour, palette),
+      full: this.getFullColours(dominantColour, palette)
+    }
+  })
 }
 
+/**
+ *
+ * @param {Object} dominantColour - a colour swatch containing RGB, HSL, HEX
+ * @param {Array} palette - an array of colour swatches
+ */
 ColourHandler.prototype.getFullColours = function (dominantColour, palette) {
-  var primaryColourHex = this.RGBtoHex(dominantColour[0], dominantColour[1], dominantColour[2])
-  var primaryColourHSL = this.RGBtoHSL(dominantColour[0], dominantColour[1], dominantColour[2])
+  var primaryColourHex = dominantColour.getHex()
+  var primaryColourHSL = dominantColour.getHsl()
   var humanColour = new HumanColours(primaryColourHSL)
 
   var paletteColours = {}
 
   _.each(palette, (colour, index) => {
-    var hex = this.RGBtoHex(colour[0], colour[1], colour[2])
-    var hsl = this.RGBtoHSL(colour[0], colour[1], colour[2])
+    var hex = colour.getHex()
+    var hsl = colour.getHsl()
     var humanColourPalette = new HumanColours(hsl)
 
     paletteColours[index] = {
-      rgb: colour,
+      rgb: colour.getRgb(),
       hsl: hsl,
       hex: hex,
       human: {
@@ -50,7 +65,7 @@ ColourHandler.prototype.getFullColours = function (dominantColour, palette) {
 
   return {
     primaryColour: {
-      rgb: dominantColour,
+      rgb: dominantColour.getRgb(),
       hsl: primaryColourHSL,
       hex: primaryColourHex,
       human: {
@@ -58,18 +73,23 @@ ColourHandler.prototype.getFullColours = function (dominantColour, palette) {
         saturation: humanColour.saturationName(),
         hue: humanColour.hueName()
       },
-      colourNames: this.getColourNames(dominantColour)
+      colourNames: this.getColourNames(dominantColour.getRgb())
     },
     palette: paletteColours
   }
 }
 
+/**
+ *
+ * @param {Object} dominantColour - a colour swatch containing RGB, HSL, HEX
+ * @param {Array} palette - an array of colour swatches
+ */
 ColourHandler.prototype.getFlattenedColours = function (dominantColour, palette) {
-  var primaryColourHex = this.RGBtoHex(dominantColour[0], dominantColour[1], dominantColour[2])
-  var primaryColourHSL = this.RGBtoHSL(dominantColour[0], dominantColour[1], dominantColour[2])
+  var primaryColourHex = dominantColour.getHex()
+  var primaryColourHSL = dominantColour.getHsl()
   var humanColour = new HumanColours(primaryColourHSL)
 
-  var colourNames = colourNamer(dominantColour)
+  var colourNames = colourNamer(dominantColour.getRgb())
   var colours = _.sortBy([colourNames.basic[0], colourNames.roygbiv[0], colourNames.html[0], colourNames.pantone[0]], 'distance')
   var names = _.pluck(colours, 'name')
   var primaryColourArrays = {
@@ -81,8 +101,8 @@ ColourHandler.prototype.getFlattenedColours = function (dominantColour, palette)
   primaryColourArrays.names = _.uniq(primaryColourArrays.names)
 
   var colourPalette = _.map(palette, (colour) => {
-    var pc = this.RGBtoHex(colour[0], colour[1], colour[2])
-    var hsl = this.RGBtoHSL(colour[0], colour[1], colour[2])
+    var pc = colour.getHex()
+    var hsl = colour.getHsl()
     var humanColour = new HumanColours(hsl)
     var names = colourNamer(pc)
 
@@ -109,7 +129,7 @@ ColourHandler.prototype.getFlattenedColours = function (dominantColour, palette)
 
   return {
     primary: {
-      rgb: dominantColour,
+      rgb: dominantColour.getRgb(),
       hex: primaryColourHex,
       nameArray: primaryColourArrays.names,
       hexArray: primaryColourArrays.hex
@@ -133,61 +153,6 @@ ColourHandler.prototype.getColourNames = function (colour) {
   })
 
   return data
-}
-
-/**
- * Converts an RGB colour value to HEX
- */
-ColourHandler.prototype.RGBtoHex = function (r, g, b) {
-  return '#' + ('00000' + (r << 16 | g << 8 | b).toString(16)).slice(-6)
-}
-
-/**
- * Converts an RGB color value to HSL. Conversion formula
- * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
- * Assumes r, g, and b are contained in the set [0, 255] and
- * returns h, s, and l in the set [0, 1].
- *
- * @param   Number  r       The red color value
- * @param   Number  g       The green color value
- * @param   Number  b       The blue color value
- * @return  Array           The HSL representation
- */
-ColourHandler.prototype.RGBtoHSL = function (r, g, b) {
-  r /= 255
-  g /= 255
-  b /= 255
-  var max = Math.max(r, g, b)
-  var min = Math.min(r, g, b)
-  var h
-  var s
-  var l = (max + min) / 2
-
-  if (max === min) {
-    h = s = 0 // achromatic
-  } else {
-    var d = max - min
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
-    switch (max) {
-      case r:
-        h = (g - b) / d + (g < b ? 6 : 0)
-        break
-      case g:
-        h = (b - r) / d + 2
-        break
-      case b:
-        h = (r - g) / d + 4
-        break
-    }
-
-    h /= 6
-  }
-
-  var h1 = Math.round(h * 360)
-  var s1 = Math.round(s * 100)
-  var l1 = Math.round(l * 100)
-
-  return 'hsl(' + h1 + ', ' + s1 + '%, ' + l1 + '%)'
 }
 
 var regex = /hsl\((.*)\)/ // Match hsl values

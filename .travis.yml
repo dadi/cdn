@@ -12,5 +12,5 @@ addons:
     packages:
       - g++-4.9
 before_install:
-  - if [[ `npm -v` != 3* ]]; then npm i -g npm@3; fi
-  - sudo apt-get install libcairo2-dev libjpeg-dev libgif-dev
+  - if [[ `npm -v` != 3* ]]; then npm i -g npm@latest; fi
+  - sudo apt-get install libjpeg-dev libgif-dev

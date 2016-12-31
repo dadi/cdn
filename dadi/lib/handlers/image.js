@@ -1,23 +1,30 @@
 var _ = require('underscore')
 var fs = require('fs')
 var concat = require('concat-stream')
-var ColorThief = require('color-thief')
-var colorThief = new ColorThief()
 var ExifImage = require('exif').ExifImage
 var fit = require('aspect-fit')
 var imagesize = require('imagesize')
 var lengthStream = require('length-stream')
+var mkdirp = require('mkdirp')
 var PassThrough = require('stream').PassThrough
 var path = require('path')
 var Readable = require('stream').Readable
 var sha1 = require('sha1')
 var url = require('url')
+var Vibrant = require('node-vibrant')
 
 var ColourHandler = require(path.join(__dirname, '/colour'))
 var StorageFactory = require(path.join(__dirname, '/../storage/factory'))
 var HTTPStorage = require(path.join(__dirname, '/../storage/http'))
 var Cache = require(path.join(__dirname, '/../cache'))
 var config = require(path.join(__dirname, '/../../../config'))
+
+var exifDirectory = path.resolve(path.join(__dirname, '/../../../workspace/exif'))
+mkdirp(exifDirectory, (err, made) => {
+  if (err) {
+    console.log(err)
+  }
+})
 
 var GRAVITY_TYPES = {
   NW: 'northwest',
@@ -178,8 +185,9 @@ ImageHandler.prototype.get = function () {
         // pipe the stream to a temporary file to avoid back pressure buildup
         // while we wait for the exif data to be processed
         var tmpExifFile
+
         if (this.options.format === 'json') {
-          tmpExifFile = path.join(path.resolve(path.join(__dirname, '/../../../workspace')), sha1(this.url))
+          tmpExifFile = path.join(exifDirectory, sha1(this.url))
           stream.pipe(exifStream).pipe(fs.createWriteStream(tmpExifFile))
         }
 
@@ -199,14 +207,7 @@ ImageHandler.prototype.get = function () {
             })
           }
 
-          if (tmpExifFile) {
-            // remove the temporary exifData file
-            try {
-              fs.unlinkSync(tmpExifFile)
-            } catch (err) {
-              console.log(err)
-            }
-          }
+          flushExifFiles()
 
           // connvert image using specified options
           this.convert(convertStream, imageInfo).then((result) => {
@@ -220,12 +221,12 @@ ImageHandler.prototype.get = function () {
             this.cache.cacheFile(cacheStream, this.cacheKey, () => {
               // return image info only, as json
               if (this.options.format === 'json') {
-                this.getImageInfo(convertedStream, imageInfo, (data) => {
+                this.getImageInfo(responseStream, imageInfo, (data) => {
                   // Adding data from `convert()` to response
                   data = _.extendOwn(data, dataFromConvert)
 
                   var returnStream = new Readable()
-                  returnStream.push(JSON.stringify(data, null, 2))
+                  returnStream.push(JSON.stringify(data))
                   returnStream.push(null)
 
                   return resolve(returnStream)
@@ -556,7 +557,12 @@ ImageHandler.prototype.extractEntropy = function (image, width, height) {
 ImageHandler.prototype.extractExifData = function (file) {
   return new Promise(function (resolve, reject) {
     var concatStream = concat(gotImage)
-    fs.createReadStream(file).pipe(concatStream)
+    try {
+      fs.createReadStream(file).pipe(concatStream)
+    } catch (err) {
+      console.log(err)
+      console.log(err.stack)
+    }
 
     function gotImage (buffer) {
       ExifImage({ image: buffer }, function (err, data) {
@@ -617,38 +623,61 @@ ImageHandler.prototype.getImageInfo = function (stream, imageInfo, cb) {
     .on('data', function (data) { buffers.push(data) })
     .on('end', function () {
       var buffer = Buffer.concat(buffers)
-      var colour = colorThief.getColor(buffer)
-      var primaryColour = RGBtoHex(colour[0], colour[1], colour[2])
-      var palette = colorThief.getPalette(buffer, options.colours ? options.colours : 6)
-      var paletteHex = _.map(palette, function (colour) {
-        return RGBtoHex(colour[0], colour[1], colour[2])
-      })
 
-      data.format = imageInfo.format
-      data.fileSize = fileSize
-      data.primaryColor = primaryColour
-      data.palette = {
-        rgb: palette,
-        hex: paletteHex
+      var colourOpts = {
+        colorCount: options.maxColours || 64,
+        quality: options.colourQuality || 1
       }
 
-      if (self.exifData.image && self.exifData.image.XResolution && self.exifData.image.YResolution) {
-        data.density = {
-          width: self.exifData.image.XResolution,
-          height: self.exifData.image.YResolution,
-          unit: (self.exifData.image.ResolutionUnit ? (self.exifData.image.ResolutionUnit === 2 ? 'dpi' : '') : '')
+      getColours(buffer, colourOpts).then((colours) => {
+        data.format = imageInfo.format
+        data.fileSize = fileSize
+        data.primaryColor = colours.primaryColour
+        data.palette = colours.palette
+
+        if (self.exifData.image && self.exifData.image.XResolution && self.exifData.image.YResolution) {
+          data.density = {
+            width: self.exifData.image.XResolution,
+            height: self.exifData.image.YResolution,
+            unit: (self.exifData.image.ResolutionUnit ? (self.exifData.image.ResolutionUnit === 2 ? 'dpi' : '') : '')
+          }
         }
-      }
 
-      return cb(data)
+        return cb(data)
+      })
     })
 }
 
-/**
- *
- */
-function RGBtoHex (red, green, blue) {
-  return '#' + ('00000' + (red << 16 | green << 8 | blue).toString(16)).slice(-6)
+function getColours (buffer, options) {
+  return new Promise((resolve, reject) => {
+    var v = new Vibrant(buffer, options)
+
+    v.getSwatches((err, swatches) => {
+      if (err) {
+        return reject(err)
+      }
+
+      // remove empty swatches and sort by population descending
+      swatches = _.compact(_.sortBy(swatches, 'population')).reverse()
+
+      var colourData = {
+        primaryColour: swatches[0].getHex(),
+        palette: {
+          rgb: [],
+          hex: []
+        }
+      }
+
+      _.each(swatches, (swatch, key) => {
+        if (key !== 0) {
+          colourData.palette.rgb.push(swatch.getRgb())
+          colourData.palette.hex.push(swatch.getHex())
+        }
+      })
+
+      return resolve(colourData)
+    })
+  })
 }
 
 function getDimensions (options, imageInfo) {
@@ -773,6 +802,8 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
         }
       }
     }
+
+    delete options[key]
   })
 
   // ensure we have defaults for options not specified
@@ -785,6 +816,9 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
       imageOptions[setting.name] = setting.default
     }
   })
+
+  // add any URL parameters that aren't part of the core set
+  _.extend(imageOptions, options)
 
   return imageOptions
 }
@@ -815,6 +849,30 @@ ImageHandler.prototype.getLastModified = function () {
   if (!this.storageHandler || !this.storageHandler.getLastModified) return null
 
   return this.storageHandler.getLastModified()
+}
+
+function flushExifFiles () {
+  fs.readdir(exifDirectory, (err, files) => {
+    if (err) {
+      console.log(err)
+    }
+
+    files.forEach((file) => {
+      var filePath = path.join(exifDirectory, file)
+
+      fs.stat(filePath, (err, stats) => {
+        if (err) {
+          console.log(err)
+        }
+
+        var lastModified = stats && stats.mtime && stats.mtime.valueOf()
+
+        if (lastModified && (Date.now() - lastModified) / 1000 > 36) {
+          fs.unlink(filePath)
+        }
+      })
+    })
+  })
 }
 
 module.exports = function (format, req) {
