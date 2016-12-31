@@ -226,7 +226,7 @@ ImageHandler.prototype.get = function () {
                   data = _.extendOwn(data, dataFromConvert)
 
                   var returnStream = new Readable()
-                  returnStream.push(JSON.stringify(data, null, 2))
+                  returnStream.push(JSON.stringify(data))
                   returnStream.push(null)
 
                   return resolve(returnStream)
@@ -797,6 +797,8 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
           var value = options[key]
           if (settings[0].lowercase) value = value.toLowerCase()
           imageOptions[settings[0].name] = _.isFinite(value) ? parseFloat(value) : value
+
+          delete options[key]
         } else {
           imageOptions[settings[0].name] = settings[0].default
         }
@@ -814,6 +816,9 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
       imageOptions[setting.name] = setting.default
     }
   })
+
+  // add any URL parameters that aren't part of the core set
+  _.extend(imageOptions, options)
 
   return imageOptions
 }
