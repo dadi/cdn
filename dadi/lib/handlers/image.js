@@ -797,13 +797,13 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
           var value = options[key]
           if (settings[0].lowercase) value = value.toLowerCase()
           imageOptions[settings[0].name] = _.isFinite(value) ? parseFloat(value) : value
-
-          delete options[key]
         } else {
           imageOptions[settings[0].name] = settings[0].default
         }
       }
     }
+
+    delete options[key]
   })
 
   // ensure we have defaults for options not specified
