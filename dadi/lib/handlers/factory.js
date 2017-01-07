@@ -33,8 +33,9 @@ var HandlerFactory = function () {
   this.handlers = []
   this.currentHandler = -1
 
+  this.getWorkspaceFiles()
+
   // Add handlers in order
-  this.handlers.push(this.createFromFormat)
   this.handlers.push(this.createFromRoute)
   this.handlers.push(this.createFromRecipe)
   this.handlers.push(this.getProcessor)
@@ -49,7 +50,7 @@ HandlerFactory.prototype.create = function (req, mimetype) {
   // version 1 matches a string like /jpg/80/0/0/640/480/ at the beginning of the url pathname
   var v1pattern = /^\/[a-z]{3,4}\/[0-9]+\/[0-1]+\/[0-1]+\/[0-9]+\/[0-9]+\//gi
 
-  if (v1pattern.test(parsedUrl.pathname) || /fonts|css|js/.test(pathComponents[0]) || /^[A-Za-z-_]{5,}$/.test(pathComponents[0])) {
+  if (v1pattern.test(parsedUrl.pathname) || /fonts|css|js/.test(pathComponents[0])) {
     version = 'v1'
   } else {
     version = 'v2'
@@ -68,7 +69,30 @@ HandlerFactory.prototype.create = function (req, mimetype) {
     format = mime.extension(mimetype)
   }
 
-  return this.callNextHandler(format, req)
+  // try to create a handler
+  if (version === 'v1') {
+    return this.createFromFormat(format, req)
+  } else {
+    // check if a workspace file matches the first part of the path
+    if (_.contains(this.workspaceFiles, pathComponents[0])) {
+      return this.callNextHandler(pathComponents[0], req)
+    } else {
+      // else it's an image request, regardless of path
+      return this.createFromFormat(format, req)
+    }
+  }
+}
+
+HandlerFactory.prototype.getWorkspaceFiles = function () {
+  var processors = fs.readdirSync(path.resolve(config.get('paths.processors')))
+  var recipes = fs.readdirSync(path.resolve(config.get('paths.recipes')))
+  var routes = fs.readdirSync(path.resolve(config.get('paths.routes')))
+
+  this.workspaceFiles = _.map(_.filter(_.union(processors, recipes, routes), (file) => {
+    return path.extname(file) === '.json'
+  }), (file) => {
+    return path.basename(file, '.json')
+  })
 }
 
 HandlerFactory.prototype.callNextHandler = function (format, req) {
@@ -113,31 +137,31 @@ HandlerFactory.prototype.createFromFormat = function (format, req) {
   })
 }
 
-HandlerFactory.prototype.getProcessor = function (format, req) {
+HandlerFactory.prototype.getProcessor = function (inputString, req) {
   return new Promise((resolve, reject) => {
-    var processorPath = path.join(path.resolve(config.get('paths.processors')), format + '.js')
+    var processorPath = path.join(path.resolve(config.get('paths.processors')), inputString + '.js')
 
     fs.stat(processorPath, (err, stats) => {
       if ((err && (err.code === 'ENOENT')) || !stats.isFile()) {
-        return resolve(this.callNextHandler(format, req))
+        return resolve(this.callNextHandler(inputString, req))
       } else if (err) {
         return reject(err)
       }
 
       var Processor = require(processorPath)
 
-      return resolve(new Processor(format, req))
+      return resolve(new Processor(inputString, req))
     })
   })
 }
 
-HandlerFactory.prototype.createFromRoute = function (format, req) {
+HandlerFactory.prototype.createFromRoute = function (inputString, req) {
   return new Promise((resolve, reject) => {
-    var routePath = path.join(path.resolve(config.get('paths.routes')), format + '.json')
+    var routePath = path.join(path.resolve(config.get('paths.routes')), inputString + '.json')
 
     fs.stat(routePath, (err, stats) => {
       if ((err && (err.code === 'ENOENT')) || !stats.isFile()) {
-        return resolve(this.callNextHandler(format, req))
+        return resolve(this.callNextHandler(inputString, req))
       } else if (err) {
         return reject(err)
       }
@@ -150,22 +174,22 @@ HandlerFactory.prototype.createFromRoute = function (format, req) {
 
       return resolve(route.getRecipe().then((recipe) => {
         if (recipe) {
-          return this.createFromRecipe(recipe, req, format)
+          return this.createFromRecipe(recipe, req, inputString)
         }
 
-        return this.callNextHandler(format, req)
+        return this.callNextHandler(inputString, req)
       }))
     })
   })
 }
 
-HandlerFactory.prototype.createFromRecipe = function (format, req, fromRoute) {
+HandlerFactory.prototype.createFromRecipe = function (inputString, req, fromRoute) {
   return new Promise((resolve, reject) => {
-    var recipePath = path.join(path.resolve(config.get('paths.recipes')), format + '.json')
+    var recipePath = path.join(path.resolve(config.get('paths.recipes')), inputString + '.json')
 
     fs.stat(recipePath, (err, stats) => {
       if ((err && (err.code === 'ENOENT')) || !stats.isFile()) {
-        return resolve(this.callNextHandler(format, req))
+        return resolve(this.callNextHandler(inputString, req))
       } else if (err) {
         return reject(err)
       }
@@ -174,11 +198,11 @@ HandlerFactory.prototype.createFromRecipe = function (format, req, fromRoute) {
 
       this.createFromFormat(recipe.settings.format, req).then((handler) => {
         var referencePath = recipe.path ? recipe.path : ''
-        var filePath = parseUrl(req).pathname.replace(format, '').replace(fromRoute, '')
+        var filePath = parseUrl(req).pathname.replace(inputString, '').replace(fromRoute, '')
         var fullPath = path.join(referencePath, filePath)
 
         handler.url = fullPath
-        handler.fileName = path.basename(parseUrl(req).pathname.replace(format, ''))
+        handler.fileName = path.basename(parseUrl(req).pathname.replace(inputString, ''))
         handler.fileExt = path.extname(parseUrl(req).pathname).replace('.', '')
         handler.compress = recipe.settings.compress ? recipe.settings.compress.toString() : '0'
         handler.options = recipe.settings

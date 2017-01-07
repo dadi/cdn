@@ -265,7 +265,6 @@ describe('Recipes', function () {
     })
 
     it('should return error if the recipe is not found', function (done) {
-
       help.getBearerToken(function (err, token) {
         var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
 
@@ -355,8 +354,8 @@ describe('Recipes', function () {
           .end(function(err ,res) {
 
             factory.HandlerFactory.prototype.createFromFormat.restore()
-            spy.firstCall.args[0].should.eql('thumbnail')
-            spy.secondCall.args[0].should.eql('jpg')
+            spy.firstCall.args[0].should.eql('jpg')
+            //spy.secondCall.args[0].should.eql('jpg')
 
             // Change the format within the recipe
             var recipeContent = fs.readFileSync(path.join(path.resolve(config.get('paths.recipes')), 'thumbnail.json'))
@@ -373,8 +372,8 @@ describe('Recipes', function () {
               .end(function(err ,res) {
 
                 factory.HandlerFactory.prototype.createFromFormat.restore()
-                spy.firstCall.args[0].should.eql('thumbnail')
-                spy.secondCall.args[0].should.eql('png')
+                spy.firstCall.args[0].should.eql('png')
+                //spy.secondCall.args[0].should.eql('png')
 
                 done()
               })
