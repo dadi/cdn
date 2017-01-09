@@ -223,7 +223,7 @@ function onListening (server) {
     startText += '  Environment: '.green + env + '\n'
     startText += '  ----------------------------\n'
 
-    startText += '\n\n  Copyright ' + String.fromCharCode(169) + ' 2015 DADI+ Limited (https://dadi.tech)'.white + '\n'
+    startText += '\n\n  Copyright ' + String.fromCharCode(169) + ' 2015-' + new Date().getFullYear() + ' DADI+ Limited (https://dadi.tech)'.white + '\n'
 
     console.log(startText)
   }
