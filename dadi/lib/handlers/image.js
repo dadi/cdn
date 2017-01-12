@@ -304,6 +304,7 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                 */
                 case 'aspectfit':
                   var size = fit(imageInfo.width, imageInfo.height, width, height)
+
                   batch.cover(parseInt(size.width), parseInt(size.height), filter)
                   break
                 /*
@@ -316,13 +317,17 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                   var scale = Math.max(scaleWidth, scaleHeight)
                   var crops = self.getCropOffsetsByGravity(options.gravity, imageInfo, dimensions, scale)
 
-                  batch.scale(scale)
+                  if (scaleHeight >= scaleWidth) {
+                    batch.resize(scale * imageInfo.width, height)
+                  } else {
+                    batch.resize(width, scale * imageInfo.height)
+                  }
 
                   // Only crop if the aspect ratio is not the same
                   // if ((width / height) !== (imageInfo.width / imageInfo.height) && !self.storageHandler.notFound) {
                   //   batch.crop(crops.x1, crops.y1, crops.x2, crops.y2)
                   // }
-                  if ((width / height) !== (imageInfo.width / imageInfo.height)) {
+                  if (scaleWidth !== scaleHeight) {
                     batch.crop(crops.x1, crops.y1, crops.x2, crops.y2)
                   }
 
