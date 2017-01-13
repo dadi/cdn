@@ -33,6 +33,7 @@
     "exif2": "0.0.1",
     "finalhandler": "~0.5.0",
     "gzip-size": "^3.0.0",
+    "he": "^1.1.0",
     "images": "^3.0.0",
     "imagesize": "~1.0.0",
     "length-stream": "~0.1.1",

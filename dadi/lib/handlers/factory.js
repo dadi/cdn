@@ -1,5 +1,6 @@
 var _ = require('underscore')
 var fs = require('fs')
+var he = require('he')
 var mime = require('mime')
 var path = require('path')
 var url = require('url')
@@ -59,6 +60,10 @@ HandlerFactory.prototype.create = function (req, mimetype) {
     if (!parsedUrl.search) {
       parsedUrl.search = '?version=2'
 
+      req.url = url.format(parsedUrl)
+    } else {
+      // ensure the querystring is decoded (removes for eg &amp; entities introduced via XSLT)
+      parsedUrl.search = he.decode(parsedUrl.search)
       req.url = url.format(parsedUrl)
     }
   }
