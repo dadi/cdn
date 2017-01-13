@@ -110,6 +110,23 @@ Server.prototype.start = function (done) {
 
   controller(router)
 
+  var redirectInstance
+  var redirectServer
+  var redirectPort = config.get('server.redirectPort')
+  if (redirectPort > 0) {
+    redirectInstance = http.createServer((req, res) => {
+      var port = config.get('server.port')
+      var hostname = req.headers.host.split(':')[0]
+      var location = 'https://' + hostname + ':' + port + req.url
+
+      res.setHeader('Location', location)
+      res.statusCode = 301
+      res.end()
+    })
+    redirectServer = this.redirectServer = redirectInstance.listen(redirectPort)
+    redirectServer.on('listening', function () { onRedirectListening(this) })
+  }
+
   var app = createServer((req, res) => {
     config.updateConfigDataForDomain(req.headers.host)
 
@@ -153,9 +170,11 @@ Server.prototype.start = function (done) {
 }
 
 function createServer (listener) {
-  var protocol = config.get('server.protocol') || 'http'
+  var protocol = config.get('server.protocol')
 
-  if (protocol === 'https') {
+  if (protocol === 'http') {
+    return http.createServer(listener)
+  } else if (protocol === 'https') {
     var readFileSyncSafe = (path) => {
       try {
         return fs.readFileSync(path)
@@ -203,9 +222,6 @@ function createServer (listener) {
           throw new Error(exPrefix + ex.message)
       }
     }
-  } else {
-    // default to http
-    return http.createServer(listener)
   }
 }
 
@@ -224,6 +240,21 @@ function onListening (server) {
     startText += '  ----------------------------\n'
 
     startText += '\n\n  Copyright ' + String.fromCharCode(169) + ' 2015-' + new Date().getFullYear() + ' DADI+ Limited (https://dadi.tech)'.white + '\n'
+
+    console.log(startText)
+  }
+}
+
+function onRedirectListening (server) {
+  var env = config.get('env')
+  var address = server.address()
+
+  if (env !== 'test') {
+    var startText = '\n  ----------------------------\n'
+    startText += "  Started HTTP -> HTTPS Redirect\n"
+    startText += '  ----------------------------\n'
+    startText += '  Server:      '.green + address.address + ':' + address.port + '\n'
+    startText += '  ----------------------------\n'
 
     console.log(startText)
   }
