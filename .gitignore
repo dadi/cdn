@@ -22,4 +22,5 @@ persist
 .node-persist/**/*
 public/**/*
 
-workspace/exif/*
+workspace/_exif/*
+workspace/_tmp/*
