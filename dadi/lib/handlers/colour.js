@@ -41,14 +41,14 @@ ColourHandler.prototype.getColours = function (buffer) {
  */
 ColourHandler.prototype.getFullColours = function (dominantColour, palette) {
   var primaryColourHex = dominantColour.getHex()
-  var primaryColourHSL = dominantColour.getHsl()
+  var primaryColourHSL = this.getHsl(dominantColour.getHsl())
   var humanColour = new HumanColours(primaryColourHSL)
 
   var paletteColours = {}
 
   _.each(palette, (colour, index) => {
     var hex = colour.getHex()
-    var hsl = colour.getHsl()
+    var hsl = this.getHsl(colour.getHsl())
     var humanColourPalette = new HumanColours(hsl)
 
     paletteColours[index] = {
@@ -86,7 +86,7 @@ ColourHandler.prototype.getFullColours = function (dominantColour, palette) {
  */
 ColourHandler.prototype.getFlattenedColours = function (dominantColour, palette) {
   var primaryColourHex = dominantColour.getHex()
-  var primaryColourHSL = dominantColour.getHsl()
+  var primaryColourHSL = this.getHsl(dominantColour.getHsl())
   var humanColour = new HumanColours(primaryColourHSL)
 
   var colourNames = colourNamer(dominantColour.getRgb())
@@ -102,7 +102,7 @@ ColourHandler.prototype.getFlattenedColours = function (dominantColour, palette)
 
   var colourPalette = _.map(palette, (colour) => {
     var pc = colour.getHex()
-    var hsl = colour.getHsl()
+    var hsl = this.getHsl(colour.getHsl())
     var humanColour = new HumanColours(hsl)
     var names = colourNamer(pc)
 
@@ -155,6 +155,17 @@ ColourHandler.prototype.getColourNames = function (colour) {
   return data
 }
 
+/**
+ * Translate an array of fractions to HSL numbers
+ */
+ColourHandler.prototype.getHsl = function (hslArray) {
+  if (!hslArray || !hslArray.length || hslArray.length !== 3) {
+    return [100, 25, 25]
+  }
+
+  return [ Math.ceil(hslArray[0] * 360), Math.ceil(hslArray[1] * 100).toString() + '%', Math.ceil(hslArray[2] * 100).toString() + '%' ]
+}
+
 var regex = /hsl\((.*)\)/ // Match hsl values
 var h // Hue
 var s // Saturation
@@ -165,7 +176,7 @@ var light
 
 function HumanColours (hsl) {
   this.HSL = hsl
-  this.values = this.HSL.replace(regex, '$1').split(',')
+  this.values = this.HSL
 }
 
 HumanColours.prototype = {
