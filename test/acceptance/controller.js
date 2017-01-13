@@ -158,6 +158,28 @@ describe('Controller', function () {
         })
     })
 
+    it('v2: should extract options from querystring when it is encoded', function (done) {
+      // spy on the sanitiseOptions method to access the provided arguments
+      var method = sinon.spy(imageHandler.ImageHandler.prototype, 'sanitiseOptions')
+
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/test.jpg?q=50&amp;w=801&amp;h=478&amp;g=North&amp;resize=aspectfit&amp;dpr=2')
+        .end(function (err, res) {
+          imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
+
+          method.called.should.eql(true)
+          var options = method.returnValues[0]
+
+          options.quality.should.eql(50)
+          options.width.should.eql(801)
+          options.height.should.eql(478)
+          options.devicePixelRatio.should.eql(2)
+          options.format.should.eql('jpg')
+          done()
+        })
+    })
+
     it('v2: should extract output format from querystring if present', function (done) {
       // spy on the sanitiseOptions method to access the provided arguments
       var method = sinon.spy(imageHandler.ImageHandler.prototype, 'sanitiseOptions')

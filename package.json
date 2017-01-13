@@ -1,6 +1,6 @@
 {
   "name": "@dadi/cdn",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "description": "A high performance, just-in-time asset manipulation and delivery layer designed as a modern content distribution solution.",
   "scripts": {
     "init": "validate-commit-msg",
@@ -33,6 +33,7 @@
     "exif2": "0.0.1",
     "finalhandler": "~0.5.0",
     "gzip-size": "^3.0.0",
+    "he": "^1.1.0",
     "images": "^3.0.0",
     "imagesize": "~1.0.0",
     "length-stream": "~0.1.1",
