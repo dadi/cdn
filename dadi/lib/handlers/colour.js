@@ -166,7 +166,6 @@ ColourHandler.prototype.getHsl = function (hslArray) {
   return [ Math.ceil(hslArray[0] * 360), Math.ceil(hslArray[1] * 100).toString() + '%', Math.ceil(hslArray[2] * 100).toString() + '%' ]
 }
 
-var regex = /hsl\((.*)\)/ // Match hsl values
 var h // Hue
 var s // Saturation
 var l // Lightness

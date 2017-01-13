@@ -39,7 +39,8 @@ HTTPStorage.prototype.get = function () {
 
     download.on('error', (error) => {
       var err
-      if (error.indexOf('404') > -1) {
+
+      if (typeof error === 'string' && error.indexOf('404') > -1) {
         err = {
           statusCode: '404',
           message: 'Not Found: ' + this.getFullUrl()
