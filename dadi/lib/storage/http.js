@@ -1,4 +1,5 @@
 var fs = require('fs')
+var mkdirp = require('mkdirp')
 var path = require('path')
 var sha1 = require('sha1')
 // var stream = require('stream')
@@ -6,6 +7,15 @@ var urljoin = require('url-join')
 var wget = require('wget-improved')
 
 // var Missing = require(path.join(__dirname, '/missing'))
+
+var tmpDirectory = path.resolve(path.join(__dirname, '/../../../workspace/_tmp'))
+console.log(tmpDirectory)
+mkdirp(tmpDirectory, (err, made) => {
+  console.log(made)
+  if (err) {
+    console.log(err)
+  }
+})
 
 var HTTPStorage = function (settings, url) {
   if (settings && !settings.remote.path) throw new Error('Remote address not specified')
@@ -27,7 +37,7 @@ HTTPStorage.prototype.getFullUrl = function () {
 
 HTTPStorage.prototype.get = function () {
   return new Promise((resolve, reject) => {
-    this.tmpFile = path.join(path.resolve(path.join(__dirname, '/../../../workspace')), sha1(this.url) + '-' + Date.now() + path.extname(this.url))
+    this.tmpFile = path.join(tmpDirectory, sha1(this.url) + '-' + Date.now() + path.extname(this.url))
 
     var options = {
       headers: {
@@ -55,7 +65,6 @@ HTTPStorage.prototype.get = function () {
     // download.on('start', function (fileSize) { })
 
     download.on('end', (output) => {
-      console.log(output)
       return resolve(fs.createReadStream(this.tmpFile))
     })
 

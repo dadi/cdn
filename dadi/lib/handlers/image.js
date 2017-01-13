@@ -19,7 +19,7 @@ var HTTPStorage = require(path.join(__dirname, '/../storage/http'))
 var Cache = require(path.join(__dirname, '/../cache'))
 var config = require(path.join(__dirname, '/../../../config'))
 
-var exifDirectory = path.resolve(path.join(__dirname, '/../../../workspace/exif'))
+var exifDirectory = path.resolve(path.join(__dirname, '/../../../workspace/_exif'))
 mkdirp(exifDirectory, (err, made) => {
   if (err) {
     console.log(err)
