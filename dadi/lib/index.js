@@ -231,7 +231,7 @@ function onListening (server) {
 
   if (env !== 'test') {
     var startText = '\n  ----------------------------\n'
-    startText += "  Started 'DADI CDN'\n"
+    startText += '  Started \'DADI CDN\'\n'
     startText += '  ----------------------------\n'
     startText += '  Server:      '.green + address.address + ':' + address.port + '\n'
     startText += '  Version:     '.green + version + '\n'
@@ -251,7 +251,7 @@ function onRedirectListening (server) {
 
   if (env !== 'test') {
     var startText = '\n  ----------------------------\n'
-    startText += "  Started HTTP -> HTTPS Redirect\n"
+    startText += '  Started HTTP -> HTTPS Redirect\n'
     startText += '  ----------------------------\n'
     startText += '  Server:      '.green + address.address + ':' + address.port + '\n'
     startText += '  ----------------------------\n'
