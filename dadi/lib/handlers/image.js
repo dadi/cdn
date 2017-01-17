@@ -94,6 +94,10 @@ ImageHandler.prototype.put = function (stream, folderPath) {
       self.storageHandler.put(writeStream, folderPath).then((result) => {
         if (config.get('upload.extractColours')) {
           colourHandler.getColours(buffer, (err, colours) => {
+            if (err) {
+              console.log(err)
+            }
+
             if (!_.isEmpty(colours)) result.colours = colours
 
             return resolve(result)
