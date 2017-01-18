@@ -90,15 +90,21 @@ ImageHandler.prototype.put = function (stream, folderPath) {
 
     function getColourInfo (buffer) {
       var colourHandler = new ColourHandler()
-      var colours = {}
-
-      if (config.get('upload.extractColours')) {
-        colours = colourHandler.getColours(buffer)
-      }
 
       self.storageHandler.put(writeStream, folderPath).then((result) => {
-        if (!_.isEmpty(colours)) result.colours = colours
-        return resolve(result)
+        if (config.get('upload.extractColours')) {
+          colourHandler.getColours(buffer, (err, colours) => {
+            if (err) {
+              console.log(err)
+            }
+
+            if (!_.isEmpty(colours)) result.colours = colours
+
+            return resolve(result)
+          })
+        } else {
+          return resolve(result)
+        }
       })
     }
   })

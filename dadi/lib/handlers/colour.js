@@ -13,7 +13,7 @@ var ColourHandler = function () {
  * Get colour information from an image stream
  * @returns {object}
  */
-ColourHandler.prototype.getColours = function (buffer) {
+ColourHandler.prototype.getColours = function (buffer, callback) {
   var v = new Vibrant(buffer, { colorCount: 12, quality: 1 })
 
   v.getSwatches((err, swatches) => {
@@ -27,10 +27,10 @@ ColourHandler.prototype.getColours = function (buffer) {
     var dominantColour = swatches[0]
     var palette = swatches.slice(1)
 
-    return {
+    return callback(null, {
       flattened: this.getFlattenedColours(dominantColour, palette),
       full: this.getFullColours(dominantColour, palette)
-    }
+    })
   })
 }
 

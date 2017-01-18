@@ -1,13 +1,14 @@
 {
   "name": "@dadi/cdn",
-  "version": "1.7.2",
+  "version": "0.0.0-development",
   "description": "A high performance, just-in-time asset manipulation and delivery layer designed as a modern content distribution solution.",
   "scripts": {
     "init": "validate-commit-msg",
     "start": "node index.js --node_env=development",
     "test": "standard 'dadi/**/*.js' && env NODE_ENV=test ./node_modules/.bin/istanbul cover -x '**/workspace/**' --report cobertura --report text --report html --report lcov ./node_modules/mocha/bin/_mocha test -- --require babel-register",
     "posttest": "./scripts/coverage.js",
-    "postpublish": "greenkeeper-postpublish"
+    "postpublish": "greenkeeper-postpublish",
+    "semantic-release": "semantic-release pre && npm publish && semantic-release post"
   },
   "dependencies": {
     "@dadi/cache": "^1.0.0",
@@ -75,7 +76,8 @@
     "should": "~11.1.0",
     "sinon": "~1.17.5",
     "standard": "*",
-    "supertest": "~2.0.0"
+    "supertest": "~2.0.0",
+    "semantic-release": "^6.3.2"
   },
   "greenkeeper": {
     "ignore": [
@@ -86,7 +88,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dadi/cdn.git"
+    "url": "https://github.com/dadi/cdn.git"
   },
   "bugs": {
     "url": "https://github.com/dadi/cdn/issues"
