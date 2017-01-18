@@ -15,6 +15,12 @@ var conf = convict({
       format: 'port',
       default: 8080
     },
+    redirectPort: {
+      doc: 'Port to redirect http connections to https from',
+      format: 'port',
+      default: 0,
+      env: 'REDIRECT_PORT'
+    },
     name: {
       doc: 'Server name',
       format: String,

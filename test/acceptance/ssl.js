@@ -26,6 +26,7 @@ describe('SSL', () => {
 
   afterEach((done) => {
     config.set('server.protocol', 'http')
+    config.set('server.redirectPort', '')
     config.set('server.sslPassphrase', '')
     config.set('server.sslPrivateKeyPath', '')
     config.set('server.sslCertificatePath', '')
@@ -47,6 +48,26 @@ describe('SSL', () => {
         .end((err, res) => {
           if (err) throw err
           res.statusCode.should.eql(200)
+          done()
+        })
+    })
+  })
+
+  it('should redirect http request to https when redirectPort is set', function(done) {
+    config.set('server.protocol', 'https')
+    config.set('server.redirectPort', '9999')
+    config.set('server.sslPrivateKeyPath', 'test/ssl/unprotected/key.pem')
+    config.set('server.sslCertificatePath', 'test/ssl/unprotected/cert.pem')
+
+    app.start(function (err) {
+      if (err) return done(err)
+
+      var httpClient = request('http://' + config.get('server.host') + ':9999')
+      httpClient
+        .get('/')
+        .expect(301)
+        .end((err, res) => {
+          if (err) return done(err)
           done()
         })
     })
