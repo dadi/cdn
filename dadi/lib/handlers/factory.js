@@ -34,7 +34,7 @@ var HandlerFactory = function () {
   this.handlers = []
   this.currentHandler = -1
 
-  this.getWorkspaceFiles()
+  this.workspaceFiles = this.getWorkspaceFiles()
 
   // Add handlers in order
   this.handlers.push(this.createFromRoute)
@@ -93,10 +93,12 @@ HandlerFactory.prototype.getWorkspaceFiles = function () {
   var recipes = fs.readdirSync(path.resolve(config.get('paths.recipes')))
   var routes = fs.readdirSync(path.resolve(config.get('paths.routes')))
 
-  this.workspaceFiles = _.map(_.filter(_.union(processors, recipes, routes), (file) => {
-    return path.extname(file) === '.json'
+  // return an array of filenames that have json or js extensions
+  // and remove the extension 
+  return _.map(_.filter(_.union(processors, recipes, routes), (file) => {
+    return path.extname(file) === '.json' || path.extname(file) === '.js'
   }), (file) => {
-    return path.basename(file, '.json')
+    return path.basename(path.basename(file, '.json'), '.js')
   })
 }
 
