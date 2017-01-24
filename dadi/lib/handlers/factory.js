@@ -94,7 +94,7 @@ HandlerFactory.prototype.getWorkspaceFiles = function () {
   var routes = fs.readdirSync(path.resolve(config.get('paths.routes')))
 
   // return an array of filenames that have json or js extensions
-  // and remove the extension 
+  // and remove the extension
   return _.map(_.filter(_.union(processors, recipes, routes), (file) => {
     return path.extname(file) === '.json' || path.extname(file) === '.js'
   }), (file) => {
