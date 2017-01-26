@@ -159,6 +159,14 @@ var Controller = function (router) {
 
     return new PostController().post(req, res)
   })
+
+  router.post('/api/remove', function (req, res, next) {
+    if (!config.get('upload.enabled')) {
+      return next()
+    }
+
+    return new PostController().remove(req, res)
+  })
 }
 
 Controller.prototype.addContentTypeHeader = function (res, handler) {

@@ -17,6 +17,37 @@ module.exports = function () {
 
 module.exports.PostController = PostController
 
+PostController.prototype.remove = (req, res) => {
+  var busboy = new Busboy({ headers: req.headers })
+  var fileName = ''
+
+  busboy.on('field', (fieldname, val) => {
+    if (fieldname === 'fileName') {
+      fileName = val.replace(/[^a-z0-9\/\-_.]+/gi, '_')
+    }
+  })
+
+  busboy.on('finish', () => {
+    var format = fileName.substr(fileName.lastIndexOf('.') + 1)
+    new HandlerFactory().create(req, null, format).then((handler) => {
+      if (handler.remove) {
+        handler.remove(fileName).then((result) => {
+          help.sendBackJSON(200, { fileName, status: 'success', result }, res)
+        }).catch((err) => {
+          help.sendBackJSON(500, { fileName, status: 'error', err }, res)
+        })
+      } else {
+        help.sendBackJSON(501, { fileName, status: 'remove not implemented' }, res)
+      }
+    })
+    .catch((ex) => {
+      help.sendBackJSON(500, { fileName, status: 'error', ex }, res)
+    })
+  })
+
+  req.pipe(busboy)
+}
+
 PostController.prototype.post = (req, res) => {
   var busboy = new Busboy({ headers: req.headers })
   this.data = []

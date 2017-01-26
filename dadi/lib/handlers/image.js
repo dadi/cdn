@@ -73,6 +73,20 @@ var ImageHandler = function (format, req) {
   }
 }
 
+ImageHandler.prototype.remove = function (fileName) {
+  return new Promise((resolve, reject) => {
+    this.storageHandler = this.storageFactory.create('image', this.url)
+
+    if (!this.storageHandler.remove) {
+      return reject('storage handler does not implement remove')
+    }
+
+    this.storageHandler.remove(fileName)
+      .then(result => resolve(result))
+      .catch(exception => reject(exception))
+  })
+}
+
 ImageHandler.prototype.put = function (stream, folderPath) {
   return new Promise((resolve, reject) => {
     this.storageHandler = this.storageFactory.create('image', this.url)
