@@ -23,7 +23,7 @@ PostController.prototype.remove = (req, res) => {
 
   busboy.on('field', (fieldname, val) => {
     if (fieldname === 'fileName') {
-      fileName = val.replace(/[^a-z0-9\/\-_.]+/gi, '_')
+      fileName = val.replace(/[^a-z0-9/\-_.]+/gi, '_')
     }
   })
 
