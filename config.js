@@ -190,6 +190,11 @@ var conf = convict({
         doc: 'The remote host to request images from, for example http://media.example.com',
         format: String,
         default: ''
+      },
+      allowFullURL: {
+        doc: 'If true, images can be loaded from any remote URL',
+        format: Boolean,
+        default: false
       }
     }
   },
