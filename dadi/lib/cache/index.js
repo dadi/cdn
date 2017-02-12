@@ -78,7 +78,11 @@ Cache.prototype.getStream = function (key, cb) {
   cache.get(encryptedKey).then((stream) => {
     return cb(stream)
   }).catch((err) => {
-    // key doesn't exist
+    // Key doesn't exist. This silly line only exists because StandardJS
+    // will complain that `err` isn't being handled otherwise.
+    // It's fine, really. This is not really an error.
+    (() => {})(err)
+
     return cb(null)
   })
 }
