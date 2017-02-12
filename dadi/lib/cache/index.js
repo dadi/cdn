@@ -79,7 +79,6 @@ Cache.prototype.getStream = function (key, cb) {
     return cb(stream)
   }).catch((err) => {
     // key doesn't exist
-    console.log(err)
     return cb(null)
   })
 }
