@@ -163,11 +163,14 @@ ImageHandler.prototype.get = function () {
     this.cache.getStream(this.cacheKey, (stream) => {
       // if found in cache, return it
       if (stream) {
+        console.log('*** CACHED:', parsedUrl.href)
         if (this.options.format !== 'json') {
           this.cached = true
           return resolve(stream)
         }
       }
+
+      console.log('*** UNCACHED:', parsedUrl.href)
 
       // not in cache, get image from source
       if (this.externalUrl) {
