@@ -13,7 +13,8 @@ var conf = convict({
     port: {
       doc: 'The port number the application will bind to',
       format: 'port',
-      default: 8080
+      default: 8080,
+      env: 'PORT'
     },
     redirectPort: {
       doc: 'Port to redirect http connections to https from',
@@ -190,6 +191,11 @@ var conf = convict({
         doc: 'The remote host to request images from, for example http://media.example.com',
         format: String,
         default: ''
+      },
+      allowFullURL: {
+        doc: 'If true, images can be loaded from any remote URL',
+        format: Boolean,
+        default: false
       }
     }
   },
@@ -295,7 +301,7 @@ var conf = convict({
     }
   },
   status: {
-  	enabled: {
+    enabled: {
       doc: "If true, status endpoint is enabled.",
       format: Boolean,
       default: true
