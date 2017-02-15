@@ -266,7 +266,8 @@ var conf = convict({
       enabled: {
         doc: 'If true, cache files will be saved to the filesystem',
         format: Boolean,
-        default: true
+        default: true,
+        env: 'CACHE_ENABLE_DIRECTORY'
       },
       path: {
         doc: 'The relative path to the cache directory',
@@ -278,7 +279,8 @@ var conf = convict({
       enabled: {
         doc: 'If true, cache files will be saved to the specified Redis server',
         format: Boolean,
-        default: false
+        default: false,
+        env: 'CACHE_ENABLE_REDIS'
       },
       host: {
         doc: 'The Redis server host',
