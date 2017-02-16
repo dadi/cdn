@@ -171,6 +171,15 @@ ImageHandler.prototype.get = function () {
 
       // not in cache, get image from source
       if (this.externalUrl) {
+        if (!config.get('images.remote.enabled') || !config.get('images.remote.allowFullURL')) {
+          const err = {
+            statusCode: 403,
+            message: 'Loading images from a full remote URL is not supported by this instance of DADI CDN'
+          }
+
+          return reject(err)
+        }
+
         this.storageHandler = new HTTPStorage(null, this.externalUrl)
       } else {
         this.storageHandler = this.storageFactory.create('image', this.url)
