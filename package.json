@@ -20,7 +20,7 @@
     "async": "^2.0.1",
     "aws-sdk": "2.5.4",
     "bluebird": "latest",
-    "body-parser": "~1.15.2",
+    "body-parser": "~1.16.1",
     "busboy": "^0.2.13",
     "chokidar": "^1.x.x",
     "cloudfront": "~0.4.0",
