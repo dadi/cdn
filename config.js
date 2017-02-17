@@ -400,7 +400,7 @@ var conf = convict({
   cluster: {
     doc: 'If true, CDN runs in cluster mode, starting a worker for each CPU core',
     format: Boolean,
-    default: false
+    default: true
   },
   paths: {
     doc: "",

@@ -1,9 +1,8 @@
 {
   "server": {
-      "host": "0.0.0.0",
-      "port": 80
+    "host": "0.0.0.0",
+    "port": 80
   },
-
   "logging": {
     "enabled": true,
     "level": "info",
@@ -15,9 +14,6 @@
       "kinesisStream": ""
     }
   },
-
-  // Either directory, s3 or remote should be enabled
-
   "images": {
     "directory": {
       "enabled": true,
@@ -35,8 +31,6 @@
       "path": ""
     }
   },
-
-  // Either directory, s3 or remote should be enabled
   "assets": {
     "directory": {
       "enabled": true,
@@ -54,12 +48,10 @@
       "path": ""
     }
   },
-
-  // Either directory or redis should be enabled
   "caching": {
     "ttl": 3600,
     "directory": {
-      "enabled": true,
+      "enabled": false,
       "path": "./cache/"
     },
     "redis": {
