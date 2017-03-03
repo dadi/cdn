@@ -11,7 +11,7 @@
     "semantic-release": "semantic-release pre && npm publish && semantic-release post"
   },
   "dependencies": {
-    "@dadi/cache": "git+https://github.com/dadi/cache.git#33ebd693ce35e122a87202fffbd3767cd2a6aa8a",
+    "@dadi/cache": "1.3.0",
     "@dadi/logger": "latest",
     "@dadi/status": "latest",
     "accept-language-parser": "^1.2.0",
