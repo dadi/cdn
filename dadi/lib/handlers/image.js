@@ -417,6 +417,8 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
             if (quality > 70) params.compression = 'none'
             else if (quality > 50) params.compression = 'fast'
             else params.compression = 'high'
+
+            params.transparency = 'auto'
           }
 
           // sharpening
@@ -425,8 +427,8 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
           } else if (quality >= 70) {
             if (/jpe?g/.exec(imageInfo.format) || /jpe?g/.exec(options.format)) {
               batch.sharpen(5)
-            } else if (/png/.exec(imageInfo.format) || /png/.exec(options.format)) {
-              batch.sharpen(5)
+            // } else if (/png/.exec(imageInfo.format) || /png/.exec(options.format)) {
+            //   batch.sharpen(5)
             } else if (options.cropX && options.cropY) {
               batch.sharpen(5)
             }
