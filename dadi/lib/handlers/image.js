@@ -863,8 +863,16 @@ ImageHandler.prototype.contentType = function () {
   }
 }
 
+/**
+ * Returns the filename including extension of the requested image
+ * @returns {string} the filename of the image
+ */
 ImageHandler.prototype.getFilename = function () {
-  return this.fileName
+  if (path.extname(this.fileName) === '') {
+    return this.fileName + '.' + this.fileExt
+  } else {
+    return this.fileName
+  }
 }
 
 ImageHandler.prototype.getLastModified = function () {
