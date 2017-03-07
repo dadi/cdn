@@ -265,4 +265,30 @@ describe('ImageHandler', function (done) {
       done()
     })
   })
+
+  it('should return filename with jpg extension when a URL has no extension', function (done) {
+    var newTestConfig = JSON.parse(testConfigString)
+    newTestConfig.caching.directory.enabled = false
+    newTestConfig.caching.redis.enabled = false
+    cache.reset()
+    newTestConfig.images.directory.enabled = false
+    newTestConfig.images.s3.enabled = false
+    newTestConfig.images.remote.enabled = true
+    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+    config.loadFile(config.configPath())
+
+    var req = {
+      headers: {},
+      url: '/test'
+    }
+
+    // set some expected values
+    var expected = 'test.jpg'
+
+    var im = new imageHandler('jpg', req)
+    im.getFilename().should.eql(expected)
+
+    done()
+  })
 })
