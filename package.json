@@ -7,8 +7,7 @@
     "start": "node index.js --node_env=development",
     "test": "standard 'dadi/**/*.js' && env NODE_ENV=test ./node_modules/.bin/istanbul cover -x '**/workspace/**' --report cobertura --report text --report html --report lcov ./node_modules/mocha/bin/_mocha test -- --require babel-register",
     "posttest": "./scripts/coverage.js",
-    "postpublish": "greenkeeper-postpublish",
-    "semantic-release": "semantic-release pre && npm publish && semantic-release post"
+    "postpublish": "greenkeeper-postpublish"
   },
   "dependencies": {
     "@dadi/cache": "1.5.x",
@@ -76,8 +75,7 @@
     "should": "~11.1.0",
     "sinon": "~1.17.5",
     "standard": "8.x.x",
-    "supertest": "~2.0.0",
-    "semantic-release": "^6.3.2"
+    "supertest": "~2.0.0"
   },
   "greenkeeper": {
     "ignore": [
