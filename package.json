@@ -73,7 +73,7 @@
     "proxyquire": "~1.7.4",
     "redis": "^2.6.3",
     "should": "~11.1.0",
-    "sinon": "~1.17.5",
+    "sinon": "~2.0.0",
     "standard": "8.x.x",
     "supertest": "~2.0.0"
   },
