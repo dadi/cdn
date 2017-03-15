@@ -69,7 +69,7 @@ var ImageHandler = function (format, req) {
   this.exifData = {}
 
   if (!pathname.indexOf('http://') || !pathname.indexOf('https://')) {
-    this.externalUrl = pathname
+    this.externalUrl = parsedUrl.path.slice(1)
   }
 }
 
@@ -807,6 +807,16 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
   ]
 
   var imageOptions = {}
+
+  // handle querystring options that came from a remote image url
+  // as if the original remote url had it's own querystring then we'll
+  // get an option here that starts with a ?, from where the CDN params were added
+  _.each(Object.keys(options), function (key) {
+    if (key[0] === '?') {
+      options[key.substring(1)] = options[key]
+      delete options[key]
+    }
+  })
 
   _.each(Object.keys(options), function (key) {
     var settings = _.filter(optionSettings, function (setting) {
