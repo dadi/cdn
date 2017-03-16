@@ -1,17 +1,16 @@
 {
   "name": "@dadi/cdn",
-  "version": "0.0.0-development",
+  "version": "1.10.3",
   "description": "A high performance, just-in-time asset manipulation and delivery layer designed as a modern content distribution solution.",
   "scripts": {
     "init": "validate-commit-msg",
     "start": "node index.js --node_env=development",
     "test": "standard 'dadi/**/*.js' && env NODE_ENV=test ./node_modules/.bin/istanbul cover -x '**/workspace/**' --report cobertura --report text --report html --report lcov ./node_modules/mocha/bin/_mocha test -- --require babel-register",
     "posttest": "./scripts/coverage.js",
-    "postpublish": "greenkeeper-postpublish",
-    "semantic-release": "semantic-release pre && npm publish && semantic-release post"
+    "postpublish": "greenkeeper-postpublish"
   },
   "dependencies": {
-    "@dadi/cache": "^1.0.0",
+    "@dadi/cache": "1.5.x",
     "@dadi/logger": "latest",
     "@dadi/status": "latest",
     "accept-language-parser": "^1.2.0",
@@ -20,7 +19,7 @@
     "async": "^2.0.1",
     "aws-sdk": "2.5.4",
     "bluebird": "latest",
-    "body-parser": "~1.15.2",
+    "body-parser": "~1.17.1",
     "busboy": "^0.2.13",
     "chokidar": "^1.x.x",
     "cloudfront": "~0.4.0",
@@ -46,9 +45,9 @@
     "node-minify": "^2.0.0-beta.1",
     "node-persist": "~2.0.2",
     "node-vibrant": "^2.1.2",
-    "request": "~2.74.0",
+    "request": "~2.81.0",
     "request-promise": "^4.1.1",
-    "router": "~1.1.3",
+    "router": "~1.3.0",
     "sha1": "~1.1.1",
     "smartcrop-lwip": "git+https://github.com/eduardoboucas/smartcrop-lwip",
     "sqwish": "^0.2.2",
@@ -66,7 +65,7 @@
     "aws-sdk-mock": "^1.5.0",
     "babel-register": "^6.18.0",
     "env-test": "^1.0.0",
-    "fakeredis": "^1.0.2",
+    "fakeredis": "^2.0.0",
     "greenkeeper-postpublish": "^1.0.1",
     "istanbul": "^1.1.0-alpha.1",
     "istanbul-cobertura-badger": "^1.2.1",
@@ -75,9 +74,8 @@
     "redis": "^2.6.3",
     "should": "~11.1.0",
     "sinon": "~1.17.5",
-    "standard": "*",
-    "supertest": "~2.0.0",
-    "semantic-release": "^6.3.2"
+    "standard": "8.x.x",
+    "supertest": "~2.0.0"
   },
   "greenkeeper": {
     "ignore": [
@@ -98,5 +96,5 @@
     "test": "test"
   },
   "author": "DADI <team@dadi.tech>",
-  "license": "SEE LICENSE IN AGPL.md"
+  "license": "SEE LICENSE IN GPL.md"
 }

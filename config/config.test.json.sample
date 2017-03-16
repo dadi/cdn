@@ -3,6 +3,7 @@
     "host": "0.0.0.0",
     "port": 8111
   },
+  "cluster": false,
   "logging": {
     "enabled": true,
     "level": "info",
