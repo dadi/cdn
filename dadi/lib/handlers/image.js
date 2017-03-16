@@ -69,7 +69,7 @@ var ImageHandler = function (format, req) {
   this.exifData = {}
 
   if (!pathname.indexOf('http://') || !pathname.indexOf('https://')) {
-    this.externalUrl = pathname
+    this.externalUrl = parsedUrl.path.slice(1)
   }
 }
 
@@ -417,6 +417,8 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
             if (quality > 70) params.compression = 'none'
             else if (quality > 50) params.compression = 'fast'
             else params.compression = 'high'
+
+            params.transparency = 'auto'
           }
 
           // sharpening
@@ -425,8 +427,8 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
           } else if (quality >= 70) {
             if (/jpe?g/.exec(imageInfo.format) || /jpe?g/.exec(options.format)) {
               batch.sharpen(5)
-            } else if (/png/.exec(imageInfo.format) || /png/.exec(options.format)) {
-              batch.sharpen(5)
+            // } else if (/png/.exec(imageInfo.format) || /png/.exec(options.format)) {
+            //   batch.sharpen(5)
             } else if (options.cropX && options.cropY) {
               batch.sharpen(5)
             }
@@ -806,6 +808,16 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
 
   var imageOptions = {}
 
+  // handle querystring options that came from a remote image url
+  // as if the original remote url had it's own querystring then we'll
+  // get an option here that starts with a ?, from where the CDN params were added
+  _.each(Object.keys(options), function (key) {
+    if (key[0] === '?') {
+      options[key.substring(1)] = options[key]
+      delete options[key]
+    }
+  })
+
   _.each(Object.keys(options), function (key) {
     var settings = _.filter(optionSettings, function (setting) {
       return setting.name === key || _.contains(setting.aliases, key)
@@ -861,8 +873,16 @@ ImageHandler.prototype.contentType = function () {
   }
 }
 
+/**
+ * Returns the filename including extension of the requested image
+ * @returns {string} the filename of the image
+ */
 ImageHandler.prototype.getFilename = function () {
-  return this.fileName
+  if (path.extname(this.fileName) === '') {
+    return this.fileName + '.' + this.fileExt
+  } else {
+    return this.fileName
+  }
 }
 
 ImageHandler.prototype.getLastModified = function () {

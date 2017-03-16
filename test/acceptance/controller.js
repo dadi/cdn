@@ -216,6 +216,26 @@ describe('Controller', function () {
           done()
         })
     })
+
+    it('v2: should extract options from querystring if an external URL with URL params is provided', function (done) {
+      // spy on the sanitiseOptions method to access the provided arguments
+      var method = sinon.spy(imageHandler.ImageHandler.prototype, 'sanitiseOptions')
+
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/https://www.google.co.uk/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png?h=32&?quality=50&width=80&height=478&gravity=North&resizeStyle=aspectfit&devicePixelRatio=2')
+        .end(function (err, res) {
+          imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
+
+          method.called.should.eql(true)
+          var options = method.returnValues[0]
+
+          options.quality.should.eql(50)
+          options.width.should.eql(80)
+          options.format.should.eql('png')
+          done()
+        })
+    })
   })
 
   describe('Assets', function () {
