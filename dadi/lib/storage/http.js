@@ -1,5 +1,7 @@
+var _ = require('underscore')
 var fs = require('fs')
 var mkdirp = require('mkdirp')
+var nodeUrl = require('url')
 var path = require('path')
 var sha1 = require('sha1')
 // var stream = require('stream')
@@ -20,7 +22,21 @@ mkdirp(tmpDirectory, (err, made) => {
 var HTTPStorage = function (settings, url) {
   if (settings && !settings.remote.path) throw new Error('Remote address not specified')
 
-  this.url = url
+  this.query = ''
+
+  if (!url.indexOf('http://') || !url.indexOf('https://')) {
+    var parsedUrl = nodeUrl.parse(url, true)
+    this.url = parsedUrl.protocol + '//' + parsedUrl.host + parsedUrl.pathname
+
+    var querystring = parsedUrl.search
+    var query = _.compact(querystring.split('?'))[0]
+
+    if (query && query !== 'version=2') {
+      this.query = '?' + query
+    }
+  } else {
+    this.url = url
+  }
 
   if (settings) {
     this.baseUrl = settings.remote.path
@@ -29,9 +45,9 @@ var HTTPStorage = function (settings, url) {
 
 HTTPStorage.prototype.getFullUrl = function () {
   if (this.baseUrl) {
-    return urljoin(this.baseUrl, this.url.replace('/http/', ''))
+    return urljoin(this.baseUrl, this.url.replace('/http/', '')) + this.query
   } else {
-    return this.url
+    return this.url + this.query
   }
 }
 
