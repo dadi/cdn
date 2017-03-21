@@ -84,15 +84,31 @@ $ forever-service install -s index.js -e NODE_ENV=production cdn --start
 
 Before you can serve assets or images you need to tell CDN where your files are located. Currently, CDN can serve your files from three types of source: [Amazon S3](http://docs.dadi.tech/cdn/getting-started/defining-sources/#-amazon-s3-https-aws-amazon-com-s3-), [a remote server](http://docs.dadi.tech/cdn/getting-started/defining-sources/#remote-server), and the [the local filesystem](http://docs.dadi.tech/cdn/getting-started/defining-sources/#local-filesystem). We'll start using the local filesystem, but see the [full documentation](http://docs.dadi.tech/cdn/getting-started/defining-sources) for details on using the other source types.
 
-In the previous step we created a configuration file with a local filesystem source. CDN will look for your files at the location defined in the `path` property. If your `path` property is defined as `/data/images` then CDN will look for images in that location every time it handles a request.
+The sample configuration file defines a local filesystem source. The `path` property is set to use an directory called `images` at the root of your application. CDN will look for your files at the location defined in this `path` property every time it handles a request.
 
 #### Example
-We'll use the above configuration for an example. With image files in the directory `/data/images` we can make a request for one to view it in the browser:
+
+```json
+{
+  "server": {
+    "host": "127.0.0.1",
+    "port": 8001
+  },
+  "images": {
+    "directory": {
+      "enabled": true,
+      "path": "./images"
+    }
+  }
+}
+```
+
+We'll use the above configuration for an example. With image files in the `images` directory  we can make a request for one to view it in the browser:
 
 ##### Images available
 
 ```bash
-/data/images  ls -la
+$ my-app/images  ls -la
 total 9464
 drwxr-xr-x  4 root  wheel      136 13 Mar 13:02 .
 drwxr-xr-x  4 root  wheel      136 13 Mar 13:01 ..
@@ -102,7 +118,7 @@ drwxr-xr-x  4 root  wheel      136 13 Mar 13:01 ..
 
 ##### Browser request
 
-http://localhost:8001/92875.jpg
+http://127.0.0.1:8001/92875.jpg
 
 ## Links
 * [CDN Documentation](http://docs.dadi.tech/cdn/)
