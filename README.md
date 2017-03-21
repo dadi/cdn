@@ -9,7 +9,6 @@
 
 * [Overview](#overview)
 * [Requirements](#requirements)
-* [Installation](#installation)
 * [Your First CDN Project](#your-first-cdn-project)
 * [Links](#links)
 
@@ -25,15 +24,15 @@ CDN is part of DADI, a suite of components covering the full development stack, 
 
 ## Requirements
 
-* Node.js versions:
-   * 4.7.0
-   * 5.12.0
-   * 6.9.2
-
-## Installation
-With **[Node.js](https://www.nodejs.org/)** [installed](https://nodejs.org/en/download/), ensure you have the required dependencies installed. See the [installation](http://docs.dadi.tech/cdn/getting-started/installing/) documentation.
+* **[Node.js](https://www.nodejs.org/)** (supported versions: 4.7.0, 5.12.0, 6.9.2)
 
 ## Your first CDN project
+
+### Install dependencies
+
+Ensure you have the required dependencies installed. See the first sections in the CDN  [installation](http://docs.dadi.tech/cdn/getting-started/installing/) documentation.
+
+### Install CDN
 
 All DADI platform microservices are available from [NPM](https://www.npmjs.com/). To add *CDN* to your project as a dependency:
 
@@ -83,7 +82,7 @@ $ forever-service install -s index.js -e NODE_ENV=production cdn --start
 
 ### Configuring an image source
 
-Before you can serve assets or images you need to tell CDN where your files are located. Currently, CDN can serve your files from three types of source: [Amazon S3](http://docs.dadi.tech/cdn/getting-started/defining-sources/#-amazon-s3-https-aws-amazon-com-s3-), [a remote server](http://docs.dadi.tech/cdn/getting-started/defining-sources/#remote-server), and the [the local filesystem](http://docs.dadi.tech/cdn/getting-started/defining-sources/#local-filesystem). We'll start using the local filesystem, but follow the previous links for full documentation on using the other source types.
+Before you can serve assets or images you need to tell CDN where your files are located. Currently, CDN can serve your files from three types of source: [Amazon S3](http://docs.dadi.tech/cdn/getting-started/defining-sources/#-amazon-s3-https-aws-amazon-com-s3-), [a remote server](http://docs.dadi.tech/cdn/getting-started/defining-sources/#remote-server), and the [the local filesystem](http://docs.dadi.tech/cdn/getting-started/defining-sources/#local-filesystem). We'll start using the local filesystem, but see the [full documentation](http://docs.dadi.tech/cdn/getting-started/defining-sources) for details on using the other source types.
 
 In the previous step we created a configuration file with a local filesystem source. CDN will look for your files at the location defined in the `path` property. If your `path` property is defined as `/data/images` then CDN will look for images in that location every time it handles a request.
 
