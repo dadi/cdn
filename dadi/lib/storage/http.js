@@ -64,12 +64,15 @@ HTTPStorage.prototype.get = function () {
     var download = wget.download(this.getFullUrl(), this.tmpFile, options)
 
     download.on('error', (error) => {
-      var err
+      var err = {}
 
-      if (typeof error === 'string' && error.indexOf('404') > -1) {
-        err = {
-          statusCode: '404',
-          message: 'Not Found: ' + this.getFullUrl()
+      if (typeof error === 'string') {
+        if (error.indexOf('404') > -1) {
+          err.statusCode = '404'
+          err.message = 'Not Found: ' + this.getFullUrl()
+        } else if (error.indexOf('403') > -1) {
+          err.statusCode = '403'
+          err.message = 'Forbidden: ' + this.getFullUrl()
         }
 
         return reject(err)
