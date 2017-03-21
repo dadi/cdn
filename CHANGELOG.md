@@ -4,6 +4,67 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.11.0] - 2017-03-21
+
+### Added
+
+* [#209](https://github.com/dadi/cdn/issues/209): Add post install script to copy a sample development configuration file to the application root
+
+### Changed
+* [#218](https://github.com/dadi/cdn/issues/218): Set a default file extension of JPG for remote image requests that don't include an extension
+* [#223](https://github.com/dadi/cdn/issues/223): Ensure that querystring parameters on remote URLs are retained and passed to the remote request
+* Return 403 errors from remote requests ([c31a980](https://github.com/dadi/cdn/pull/229/commits/c31a98061dc0b5ea54a8ba8cf3163f9d9b8ca7c0))
+
+## [1.10.3] - 2017-03-10
+
+### Changed
+
+* package.json to reduce vulnerabilities ([728d4ea3](https://github.com/dadi/cdn/commit/728d4ea3))
+
+## [1.10.2] - 2017-03-07
+
+### Changed
+
+* return file with extension when url is extension-less ([5d5774c1](https://github.com/dadi/cdn/commit/5d5774c1))
+
+## [1.10.1] - 2017-03-05
+
+### Changed
+
+* [#216](https://github.com/dadi/cdn/issues/216): remove sharpening for PNG format ([ebc87e33](https://github.com/dadi/cdn/commit/ebc87e33))
+
+## [1.10.0] - 2017-02-17
+
+### Added
+- [#211](https://github.com/dadi/cdn/pull/211): run in cluster mode by default when in production ([6902d119](https://github.com/dadi/cdn/commit/6902d119))
+
+## [1.9.0] - 2017-02-17
+
+### Added
+
+- add a new configuration parameter (`images.remote.allowFullURL`) which toggles the use of remote images from a full URL (e.g. `https://cdn.com/https://another-full-url.com/image.jpg`). Allowing images to be loaded from anywhere means that people can, in theory, use my instance of CDN to load, manipulate and deliver their images on their site, so I think it should be something I actively choose to enable. ([1fbde477](https://github.com/dadi/cdn/commit/1fbde477))
+
+- add three additional environment variables:
+  - `PORT`: specifies the server port
+  - `CACHE_ENABLE_DIRECTORY`: toggles directory-based caching
+  - `CACHE_ENABLE_REDIS`: toggles Redis caching
+
+## [1.8.2] - 2017-02-01
+
+### Changed
+- ensure uploaded files have safe filenames ([6b9fea42](https://github.com/dadi/cdn/commit/6b9fea42))
+
+## [1.8.1] - 2017-01-24
+
+### Changed
+- load js files and json files in workspace ([ba5b4a92](https://github.com/dadi/cdn/commit/ba5b4a92))
+
+## [1.8.0] - 2017-01-18
+
+### Added
+- SSL handling improvements ([2ab581e0](https://github.com/dadi/cdn/commit/2ab581e0))
+- add redirectPort to config ([867f85e5](https://github.com/dadi/cdn/commit/867f85e5))
+
 ## [1.7.1] - 2017-01-07
 
 ### Changed
