@@ -122,7 +122,7 @@ ImageHandler.prototype.get = function () {
     var querystrings = parsedUrl.search.split('?')
 
     if (querystrings.length > 1) {
-      this.options = querystring.decode(querystrings[querystrings.length-1])
+      this.options = querystring.decode(querystrings[querystrings.length - 1])
     } else {
       this.options = parsedUrl.query
     }
