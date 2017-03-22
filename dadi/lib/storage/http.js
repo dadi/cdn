@@ -3,8 +3,8 @@ var fs = require('fs')
 var mkdirp = require('mkdirp')
 var nodeUrl = require('url')
 var path = require('path')
+var querystring = require('querystring')
 var sha1 = require('sha1')
-// var stream = require('stream')
 var urljoin = require('url-join')
 var wget = require('wget-improved')
 
@@ -22,21 +22,7 @@ mkdirp(tmpDirectory, (err, made) => {
 var HTTPStorage = function (settings, url) {
   if (settings && !settings.remote.path) throw new Error('Remote address not specified')
 
-  this.query = ''
-
-  if (!url.indexOf('http://') || !url.indexOf('https://')) {
-    var parsedUrl = nodeUrl.parse(url, true)
-    this.url = parsedUrl.protocol + '//' + parsedUrl.host + parsedUrl.pathname
-
-    var querystring = parsedUrl.search
-    var query = _.compact(querystring.split('?'))[0]
-
-    if (query && query !== 'version=2') {
-      this.query = '?' + query
-    }
-  } else {
-    this.url = url
-  }
+  this.url = url
 
   if (settings) {
     this.baseUrl = settings.remote.path
@@ -45,9 +31,9 @@ var HTTPStorage = function (settings, url) {
 
 HTTPStorage.prototype.getFullUrl = function () {
   if (this.baseUrl) {
-    return urljoin(this.baseUrl, this.url.replace('/http/', '')) + this.query
+    return urljoin(this.baseUrl, this.url.replace('/http/', ''))
   } else {
-    return this.url + this.query
+    return this.url
   }
 }
 
@@ -119,3 +105,26 @@ module.exports = function (settings, url) {
 }
 
 module.exports.HTTPStorage = HTTPStorage
+
+module.exports.processURL = function (url, imageOptions) {
+  var parsedUrl = nodeUrl.parse(url, true)
+  var returnUrl = parsedUrl.protocol + '//' + parsedUrl.host + parsedUrl.pathname
+
+  var querystrings = parsedUrl.search.split('?').reverse()
+  var imageOptionsAndAliases = _.flatten(_.union(_.pluck(imageOptions, 'name'), _.pluck(imageOptions, 'aliases')))
+
+  var qs = querystrings[0]
+  var params = querystring.decode(qs)
+
+  if (_.every(Object.keys(params), (key) => { return _.contains(imageOptionsAndAliases, key) })) {
+    delete querystrings[0]
+  }
+
+  querystrings = _.compact(querystrings).reverse()
+
+  _.each(querystrings, (qs) => {
+    returnUrl += '?' + qs
+  })
+
+  return returnUrl
+}

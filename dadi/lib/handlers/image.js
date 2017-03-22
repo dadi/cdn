@@ -8,6 +8,7 @@ var lengthStream = require('length-stream')
 var mkdirp = require('mkdirp')
 var PassThrough = require('stream').PassThrough
 var path = require('path')
+var querystring = require('querystring')
 var Readable = require('stream').Readable
 var sha1 = require('sha1')
 var url = require('url')
@@ -69,7 +70,7 @@ var ImageHandler = function (format, req) {
   this.exifData = {}
 
   if (!pathname.indexOf('http://') || !pathname.indexOf('https://')) {
-    this.externalUrl = parsedUrl.path.slice(1)
+    this.externalUrl = HTTPStorage.processURL(parsedUrl.path.slice(1), this.optionSettings())
   }
 }
 
@@ -118,7 +119,13 @@ ImageHandler.prototype.get = function () {
   // get the image options provided as querystring or path
   if (parsedUrl.search) {
     // get image options from the querystring
-    this.options = parsedUrl.query
+    var querystrings = parsedUrl.search.split('?')
+
+    if (querystrings.length > 1) {
+      this.options = querystring.decode(querystrings[querystrings.length-1])
+    } else {
+      this.options = parsedUrl.query
+    }
   } else if (!this.options) {
     // get the segments of the url that relate to image manipulation options
     var urlSegments = _.filter(parsedUrl.pathname.split('/'), function (segment, index) {
@@ -779,11 +786,8 @@ function getImageOptions (optionsArray) {
   return options
 }
 
-ImageHandler.prototype.sanitiseOptions = function (options) {
-  // check the options for aliases
-  // e.g. "dpr" === "devicePixelRatio"
-
-  var optionSettings = [
+ImageHandler.prototype.optionSettings = function () {
+  return [
     { name: 'format', aliases: ['fmt'] },
     { name: 'quality', aliases: ['q'], default: 75 },
     { name: 'sharpen', aliases: ['sh'], default: 5 },
@@ -805,6 +809,11 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
     { name: 'rotate', aliases: ['r'] },
     { name: 'flip', aliases: ['fl'] }
   ]
+}
+
+ImageHandler.prototype.sanitiseOptions = function (options) {
+  // check the options for aliases
+  // e.g. "dpr" === "devicePixelRatio"
 
   var imageOptions = {}
 
@@ -818,8 +827,8 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
     }
   })
 
-  _.each(Object.keys(options), function (key) {
-    var settings = _.filter(optionSettings, function (setting) {
+  _.each(Object.keys(options), (key) => {
+    var settings = _.filter(this.optionSettings(), (setting) => {
       return setting.name === key || _.contains(setting.aliases, key)
     })
 
@@ -839,11 +848,11 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
   })
 
   // ensure we have defaults for options not specified
-  var defaults = _.filter(optionSettings, function (setting) {
+  var defaults = _.filter(this.optionSettings(), (setting) => {
     return setting.default
   })
 
-  _.each(defaults, function (setting) {
+  _.each(defaults, (setting) => {
     if (!imageOptions[setting.name]) {
       imageOptions[setting.name] = setting.default
     }

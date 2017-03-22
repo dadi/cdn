@@ -59,7 +59,7 @@
     "url-join": "^1.1.0",
     "uuid": "latest",
     "validate-commit-message": "^3.0.1",
-    "wget-improved": "^1.3.0"
+    "wget-improved": "git+https://github.com/jimlambie/node-wget"
   },
   "devDependencies": {
     "aws-sdk-mock": "^1.5.0",
