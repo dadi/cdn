@@ -78,7 +78,7 @@ $ npm install forever forever-service -g
 $ forever-service install -s index.js -e NODE_ENV=production cdn --start
 ```
 
-> Note: the environment variable `NODE_ENV=production` must be set to required the configuration version matching the configuration files available in the `config` directory.
+> Note: the environment variable `NODE_ENV=production` must be set to the required configuration version matching the configuration files available in the `config` directory.
 
 ### Configuring an image source
 
