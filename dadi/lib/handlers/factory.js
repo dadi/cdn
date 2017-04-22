@@ -42,11 +42,10 @@ var HandlerFactory = function () {
   this.handlers.push(this.getProcessor)
 }
 
-HandlerFactory.prototype.create = function (req, mimetype) {
+HandlerFactory.prototype.create = function (req, mimetype, format) {
   var version
   var parsedUrl = url.parse(req.url, true)
   var pathComponents = parsedUrl.pathname.slice(1).split('/')
-  var format
 
   // version 1 matches a string like /jpg/80/0/0/640/480/ at the beginning of the url pathname
   var v1pattern = /^\/[a-z]{3,4}\/[0-9]+\/[0-1]+\/[0-1]+\/[0-9]+\/[0-9]+\//gi
@@ -68,10 +67,12 @@ HandlerFactory.prototype.create = function (req, mimetype) {
     }
   }
 
-  if (!mimetype) {
-    format = getFormat(version, req)
-  } else {
-    format = mime.extension(mimetype)
+  if (!format) {
+    if (!mimetype) {
+      format = getFormat(version, req)
+    } else {
+      format = mime.extension(mimetype)
+    }
   }
 
   // try to create a handler
