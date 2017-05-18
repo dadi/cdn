@@ -17,7 +17,7 @@
     "aspect-fill": "^1.0.1",
     "aspect-fit": "^1.0.2",
     "async": "^2.0.1",
-    "aws-sdk": "2.5.4",
+    "aws-sdk": "2.7.8",
     "bluebird": "latest",
     "body-parser": "~1.17.1",
     "busboy": "^0.2.13",
