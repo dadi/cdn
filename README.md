@@ -1,4 +1,4 @@
-<img src="http://52.209.207.148/assets/products/dadi-cdn.png" alt="DADI CDN" height="65"/>
+<img src="https://dadi.tech/assets/products/dadi-cdn-full.png" alt="DADI CDN" height="65"/>
 
 [![npm (scoped)](https://img.shields.io/npm/v/@dadi/cdn.svg?maxAge=10800&style=flat-square)](https://www.npmjs.com/package/@dadi/cdn)
 [![coverage](https://img.shields.io/badge/coverage-69%25-yellow.svg?style=flat-square)](https://github.com/dadi/cdn)
