@@ -6,8 +6,8 @@ notifications:
   slack: dadi:pnhiL60xOrm7GOglHUmb7xHK
   email: false
 node_js:
+  - '6.11.1'
   - '6.9.2'
-  - '4.6.0'
 before_script:
   - npm prune
 after_success:
