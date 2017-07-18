@@ -10,6 +10,7 @@ var PassThrough = require('stream').PassThrough
 var path = require('path')
 var querystring = require('querystring')
 var Readable = require('stream').Readable
+var smartcrop = require('smartcrop-sharp')
 var sha1 = require('sha1')
 var sharp = require('sharp')
 var url = require('url')
@@ -307,7 +308,7 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
     function processImage (imageBuffer) {
       // obtain an image object
       var sharpImage = sharp(imageBuffer)
-      console.log(sharpImage)
+      //console.log(sharpImage)
 
       // sharpImage.on('info', info => {
       //   console.log('Image height is ' + info.height)
@@ -317,7 +318,9 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
       // sharp(imageBuffer, imageInfo.format, (err, image) => {
       //   if (err) return reject(err)
 
-        var shouldExtractEntropy = ((options.resizeStyle === 'entropy') && width && height) ? self.extractEntropy(image, width, height) : false
+        var shouldExtractEntropy = ((options.resizeStyle === 'entropy') && width && height)
+          ? self.extractEntropy(imageBuffer, width, height)
+          : false
 
         Promise.resolve(shouldExtractEntropy).then((entropy) => {
           // define a batch of manipulations
@@ -500,7 +503,7 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
 
             sharpImage = sharpImage.jpeg()
 
-            console.log(sharpImage)
+            //console.log(sharpImage)
 
               sharpImage.toBuffer({}, (err, buffer, info) => {
                 if (err) return reject(err)
@@ -604,33 +607,42 @@ ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, originalDime
  */
 ImageHandler.prototype.extractEntropy = function (image, width, height) {
   return new Promise((resolve, reject) => {
-    return resolve({
-      x1: 0,
-      x2: 200,
-      y1: 0,
-      y2: 200
+    // return resolve({
+    //   x1: 0,
+    //   x2: 200,
+    //   y1: 0,
+    //   y2: 200
+    // })
+    smartcrop.crop(image, {
+      width: width,
+      height: height
+    }).then(result => {
+      var crop = result.topCrop
+
+      console.log('-----> SMART CROP:', crop)
     })
 
-    image.clone((err, clone) => {
-      if (err) return reject(err)
+    // image.clone((err, clone) => {
+    //   console.log('----> ERR:', err)
+    //   if (err) return reject(err)
 
-      return resolve(require('smartcrop-lwip').crop(null, {
-        width: width,
-        height: height,
-        image: {
-          width: clone.width(),
-          height: clone.height(),
-          _lwip: clone
-        }
-      }).then((result) => {
-        return {
-          x1: result.topCrop.x,
-          x2: result.topCrop.x + result.topCrop.width,
-          y1: result.topCrop.y,
-          y2: result.topCrop.y + result.topCrop.height
-        }
-      }))
-    })
+    //   return resolve(require('smartcrop-lwip').crop(null, {
+    //     width: width,
+    //     height: height,
+    //     image: {
+    //       width: clone.width(),
+    //       height: clone.height(),
+    //       _lwip: clone
+    //     }
+    //   }).then((result) => {
+    //     return {
+    //       x1: result.topCrop.x,
+    //       x2: result.topCrop.x + result.topCrop.width,
+    //       y1: result.topCrop.y,
+    //       y2: result.topCrop.y + result.topCrop.height
+    //     }
+    //   }))
+    // })
   })
 }
 
