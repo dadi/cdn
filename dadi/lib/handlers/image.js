@@ -11,6 +11,7 @@ var path = require('path')
 var querystring = require('querystring')
 var Readable = require('stream').Readable
 var sha1 = require('sha1')
+var sharp = require('sharp')
 var url = require('url')
 var Vibrant = require('node-vibrant')
 
@@ -305,14 +306,22 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
 
     function processImage (imageBuffer) {
       // obtain an image object
-      require('lwip').open(imageBuffer, imageInfo.format, (err, image) => {
-        if (err) return reject(err)
+      var sharpImage = sharp(imageBuffer)
+      console.log(sharpImage)
+
+      // sharpImage.on('info', info => {
+      //   console.log('Image height is ' + info.height)
+      //   process.exit(0)
+      // })
+
+      // sharp(imageBuffer, imageInfo.format, (err, image) => {
+      //   if (err) return reject(err)
 
         var shouldExtractEntropy = ((options.resizeStyle === 'entropy') && width && height) ? self.extractEntropy(image, width, height) : false
 
         Promise.resolve(shouldExtractEntropy).then((entropy) => {
           // define a batch of manipulations
-          var batch = image.batch()
+          //var batch = image.batch()
 
           var filter = options.filter ? options.filter.toLowerCase() : 'lanczos'
 
@@ -327,7 +336,12 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                 case 'aspectfit':
                   var size = fit(imageInfo.width, imageInfo.height, width, height)
 
-                  batch.cover(parseInt(size.width), parseInt(size.height), filter)
+                  // batch.cover(parseInt(size.width), parseInt(size.height), filter)
+                  sharpImage = sharpImage.resize(parseInt(size.width), parseInt(size.height), {
+                    kernel: sharp.kernel.lanczos2,
+                    interpolator: sharp.interpolator.nohalo
+                  })
+
                   break
                 /*
                 Aspect Fill: Will size your image proportionally until the whole area is full of your image.
@@ -340,22 +354,36 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                   var crops = self.getCropOffsetsByGravity(options.gravity, imageInfo, dimensions, scale)
 
                   if (scaleHeight >= scaleWidth) {
-                    batch.resize(scale * imageInfo.width, height)
+                    // batch.resize(scale * imageInfo.width, height)
+                    sharpImage = sharpImage.resize(scale * imageInfo.width, height, {
+                      kernel: sharp.kernel.lanczos2,
+                      interpolator: sharp.interpolator.nohalo
+                    })
                   } else {
-                    batch.resize(width, scale * imageInfo.height)
+                    // batch.resize(width, scale * imageInfo.height)
+                    sharpImage = sharpImage.resize(scale * imageInfo.height, {
+                      kernel: sharp.kernel.lanczos2,
+                      interpolator: sharp.interpolator.nohalo
+                    })
                   }
 
                   // Only crop if the aspect ratio is not the same
                   // if ((width / height) !== (imageInfo.width / imageInfo.height) && !self.storageHandler.notFound) {
                   //   batch.crop(crops.x1, crops.y1, crops.x2, crops.y2)
                   // }
-                  if (scaleWidth !== scaleHeight) {
-                    batch.crop(crops.x1, crops.y1, crops.x2, crops.y2)
-                  }
+                  // TODO: crop
+                  // if (scaleWidth !== scaleHeight) {
+                  //   batch.crop(crops.x1, crops.y1, crops.x2, crops.y2)
+                  // }
 
                   break
                 case 'fill':
-                  batch.resize(width, height, filter)
+                  // batch.resize(width, height, filter)
+                  sharpImage = sharpImage.resize(width, height, {
+                    kernel: sharp.kernel.lanczos2,
+                    interpolator: sharp.interpolator.nohalo
+                  })
+
                   break
                 case 'crop':
                   if (options.crop) {
@@ -379,14 +407,17 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                     // console.log('bottom: ', coords[2])
 
                     // image.crop(left, top, right, bottom, callback)
-                    batch.crop(coords[1], coords[0], coords[3], coords[2])
+                    // TODO: crop
+                    // batch.crop(coords[1], coords[0], coords[3], coords[2])
 
                     // resize if options.width or options.height are explicitly set
                     if (options.width || options.height) {
-                      batch.resize(width, height, filter)
+                      // TODO: crop
+                      // batch.resize(width, height, filter)
                     }
                   } else { // width & height provided, crop from centre
-                    batch.crop(width, height)
+                    // TODO: crop
+                    // batch.crop(width, height)
                   }
 
                   break
@@ -396,23 +427,31 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                     entropy.x2 = (entropy.x2 > 0) ? (entropy.x2 - 1) : entropy.x2
                     entropy.y2 = (entropy.y2 > 0) ? (entropy.y2 - 1) : entropy.y2
 
-                    batch.crop(entropy.x1, entropy.y1, entropy.x2 - 1, entropy.y2 - 1)
-                    batch.resize(width, height)
+                    // TODO: entropy
+                    // batch.crop(entropy.x1, entropy.y1, entropy.x2 - 1, entropy.y2 - 1)
+                    // batch.resize(width, height)
                   }
               }
             }
           } else if (width && height && options.cropX && options.cropY) {
             // console.log("%s %s %s %s", parseInt(options.cropX), parseInt(options.cropY), width-parseInt(options.cropX), height-parseInt(options.cropY))
-            batch.crop(parseInt(options.cropX), parseInt(options.cropY), width - parseInt(options.cropX), height - parseInt(options.cropY))
+            // TODO: crop
+            //batch.crop(parseInt(options.cropX), parseInt(options.cropY), width - parseInt(options.cropX), height - parseInt(options.cropY))
           } else if (width && height) {
-            batch.cover(width, height)
+            // TODO: cover
+            // batch.cover(width, height)
           } else if (width && !height) {
-            batch.resize(width)
+            // batch.resize(width)
+            sharpImage = sharpImage.resize(width, null, {
+              kernel: sharp.kernel.lanczos2,
+              interpolator: sharp.interpolator.nohalo
+            })
           }
 
-          if (options.blur) batch.blur(parseInt(options.blur))
-          if (options.flip) batch.flip(options.flip)
-          if (options.rotate) batch.rotate(parseInt(options.rotate), 'white')
+          // TODO: blur
+          // if (options.blur) batch.blur(parseInt(options.blur))
+          // if (options.flip) batch.flip(options.flip)
+          // if (options.rotate) batch.rotate(parseInt(options.rotate), 'white')
 
           // quality
           var params = {}
@@ -430,31 +469,40 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
 
           // sharpening
           if (options.sharpen !== 5) {
-            batch.sharpen(options.sharpen)
+            // TODO: sharpend options
+            // batch.sharpen(options.sharpen)
+            sharpImage = sharpImage.sharpen(options.sharpen)
           } else if (quality >= 70) {
             if (/jpe?g/.exec(imageInfo.format) || /jpe?g/.exec(options.format)) {
-              batch.sharpen(5)
+              // batch.sharpen(5)
+              sharpImage = sharpImage.sharpen(5)
             // } else if (/png/.exec(imageInfo.format) || /png/.exec(options.format)) {
             //   batch.sharpen(5)
             } else if (options.cropX && options.cropY) {
-              batch.sharpen(5)
+              // batch.sharpen(5)
+              sharpImage = sharpImage.sharpen(5)
             }
           }
 
           // give it a little colour
-          batch.saturate(options.saturate)
+          // TODO: saturate
+          // batch.saturate(options.saturate)
 
           // format
           var format = (self.options.format === 'json' ? imageInfo.format : self.options.format).toLowerCase()
 
           try {
-            batch.exec((err, image) => {
-              if (err) {
-                console.log(err)
-                return reject(err)
-              }
+            // batch.exec((err, image) => {
+            //   if (err) {
+            //     console.log(err)
+            //     return reject(err)
+            //   }
 
-              image.toBuffer(format, params, (err, buffer) => {
+            sharpImage = sharpImage.jpeg()
+
+            console.log(sharpImage)
+
+              sharpImage.toBuffer({}, (err, buffer, info) => {
                 if (err) return reject(err)
 
                 var bufferStream = new PassThrough()
@@ -468,12 +516,12 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
 
                 return resolve({stream: bufferStream, data: additionalData})
               })
-            })
+            //})
           } catch (err) {
             return reject(err)
           }
         })
-      })
+      //})
     }
   })
 }
@@ -556,6 +604,13 @@ ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, originalDime
  */
 ImageHandler.prototype.extractEntropy = function (image, width, height) {
   return new Promise((resolve, reject) => {
+    return resolve({
+      x1: 0,
+      x2: 200,
+      y1: 0,
+      y2: 200
+    })
+
     image.clone((err, clone) => {
       if (err) return reject(err)
 
