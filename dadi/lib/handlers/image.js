@@ -322,9 +322,11 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
           ? self.extractEntropy(imageBuffer, width, height)
           : false
 
-        Promise.resolve(shouldExtractEntropy).then((entropy) => {
+        Promise.resolve(shouldExtractEntropy).then(entropy => {
           // define a batch of manipulations
           //var batch = image.batch()
+
+          console.log('---> Entropy:', entropy)
 
           var filter = options.filter ? options.filter.toLowerCase() : 'lanczos'
 
@@ -607,42 +609,19 @@ ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, originalDime
  */
 ImageHandler.prototype.extractEntropy = function (image, width, height) {
   return new Promise((resolve, reject) => {
-    // return resolve({
-    //   x1: 0,
-    //   x2: 200,
-    //   y1: 0,
-    //   y2: 200
-    // })
     smartcrop.crop(image, {
       width: width,
       height: height
     }).then(result => {
-      var crop = result.topCrop
-
-      console.log('-----> SMART CROP:', crop)
+      resolve({
+        x1: result.topCrop.x,
+        x2: result.topCrop.x + result.topCrop.width,
+        y1: result.topCrop.y,
+        y2: result.topCrop.y + result.topCrop.height
+      })
+    }).catch(err => {
+      reject(err)
     })
-
-    // image.clone((err, clone) => {
-    //   console.log('----> ERR:', err)
-    //   if (err) return reject(err)
-
-    //   return resolve(require('smartcrop-lwip').crop(null, {
-    //     width: width,
-    //     height: height,
-    //     image: {
-    //       width: clone.width(),
-    //       height: clone.height(),
-    //       _lwip: clone
-    //     }
-    //   }).then((result) => {
-    //     return {
-    //       x1: result.topCrop.x,
-    //       x2: result.topCrop.x + result.topCrop.width,
-    //       y1: result.topCrop.y,
-    //       y2: result.topCrop.y + result.topCrop.height
-    //     }
-    //   }))
-    // })
   })
 }
 
