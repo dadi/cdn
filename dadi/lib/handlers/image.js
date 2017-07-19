@@ -306,227 +306,205 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
     stream.pipe(concatStream)
 
     function processImage (imageBuffer) {
-      // obtain an image object
+      // load the input image
       var sharpImage = sharp(imageBuffer)
-      //console.log(sharpImage)
 
-      // sharpImage.on('info', info => {
-      //   console.log('Image height is ' + info.height)
-      //   process.exit(0)
-      // })
+      var shouldExtractEntropy = ((options.resizeStyle === 'entropy') && width && height)
+        ? self.extractEntropy(imageBuffer, width, height)
+        : false
 
-      // sharp(imageBuffer, imageInfo.format, (err, image) => {
-      //   if (err) return reject(err)
+      Promise.resolve(shouldExtractEntropy).then(entropy => {
+        console.log('---> Entropy:', entropy)
 
-        var shouldExtractEntropy = ((options.resizeStyle === 'entropy') && width && height)
-          ? self.extractEntropy(imageBuffer, width, height)
-          : false
+        // TODO: get options from input
+        var filter = options.filter ? options.filter.toLowerCase() : 'lanczos'
+        var resizeOptions = {
+          kernel: sharp.kernel.lanczos2,
+          interpolator: sharp.interpolator.nohalo
+        }
 
-        Promise.resolve(shouldExtractEntropy).then(entropy => {
-          // define a batch of manipulations
-          //var batch = image.batch()
+        // resize
+        if (options.resizeStyle) {
+          if (width && height) {
+            switch (options.resizeStyle) {
+              /*
+              Aspect Fit: Will size your image until the whole image fits within your area.
+              You are left with the extra space on top and bottom.
+              */
+              case 'aspectfit':
+                var size = fit(imageInfo.width, imageInfo.height, width, height)
 
-          console.log('---> Entropy:', entropy)
+                // batch.cover(parseInt(size.width), parseInt(size.height), filter)
+                sharpImage = sharpImage.resize(parseInt(size.width), parseInt(size.height), resizeOptions)
 
-          var filter = options.filter ? options.filter.toLowerCase() : 'lanczos'
+                break
+              /*
+              Aspect Fill: Will size your image proportionally until the whole area is full of your image.
+              Your image is clipped. It will size proportionally to make sure there is no blank space left in your area.
+              */
+              case 'aspectfill':
+                var scaleWidth = (width / parseInt(imageInfo.width))
+                var scaleHeight = (height / parseInt(imageInfo.height))
+                var scale = Math.max(scaleWidth, scaleHeight)
+                var crops = self.getCropOffsetsByGravity(options.gravity, imageInfo, dimensions, scale)
 
-          // resize
-          if (options.resizeStyle) {
-            if (width && height) {
-              switch (options.resizeStyle) {
-                /*
-                Aspect Fit: Will size your image until the whole image fits within your area.
-                You are left with the extra space on top and bottom.
-                */
-                case 'aspectfit':
-                  var size = fit(imageInfo.width, imageInfo.height, width, height)
-
-                  // batch.cover(parseInt(size.width), parseInt(size.height), filter)
-                  sharpImage = sharpImage.resize(parseInt(size.width), parseInt(size.height), {
-                    kernel: sharp.kernel.lanczos2,
-                    interpolator: sharp.interpolator.nohalo
-                  })
-
-                  break
-                /*
-                Aspect Fill: Will size your image proportionally until the whole area is full of your image.
-                Your image is clipped. It will size proportionally to make sure there is no blank space left in your area.
-                */
-                case 'aspectfill':
-                  var scaleWidth = (width / parseInt(imageInfo.width))
-                  var scaleHeight = (height / parseInt(imageInfo.height))
-                  var scale = Math.max(scaleWidth, scaleHeight)
-                  var crops = self.getCropOffsetsByGravity(options.gravity, imageInfo, dimensions, scale)
-
-                  if (scaleHeight >= scaleWidth) {
-                    // batch.resize(scale * imageInfo.width, height)
-                    sharpImage = sharpImage.resize(scale * imageInfo.width, height, {
-                      kernel: sharp.kernel.lanczos2,
-                      interpolator: sharp.interpolator.nohalo
-                    })
-                  } else {
-                    // batch.resize(width, scale * imageInfo.height)
-                    sharpImage = sharpImage.resize(scale * imageInfo.height, {
-                      kernel: sharp.kernel.lanczos2,
-                      interpolator: sharp.interpolator.nohalo
-                    })
-                  }
-
-                  // Only crop if the aspect ratio is not the same
-                  // if ((width / height) !== (imageInfo.width / imageInfo.height) && !self.storageHandler.notFound) {
-                  //   batch.crop(crops.x1, crops.y1, crops.x2, crops.y2)
-                  // }
-                  // TODO: crop
-                  // if (scaleWidth !== scaleHeight) {
-                  //   batch.crop(crops.x1, crops.y1, crops.x2, crops.y2)
-                  // }
-
-                  break
-                case 'fill':
-                  // batch.resize(width, height, filter)
-                  sharpImage = sharpImage.resize(width, height, {
-                    kernel: sharp.kernel.lanczos2,
-                    interpolator: sharp.interpolator.nohalo
-                  })
-
-                  break
-                case 'crop':
-                  if (options.crop) {
-                    var coords = options.crop.split(',').map((coordStr) => {
-                      return parseInt(coordStr)
-                    })
-
-                    if (coords.length === 2) {
-                      coords.push(height - coords[0])
-                      coords.push(width - coords[1])
-                    }
-
-                    // Reduce 1 pixel on the right & bottom edges
-                    coords[2] = (coords[2] > 0) ? (coords[2] - 1) : coords[2]
-                    coords[3] = (coords[3] > 0) ? (coords[3] - 1) : coords[3]
-
-                    // NOTE! passed in URL as top, left, bottom, right
-                    // console.log('left: ', coords[1])
-                    // console.log('top: ', coords[0])
-                    // console.log('right: ', coords[3])
-                    // console.log('bottom: ', coords[2])
-
-                    // image.crop(left, top, right, bottom, callback)
-                    // TODO: crop
-                    // batch.crop(coords[1], coords[0], coords[3], coords[2])
-
-                    // resize if options.width or options.height are explicitly set
-                    if (options.width || options.height) {
-                      // TODO: crop
-                      // batch.resize(width, height, filter)
-                    }
-                  } else { // width & height provided, crop from centre
-                    // TODO: crop
-                    // batch.crop(width, height)
-                  }
-
-                  break
-                case 'entropy':
-                  if (entropy) {
-                    // Reduce 1 pixel on the edges
-                    entropy.x2 = (entropy.x2 > 0) ? (entropy.x2 - 1) : entropy.x2
-                    entropy.y2 = (entropy.y2 > 0) ? (entropy.y2 - 1) : entropy.y2
-
-                    // TODO: entropy
-                    // batch.crop(entropy.x1, entropy.y1, entropy.x2 - 1, entropy.y2 - 1)
-                    // batch.resize(width, height)
-                  }
-              }
-            }
-          } else if (width && height && options.cropX && options.cropY) {
-            // console.log("%s %s %s %s", parseInt(options.cropX), parseInt(options.cropY), width-parseInt(options.cropX), height-parseInt(options.cropY))
-            // TODO: crop
-            //batch.crop(parseInt(options.cropX), parseInt(options.cropY), width - parseInt(options.cropX), height - parseInt(options.cropY))
-          } else if (width && height) {
-            // TODO: cover
-            // batch.cover(width, height)
-          } else if (width && !height) {
-            // batch.resize(width)
-            sharpImage = sharpImage.resize(width, null, {
-              kernel: sharp.kernel.lanczos2,
-              interpolator: sharp.interpolator.nohalo
-            })
-          }
-
-          // TODO: blur
-          // if (options.blur) batch.blur(parseInt(options.blur))
-          // if (options.flip) batch.flip(options.flip)
-          // if (options.rotate) batch.rotate(parseInt(options.rotate), 'white')
-
-          // quality
-          var params = {}
-          var quality = parseInt(options.quality)
-
-          if (/jpe?g/.exec(imageInfo.format) || /jpe?g/.exec(options.format)) {
-            params.quality = quality
-          } else if (/png/.exec(imageInfo.format) || /png/.exec(options.format)) {
-            if (quality > 70) params.compression = 'none'
-            else if (quality > 50) params.compression = 'fast'
-            else params.compression = 'high'
-
-            params.transparency = 'auto'
-          }
-
-          // sharpening
-          if (options.sharpen !== 5) {
-            // TODO: sharpend options
-            // batch.sharpen(options.sharpen)
-            sharpImage = sharpImage.sharpen(options.sharpen)
-          } else if (quality >= 70) {
-            if (/jpe?g/.exec(imageInfo.format) || /jpe?g/.exec(options.format)) {
-              // batch.sharpen(5)
-              sharpImage = sharpImage.sharpen(5)
-            // } else if (/png/.exec(imageInfo.format) || /png/.exec(options.format)) {
-            //   batch.sharpen(5)
-            } else if (options.cropX && options.cropY) {
-              // batch.sharpen(5)
-              sharpImage = sharpImage.sharpen(5)
-            }
-          }
-
-          // give it a little colour
-          // TODO: saturate
-          // batch.saturate(options.saturate)
-
-          // format
-          var format = (self.options.format === 'json' ? imageInfo.format : self.options.format).toLowerCase()
-
-          try {
-            // batch.exec((err, image) => {
-            //   if (err) {
-            //     console.log(err)
-            //     return reject(err)
-            //   }
-
-            sharpImage = sharpImage.jpeg()
-
-            //console.log(sharpImage)
-
-              sharpImage.toBuffer({}, (err, buffer, info) => {
-                if (err) return reject(err)
-
-                var bufferStream = new PassThrough()
-                bufferStream.end(buffer)
-
-                var additionalData = {}
-
-                if (entropy) {
-                  additionalData.entropyCrop = entropy
+                if (scaleHeight >= scaleWidth) {
+                  sharpImage = sharpImage.resize(scale * imageInfo.width, height, resizeOptions)
+                } else {
+                  sharpImage = sharpImage.resize(scale * imageInfo.height, resizeOptions)
                 }
 
-                return resolve({stream: bufferStream, data: additionalData})
-              })
-            //})
-          } catch (err) {
-            return reject(err)
+                // Only crop if the aspect ratio is not the same
+                // if ((width / height) !== (imageInfo.width / imageInfo.height) && !self.storageHandler.notFound) {
+                //   batch.crop(crops.x1, crops.y1, crops.x2, crops.y2)
+                // }
+                // TODO: crop
+                // if (scaleWidth !== scaleHeight) {
+                //   batch.crop(crops.x1, crops.y1, crops.x2, crops.y2)
+                // }
+
+                break
+              case 'fill':
+                sharpImage = sharpImage.resize(width, height, resizeOptions)
+
+                break
+              case 'crop':
+                if (options.crop) {
+                  var coords = options.crop.split(',').map((coordStr) => {
+                    return parseInt(coordStr)
+                  })
+
+                  if (coords.length === 2) {
+                    coords.push(height - coords[0])
+                    coords.push(width - coords[1])
+                  }
+
+                  // Reduce 1 pixel on the right & bottom edges
+                  coords[2] = (coords[2] > 0) ? (coords[2] - 1) : coords[2]
+                  coords[3] = (coords[3] > 0) ? (coords[3] - 1) : coords[3]
+
+                  // NOTE! passed in URL as top, left, bottom, right
+                  // console.log('left: ', coords[1])
+                  // console.log('top: ', coords[0])
+                  // console.log('right: ', coords[3])
+                  // console.log('bottom: ', coords[2])
+
+                  // image.crop(left, top, right, bottom, callback)
+                  // TODO: crop
+                  // batch.crop(coords[1], coords[0], coords[3], coords[2])
+
+                  // resize if options.width or options.height are explicitly set
+                  if (options.width || options.height) {
+                    // TODO: resize
+                    // batch.resize(width, height, filter)
+                  }
+                } else { // width & height provided, crop from centre
+                  // TODO: crop
+                  // batch.crop(width, height)
+                }
+
+                break
+              case 'entropy':
+                if (entropy) {
+                  // Reduce 1 pixel on the edges
+                  entropy.x2 = (entropy.x2 > 0) ? (entropy.x2 - 1) : entropy.x2
+                  entropy.y2 = (entropy.y2 > 0) ? (entropy.y2 - 1) : entropy.y2
+
+                  // TODO: entropy
+                  // batch.crop(entropy.x1, entropy.y1, entropy.x2 - 1, entropy.y2 - 1)
+                  sharpImage.extract({
+                    left: entropy.x1,
+                    top: entropy.y1,
+                    width: entropy.x2 - 1,
+                    height: entropy.y2 - 1
+                  })
+
+                  sharpImage.resize(width, height)
+                }
+            }
           }
-        })
-      //})
+        } else if (width && height && options.cropX && options.cropY) {
+          // console.log("%s %s %s %s", parseInt(options.cropX), parseInt(options.cropY), width-parseInt(options.cropX), height-parseInt(options.cropY))
+          // TODO: crop
+          //batch.crop(parseInt(options.cropX), parseInt(options.cropY), width - parseInt(options.cropX), height - parseInt(options.cropY))
+        } else if (width && height) {
+          // TODO: cover
+          // batch.cover(width, height)
+        } else if (width && !height) {
+          sharpImage = sharpImage.resize(width, null, resizeOptions)
+        }
+
+        // @param {Number} sigma - a value between 0.3 and 1000 representing the sigma of the Gaussian mask
+        if (options.blur) sharpImage.blur(parseInt(options.blur))
+
+        // TODO: flip & flop (replace flip('x')/flip('xy')/flip('y'))
+        // if (options.flip) {
+        //   batch.flip(options.flip)
+        // }
+
+        // @param {Number} angle - angle of rotation, must be a multiple of 90
+        if (options.rotate) sharpImage.rotate(parseInt(options.rotate))
+
+        // quality
+        var params = {}
+        var quality = parseInt(options.quality)
+
+        // TODO: quality for JPG & PNG
+        // if (/jpe?g/.exec(imageInfo.format) || /jpe?g/.exec(options.format)) {
+        //   params.quality = quality
+        // } else if (/png/.exec(imageInfo.format) || /png/.exec(options.format)) {
+        //   if (quality > 70) params.compression = 'none'
+        //   else if (quality > 50) params.compression = 'fast'
+        //   else params.compression = 'high'
+        //
+        //   params.transparency = 'auto'
+        // }
+
+        // sharpening
+        if (options.sharpen !== 5) {
+          sharpImage = sharpImage.sharpen(options.sharpen)
+        } else if (quality >= 70) {
+          if (/jpe?g/.exec(imageInfo.format) || /jpe?g/.exec(options.format)) {
+            sharpImage = sharpImage.sharpen(5)
+            // TODO: sharpen options for JPG & PNG
+          // } else if (/png/.exec(imageInfo.format) || /png/.exec(options.format)) {
+          //   batch.sharpen(5)
+          } else if (options.cropX && options.cropY) {
+            sharpImage = sharpImage.sharpen(5)
+          }
+        }
+
+        // give it a little colour
+        // TODO: saturate
+        // batch.saturate(options.saturate)
+
+        // format
+        var format = (self.options.format === 'json' ?
+          imageInfo.format :
+          self.options.format).toLowerCase()
+
+        try {
+          // TODO: specify image format
+          sharpImage = sharpImage.jpeg()
+
+          sharpImage.toBuffer({}, (err, buffer, info) => {
+            if (err) return reject(err)
+
+            var bufferStream = new PassThrough()
+            bufferStream.end(buffer)
+
+            var additionalData = {}
+
+            if (entropy) {
+              additionalData.entropyCrop = entropy
+            }
+
+            return resolve({stream: bufferStream, data: additionalData})
+          })
+        } catch (err) {
+          return reject(err)
+        }
+      })
     }
   })
 }
