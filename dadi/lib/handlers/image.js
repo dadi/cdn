@@ -465,12 +465,12 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
           sharpImage = sharpImage.sharpen(options.sharpen)
         } else if (quality >= 70) {
           if (/jpe?g/.exec(imageInfo.format) || /jpe?g/.exec(options.format)) {
-            sharpImage = sharpImage.sharpen(5)
+            sharpImage = sharpImage.sharpen(1)
             // TODO: sharpen options for JPG & PNG
           // } else if (/png/.exec(imageInfo.format) || /png/.exec(options.format)) {
           //   batch.sharpen(5)
           } else if (options.cropX && options.cropY) {
-            sharpImage = sharpImage.sharpen(5)
+            sharpImage = sharpImage.sharpen(1)
           }
         }
 
@@ -814,7 +814,7 @@ ImageHandler.prototype.optionSettings = function () {
   return [
     { name: 'format', aliases: ['fmt'] },
     { name: 'quality', aliases: ['q'], default: 75 },
-    { name: 'sharpen', aliases: ['sh'], default: 5 },
+    { name: 'sharpen', aliases: ['sh'], default: 1 },
     { name: 'saturate', aliases: ['sat'], default: 0.1 },
     { name: 'width', aliases: ['w'] },
     { name: 'height', aliases: ['h'] },
