@@ -314,13 +314,10 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
         : false
 
       Promise.resolve(shouldExtractEntropy).then(entropy => {
-        console.log('---> Entropy:', entropy)
-
-        // TODO: get options from input
-        var filter = options.filter ? options.filter.toLowerCase() : 'lanczos'
         var resizeOptions = {
-          kernel: sharp.kernel.lanczos2,
-          interpolator: sharp.interpolator.nohalo
+          kernel: config.get('engines.sharp.kernel'),
+          interpolator: config.get('engines.sharp.interpolator'),
+          centreSampling: config.get('engines.sharp.centreSampling')
         }
 
         // resize
@@ -334,7 +331,6 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
               case 'aspectfit':
                 var size = fit(imageInfo.width, imageInfo.height, width, height)
 
-                // batch.cover(parseInt(size.width), parseInt(size.height), filter)
                 sharpImage = sharpImage.resize(parseInt(size.width), parseInt(size.height), resizeOptions)
 
                 break
@@ -349,74 +345,95 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                 var crops = self.getCropOffsetsByGravity(options.gravity, imageInfo, dimensions, scale)
 
                 if (scaleHeight >= scaleWidth) {
-                  sharpImage = sharpImage.resize(scale * imageInfo.width, height, resizeOptions)
+                  sharpImage = sharpImage.resize(
+                    Math.round(scale * imageInfo.width),
+                    height,
+                    resizeOptions
+                  )
                 } else {
-                  sharpImage = sharpImage.resize(scale * imageInfo.height, resizeOptions)
+                  sharpImage = sharpImage.resize(
+                    Math.round(scale * imageInfo.height),
+                    resizeOptions
+                  )
                 }
 
                 // Only crop if the aspect ratio is not the same
-                // if ((width / height) !== (imageInfo.width / imageInfo.height) && !self.storageHandler.notFound) {
-                //   batch.crop(crops.x1, crops.y1, crops.x2, crops.y2)
-                // }
-                // TODO: crop
-                // if (scaleWidth !== scaleHeight) {
-                //   batch.crop(crops.x1, crops.y1, crops.x2, crops.y2)
-                // }
+                if (
+                  (width / height) !== (imageInfo.width / imageInfo.height) &&
+                  !self.storageHandler.notFound
+                ) {
+                  sharpImage.extract({
+                    left: crops.x1,
+                    top: crops.y1,
+                    width: crops.x1 + crops.x2,
+                    height: crops.y1 + crops.y2
+                  })
+                }
 
                 break
+
+              /*
+              Fill: Will size your image to the exact dimensions provided. Aspect ratio
+              will _not_ be preserved.
+              */
               case 'fill':
-                sharpImage = sharpImage.resize(width, height, resizeOptions)
+                sharpImage = sharpImage
+                  .resize(width, height, resizeOptions)
+                  .ignoreAspectRatio()
 
                 break
+
+              /*
+              Crop: Will crop the image using the coordinates provided. If dimensions are
+              provided, the resulting image will also be resized accordingly.
+              */
               case 'crop':
                 if (options.crop) {
-                  var coords = options.crop.split(',').map((coordStr) => {
-                    return parseInt(coordStr)
-                  })
+                  var coords = options.crop.split(',').map(coord => parseInt(coord))
 
                   if (coords.length === 2) {
                     coords.push(height - coords[0])
                     coords.push(width - coords[1])
                   }
 
-                  // Reduce 1 pixel on the right & bottom edges
-                  coords[2] = (coords[2] > 0) ? (coords[2] - 1) : coords[2]
-                  coords[3] = (coords[3] > 0) ? (coords[3] - 1) : coords[3]
-
-                  // NOTE! passed in URL as top, left, bottom, right
-                  // console.log('left: ', coords[1])
-                  // console.log('top: ', coords[0])
-                  // console.log('right: ', coords[3])
-                  // console.log('bottom: ', coords[2])
-
-                  // image.crop(left, top, right, bottom, callback)
-                  // TODO: crop
-                  // batch.crop(coords[1], coords[0], coords[3], coords[2])
+                  sharpImage.extract({
+                    left: coords[1],
+                    top: coords[0],
+                    width: coords[3] - coords[1],
+                    height: coords[2] - coords[0]
+                  })
 
                   // resize if options.width or options.height are explicitly set
                   if (options.width || options.height) {
-                    // TODO: resize
-                    // batch.resize(width, height, filter)
+                    sharpImage.resize(options.width, options.height, resizeOptions)
                   }
-                } else { // width & height provided, crop from centre
-                  // TODO: crop
-                  // batch.crop(width, height)
+                } else {
+                  // Width & height provided, crop from centre
+                  var excessWidth = Math.max(0, imageInfo.width - width)
+                  var excessHeight = Math.max(0, imageInfo.height - height)
+
+                  sharpImage.extract({
+                    left: Math.round(excessWidth / 2),
+                    top: Math.round(excessHeight / 2),
+                    width: width,
+                    height: height
+                  })
                 }
 
                 break
+
+              /*
+              Entropy: Will crop the image using the dimensions provided. The crop
+              coordinates will be determined by analising the image entropy using
+              smartcrop.
+              */
               case 'entropy':
                 if (entropy) {
-                  // Reduce 1 pixel on the edges
-                  entropy.x2 = (entropy.x2 > 0) ? (entropy.x2 - 1) : entropy.x2
-                  entropy.y2 = (entropy.y2 > 0) ? (entropy.y2 - 1) : entropy.y2
-
-                  // TODO: entropy
-                  // batch.crop(entropy.x1, entropy.y1, entropy.x2 - 1, entropy.y2 - 1)
                   sharpImage.extract({
                     left: entropy.x1,
                     top: entropy.y1,
-                    width: entropy.x2 - 1,
-                    height: entropy.y2 - 1
+                    width: entropy.x2 - entropy.x1,
+                    height: entropy.y2 - entropy.y1
                   })
 
                   sharpImage.resize(width, height)
@@ -573,9 +590,9 @@ ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, originalDime
 
   return {
     x1: Math.floor(horizontalOffset),
-    x2: Math.floor(horizontalOffset + croppedWidth) - 1,
+    x2: Math.floor(horizontalOffset + croppedWidth),
     y1: Math.floor(verticalOffset),
-    y2: Math.floor(verticalOffset + croppedHeight) - 1
+    y2: Math.floor(verticalOffset + croppedHeight)
   }
 }
 
