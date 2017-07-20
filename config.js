@@ -541,6 +541,32 @@ var conf = convict({
       format: String,
       default: 'speed.connectionType'
     }
+  },
+  engines: {
+    sharp: {
+      kernel: {
+        doc: 'The kernel to use for image reduction',
+        format: ['nearest', 'cubic', 'lanczos2', 'lanczos3'],
+        default: 'lanczos3'
+      },
+      interpolator: {
+        doc: 'The interpolator to use for image enlargement',
+        format: [
+          'nearest',
+          'bilinear',
+          'vertexSplitQuadraticBasisSpline',
+          'bicubic',
+          'locallyBoundedBicubic',
+          'nohalo'
+        ],
+        default: 'bicubic'
+      },
+      centreSampling: {
+        doc: 'Whether to use *magick centre sampling convention instead of corner sampling',
+        format: Boolean,
+        default: false
+      }
+    }
   }
 })
 
