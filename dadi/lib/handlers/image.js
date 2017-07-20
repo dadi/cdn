@@ -454,10 +454,23 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
         // @param {Number} sigma - a value between 0.3 and 1000 representing the sigma of the Gaussian mask
         if (options.blur) sharpImage.blur(parseInt(options.blur))
 
-        // TODO: flip & flop (replace flip('x')/flip('xy')/flip('y'))
-        // if (options.flip) {
-        //   batch.flip(options.flip)
-        // }
+        // @param {String} flip - flip the image on the x axis ('x'), y axis ('y') or both ('xy')
+        switch (options.flip) {
+          case 'x':
+            sharpImage.flop()
+
+            break
+
+          case 'y':
+            sharpImage.flip()
+
+            break
+
+          case 'xy':
+            sharpImage.flip().flop()
+
+            break
+        }
 
         // @param {Number} angle - angle of rotation, must be a multiple of 90
         if (options.rotate) sharpImage.rotate(parseInt(options.rotate))
