@@ -475,21 +475,6 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
         // @param {Number} angle - angle of rotation, must be a multiple of 90
         if (options.rotate) sharpImage.rotate(parseInt(options.rotate))
 
-        // quality
-        var params = {}
-        var quality = parseInt(options.quality)
-
-        // TODO: quality for JPG & PNG
-        // if (/jpe?g/.exec(imageInfo.format) || /jpe?g/.exec(options.format)) {
-        //   params.quality = quality
-        // } else if (/png/.exec(imageInfo.format) || /png/.exec(options.format)) {
-        //   if (quality > 70) params.compression = 'none'
-        //   else if (quality > 50) params.compression = 'fast'
-        //   else params.compression = 'high'
-        //
-        //   params.transparency = 'auto'
-        // }
-
         // sharpening
         if (options.sharpen !== 5) {
           sharpImage = sharpImage.sharpen(options.sharpen)
@@ -508,14 +493,34 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
         // TODO: saturate
         // batch.saturate(options.saturate)
 
-        // format
+        // Image format and parameters
         var format = (self.options.format === 'json' ?
           imageInfo.format :
           self.options.format).toLowerCase()
 
+        var outputFn
+        var outputOptions = {}
+
+        switch (format) {
+          case 'jpg':
+          case 'jpeg':
+            outputFn = 'jpeg'
+            outputOptions.quality = parseInt(options.quality)
+
+            break
+
+          case 'png':
+            outputFn = 'png'
+
+            break
+        }
+
+        if (!outputFn) {
+          return reject('Invalid output format')
+        }
+
         try {
-          // TODO: specify image format
-          sharpImage = sharpImage.jpeg()
+          sharpImage = sharpImage[outputFn](outputOptions)
 
           sharpImage.toBuffer({}, (err, buffer, info) => {
             if (err) return reject(err)
