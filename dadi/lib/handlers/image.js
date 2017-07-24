@@ -443,7 +443,7 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
         } else if (width && height && options.cropX && options.cropY) {
           // console.log("%s %s %s %s", parseInt(options.cropX), parseInt(options.cropY), width-parseInt(options.cropX), height-parseInt(options.cropY))
           // TODO: crop
-          //batch.crop(parseInt(options.cropX), parseInt(options.cropY), width - parseInt(options.cropX), height - parseInt(options.cropY))
+          // batch.crop(parseInt(options.cropX), parseInt(options.cropY), width - parseInt(options.cropX), height - parseInt(options.cropY))
         } else if (width && height) {
           // TODO: cover
           // batch.cover(width, height)
