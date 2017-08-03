@@ -217,10 +217,10 @@ ImageHandler.prototype.get = function () {
         imagesize(imageSizeStream, (err, imageInfo) => {
           if (err) {
             if (err === 'invalid') {
-              const message = 'Image data is invalid'
-              const err = {
+              var message = 'Image data is invalid'
+              var err = {
                 statusCode: 400,
-                message
+                message: message
               }
               return reject(err)
             }
