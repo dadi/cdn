@@ -2,6 +2,7 @@ var AWS = require('aws-sdk-mock')
 var fs = require('fs')
 var nock = require('nock')
 var path = require('path')
+var request = require('request')
 var should = require('should')
 var sinon = require('sinon')
 var Promise = require('bluebird')
@@ -106,10 +107,7 @@ describe('Storage', function (done) {
         url: '/https://www.google.co.uk/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png'
       }
 
-      // fake the http request so it doesn't do anything
-      var scope = nock('https://www.google.co.uk').get('/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png').reply(200)
-
-      var convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert', function (aStream, imageInfo) {
+      var convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert').callsFake(function (aStream, imageInfo) {
         return new Promise(function (resolve, reject) {
           var readable = new stream.Readable()
           readable.push('')
@@ -120,6 +118,26 @@ describe('Storage', function (done) {
 
       // this is the test
       var im = new imageHandler('png', req)
+
+      // fake the http request so it doesn't do anything
+      var scope = nock('https://www.google.co.uk')
+        .get('/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png')
+        .reply(200, function(uri, requestBody) {
+
+          var testImage = 'http://www.google.co.uk/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png'
+          var s = new stream.PassThrough()
+
+          request.get(testImage)
+          .on('response', response => {
+            // console.log(response.statusCode) // 200
+            // console.log(response.headers['content-type']) // 'image/png'
+          })
+          .on('error', err => {})
+          .pipe(s)
+
+          return s
+      })
+
       return im.get().then(function (stream) {
         imageHandler.ImageHandler.prototype.convert.restore()
         convert.called.should.eql(true)

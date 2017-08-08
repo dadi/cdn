@@ -217,7 +217,18 @@ ImageHandler.prototype.get = function () {
 
         // get the image size and format
         imagesize(imageSizeStream, (err, imageInfo) => {
-          if (err && err !== 'invalid') {
+          if (err) {
+            if (err === 'invalid') {
+              var message = 'Image data is invalid'
+
+              var imageErr = {
+                statusCode: 400,
+                message: message
+              }
+
+              return reject(imageErr)
+            }
+
             console.log(err)
           }
 
