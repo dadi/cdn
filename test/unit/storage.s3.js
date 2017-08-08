@@ -73,16 +73,26 @@ describe('Storage', function (done) {
       // set expected key value
       var expected = 'test.jpg'
 
+      var testImage = path.join(path.resolve(config.get('images.directory.path')), '/test.jpg')
+
       // stub the get method so it doesn't do anything
-      var get = sinon.stub(S3Storage.S3Storage.prototype, 'get', function () { return new Promise(function (resolve, reject) {
-          var readable = new stream.Readable()
-          readable.push('')
-          readable.push(null)
+      var get = sinon.stub(S3Storage.S3Storage.prototype, 'get').callsFake(function () {
+        return new Promise(function (resolve, reject) {
+          var readable = new fs.createReadStream(testImage)
           resolve(readable)
         })
       })
 
-      var convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert', function (aStream, imageInfo) {
+      // // stub the get method so it doesn't do anything
+      // var get = sinon.stub(S3Storage.S3Storage.prototype, 'get').callsFake(function () { return new Promise(function (resolve, reject) {
+      //     var readable = new stream.Readable()
+      //     readable.push('')
+      //     readable.push(null)
+      //     resolve(readable)
+      //   })
+      // })
+
+      var convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert').callsFake(function (aStream, imageInfo) {
         return new Promise(function (resolve, reject) {
           var readable = new stream.Readable()
           readable.push('')
