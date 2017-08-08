@@ -184,7 +184,7 @@ describe('Recipes', function () {
 
         sample.recipe = 'thumbnail'
 
-        var stub = sinon.stub(fs, 'writeFileSync', function (filePath, content) {
+        var stub = sinon.stub(fs, 'writeFileSync').callsFake(function (filePath, content) {
           filePath.should.eql(path.join(path.resolve(config.get('paths.recipes')), 'thumbnail.json'))
         })
 
