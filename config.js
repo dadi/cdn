@@ -470,7 +470,7 @@ var conf = convict({
   },
   env: {
     doc: 'The applicaton environment.',
-    format: ['production', 'development', 'test', 'qa'],
+    format: String,
     default: 'development',
     env: 'NODE_ENV',
     arg: 'node_env'
