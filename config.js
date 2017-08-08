@@ -575,7 +575,7 @@ var env = conf.get('env')
 conf.loadFile('./config/config.' + env + '.json')
 
 // Perform validation
-conf.validate({strict: false})
+conf.validate()
 
 // Update Config JSON file by domain name
 conf.updateConfigDataForDomain = function (domain) {
