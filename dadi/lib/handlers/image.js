@@ -218,12 +218,15 @@ ImageHandler.prototype.get = function () {
           if (err) {
             if (err === 'invalid') {
               var message = 'Image data is invalid'
-              var err = {
+
+              var imageErr = {
                 statusCode: 400,
                 message: message
               }
-              return reject(err)
+
+              return reject(imageErr)
             }
+
             console.log(err)
           }
 
