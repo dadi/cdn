@@ -363,6 +363,8 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
               var scale = Math.max(scaleWidth, scaleHeight)
               var crops = self.getCropOffsetsByGravity(options.gravity, imageInfo, dimensions, scale)
 
+              console.log(crops)
+
               if (scaleHeight >= scaleWidth) {
                 sharpImage = sharpImage.resize(
                   Math.round(scale * imageInfo.width),
@@ -382,11 +384,18 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                 (width / height) !== (imageInfo.width / imageInfo.height) &&
                 !self.storageHandler.notFound
               ) {
+                console.log({
+                  left: crops.x1,
+                  top: crops.y1,
+                  width: crops.x2 - crops.x1,
+                  height: crops.y2 - crops.y1
+                })
+
                 sharpImage.extract({
                   left: crops.x1,
                   top: crops.y1,
-                  width: crops.x1 + crops.x2,
-                  height: crops.y1 + crops.y2
+                  width: crops.x2 - crops.x1,
+                  height: crops.y2 - crops.y1
                 })
               }
 
@@ -584,6 +593,26 @@ ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, originalDime
       break
     default:
       verticalOffset = 0
+  }
+
+  switch (gravity.toLowerCase()) {
+    case GRAVITY_TYPES.NW:
+    case GRAVITY_TYPES.W:
+    case GRAVITY_TYPES.SW:
+      horizontalOffset = 0
+      break
+    case GRAVITY_TYPES.C:
+    case GRAVITY_TYPES.N:
+    case GRAVITY_TYPES.S:
+      horizontalOffset = getMaxOfArray([(resizedWidth - croppedWidth) / 2.0, 0])
+      break
+    case GRAVITY_TYPES.NE:
+    case GRAVITY_TYPES.E:
+    case GRAVITY_TYPES.SE:
+      horizontalOffset = resizedWidth - croppedWidth
+      break
+    default:
+      horizontalOffset = 0
   }
 
   function getMaxOfArray (numArray) {
