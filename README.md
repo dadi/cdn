@@ -7,6 +7,8 @@
 
 ## DADI CDN
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/dadi/cdn.svg)](https://greenkeeper.io/)
+
 * [Overview](#overview)
 * [Requirements](#requirements)
 * [Your First CDN Project](#your-first-cdn-project)
