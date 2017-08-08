@@ -430,7 +430,7 @@ describe('Controller', function () {
 
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
-        .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/768px-Rotating_earth_%28huge%29.gif')
+        .get('/jpg/50/0/0/700/700/0/0/0/1/aspectfit/North/0/0/0/0/0/768px-Rotating_earth_%28huge%29.gif')
         .end(function(err, res) {
           res.statusCode.should.eql(200)
           done()
