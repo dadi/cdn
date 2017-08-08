@@ -586,26 +586,6 @@ ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, originalDime
       verticalOffset = 0
   }
 
-  switch (gravity) {
-    case GRAVITY_TYPES.NW:
-    case GRAVITY_TYPES.W:
-    case GRAVITY_TYPES.SW:
-      horizontalOffset = 0
-      break
-    case GRAVITY_TYPES.C:
-    case GRAVITY_TYPES.N:
-    case GRAVITY_TYPES.S:
-      horizontalOffset = getMaxOfArray([(resizedWidth - croppedWidth) / 2.0, 0])
-      break
-    case GRAVITY_TYPES.NE:
-    case GRAVITY_TYPES.E:
-    case GRAVITY_TYPES.SE:
-      horizontalOffset = resizedWidth - croppedWidth
-      break
-    default:
-      horizontalOffset = 0
-  }
-
   function getMaxOfArray (numArray) {
     return Math.max.apply(null, numArray)
   }
