@@ -295,15 +295,16 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
   var height = parseInt(dimensions.height)
 
   return new Promise((resolve, reject) => {
-    if (options.cropX && options.cropY) {
+    // sanity check on crop requests
+    if (typeof options.cropX !== 'undefined' && typeof options.cropY !== 'undefined') {
       var originalWidth = parseFloat(imageInfo.width)
       var originalHeight = parseFloat(imageInfo.height)
 
-      // console.log("%s > %s || %s > %s", width,(originalWidth-parseInt(options.cropX)), height, (originalHeight-parseInt(options.cropY)))
-      if ((width - parseInt(options.cropX) > originalWidth) || (height - parseInt(options.cropY)) > originalHeight) {
-        var rectangle = width.toString() + 'x' + height.toString()
+      if ((width + parseInt(options.cropX) >= originalWidth) || (height + parseInt(options.cropY)) >= originalHeight) {
+        var rectangle = (width + parseInt(options.cropX)).toString() + 'x' + (height + parseInt(options.cropY)).toString()
         var original = originalWidth.toString() + 'x' + originalHeight.toString()
-        var message = 'The calculated crop rectangle is larger than the original image size. Crop rectangle: ' + rectangle + ', Image size: ' + original
+        var message = 'The calculated crop rectangle is larger than (or one dimension is equal to) the original image size. Crop rectangle: ' + rectangle + ', Image size: ' + original
+
         var err = {
           statusCode: 400,
           message: message
@@ -331,133 +332,135 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
           centreSampling: config.get('engines.sharp.centreSampling')
         }
 
-        // resize
-        if (options.resizeStyle) {
-          if (width && height) {
-            switch (options.resizeStyle) {
-              /*
-              Aspect Fit: Will size your image until the whole image fits within your area.
-              You are left with the extra space on top and bottom.
-              */
-              case 'aspectfit':
-                var size = fit(imageInfo.width, imageInfo.height, width, height)
+        if (width && height && typeof options.cropX !== 'undefined' && typeof options.cropY !== 'undefined') {
+          // console.log('CROP %s %s %s %s', parseInt(options.cropX), parseInt(options.cropY), width + parseInt(options.cropX), height + parseInt(options.cropY))
 
-                sharpImage = sharpImage.resize(parseInt(size.width), parseInt(size.height), resizeOptions)
-
-                break
-              /*
-              Aspect Fill: Will size your image proportionally until the whole area is full of your image.
-              Your image is clipped. It will size proportionally to make sure there is no blank space left in your area.
-              */
-              case 'aspectfill':
-                var scaleWidth = (width / parseInt(imageInfo.width))
-                var scaleHeight = (height / parseInt(imageInfo.height))
-                var scale = Math.max(scaleWidth, scaleHeight)
-                var crops = self.getCropOffsetsByGravity(options.gravity, imageInfo, dimensions, scale)
-
-                if (scaleHeight >= scaleWidth) {
-                  sharpImage = sharpImage.resize(
-                    Math.round(scale * imageInfo.width),
-                    height,
-                    resizeOptions
-                  )
-                } else {
-                  sharpImage = sharpImage.resize(
-                    Math.round(scale * imageInfo.height),
-                    resizeOptions
-                  )
-                }
-
-                // Only crop if the aspect ratio is not the same
-                if (
-                  (width / height) !== (imageInfo.width / imageInfo.height) &&
-                  !self.storageHandler.notFound
-                ) {
-                  sharpImage.extract({
-                    left: crops.x1,
-                    top: crops.y1,
-                    width: crops.x1 + crops.x2,
-                    height: crops.y1 + crops.y2
-                  })
-                }
-
-                break
-
-              /*
-              Fill: Will size your image to the exact dimensions provided. Aspect ratio
-              will _not_ be preserved.
-              */
-              case 'fill':
-                sharpImage = sharpImage
-                  .resize(width, height, resizeOptions)
-                  .ignoreAspectRatio()
-
-                break
-
-              /*
-              Crop: Will crop the image using the coordinates provided. If dimensions are
-              provided, the resulting image will also be resized accordingly.
-              */
-              case 'crop':
-                if (options.crop) {
-                  var coords = options.crop.split(',').map(coord => parseInt(coord))
-
-                  if (coords.length === 2) {
-                    coords.push(height - coords[0])
-                    coords.push(width - coords[1])
-                  }
-
-                  sharpImage.extract({
-                    left: coords[1],
-                    top: coords[0],
-                    width: coords[3] - coords[1],
-                    height: coords[2] - coords[0]
-                  })
-
-                  // resize if options.width or options.height are explicitly set
-                  if (options.width || options.height) {
-                    sharpImage.resize(options.width, options.height, resizeOptions)
-                  }
-                } else {
-                  // Width & height provided, crop from centre
-                  var excessWidth = Math.max(0, imageInfo.width - width)
-                  var excessHeight = Math.max(0, imageInfo.height - height)
-
-                  sharpImage.extract({
-                    left: Math.round(excessWidth / 2),
-                    top: Math.round(excessHeight / 2),
-                    width: width,
-                    height: height
-                  })
-                }
-
-                break
-
-              /*
-              Entropy: Will crop the image using the dimensions provided. The crop
-              coordinates will be determined by analising the image entropy using
-              smartcrop.
-              */
-              case 'entropy':
-                if (entropy) {
-                  sharpImage.extract({
-                    left: entropy.x1,
-                    top: entropy.y1,
-                    width: entropy.x2 - entropy.x1,
-                    height: entropy.y2 - entropy.y1
-                  })
-
-                  sharpImage.resize(width, height)
-                }
-            }
-          }
-        } else if (width && height && options.cropX && options.cropY) {
-          // console.log("%s %s %s %s", parseInt(options.cropX), parseInt(options.cropY), width-parseInt(options.cropX), height-parseInt(options.cropY))
-          // TODO: crop
-          // batch.crop(parseInt(options.cropX), parseInt(options.cropY), width - parseInt(options.cropX), height - parseInt(options.cropY))
+          sharpImage.extract({
+            left: parseInt(options.cropX),
+            top: parseInt(options.cropY),
+            width: width + parseInt(options.cropX),
+            height: height + parseInt(options.cropY)
+          })
         } else if (width && height) {
-          // TODO: cover
-          // batch.cover(width, height)
+          switch (options.resizeStyle) {
+            /*
+            Aspect Fit: Will size your image until the whole image fits within your area.
+            You are left with the extra space on top and bottom.
+            */
+            case 'aspectfit':
+              var size = fit(imageInfo.width, imageInfo.height, width, height)
+
+              sharpImage = sharpImage.resize(parseInt(size.width), parseInt(size.height), resizeOptions)
+
+              break
+            /*
+            Aspect Fill: Will size your image proportionally until the whole area is full of your image.
+            Your image is clipped. It will size proportionally to make sure there is no blank space left in your area.
+            */
+            case 'aspectfill':
+              var scaleWidth = (width / parseInt(imageInfo.width))
+              var scaleHeight = (height / parseInt(imageInfo.height))
+              var scale = Math.max(scaleWidth, scaleHeight)
+              var crops = self.getCropOffsetsByGravity(options.gravity, imageInfo, dimensions, scale)
+
+              if (scaleHeight >= scaleWidth) {
+                sharpImage = sharpImage.resize(
+                  Math.round(scale * imageInfo.width),
+                  height,
+                  resizeOptions
+                )
+              } else {
+                sharpImage = sharpImage.resize(
+                  width,
+                  Math.round(scale * imageInfo.height),
+                  resizeOptions
+                )
+              }
+
+              // Only crop if the aspect ratio is not the same
+              if (
+                (width / height) !== (imageInfo.width / imageInfo.height) &&
+                !self.storageHandler.notFound
+              ) {
+                sharpImage.extract({
+                  left: crops.x1,
+                  top: crops.y1,
+                  width: crops.x1 + crops.x2,
+                  height: crops.y1 + crops.y2
+                })
+              }
+
+              break
+
+            /*
+            Fill: Will size your image to the exact dimensions provided. Aspect ratio
+            will _not_ be preserved.
+            */
+            case 'fill':
+              sharpImage = sharpImage
+                .resize(width, height, resizeOptions)
+                .ignoreAspectRatio()
+
+              break
+
+            /*
+            Crop: Will crop the image using the coordinates provided. If dimensions are
+            provided, the resulting image will also be resized accordingly.
+            */
+            case 'crop':
+              if (options.crop) {
+                var coords = options.crop.split(',').map(coord => parseInt(coord))
+
+                if (coords.length === 2) {
+                  coords.push(height - coords[0])
+                  coords.push(width - coords[1])
+                }
+
+                sharpImage.extract({
+                  left: coords[1],
+                  top: coords[0],
+                  width: coords[3] - coords[1],
+                  height: coords[2] - coords[0]
+                })
+
+                // resize if options.width or options.height are explicitly set
+                if (options.width || options.height) {
+                  sharpImage.resize(options.width, options.height, resizeOptions)
+                }
+              } else {
+                // Width & height provided, crop from centre
+                var excessWidth = Math.max(0, imageInfo.width - width)
+                var excessHeight = Math.max(0, imageInfo.height - height)
+
+                sharpImage.extract({
+                  left: Math.round(excessWidth / 2),
+                  top: Math.round(excessHeight / 2),
+                  width: width,
+                  height: height
+                })
+              }
+
+              break
+
+            /*
+            Entropy: Will crop the image using the dimensions provided. The crop
+            coordinates will be determined by analising the image entropy using
+            smartcrop.
+            */
+            case 'entropy':
+              if (entropy) {
+                sharpImage.extract({
+                  left: entropy.x1,
+                  top: entropy.y1,
+                  width: entropy.x2 - entropy.x1,
+                  height: entropy.y2 - entropy.y1
+                })
+
+                sharpImage.resize(width, height)
+              }
+
+              break
+          }
         } else if (width && !height) {
           sharpImage = sharpImage.resize(width, null, resizeOptions)
         }
@@ -489,21 +492,9 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
         // sharpening
         if (options.sharpen !== 5) {
           sharpImage = sharpImage.sharpen(options.sharpen)
+        } else if (options.cropX && options.cropY) {
+          sharpImage = sharpImage.sharpen(0.5)
         }
-        //  else if (quality >= 70) {
-        //   if (/jpe?g/.exec(imageInfo.format) || /jpe?g/.exec(options.format)) {
-        //     sharpImage = sharpImage.sharpen(1)
-        //     // TODO: sharpen options for JPG & PNG
-        //   // } else if (/png/.exec(imageInfo.format) || /png/.exec(options.format)) {
-        //   //   batch.sharpen(5)
-        //   } else if (options.cropX && options.cropY) {
-        //     sharpImage = sharpImage.sharpen(1)
-        //   }
-        // }
-
-        // give it a little colour
-        // TODO: saturate
-        // batch.saturate(options.saturate)
 
         // Image format and parameters
         var format = (self.options.format === 'json'
@@ -523,6 +514,7 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
 
           case 'png':
             outputFn = 'png'
+            if (options.quality >= 70) outputOptions.compressionLevel = 3
 
             break
         }
@@ -891,15 +883,15 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
   // handle querystring options that came from a remote image url
   // as if the original remote url had it's own querystring then we'll
   // get an option here that starts with a ?, from where the CDN params were added
-  _.each(Object.keys(options), function (key) {
+  _.each(Object.keys(options), key => {
     if (key[0] === '?') {
       options[key.substring(1)] = options[key]
       delete options[key]
     }
   })
 
-  _.each(Object.keys(options), (key) => {
-    var settings = _.filter(this.optionSettings(), (setting) => {
+  _.each(Object.keys(options), key => {
+    var settings = _.filter(this.optionSettings(), setting => {
       return setting.name === key || _.contains(setting.aliases, key)
     })
 
@@ -919,11 +911,11 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
   })
 
   // ensure we have defaults for options not specified
-  var defaults = _.filter(this.optionSettings(), (setting) => {
+  var defaults = _.filter(this.optionSettings(), setting => {
     return setting.default
   })
 
-  _.each(defaults, (setting) => {
+  _.each(defaults, setting => {
     if (!imageOptions[setting.name]) {
       imageOptions[setting.name] = setting.default
     }
