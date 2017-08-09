@@ -498,12 +498,10 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
         // @param {Number} angle - angle of rotation, must be a multiple of 90
         if (options.rotate) sharpImage.rotate(parseInt(options.rotate))
 
-        // sharpening
-        if (options.sharpen !== 5) {
-          sharpImage = sharpImage.sharpen(options.sharpen)
-        } else if (options.cropX && options.cropY) {
-          sharpImage = sharpImage.sharpen(0.5)
-        }
+        console.log(options)
+        if (options.saturate < 1) sharpImage.greyscale()
+
+        if (options.sharpen) sharpImage.sharpen(options.sharpen)
 
         // Image format and parameters
         var format = (self.options.format === 'json'
@@ -863,7 +861,7 @@ ImageHandler.prototype.optionSettings = function () {
     { name: 'format', aliases: ['fmt'] },
     { name: 'quality', aliases: ['q'], default: 75 },
     { name: 'sharpen', aliases: ['sh'], default: 1 },
-    { name: 'saturate', aliases: ['sat'], default: 0.1 },
+    { name: 'saturate', aliases: ['sat'], default: 1, allowZero: true },
     { name: 'width', aliases: ['w'] },
     { name: 'height', aliases: ['h'] },
     { name: 'ratio', aliases: ['rx'] },
@@ -905,9 +903,10 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
     })
 
     if (settings && settings[0]) {
-      if (options[key] !== '0' || settings[0].default) {
-        if (options[key] !== '0') {
-          var value = options[key]
+      var value = options[key]
+
+      if (options[key] !== '0' || settings[0].allowZero || settings[0].default) {
+        if (options[key] !== '0' || settings[0].allowZero) {
           if (settings[0].lowercase) value = value.toLowerCase()
           imageOptions[settings[0].name] = _.isFinite(value) ? parseFloat(value) : value
         } else {
@@ -925,7 +924,7 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
   })
 
   _.each(defaults, setting => {
-    if (!imageOptions[setting.name]) {
+    if (typeof imageOptions[setting.name] === 'undefined') {
       imageOptions[setting.name] = setting.default
     }
   })
