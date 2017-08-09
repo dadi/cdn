@@ -497,10 +497,7 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
 
         // @param {Number} angle - angle of rotation, must be a multiple of 90
         if (options.rotate) sharpImage.rotate(parseInt(options.rotate))
-
-        console.log(options)
         if (options.saturate < 1) sharpImage.greyscale()
-
         if (options.sharpen) sharpImage.sharpen(options.sharpen)
 
         // Image format and parameters
