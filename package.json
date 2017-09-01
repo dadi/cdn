@@ -1,11 +1,11 @@
 {
   "name": "@dadi/cdn",
-  "version": "1.11.1",
+  "version": "1.12.0",
   "description": "A high performance, just-in-time asset manipulation and delivery layer designed as a modern content distribution solution.",
   "scripts": {
     "init": "validate-commit-msg",
     "start": "node index.js --node_env=development",
-    "test": "standard 'dadi/**/*.js' && env NODE_ENV=test ./node_modules/.bin/istanbul cover -x '**/workspace/**' --report cobertura --report text --report html --report lcov ./node_modules/mocha/bin/_mocha test -- --require babel-register",
+    "test": "standard 'dadi/**/*.js' && env NODE_ENV=test ./node_modules/.bin/istanbul cover -x '**/workspace/**' --report cobertura --report text --report html --report lcov ./node_modules/mocha/bin/_mocha test",
     "postinstall": "node ./scripts/copy-config.js",
     "posttest": "./scripts/coverage.js"
   },
@@ -25,7 +25,7 @@
     "colors": "^1.1.2",
     "concat-stream": "^1.5.1",
     "console-stamp": "^0.2.2",
-    "convict": "^3.0.0",
+    "convict": "^4.0.0",
     "etag": "^1.7.0",
     "exif": "^0.6.0",
     "finalhandler": "~1.0.0",
@@ -59,7 +59,6 @@
   },
   "devDependencies": {
     "aws-sdk-mock": "^1.5.0",
-    "babel-register": "^6.18.0",
     "env-test": "^1.0.0",
     "fakeredis": "^2.0.0",
     "greenkeeper-postpublish": "^1.0.1",

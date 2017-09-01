@@ -363,8 +363,6 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
               var scale = Math.max(scaleWidth, scaleHeight)
               var crops = self.getCropOffsetsByGravity(options.gravity, imageInfo, dimensions, scale)
 
-              console.log(crops)
-
               if (scaleHeight >= scaleWidth) {
                 sharpImage = sharpImage.resize(
                   Math.round(scale * imageInfo.width),
@@ -384,13 +382,6 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                 (width / height) !== (imageInfo.width / imageInfo.height) &&
                 !self.storageHandler.notFound
               ) {
-                console.log({
-                  left: crops.x1,
-                  top: crops.y1,
-                  width: crops.x2 - crops.x1,
-                  height: crops.y2 - crops.y1
-                })
-
                 sharpImage.extract({
                   left: crops.x1,
                   top: crops.y1,
