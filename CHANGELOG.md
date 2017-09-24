@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.12.0] - 2017-09-01
+
+The image processor used in CDN has been replaced. We are currently pinned to Node.js 6.9.2 for most CDN installations, as lwip will not build on more recent (and less [vulnerable](https://nodejs.org/en/blog/vulnerability/july-2017-security-releases/)) versions of Node.js.
+
+We’ve now implemented [Sharp](http://sharp.dimens.io/en/stable/) in CDN. It is much faster than lwip: running a test using a Buffer as both input and output, Sharp averages 29.08 operations per second, while lwip manages just 1.87 operations per second - that's around 15 times faster.
+
+Other than improved performance, Sharp offers us a smoother transition into adding plugin support to CDN and being able to offer features such as [dynamic text and image compositing](https://github.com/dadi/cdn/issues/173).
+
+### Changed
+
+[#243](https://github.com/dadi/cdn/issues/243): remove restriction on configuration file names
+[#247](https://github.com/dadi/cdn/issues/247): respond with error when loading from a URL returns no image data
+
+
 ## [1.11.1] - 2017-03-22
 
 ### Changed

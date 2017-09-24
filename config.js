@@ -470,7 +470,7 @@ var conf = convict({
   },
   env: {
     doc: 'The applicaton environment.',
-    format: ['production', 'development', 'test', 'qa'],
+    format: String,
     default: 'development',
     env: 'NODE_ENV',
     arg: 'node_env'
@@ -541,6 +541,32 @@ var conf = convict({
       format: String,
       default: 'speed.connectionType'
     }
+  },
+  engines: {
+    sharp: {
+      kernel: {
+        doc: 'The kernel to use for image reduction',
+        format: ['nearest', 'cubic', 'lanczos2', 'lanczos3'],
+        default: 'lanczos3'
+      },
+      interpolator: {
+        doc: 'The interpolator to use for image enlargement',
+        format: [
+          'nearest',
+          'bilinear',
+          'vertexSplitQuadraticBasisSpline',
+          'bicubic',
+          'locallyBoundedBicubic',
+          'nohalo'
+        ],
+        default: 'bicubic'
+      },
+      centreSampling: {
+        doc: 'Whether to use *magick centre sampling convention instead of corner sampling',
+        format: Boolean,
+        default: false
+      }
+    }
   }
 })
 
@@ -549,7 +575,7 @@ var env = conf.get('env')
 conf.loadFile('./config/config.' + env + '.json')
 
 // Perform validation
-conf.validate({strict: false})
+conf.validate()
 
 // Update Config JSON file by domain name
 conf.updateConfigDataForDomain = function (domain) {
