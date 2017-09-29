@@ -145,6 +145,7 @@ HandlerFactory.prototype.createFromFormat = function (format, req) {
 }
 
 HandlerFactory.prototype.getProcessor = function (inputString, req) {
+  console.log('---> getProcessor:', inputString)
   return new Promise((resolve, reject) => {
     var processorPath = path.join(path.resolve(config.get('paths.processors')), inputString + '.js')
 
@@ -212,7 +213,8 @@ HandlerFactory.prototype.createFromRecipe = function (inputString, req, fromRout
         handler.fileName = path.basename(parseUrl(req).pathname.replace(inputString, ''))
         handler.fileExt = path.extname(parseUrl(req).pathname).replace('.', '')
         handler.compress = recipe.settings.compress ? recipe.settings.compress.toString() : '0'
-        handler.options = recipe.settings
+
+        handler.setOptions(recipe.settings)
 
         return resolve(handler)
       }).catch((err) => {
