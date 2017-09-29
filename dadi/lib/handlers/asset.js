@@ -1,4 +1,3 @@
-var _ = require('underscore')
 var compressor = require('node-minify')
 var fs = require('fs')
 var path = require('path')
