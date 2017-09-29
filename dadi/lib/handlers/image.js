@@ -963,10 +963,6 @@ ImageHandler.prototype.getLastModified = function () {
   return this.storageHandler.getLastModified()
 }
 
-ImageHandler.prototype.setOptions = function (options) {
-  this.options = options
-}
-
 function flushExifFiles () {
   fs.readdir(exifDirectory, (err, files) => {
     if (err) {
