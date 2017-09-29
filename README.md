@@ -86,7 +86,7 @@ $ forever-service install -s index.js -e NODE_ENV=production cdn --start
 
 ### Configuring an image source
 
-Before you can serve assets or images you need to tell CDN where your files are located. Currently, CDN can serve your files from three types of source: [Amazon S3](https://docs.dadi.tech/#cdn/amazon-s3), [a remote server](https://docs.dadi.tech/#cdn/remote-server), and the [the local filesystem](https://docs.dadi.tech#/cdn/local-filesystem). We'll start using the local filesystem, but see the [full documentation](https://docs.dadi.tech/#cdn/defining-sources) for details on using the other source types.
+Before you can serve assets or images you need to tell CDN where your files are located. Currently, CDN can serve your files from three types of source: [Amazon S3](https://docs.dadi.tech/#cdn/amazon-s3), [a remote server](https://docs.dadi.tech/#cdn/remote-server), and the [the local filesystem](https://docs.dadi.tech/#cdn/local-filesystem). We'll start using the local filesystem, but see the [full documentation](https://docs.dadi.tech/#cdn/defining-sources) for details on using the other source types.
 
 The sample configuration file defines a local filesystem source. The `path` property is set to use an directory called `images` at the root of your application. CDN will look for your files at the location defined in this `path` property every time it handles a request.
 
