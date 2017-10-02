@@ -181,7 +181,7 @@ HandlerFactory.prototype.createFromRoute = function (inputString, req) {
       route.setLanguage(req.headers['accept-language'])
       route.setUserAgent(req.headers['user-agent'])
 
-      return resolve(route.getRecipe().then((recipe) => {
+      return resolve(route.getRecipe().then(recipe => {
         if (recipe) {
           return this.createFromRecipe(recipe, req, inputString)
         }
@@ -192,13 +192,13 @@ HandlerFactory.prototype.createFromRoute = function (inputString, req) {
   })
 }
 
-HandlerFactory.prototype.createFromRecipe = function (inputString, req, fromRoute) {
+HandlerFactory.prototype.createFromRecipe = function (recipeName, req, fromRoute) {
   return new Promise((resolve, reject) => {
-    const recipePath = path.join(path.resolve(config.get('paths.recipes')), inputString + '.json')
+    const recipePath = path.join(path.resolve(config.get('paths.recipes')), recipeName + '.json')
 
     fs.stat(recipePath, (err, stats) => {
       if ((err && (err.code === 'ENOENT')) || !stats.isFile()) {
-        return resolve(this.callNextHandler(inputString, req))
+        return resolve(this.callNextHandler(recipeName, req))
       } else if (err) {
         return reject(err)
       }
@@ -210,11 +210,13 @@ HandlerFactory.prototype.createFromRecipe = function (inputString, req, fromRout
 
         this.createFromFormat(recipe.settings.format, req).then(handler => {
           const referencePath = recipe.path ? recipe.path : ''
-          const filePath = parseUrl(req).pathname.replace(inputString, '').replace(fromRoute, '')
+          const filePath = parseUrl(req).pathname
+            .replace('/' + recipeName + '/', '/')
+            .replace('/' + fromRoute + '/', '/')
           const fullPath = path.join(referencePath, filePath)
 
           handler.url = fullPath
-          handler.fileName = path.basename(parseUrl(req).pathname.replace(inputString, ''))
+          handler.fileName = path.basename(parseUrl(req).pathname.replace(recipeName, ''))
           handler.fileExt = path.extname(parseUrl(req).pathname).replace('.', '')
           handler.compress = recipe.settings.compress ? recipe.settings.compress.toString() : '0'
           handler.options = recipe.settings

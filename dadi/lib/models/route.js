@@ -12,6 +12,8 @@ var Route = function (config) {
 }
 
 Route.prototype._arrayIntersect = function (object, array) {
+  if (!object) return false
+
   if (!(object instanceof Array)) {
     object = [object]
   }
@@ -270,7 +272,7 @@ Route.prototype.save = function () {
 }
 
 Route.prototype.setIP = function (ip) {
-  this.ip = ip === ip
+  this.ip = ip
 }
 
 Route.prototype.setLanguage = function (language) {
