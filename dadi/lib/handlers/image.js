@@ -118,10 +118,6 @@ ImageHandler.prototype.get = function () {
 
   var parsedUrl = url.parse(this.req.url, true)
 
-  console.log('')
-  console.log('*** Image handler:', parsedUrl)
-  console.log('')
-
   // Previously set options (e.g. from a recipe) take precedence.
   // If none are set, we look for them in the URL.
   if (!this.options) {
@@ -176,13 +172,8 @@ ImageHandler.prototype.get = function () {
       return reject(err)
     }
 
-    console.log('*** CACHE KEY:', this.cacheKey)
-
     // get from cache
     this.cache.getStream(this.cacheKey, (stream) => {
-      console.log('')
-      console.log('*** CACHE:', stream)
-      console.log('')
       // if found in cache, return it
       if (stream) {
         if (this.options.format !== 'json') {

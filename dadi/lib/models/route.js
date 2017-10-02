@@ -195,7 +195,9 @@ Route.prototype.getLocation = function () {
 
 Route.prototype.getMaxmindLocation = function () {
   return new Promise((resolve, reject) => {
-    var countryDb = Maxmind.open(config.get('geolocation.maxmind.countryDbPath'), {
+    var dbPath = path.resolve(__dirname, config.get('geolocation.maxmind.countryDbPath'))
+
+    Maxmind.open(dbPath, {
       cache: {
         max: 1000, // max items in cache
         maxAge: 1000 * 60 * 60 // life time in milliseconds
