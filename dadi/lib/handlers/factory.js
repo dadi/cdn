@@ -177,7 +177,7 @@ HandlerFactory.prototype.createFromRoute = function (inputString, req) {
 
       const route = new Route(require(routePath))
 
-      route.setIP(req.connection.remoteAddress)
+      route.setIP(req.headers['x-forwarded-for'] || req.connection.remoteAddress)
       route.setLanguage(req.headers['accept-language'])
       route.setUserAgent(req.headers['user-agent'])
 
