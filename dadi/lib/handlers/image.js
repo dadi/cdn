@@ -410,22 +410,38 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
             case 'crop':
               if (options.crop) {
                 var coords = options.crop.split(',').map(coord => parseInt(coord))
-
                 if (coords.length === 2) {
                   coords.push(height - coords[0])
                   coords.push(width - coords[1])
                 }
 
-                sharpImage.extract({
+                var cropDimensions = {
                   left: coords[1],
                   top: coords[0],
                   width: coords[3] - coords[1],
                   height: coords[2] - coords[0]
-                })
+                }
+                sharpImage.extract(cropDimensions)
 
                 // resize if options.width or options.height are explicitly set
                 if (options.width || options.height) {
-                  sharpImage.resize(options.width, options.height, resizeOptions)
+                  if (options.width && options.height) {
+                    sharpImage = sharpImage.ignoreAspectRatio()
+                  }
+
+                  if (options.devicePixelRatio && options.devicePixelRatio < 4) {
+                    let adjustedWidth = parseFloat(options.width) * parseFloat(options.devicePixelRatio)
+                    let adjustedHeight = parseFloat(options.height) * parseFloat(options.devicePixelRatio)
+                    sharpImage.resize(adjustedWidth || undefined, adjustedHeight || undefined, resizeOptions)
+                  } else {
+                    sharpImage.resize(options.width, options.height, resizeOptions)
+                  }
+                } else {
+                  if (options.devicePixelRatio && options.devicePixelRatio < 4) {
+                    let adjustedWidth = parseFloat(cropDimensions.width) * parseFloat(options.devicePixelRatio)
+                    let adjustedHeight = parseFloat(cropDimensions.height) * parseFloat(options.devicePixelRatio)
+                    sharpImage.resize(adjustedWidth || undefined, adjustedHeight || undefined, resizeOptions)
+                  }
                 }
               } else {
                 // Width & height provided, crop from centre
