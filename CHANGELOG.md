@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.13.0] - 2017-10-20
+
+## Changed
+
+* [#270](https://github.com/dadi/cdn/issues/270): cropping modifications to make it behave more intuitively. DevicePixelRatio is now respected, along with distorting images by providing both width & height. These changes only affect resize style `crop`. See the [documentation](https://docs.dadi.tech/#cdn) for more information.
+
 ## [1.12.0] - 2017-09-01
 
 The image processor used in CDN has been replaced. We are currently pinned to Node.js 6.9.2 for most CDN installations, as lwip will not build on more recent (and less [vulnerable](https://nodejs.org/en/blog/vulnerability/july-2017-security-releases/)) versions of Node.js.
