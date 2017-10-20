@@ -118,26 +118,30 @@ ImageHandler.prototype.get = function () {
 
   var parsedUrl = url.parse(this.req.url, true)
 
-  // get the image options provided as querystring or path
-  if (parsedUrl.search) {
-    // get image options from the querystring
-    var querystrings = parsedUrl.search.split('?')
+  // Previously set options (e.g. from a recipe) take precedence.
+  // If none are set, we look for them in the URL.
+  if (!this.options) {
+    // get the image options provided as querystring or path
+    if (parsedUrl.search) {
+      // get image options from the querystring
+      var querystrings = parsedUrl.search.split('?')
 
-    if (querystrings.length > 1) {
-      this.options = querystring.decode(querystrings[querystrings.length - 1])
-    } else {
-      this.options = parsedUrl.query
-    }
-  } else if (!this.options) {
-    // get the segments of the url that relate to image manipulation options
-    var urlSegments = _.filter(parsedUrl.pathname.split('/'), function (segment, index) {
-      if (index > 0 && segment === '') return '0'
-      if (index < 13 || (index >= 13 && /^[0-1]$/.test(segment))) {
-        return segment
+      if (querystrings.length > 1) {
+        this.options = querystring.decode(querystrings[querystrings.length - 1])
+      } else {
+        this.options = parsedUrl.query
       }
-    })
+    } else {
+      // get the segments of the url that relate to image manipulation options
+      var urlSegments = _.filter(parsedUrl.pathname.split('/'), function (segment, index) {
+        if (index > 0 && segment === '') return '0'
+        if (index < 13 || (index >= 13 && /^[0-1]$/.test(segment))) {
+          return segment
+        }
+      })
 
-    this.options = getImageOptions(urlSegments)
+      this.options = getImageOptions(urlSegments)
+    }
   }
 
   // clean the options array up
