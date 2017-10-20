@@ -1,4 +1,3 @@
-var _ = require('underscore')
 var compressor = require('node-minify')
 var fs = require('fs')
 var path = require('path')
@@ -26,23 +25,26 @@ var AssetHandler = function (format, req) {
 
   // '/js/1/test.js' -> [ 'js', '1', 'test.js' ]
   // '/fonts/test.ttf' -> [ fonts', 'test.ttf' ]
-  this.urlParts = _.compact(parsedUrl.pathname.split('/'))
+  this.urlParts = parsedUrl.pathname.split('/').filter(Boolean)
 
-  this.fullUrl = this.req.url
-  this.hasQuery = !_.isEmpty(parsedUrl.search)
+  // Is this a request with the legacy format (e.g. /js/0/test.js)
+  // or the new one (e.g. /js/test.js?compress=0)?
+  const isLegacyFormat = this.urlParts[1].length === 1
 
   if (this.format === 'css' || this.format === 'js') {
-    this.url = this.urlParts.length > 2 ? this.urlParts.slice(2).join('/') : this.urlParts.join('/')
+    this.url = this.urlParts.slice(isLegacyFormat ? 2 : 1).join('/')
     this.fileExt = this.format
-    this.fileName = this.hasQuery ? this.urlParts[1] : this.urlParts[2]
-    this.compress = this.hasQuery ? parsedUrl.query.compress : this.urlParts[1]
+    this.fileName = this.urlParts[this.urlParts.length - 1]
+    this.compress = isLegacyFormat
+      ? this.urlParts[1]
+      : parsedUrl.query.compress || this.compress
   } else if (this.format === 'fonts') {
     this.url = this.urlParts.splice(1).join('/')
-    this.fullUrl = this.url
     this.fileName = path.basename(this.url)
     this.fileExt = path.extname(this.fileName).replace('.', '')
   }
 
+  this.fullUrl = this.url
   this.cacheKey = this.req.url
 }
 
