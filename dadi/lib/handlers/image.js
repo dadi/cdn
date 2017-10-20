@@ -409,13 +409,13 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
             */
             case 'crop':
               if (options.crop) {
-                var coords = options.crop.split(',').map(coord => parseInt(coord))
+                let coords = options.crop.split(',').map(coord => parseInt(coord))
                 if (coords.length === 2) {
                   coords.push(height - coords[0])
                   coords.push(width - coords[1])
                 }
 
-                var cropDimensions = {
+                const cropDimensions = {
                   left: coords[1],
                   top: coords[0],
                   width: coords[3] - coords[1],
@@ -445,8 +445,8 @@ ImageHandler.prototype.convert = function (stream, imageInfo) {
                 }
               } else {
                 // Width & height provided, crop from centre
-                var excessWidth = Math.max(0, imageInfo.width - width)
-                var excessHeight = Math.max(0, imageInfo.height - height)
+                const excessWidth = Math.max(0, imageInfo.width - width)
+                const excessHeight = Math.max(0, imageInfo.height - height)
 
                 sharpImage.extract({
                   left: Math.round(excessWidth / 2),
