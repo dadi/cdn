@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.13.1] - 2017-10-21
+
+## Changed
+
+* [#260](https://github.com/dadi/cdn/pulls/260): update [finalhandler](https://www.npmjs.com/package/finalhandler) to version 1.1.0
+* [#264](https://github.com/dadi/cdn/pulls/264): update [request](https://www.npmjs.com/package/request) to version 2.83.0
+* [#267](https://github.com/dadi/cdn/pulls/267): make options from recipe take precedence in Image handler
+* [#272](https://github.com/dadi/cdn/pulls/272): update [should](https://www.npmjs.com/package/should) to version 13.1.2
+
 ## [1.13.0] - 2017-10-20
 
 ## Changed
