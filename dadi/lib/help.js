@@ -23,6 +23,9 @@ module.exports.sendBackJSON = function (successCode, results, res) {
   res.statusCode = successCode
 
   var resBody = JSON.stringify(results)
+  if (results instanceof Error && resBody === '{}') {
+    resBody = JSON.stringify({ message: results.message || 'unknown error' })
+  }
 
   res.setHeader('Server', config.get('server.name'))
   res.setHeader('Content-Type', 'application/json')
