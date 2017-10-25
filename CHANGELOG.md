@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.13.2] - 2017-10-25
+
+## Changed
+
+* fix an issue where the aspect ratio was not respected when maxWidth/maxHeight resizes were being made
+
 ## [1.13.1] - 2017-10-21
 
 ## Changed
