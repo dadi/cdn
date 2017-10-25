@@ -583,7 +583,7 @@ describe('Controller', function () {
 
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
-        .get('/test.jpg?width=2000&cropX=20&cropY=20')
+        .get('/test.jpg?resize=crop&crop=0,0,3000,3000')
         .end(function(err, res) {
           res.statusCode.should.eql(400)
           res.body.message.should.exist

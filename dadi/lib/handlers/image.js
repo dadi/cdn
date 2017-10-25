@@ -811,11 +811,15 @@ function getDimensions (options, imageInfo) {
   }
 
   if (config.get('security.maxWidth') && config.get('security.maxWidth') < dimensions.width) {
+    const hwr = parseFloat(dimensions.height / dimensions.width)
     dimensions.width = config.get('security.maxWidth')
+    dimensions.height = dimensions.width * hwr
   }
 
   if (config.get('security.maxHeight') && config.get('security.maxHeight') < dimensions.height) {
+    const whr = parseFloat(dimensions.width / dimensions.height)
     dimensions.height = config.get('security.maxHeight')
+    dimensions.width = dimensions.height * whr
   }
 
   if (options.devicePixelRatio && options.devicePixelRatio < 4) {
