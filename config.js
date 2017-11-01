@@ -1,9 +1,9 @@
-var convict = require('convict')
-var fs = require('fs')
-var path = require('path')
+const convict = require('convict')
+const fs = require('fs')
+const path = require('path')
 
 // Define a schema
-var conf = convict({
+const schema = {
   server: {
     host: {
       doc: 'The IP address the application will run on',
@@ -568,14 +568,12 @@ var conf = convict({
       }
     }
   }
-})
+}
+const conf = convict(schema)
 
 // Load environment dependent configuration
-var env = conf.get('env')
+const env = conf.get('env')
 conf.loadFile('./config/config.' + env + '.json')
-
-// Perform validation
-conf.validate()
 
 // Update Config JSON file by domain name
 conf.updateConfigDataForDomain = function (domain) {
@@ -589,3 +587,5 @@ module.exports = conf
 module.exports.configPath = function () {
   return './config/config.' + conf.get('env') + '.json'
 }
+
+module.exports.schema = schema
