@@ -1,3 +1,5 @@
+'use strict'
+
 var _ = require('underscore')
 var fs = require('fs')
 var concat = require('concat-stream')
@@ -159,129 +161,137 @@ ImageHandler.prototype.get = function () {
     this.format = this.options.format
   }
 
-  return new Promise((resolve, reject) => {
-    var message
+  var message
 
-    // TODO: is there an error to raise here?
-    if (message) {
-      var err = {
-        statusCode: 400,
-        message: message
-      }
-
-      return reject(err)
+  // TODO: is there an error to raise here?
+  if (message) {
+    var err = {
+      statusCode: 400,
+      message: message
     }
 
-    // get from cache
-    this.cache.getStream(this.cacheKey, (stream) => {
-      // if found in cache, return it
-      if (stream) {
-        if (this.options.format !== 'json') {
-          this.cached = true
-          return resolve(stream)
+    return Promise.reject(err)
+  }
+
+  return this.cache.getStream(this.cacheKey).then(stream => {
+    // if found in cache, return it
+    if (stream && this.options.format !== 'json') {
+      this.cached = true
+
+      return stream
+    }
+
+    // not in cache, get image from source
+    if (this.externalUrl) {
+      if (!config.get('images.remote.enabled') || !config.get('images.remote.allowFullURL')) {
+        const err = {
+          statusCode: 403,
+          message: 'Loading images from a full remote URL is not supported by this instance of DADI CDN'
         }
+
+        return Promise.reject(err)
       }
 
-      // not in cache, get image from source
-      if (this.externalUrl) {
-        if (!config.get('images.remote.enabled') || !config.get('images.remote.allowFullURL')) {
-          const err = {
-            statusCode: 403,
-            message: 'Loading images from a full remote URL is not supported by this instance of DADI CDN'
-          }
+      this.storageHandler = new HTTPStorage(null, this.externalUrl)
+    } else {
+      this.storageHandler = this.storageFactory.create('image', this.url)
+    }
 
-          return reject(err)
-        }
+    return this.storageHandler.get()
+  }).then(stream => {
+    this.cacheStream = new PassThrough()
+    this.convertStream = new PassThrough()
+    this.exifStream = new PassThrough()
+    this.imageSizeStream = new PassThrough()
+    this.responseStream = new PassThrough()
 
-        this.storageHandler = new HTTPStorage(null, this.externalUrl)
-      } else {
-        this.storageHandler = this.storageFactory.create('image', this.url)
-      }
+    // duplicate the stream so we can use it for the imagesize() request and the
+    // response. this saves requesting the same data a second time.
+    stream.pipe(this.imageSizeStream)
+    stream.pipe(this.convertStream)
 
-      this.storageHandler.get().then((stream) => {
-        var cacheStream = new PassThrough()
-        var convertStream = new PassThrough()
-        var imageSizeStream = new PassThrough()
-        var responseStream = new PassThrough()
-        var exifStream = new PassThrough()
+    // pipe the stream to a temporary file to avoid back pressure buildup
+    // while we wait for the exif data to be processed
+    let tmpExifFile
 
-        // duplicate the stream so we can use it for the imagesize() request and the
-        // response. this saves requesting the same data a second time.
-        stream.pipe(imageSizeStream)
-        stream.pipe(convertStream)
+    if (this.options.format === 'json') {
+      tmpExifFile = path.join(exifDirectory, sha1(this.url))
+      stream.pipe(this.exifStream).pipe(fs.createWriteStream(tmpExifFile))
+    }
 
-        // pipe the stream to a temporary file to avoid back pressure buildup
-        // while we wait for the exif data to be processed
-        var tmpExifFile
-
-        if (this.options.format === 'json') {
-          tmpExifFile = path.join(exifDirectory, sha1(this.url))
-          stream.pipe(exifStream).pipe(fs.createWriteStream(tmpExifFile))
-        }
-
-        // get the image size and format
-        imagesize(imageSizeStream, (err, imageInfo) => {
-          if (err) {
-            if (err === 'invalid') {
-              var message = 'Image data is invalid'
-
-              var imageErr = {
-                statusCode: 400,
-                message: message
-              }
-
-              return reject(imageErr)
-            }
-
-            console.log(err)
-          }
-
-          // extract exif data if available
-          if (imageInfo && /jpe?g/.exec(imageInfo.format) && this.options.format === 'json') {
-            this.extractExifData(tmpExifFile).then((exifData) => {
-              this.exifData = exifData
-            }).catch(function (err) {
-              // no exif data
-              if (err) console.log(err)
+    return new Promise((resolve, reject) => {
+      // get the image size and format
+      imagesize(this.imageSizeStream, (err, imageInfo) => {
+        if (err) {
+          if (err === 'invalid') {
+            return reject({
+              statusCode: 400,
+              message: 'Image data is invalid'
             })
           }
 
-          flushExifFiles()
+          console.log(err)
+        }
 
-          // connvert image using specified options
-          this.convert(convertStream, imageInfo).then((result) => {
-            var convertedStream = result.stream
-            var dataFromConvert = result.data || {}
-
-            convertedStream.pipe(cacheStream)
-            convertedStream.pipe(responseStream)
-
-            // cache the file if enabled
-            this.cache.cacheFile(cacheStream, this.cacheKey, () => {
-              // return image info only, as json
-              if (this.options.format === 'json') {
-                this.getImageInfo(responseStream, imageInfo, (data) => {
-                  // Adding data from `convert()` to response
-                  data = _.extendOwn(data, dataFromConvert)
-
-                  var returnStream = new Readable()
-                  returnStream.push(JSON.stringify(data))
-                  returnStream.push(null)
-
-                  return resolve(returnStream)
-                })
-              } else {
-                // return image
-                return resolve(responseStream)
-              }
-            })
-          }).catch(function (err) {
-            return reject(err)
-          })
+        return resolve({
+          imageInfo,
+          tmpExifFile
         })
-      }).catch(function (err) {
-        return reject(err)
       })
+    })
+  }).then(({imageInfo, tmpExifFile}) => {
+    let queue
+
+    // extract exif data if available
+    if (imageInfo && /jpe?g/.exec(imageInfo.format) && this.options.format === 'json') {
+      queue = this.extractExifData(tmpExifFile).then(exifData => {
+        this.exifData = exifData
+      })
+    }
+
+    return Promise.resolve(queue).then(() => imageInfo)
+  }).then(imageInfo => {
+    flushExifFiles()
+
+    // connvert image using specified options
+    return this.convert(this.convertStream, imageInfo).then(result => {
+      return {
+        imageInfo,
+        result
+      }
+    })
+  }).then(({imageInfo, result}) => {
+    const convertedStream = result.stream
+    const dataFromConvert = result.data || {}
+
+    convertedStream.pipe(this.cacheStream)
+    convertedStream.pipe(this.responseStream)
+
+    // cache the file if enabled
+    return this.cache.cacheFile(this.cacheStream, this.cacheKey).then(() => {
+      return {
+        dataFromConvert,
+        imageInfo
+      }
+    })
+  }).then(({dataFromConvert, imageInfo}) => {
+    return new Promise((resolve, reject) => {
+      // return image info only, as json
+      if (this.options.format === 'json') {
+        this.getImageInfo(this.responseStream, imageInfo, data => {
+          // Adding data from `convert()` to response
+          Object.assign(data, dataFromConvert)
+
+          const returnStream = new Readable()
+          returnStream.push(JSON.stringify(data))
+          returnStream.push(null)
+
+          return resolve(returnStream)
+        })
+      } else {
+        // return image
+        return resolve(this.responseStream)
+      }
     })
   })
 }
