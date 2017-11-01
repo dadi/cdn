@@ -872,7 +872,7 @@ ImageHandler.prototype.optionSettings = function () {
   return [
     { name: 'format', aliases: ['fmt'] },
     { name: 'quality', aliases: ['q'], default: 75 },
-    { name: 'sharpen', aliases: ['sh'], default: 1, allowZero: true },
+    { name: 'sharpen', aliases: ['sh'], default: 0, allowZero: true },
     { name: 'saturate', aliases: ['sat'], default: 1, allowZero: true },
     { name: 'width', aliases: ['w'] },
     { name: 'height', aliases: ['h'] },
