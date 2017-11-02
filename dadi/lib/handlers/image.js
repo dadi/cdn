@@ -921,8 +921,11 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
         if (options[key] !== '0' || settings[0].allowZero) {
           if (settings[0].lowercase) value = value.toLowerCase()
           value = _.isFinite(value) ? parseFloat(value) : value
-          if (settings[0].minimumValue && value < settings[0].minimumValue) value = settings[0].minimumValue
-          else if (settings[0].maximumValue && value > settings[0].maximumValue) value = settings[0].maximumValue
+          if (settings[0].minimumValue && value < settings[0].minimumValue) {
+            value = settings[0].minimumValue
+          } else if (settings[0].maximumValue && value > settings[0].maximumValue) {
+            value = settings[0].maximumValue
+          }
           imageOptions[settings[0].name] = value
         } else {
           imageOptions[settings[0].name] = settings[0].default
