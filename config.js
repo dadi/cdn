@@ -574,9 +574,6 @@ var conf = convict({
 var env = conf.get('env')
 conf.loadFile('./config/config.' + env + '.json')
 
-// Perform validation
-conf.validate()
-
 // Update Config JSON file by domain name
 conf.updateConfigDataForDomain = function (domain) {
   if (fs.existsSync(path.resolve(__dirname + '/workspace/domain-loader/' + domain + '.config.' + env + '.json'))) {
