@@ -872,7 +872,7 @@ ImageHandler.prototype.optionSettings = function () {
   return [
     { name: 'format', aliases: ['fmt'] },
     { name: 'quality', aliases: ['q'], default: 75 },
-    { name: 'sharpen', aliases: ['sh'], default: 1 },
+    { name: 'sharpen', aliases: ['sh'], default: 0, allowZero: true, minimumValue: 1 },
     { name: 'saturate', aliases: ['sat'], default: 1, allowZero: true },
     { name: 'width', aliases: ['w'] },
     { name: 'height', aliases: ['h'] },
@@ -920,7 +920,13 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
       if (options[key] !== '0' || settings[0].allowZero || settings[0].default) {
         if (options[key] !== '0' || settings[0].allowZero) {
           if (settings[0].lowercase) value = value.toLowerCase()
-          imageOptions[settings[0].name] = _.isFinite(value) ? parseFloat(value) : value
+          value = _.isFinite(value) ? parseFloat(value) : value
+          if (settings[0].minimumValue && value < settings[0].minimumValue) {
+            value = settings[0].minimumValue
+          } else if (settings[0].maximumValue && value > settings[0].maximumValue) {
+            value = settings[0].maximumValue
+          }
+          imageOptions[settings[0].name] = value
         } else {
           imageOptions[settings[0].name] = settings[0].default
         }
