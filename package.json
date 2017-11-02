@@ -1,6 +1,7 @@
 {
   "name": "@dadi/cdn",
-  "version": "1.13.2",
+  "version": "1.13.3",
+  "product": "DADI CDN",
   "description": "A high performance, just-in-time asset manipulation and delivery layer designed as a modern content distribution solution.",
   "scripts": {
     "init": "validate-commit-msg",
