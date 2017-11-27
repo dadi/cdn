@@ -1,5 +1,4 @@
 const babel = require('babel-core')
-const fs = require('fs')
 const path = require('path')
 const Readable = require('stream').Readable
 const url = require('url')
@@ -14,12 +13,14 @@ const Cache = require(path.join(__dirname, '/../cache'))
  * @param {Object} req    The request instance
  */
 const JSHandler = function (format, req) {
-  const parsedUrl = 
+  this.legacyURLOverrides = this.getLegacyURLOverrides(req.url)
+  this.url = url.parse(
+    this.legacyURLOverrides.url || req.url,
+    true
+  )
 
   this.cache = Cache()
-  this.cacheKey = req.url
-  
-  this.url = url.parse(req.url, true)
+  this.cacheKey = this.url.href
 
   this.storageFactory = Object.create(StorageFactory)
   this.storageHandler = null
@@ -50,10 +51,10 @@ JSHandler.prototype.get = function () {
     )
 
     return this.storageHandler.get().then(stream => {
+      return this.processFile(stream)
+    }).then(stream => {
       return this.cache.cacheFile(stream, this.cacheKey)
     })
-  }).then(stream => {
-    return this.processFile(stream)
   })
 }
 
@@ -65,20 +66,8 @@ JSHandler.prototype.getBabelOptions = function () {
     presets: []
   }
 
-  if (query.compress === '1') {
+  if (this.legacyURLOverrides.compress || query.compress === '1') {
     options.presets.push('minify')
-  }
-
-  if (query.support) {
-    const supportArray = query.support.split(',').map(decodeURIComponent)
-
-    options.presets.push(
-      ['env', {
-        targets: {
-          browsers: supportArray
-        }
-      }]
-    )
   }
 
   return options
@@ -104,11 +93,29 @@ JSHandler.prototype.getLastModified = function () {
   return this.storageHandler.getLastModified()
 }
 
+JSHandler.prototype.getLegacyURLOverrides = function (url) {
+  let overrides = {}
+
+  const legacyURLMatch = url.match(/\/js(\/(\d))?/)
+
+  if (legacyURLMatch) {
+    if (legacyURLMatch[2]) {
+      overrides.compress = legacyURLMatch[2] === '1'
+    }
+
+    overrides.url = url.slice(legacyURLMatch[0].length)
+  }
+
+  return overrides
+}
+
 JSHandler.prototype.processFile = function (stream) {
   let inputCode = ''
 
   return new Promise((resolve, reject) => {
-    stream.on('data', chunk => inputCode += chunk)
+    stream.on('data', chunk => {
+      inputCode += chunk
+    })
     stream.on('end', () => {
       const outputCode = babel.transform(inputCode, this.getBabelOptions()).code
       const outputStream = new Readable()
@@ -116,7 +123,7 @@ JSHandler.prototype.processFile = function (stream) {
       outputStream.push(outputCode)
       outputStream.push(null)
 
-      return resolve(outputStream)
+      resolve(outputStream)
     })
   })
 }

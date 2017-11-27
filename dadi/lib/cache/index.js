@@ -82,7 +82,7 @@ Cache.prototype.getStream = function (key) {
 
   const encryptedKey = sha1(key)
 
-  return cache.get(encryptedKey).catch(err => {
+  return cache.get(encryptedKey).catch(err => { // eslint-disable-line handle-callback-err
     return null
   })
 }

@@ -38,7 +38,7 @@ var AssetHandler = function (format, req) {
     this.compress = isLegacyFormat
       ? this.urlParts[1]
       : parsedUrl.query.compress || this.compress
-  } else if (this.format === 'fonts') {
+  } else {
     this.url = this.urlParts.splice(1).join('/')
     this.fileName = path.basename(this.url)
     this.fileExt = path.extname(this.fileName).replace('.', '')
