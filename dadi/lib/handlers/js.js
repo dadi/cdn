@@ -166,17 +166,19 @@ JSHandler.prototype.processFile = function (stream) {
       inputCode += chunk
     })
     stream.on('end', () => {
+      const outputStream = new Readable()
+
       try {
         const outputCode = babel.transform(inputCode, this.getBabelOptions()).code
-        const outputStream = new Readable()
 
         outputStream.push(outputCode)
-        outputStream.push(null)
-
-        resolve(outputStream)
       } catch (err) {
-        return reject(err)
+        outputStream.push(inputCode)
       }
+
+      outputStream.push(null)
+
+      resolve(outputStream)
     })
   })
 }
