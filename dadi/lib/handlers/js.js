@@ -60,13 +60,43 @@ JSHandler.prototype.get = function () {
     )
 
     return this.storageHandler.get().then(stream => {
-      return this.processFile(stream)
+      return this.transform(stream)
     }).then(stream => {
       return this.cache.cacheFile(stream, this.cacheKey)
     })
   })
 }
 
+/**
+ * Returns a Babel configuration object for the current request.
+ *
+ * @return {Object} Babel configuration object
+ */
+JSHandler.prototype.getBabelConfig = function () {
+  const query = this.url.query
+
+  let options = {
+    babelrc: false,
+    presets: []
+  }
+
+  if (query.transform) {
+    options.presets.push(['env', this.getBabelEnvOptions()])
+  }
+
+  if (this.legacyURLOverrides.compress || query.compress === '1') {
+    options.presets.push('minify')
+  }
+
+  return options
+}
+
+/**
+ * Returns a Babel targets object for the user agent of the current
+ * request.
+ *
+ * @return {Object} Babel targets object
+ */
 JSHandler.prototype.getBabelEnvOptions = function () {
   const agent = userAgent.parse(this.userAgent).toAgent()
   const dotIndexes = Array.from(agent).reduce((indexes, character, index) => {
@@ -87,25 +117,12 @@ JSHandler.prototype.getBabelEnvOptions = function () {
   }
 }
 
-JSHandler.prototype.getBabelOptions = function () {
-  const query = this.url.query
-
-  let options = {
-    babelrc: false,
-    presets: []
-  }
-
-  if (query.transform) {
-    options.presets.push(['env', this.getBabelEnvOptions()])
-  }
-
-  if (this.legacyURLOverrides.compress || query.compress === '1') {
-    options.presets.push('minify')
-  }
-
-  return options
-}
-
+/**
+ * Creates a non-cryptographic hash from the list of Babel plugins
+ * required to transform the code for the current user agent.
+ *
+ * @return {String} A hash of all the plugins
+ */
 JSHandler.prototype.getBabelPluginsHash = function () {
   const functions = babelPresetEnv(this.getBabelEnvOptions()).plugins.map(plugin => plugin[0])
   const hashSource = functions.reduce((result, functionSource) => {
@@ -142,6 +159,13 @@ JSHandler.prototype.getLastModified = function () {
   return this.storageHandler.getLastModified()
 }
 
+/**
+ * Looks for parameters in the URL using legacy syntax
+ * (e.g. /js/0/file.js)
+ *
+ * @param  {String} url The URL
+ * @return {Object}     A list of parameters and their value
+ */
 JSHandler.prototype.getLegacyURLOverrides = function (url) {
   let overrides = {}
 
@@ -158,7 +182,13 @@ JSHandler.prototype.getLegacyURLOverrides = function (url) {
   return overrides
 }
 
-JSHandler.prototype.processFile = function (stream) {
+/**
+ * Transforms the code from the stream provided using Babel
+ *
+ * @param  {Stream} stream The input stream
+ * @return {Promise<Stream>}
+ */
+JSHandler.prototype.transform = function (stream) {
   let inputCode = ''
 
   return new Promise((resolve, reject) => {
@@ -169,7 +199,7 @@ JSHandler.prototype.processFile = function (stream) {
       const outputStream = new Readable()
 
       try {
-        const outputCode = babel.transform(inputCode, this.getBabelOptions()).code
+        const outputCode = babel.transform(inputCode, this.getBabelConfig()).code
 
         outputStream.push(outputCode)
       } catch (err) {
