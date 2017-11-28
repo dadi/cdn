@@ -108,9 +108,11 @@ describe('Cache', function (done) {
       args[0].should.eql(req.url)
 
       var returnValue = getStream.firstCall.returnValue
-      should.not.exist(returnValue)
+      returnValue.then(err => {
+        should.not.exist(err)
 
-      done()
+        done()
+      })
     })
   })
 })

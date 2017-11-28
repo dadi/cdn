@@ -32,21 +32,22 @@ module.exports.reset = function () {
 }
 
 /**
- *
+ * Adds a stream to the cache
+ * @param  {Stream} stream The stream to be cached
+ * @param  {String} key    The cache key
+ * @return {Promise}
  */
-Cache.prototype.cacheFile = function (stream, key, cb) {
-  if (!this.enabled) return cb(stream)
+Cache.prototype.cacheFile = function (stream, key) {
+  if (!this.enabled) return Promise.resolve(stream)
 
-  var cacheStream = PassThrough()
-  var responseStream = PassThrough()
+  const encryptedKey = sha1(key)
+  const cacheStream = PassThrough()
+  const responseStream = PassThrough()
+
   stream.pipe(cacheStream)
   stream.pipe(responseStream)
 
-  var encryptedKey = sha1(key)
-
-  cache.set(encryptedKey, cacheStream).then(() => {
-    return cb(responseStream)
-  })
+  return cache.set(encryptedKey, cacheStream).then(() => responseStream)
 }
 
 /**
@@ -68,19 +69,21 @@ Cache.prototype.set = function (key, value) {
 }
 
 /**
+ * Gets a stream for the given cache key, if it exists.
  *
+ * Will return a Promise that is resolved with the Stream
+ * if the cache key exists, or resolved with null otherwise.
+ *
+ * @param  {String} key The cache key
+ * @return {Promise}
  */
-Cache.prototype.getStream = function (key, cb) {
-  if (!this.enabled) return cb(null)
+Cache.prototype.getStream = function (key) {
+  if (!this.enabled) return Promise.resolve(null)
 
-  var encryptedKey = sha1(key)
+  const encryptedKey = sha1(key)
 
-  cache.get(encryptedKey).then((stream) => {
-    return cb(stream)
-  }).catch((err) => {
-    // key doesn't exist
-    console.log(err)
-    return cb(null)
+  return cache.get(encryptedKey).catch(err => { // eslint-disable-line handle-callback-err
+    return null
   })
 }
 

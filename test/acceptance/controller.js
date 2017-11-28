@@ -241,38 +241,10 @@ describe('Controller', function () {
   describe('Assets', function () {
     this.timeout(10000)
 
-    it('should return error if compress parameter is not 0 or 1', function (done) {
-      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-      client
-        .get('/js/2/test.js')
-        .expect(400, done)
-    })
-
-    it('should return error if font file type is not TTF, OTF, WOFF, SVG or EOT', function (done) {
-      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-      client
-        .get('/fonts/test.bad')
-        .expect(400, done)
-    })
-
-    it('should handle uncompressed JS file if uri is valid', function (done) {
-      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-      client
-      .get('/js/0/test.js')
-      .expect(200, done)
-    })
-
     it('should handle uncompressed CSS file if uri is valid', function (done) {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
       .get('/css/0/test.css')
-      .expect(200, done)
-    })
-
-    it('should handle compressed JS file if uri is valid', function (done) {
-      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-      client
-      .get('/js/1/test.js')
       .expect(200, done)
     })
 
@@ -297,6 +269,33 @@ describe('Controller', function () {
       .get('/fonts/next-level/test.ttf')
       .expect('Content-Type', 'application/font-sfnt')
       .expect(200, done)
+    })
+  })
+
+  describe('JavaScript', function () {
+    this.timeout(10000)
+
+    describe('legacy URL syntax', () => {
+      it('should handle uncompressed JS file if uri is valid', function (done) {
+        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+        client
+        .get('/js/0/test.js')
+        .expect(200, done)
+      })
+
+      it('should handle compressed JS file if uri is valid', function (done) {
+        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+        client
+        .get('/js/1/test.js')
+        .expect(200, done)
+      })
+    })
+
+    it('should return JS file', function (done) {
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/test.js')
+        .expect(200, done)
     })
   })
 

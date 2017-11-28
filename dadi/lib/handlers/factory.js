@@ -9,6 +9,7 @@ const url = require('url')
 
 const AssetHandler = require(path.join(__dirname, '/asset'))
 const ImageHandler = require(path.join(__dirname, '/image'))
+const JSHandler = require(path.join(__dirname, '/js'))
 const Route = require(path.join(__dirname, '/../models/route'))
 
 const config = require(path.join(__dirname, '/../../../config'))
@@ -53,7 +54,7 @@ HandlerFactory.prototype.create = function (req, mimetype) {
   // version 1 matches a string like /jpg/80/0/0/640/480/ at the beginning of the url pathname
   const v1pattern = /^\/[a-z]{3,4}\/[0-9]+\/[0-1]+\/[0-1]+\/[0-9]+\/[0-9]+\//gi
 
-  if (v1pattern.test(parsedUrl.pathname) || /fonts|css|js/.test(pathComponents[0])) {
+  if (v1pattern.test(parsedUrl.pathname) || /\/(fonts|css|js)/.test(pathComponents[0])) {
     version = 'v1'
   } else {
     version = 'v2'
@@ -122,8 +123,9 @@ HandlerFactory.prototype.callNextHandler = function (format, req) {
 HandlerFactory.prototype.createFromFormat = function (format, req) {
   return new Promise((resolve, reject) => {
     switch (format) {
-      case 'css':
       case 'js':
+        return resolve(new JSHandler(format, req))
+      case 'css':
       case 'fonts':
       case 'ttf':
       case 'otf':
