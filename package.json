@@ -17,6 +17,7 @@
     "aspect-fit": "^1.0.2",
     "aws-sdk": "2.5.4",
     "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.0",
     "babel-preset-env": "^1.6.1",
     "babel-preset-minify": "^0.2.0",
     "bluebird": "latest",
@@ -31,6 +32,7 @@
     "convict": "^4.0.0",
     "etag": "^1.7.0",
     "exif": "^0.6.0",
+    "farmhash": "^2.0.4",
     "finalhandler": "~1.1.0",
     "he": "^1.1.0",
     "images": "^3.0.0",
@@ -56,6 +58,7 @@
     "uglify-js": "^3.0.25",
     "underscore": "~1.8.3",
     "url-join": "^2.0.2",
+    "useragent": "^2.2.1",
     "uuid": "latest",
     "validate-commit-message": "^3.0.1",
     "wget-improved": "git+https://github.com/jimlambie/node-wget"
