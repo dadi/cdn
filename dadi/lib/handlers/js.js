@@ -6,8 +6,8 @@ const Readable = require('stream').Readable
 const url = require('url')
 const userAgent = require('useragent')
 
-const StorageFactory = require(path.join(__dirname, '/../storage/factory'))
 const Cache = require(path.join(__dirname, '/../cache'))
+const StorageFactory = require(path.join(__dirname, '/../storage/factory'))
 
 /**
  * Creates a new JSHandler instance.
