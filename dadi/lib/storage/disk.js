@@ -1,18 +1,18 @@
-var fs = require('fs')
-var mkdirp = require('mkdirp')
-var nodeUrl = require('url')
-var path = require('path')
+const fs = require('fs')
+const mkdirp = require('mkdirp')
+const nodeUrl = require('url')
+const path = require('path')
 
-var Missing = require(path.join(__dirname, '/missing'))
+const Missing = require(path.join(__dirname, '/missing'))
 
-var DiskStorage = function (settings, url) {
+const DiskStorage = function (settings, url) {
   this.settings = settings
   this.url = nodeUrl.parse(url, true).pathname
-  this.path = path.resolve(this.settings.directory.path)
+  this.path = path.resolve(this.settings.path)
 }
 
 DiskStorage.prototype.getFullUrl = function () {
-  return decodeURIComponent(path.join(this.path, this.url.replace('disk', '')))
+  return decodeURIComponent(path.join(this.path, this.url))
 }
 
 DiskStorage.prototype.getLastModified = function () {
@@ -22,17 +22,17 @@ DiskStorage.prototype.getLastModified = function () {
 DiskStorage.prototype.get = function () {
   return new Promise((resolve, reject) => {
     // attempt to open
-    var stream = fs.createReadStream(this.getFullUrl())
+    const stream = fs.createReadStream(this.getFullUrl())
 
     stream.on('open', () => {
       // check file size
-      var stats = fs.statSync(this.getFullUrl())
-      var fileSize = parseInt(stats.size)
+      const stats = fs.statSync(this.getFullUrl())
+      const fileSize = parseInt(stats.size)
 
       this.lastModified = stats.mtime
 
       if (fileSize === 0) {
-        var err = {
+        const err = {
           statusCode: 404,
           message: 'File size is 0 bytes'
         }
@@ -44,7 +44,7 @@ DiskStorage.prototype.get = function () {
     })
 
     stream.on('error', () => {
-      var err = {
+      const err = {
         statusCode: 404,
         message: 'File not found: ' + this.getFullUrl()
       }
@@ -87,7 +87,7 @@ DiskStorage.prototype.put = function (stream, folderPath) {
 
         var data = {
           message: 'File uploaded',
-          path: filePath.replace(path.resolve(this.settings.directory.path), '')
+          path: filePath.replace(path.resolve(this.settings.path), '')
         }
 
         return resolve(data)
@@ -96,8 +96,5 @@ DiskStorage.prototype.put = function (stream, folderPath) {
   })
 }
 
-module.exports = function (settings, url) {
-  return new DiskStorage(settings, url)
-}
-
+module.exports = DiskStorage
 module.exports.DiskStorage = DiskStorage

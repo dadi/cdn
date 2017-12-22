@@ -1,37 +1,51 @@
-var _ = require('underscore')
-var fs = require('fs')
-var mkdirp = require('mkdirp')
-var nodeUrl = require('url')
-var path = require('path')
-var querystring = require('querystring')
-var sha1 = require('sha1')
-var urljoin = require('url-join')
-var wget = require('wget-improved')
+'use strict'
 
-// var Missing = require(path.join(__dirname, '/missing'))
+const fs = require('fs')
+const mkdirp = require('mkdirp')
+const path = require('path')
+const sha1 = require('sha1')
+const urljoin = require('url-join')
+const wget = require('wget-improved')
 
-var tmpDirectory = path.resolve(path.join(__dirname, '/../../../workspace/_tmp'))
-console.log(tmpDirectory)
+const tmpDirectory = path.resolve(path.join(__dirname, '/../../../workspace/_tmp'))
+
 mkdirp(tmpDirectory, (err, made) => {
-  console.log(made)
   if (err) {
     console.log(err)
   }
 })
 
-var HTTPStorage = function (settings, url) {
-  if (settings && !settings.remote.path) throw new Error('Remote address not specified')
+const HTTPStorage = function (settings, url) {
+  const isExternalURL = url.indexOf('http:') === 0 ||
+    url.indexOf('https:') === 0
+
+  if (!isExternalURL && settings && !settings.path) {
+    throw new Error('Remote address not specified')
+  }
 
   this.url = url
 
-  if (settings) {
-    this.baseUrl = settings.remote.path
+  if (settings && !isExternalURL) {
+    this.baseUrl = settings.path
+  }
+}
+
+/**
+ * Removes the temporary file downloaded from the remote server
+ */
+HTTPStorage.prototype.cleanUp = function () {
+  if (this.tmpFile) {
+    try {
+      fs.unlinkSync(this.tmpFile)
+    } catch (err) {
+      console.log(err)
+    }
   }
 }
 
 HTTPStorage.prototype.getFullUrl = function () {
   if (this.baseUrl) {
-    return urljoin(this.baseUrl, this.url.replace('/http/', ''))
+    return urljoin(this.baseUrl, this.url)
   } else {
     return this.url
   }
@@ -41,16 +55,16 @@ HTTPStorage.prototype.get = function () {
   return new Promise((resolve, reject) => {
     this.tmpFile = path.join(tmpDirectory, sha1(this.url) + '-' + Date.now() + path.extname(this.url))
 
-    var options = {
+    const options = {
       headers: {
         'User-Agent': 'DADI CDN'
       }
     }
 
-    var download = wget.download(this.getFullUrl(), this.tmpFile, options)
+    const download = wget.download(this.getFullUrl(), this.tmpFile, options)
 
     download.on('error', (error) => {
-      var err = {}
+      let err = {}
 
       if (typeof error === 'string') {
         if (error.indexOf('404') > -1) {
@@ -67,64 +81,11 @@ HTTPStorage.prototype.get = function () {
       }
     })
 
-    // download.on('start', function (fileSize) { })
-
     download.on('end', (output) => {
       return resolve(fs.createReadStream(this.tmpFile))
     })
-
-    // download.on('progress', function (progress) {
-      // console.log(Math.ceil(progress * 100) + '%')
-    // })
-
-    // if (err.statusCode === 404) {
-    //   return new Missing().get().then((stream) => {
-    //     this.notFound = true
-    //     this.lastModified = new Date()
-    //     return resolve(stream)
-    //   }).catch((e) => {
-    //     return reject(e)
-    //   })
-    // }
   })
 }
 
-/**
- * Removes the temporary file downloaded from the remote server
- */
-HTTPStorage.prototype.cleanUp = function () {
-  try {
-    fs.unlinkSync(this.tmpFile)
-  } catch (err) {
-    console.log(err)
-  }
-}
-
-module.exports = function (settings, url) {
-  return new HTTPStorage(settings, url)
-}
-
+module.exports = HTTPStorage
 module.exports.HTTPStorage = HTTPStorage
-
-module.exports.processURL = function (url, imageOptions) {
-  var parsedUrl = nodeUrl.parse(url, true)
-  var returnUrl = parsedUrl.protocol + '//' + parsedUrl.host + parsedUrl.pathname
-
-  var querystrings = parsedUrl.search.split('?').reverse()
-  var imageOptionsAndAliases = _.flatten(_.union(_.pluck(imageOptions, 'name'), _.pluck(imageOptions, 'aliases')))
-
-  var qs = querystrings[0]
-  var params = querystring.decode(qs)
-
-  if (_.every(Object.keys(params), (key) => { return _.contains(imageOptionsAndAliases, key) })) {
-    delete querystrings[0]
-  }
-
-  querystrings = _.compact(querystrings).reverse()
-
-  _.each(querystrings, (qs) => {
-    returnUrl += '?' + qs
-  })
-
-  return returnUrl
-}

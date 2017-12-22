@@ -12,10 +12,10 @@ var S3Storage = function (settings, url) {
   var self = this
 
   AWS.config.setPromisesDependency(require('bluebird'))
-  AWS.config.update({ accessKeyId: settings.s3.accessKey, secretAccessKey: settings.s3.secretKey })
+  AWS.config.update({ accessKeyId: settings.accessKey, secretAccessKey: settings.secretKey })
 
-  if (settings.s3.region && settings.s3.region !== '') {
-    AWS.config.update({ region: settings.s3.region })
+  if (settings.region && settings.region !== '') {
+    AWS.config.update({ region: settings.region })
   }
 
   this.url = url
@@ -25,7 +25,7 @@ var S3Storage = function (settings, url) {
     if (self.url.indexOf('s3') > 0) {
       return _.compact(self.urlParts())[0]
     } else {
-      return settings.s3.bucketName
+      return settings.bucketName
     }
   }
 
@@ -46,9 +46,7 @@ var S3Storage = function (settings, url) {
   }
 
   this.urlParts = function () {
-    if (self.url.indexOf('/s3') === 0) {
-      return self.url.replace('/s3', '').split('/')
-    } else if (self.url.substring(0, 1) === '/') {
+    if (self.url.substring(0, 1) === '/') {
       return self.url.substring(1).split('/')
     } else {
       return self.url.split('/')
@@ -57,7 +55,7 @@ var S3Storage = function (settings, url) {
 }
 
 S3Storage.prototype.getFullUrl = function () {
-  return this.url.replace('/s3', '')
+  return this.url
 }
 
 S3Storage.prototype.getLastModified = function () {
