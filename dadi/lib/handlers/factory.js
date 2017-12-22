@@ -1,7 +1,5 @@
 'use strict'
 
-const _ = require('underscore')
-const fs = require('fs')
 const he = require('he')
 const mime = require('mime')
 const path = require('path')
@@ -10,9 +8,7 @@ const url = require('url')
 const AssetHandler = require(path.join(__dirname, '/asset'))
 const ImageHandler = require(path.join(__dirname, '/image'))
 const JSHandler = require(path.join(__dirname, '/js'))
-const Route = require(path.join(__dirname, '/../models/route'))
-
-const config = require(path.join(__dirname, '/../../../config'))
+const PluginHandler = require(path.join(__dirname, '/plugin'))
 
 function parseUrl (req) {
   return url.parse(req.url, true)
@@ -27,22 +23,14 @@ function getFormat (version, req) {
   }
 
   if (version === 'v1') {
-    return _.compact(parsedPath.split('/'))[0]
+    return parsedPath.split('/').find(Boolean)
   } else if (version === 'v2') {
     return path.extname(parsedPath).replace('.', '').toLowerCase()
   }
 }
 
-const HandlerFactory = function () {
-  this.handlers = []
-  this.currentHandler = -1
-
-  this.workspaceFiles = this.getWorkspaceFiles()
-
-  // Add handlers in order
-  this.handlers.push(this.createFromRoute)
-  this.handlers.push(this.createFromRecipe)
-  this.handlers.push(this.getProcessor)
+const HandlerFactory = function (workspace) {
+  this.workspace = workspace
 }
 
 HandlerFactory.prototype.create = function (req, mimetype) {
@@ -55,17 +43,14 @@ HandlerFactory.prototype.create = function (req, mimetype) {
   const v1pattern = /^\/[a-z]{3,4}\/[0-9]+\/[0-1]+\/[0-1]+\/[0-9]+\/[0-9]+\//gi
 
   if (v1pattern.test(parsedUrl.pathname) || /\/(fonts|css|js)/.test(pathComponents[0])) {
+    req.__cdnLegacyURLSyntax = true
+
     version = 'v1'
   } else {
     version = 'v2'
 
-    // add a default querystring if one wasn't supplied
-    if (!parsedUrl.search) {
-      parsedUrl.search = '?version=2'
-
-      req.url = url.format(parsedUrl)
-    } else {
-      // ensure the querystring is decoded (removes for eg &amp; entities introduced via XSLT)
+    // ensure the querystring is decoded (removes for eg &amp; entities introduced via XSLT)
+    if (parsedUrl.search) {
       parsedUrl.search = he.decode(parsedUrl.search)
       req.url = url.format(parsedUrl)
     }
@@ -79,48 +64,60 @@ HandlerFactory.prototype.create = function (req, mimetype) {
 
   // try to create a handler
   if (version === 'v1') {
-    return this.createFromFormat(format, req)
+    return this.createFromFormat({
+      format,
+      req
+    })
   } else {
-    // check if a workspace file matches the first part of the path
-    if (_.contains(this.workspaceFiles, pathComponents[0])) {
-      return this.callNextHandler(pathComponents[0], req)
-    } else {
-      // else it's an image request, regardless of path
-      return this.createFromFormat(format, req)
+    console.log('')
+    console.log('*** this.workspace:', this.workspace)
+    console.log('')
+    // Check if a workspace file matches the first part of the path.
+    const workspaceMatch = this.workspace[pathComponents[0]]
+
+    switch (workspaceMatch && workspaceMatch.type) {
+      case 'plugins':
+        return this.createFromPlugin({
+          plugin: require(workspaceMatch.path),
+          req
+        })
+
+      case 'recipes':
+        return this.createFromRecipe({
+          name: pathComponents[0],
+          req
+        })
+
+      case 'routes':
+        return this.createFromRoute({
+          name: pathComponents[0],
+          req
+        })
+
+      default:
+        return this.createFromFormat({
+          format,
+          req
+        })
     }
   }
 }
 
-HandlerFactory.prototype.getWorkspaceFiles = function () {
-  const processors = fs.readdirSync(path.resolve(config.get('paths.processors')))
-  const recipes = fs.readdirSync(path.resolve(config.get('paths.recipes')))
-  const routes = fs.readdirSync(path.resolve(config.get('paths.routes')))
+HandlerFactory.prototype.callErrorHandler = function (format, req) {
+  const error = new Error('Unknown URI')
 
-  // return an array of filenames that have json or js extensions
-  // and remove the extension
-  return _.map(_.filter(_.union(processors, recipes, routes), (file) => {
-    return path.extname(file) === '.json' || path.extname(file) === '.js'
-  }), (file) => {
-    return path.basename(path.basename(file, '.json'), '.js')
-  })
+  error.statusCode = 404
+  error.detail = `'${format}' is not a valid route, recipe, processor or image format`
+
+  return Promise.reject(error)
 }
 
-HandlerFactory.prototype.callNextHandler = function (format, req) {
-  this.currentHandler++
-
-  if (!this.handlers[this.currentHandler]) {
-    const error = new Error('Unknown URI')
-
-    error.statusCode = 404
-    error.detail = `'${format}' is not a valid route, recipe, processor or image format`
-
-    return Promise.reject(error)
+HandlerFactory.prototype.createFromFormat = function ({format, plugins, req}) {
+  let handlerData = {
+    plugins,
+    workspace: this.workspace
   }
 
-  return this.handlers[this.currentHandler].call(this, format, req)
-}
-
-HandlerFactory.prototype.createFromFormat = function (format, req) {
   return new Promise((resolve, reject) => {
     switch (format) {
       case 'js':
@@ -138,100 +135,71 @@ HandlerFactory.prototype.createFromFormat = function (format, req) {
       case 'jpeg':
       case 'json':
       case 'png':
-        return resolve(new ImageHandler(format, req))
+        return resolve(new ImageHandler(format, req, handlerData))
       case 'bin':
         format = 'jpg'
-        return resolve(new ImageHandler(format, req))
+        return resolve(new ImageHandler(format, req, handlerData))
       default:
-        return resolve(this.callNextHandler(format, req))
+        return resolve(this.callErrorHandler(format, req))
     }
   })
 }
 
-HandlerFactory.prototype.getProcessor = function (inputString, req) {
-  return new Promise((resolve, reject) => {
-    const processorPath = path.join(path.resolve(config.get('paths.processors')), inputString + '.js')
+HandlerFactory.prototype.createFromPlugin = function ({plugin, req}) {
+  return Promise.resolve(new PluginHandler(req, plugin))
+}
 
-    fs.stat(processorPath, (err, stats) => {
-      if ((err && (err.code === 'ENOENT')) || !stats.isFile()) {
-        return resolve(this.callNextHandler(inputString, req))
-      } else if (err) {
-        return reject(err)
-      }
+HandlerFactory.prototype.createFromRecipe = function ({name, req, route}) {
+  if (!this.workspace[name] || this.workspace[name].type !== 'recipes') {
+    return Promise.reject(new Error('Recipe not found'))
+  }
 
-      const Processor = require(processorPath)
+  const parsedUrl = url.parse(req.url, true)
+  const recipe = this.workspace[name].source
 
-      return resolve(new Processor(inputString, req))
-    })
+  return this.createFromFormat({
+    format: recipe.settings.format,
+    plugins: recipe.plugins,
+    req
+  }).then(handler => {
+    const referencePath = recipe.path ? recipe.path : ''
+    const filePath = parsedUrl.pathname
+      .replace('/' + name + '/', '/')
+      .replace('/' + route + '/', '/')
+    const fullPath = path.join(referencePath, filePath)
+
+    handler.url = fullPath
+    handler.fileName = path.basename(parseUrl(req).pathname.replace(name, ''))
+    handler.fileExt = path.extname(parseUrl(req).pathname).replace('.', '')
+    handler.compress = recipe.settings.compress ? recipe.settings.compress.toString() : '0'
+    handler.options = Object.assign({}, recipe.settings, parsedUrl.query)
+
+    return handler
   })
 }
 
-HandlerFactory.prototype.createFromRoute = function (inputString, req) {
-  return new Promise((resolve, reject) => {
-    const routePath = path.join(path.resolve(config.get('paths.routes')), inputString + '.json')
+HandlerFactory.prototype.createFromRoute = function ({name, req}) {
+  if (!this.workspace[name] || this.workspace[name].type !== 'recipes') {
+    return Promise.reject(new Error('Recipe not found'))
+  }
 
-    fs.stat(routePath, (err, stats) => {
-      if ((err && (err.code === 'ENOENT')) || !stats.isFile()) {
-        return resolve(this.callNextHandler(inputString, req))
-      } else if (err) {
-        return reject(err)
-      }
+  const route = this.workspace[name].source
 
-      const route = new Route(require(routePath))
-
-      route.setIP(req.headers['x-forwarded-for'] || req.connection.remoteAddress)
-      route.setLanguage(req.headers['accept-language'])
-      route.setUserAgent(req.headers['user-agent'])
-
-      return resolve(route.getRecipe().then(recipe => {
-        if (recipe) {
-          return this.createFromRecipe(recipe, req, inputString)
-        }
-
-        return this.callNextHandler(inputString, req)
-      }))
-    })
-  })
-}
-
-HandlerFactory.prototype.createFromRecipe = function (recipeName, req, fromRoute) {
-  return new Promise((resolve, reject) => {
-    const recipePath = path.join(path.resolve(config.get('paths.recipes')), recipeName + '.json')
-
-    fs.stat(recipePath, (err, stats) => {
-      if ((err && (err.code === 'ENOENT')) || !stats.isFile()) {
-        return resolve(this.callNextHandler(recipeName, req))
-      } else if (err) {
-        return reject(err)
-      }
-
-      fs.readFile(recipePath, 'utf8', (err, data) => {
-        if (err) return reject(err)
-
-        const recipe = JSON.parse(data)
-
-        this.createFromFormat(recipe.settings.format, req).then(handler => {
-          const referencePath = recipe.path ? recipe.path : ''
-          const filePath = parseUrl(req).pathname
-            .replace('/' + recipeName + '/', '/')
-            .replace('/' + fromRoute + '/', '/')
-          const fullPath = path.join(referencePath, filePath)
-
-          handler.url = fullPath
-          handler.fileName = path.basename(parseUrl(req).pathname.replace(recipeName, ''))
-          handler.fileExt = path.extname(parseUrl(req).pathname).replace('.', '')
-          handler.compress = recipe.settings.compress ? recipe.settings.compress.toString() : '0'
-          handler.options = recipe.settings
-
-          return resolve(handler)
-        }).catch(reject)
+  return route.getRecipe().then(recipe => {
+    if (recipe) {
+      return this.createFromRecipe({
+        name: recipe,
+        req,
+        route: name
       })
-    })
+    }
+
+    return this.callErrorHandler(name, req)
   })
 }
 
-module.exports = function () {
-  return new HandlerFactory()
+module.exports = function (workspace) {
+  return new HandlerFactory(workspace)
 }
 
 module.exports.HandlerFactory = HandlerFactory
