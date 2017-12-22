@@ -97,7 +97,7 @@ describe('Storage', function (done) {
           var readable = new stream.Readable()
           readable.push('')
           readable.push(null)
-          resolve({stream:readable})
+          resolve({stream: readable})
         })
       })
 
@@ -171,7 +171,7 @@ describe('Storage', function (done) {
       var expected = 'test.jpg'
 
       // mock the s3 request
-      AWS.mock('S3', 'getObject', function(data) {
+      AWS.mock('S3', 'getObject', function (data) {
         AWS.restore()
         // here's the test
         // "data" contains the parameters passed to getObject

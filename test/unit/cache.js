@@ -82,7 +82,7 @@ describe('Cache', function (done) {
     done()
   })
 
-  it("should receive null from cache.getStream() if the caching is disabled", function (done) {
+  it('should receive null from cache.getStream() if the caching is disabled', function (done) {
     var newTestConfig = JSON.parse(testConfigString)
     newTestConfig.caching.directory.enabled = false
     newTestConfig.caching.directory.path = './cache'

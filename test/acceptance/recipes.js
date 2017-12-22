@@ -25,26 +25,26 @@ describe('Recipes', function () {
     testConfigString = fs.readFileSync(config.configPath())
 
     sample = {
-      "recipe": "sample-recipe",
-      "path": "/test",
-      "settings": {
-        "format": "jpg",
-        "quality": "80",
-        "trim": "0",
-        "trimFuzz": "0",
-        "width": "1024",
-        "height": "768",
-        "cropX": "0",
-        "cropY": "0",
-        "ratio": "0",
-        "devicePixelRatio": "0",
-        "resizeStyle": "0",
-        "gravity": "0",
-        "filter": "0",
-        "blur": "0",
-        "strip": "0",
-        "rotate": "0",
-        "flip": "0"
+      'recipe': 'sample-recipe',
+      'path': '/test',
+      'settings': {
+        'format': 'jpg',
+        'quality': '80',
+        'trim': '0',
+        'trimFuzz': '0',
+        'width': '1024',
+        'height': '768',
+        'cropX': '0',
+        'cropY': '0',
+        'ratio': '0',
+        'devicePixelRatio': '0',
+        'resizeStyle': '0',
+        'gravity': '0',
+        'filter': '0',
+        'blur': '0',
+        'strip': '0',
+        'rotate': '0',
+        'flip': '0'
       }
     }
 
@@ -63,12 +63,10 @@ describe('Recipes', function () {
     app.stop(done)
   })
 
-
   after(function () {
     try {
       fs.unlinkSync(path.join(path.resolve(config.get('paths.recipes')), 'thumbnail.json'))
-    }
-    catch (err) {
+    } catch (err) {
 
     }
   })
@@ -109,7 +107,7 @@ describe('Recipes', function () {
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .expect(400)
-        .end(function(err ,res) {
+        .end(function (err, res) {
           res.body.success.should.eql(false)
           res.body.errors.should.be.Array
           res.body.errors[0].error.should.eql('Property "recipe" not found in recipe')
@@ -129,7 +127,7 @@ describe('Recipes', function () {
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .expect(400)
-        .end(function(err ,res) {
+        .end(function (err, res) {
           res.body.success.should.eql(false)
           res.body.errors.should.be.Array
           res.body.errors[0].error.should.eql('Recipe name must be 5 characters or longer and contain only uppercase and lowercase letters, dashes and underscores')
@@ -149,7 +147,7 @@ describe('Recipes', function () {
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .expect(400)
-        .end(function(err ,res) {
+        .end(function (err, res) {
           res.body.success.should.eql(false)
           res.body.errors.should.be.Array
           res.body.errors[0].error.should.eql('Property "path" not found in recipe')
@@ -169,7 +167,7 @@ describe('Recipes', function () {
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .expect(400)
-        .end(function(err ,res) {
+        .end(function (err, res) {
           res.body.success.should.eql(false)
           res.body.errors.should.be.Array
           res.body.errors[0].error.should.eql('Property "settings" not found in recipe')
@@ -192,7 +190,7 @@ describe('Recipes', function () {
         .post('/api/recipes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
-        .end(function(err ,res) {
+        .end(function (err, res) {
           stub.called.should.eql(true)
           fs.writeFileSync.restore()
 
@@ -211,7 +209,7 @@ describe('Recipes', function () {
         .post('/api/recipes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
-        .end(function(err ,res) {
+        .end(function (err, res) {
           res.statusCode.should.eql(201)
           done()
         })
@@ -221,7 +219,6 @@ describe('Recipes', function () {
 
   describe('Apply', function () {
     it('should apply the new recipe', function (done) {
-
       // set some config values
       var newTestConfig = JSON.parse(testConfigString)
       newTestConfig.caching.directory.enabled = false
@@ -245,15 +242,15 @@ describe('Recipes', function () {
         .post('/api/recipes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
-        .end(function(err ,res) {
+        .end(function (err, res) {
           res.statusCode.should.eql(201)
 
           client
           .get('/thumbnail/test.jpg')
-          .end(function(err ,res) {
+          .end(function (err, res) {
             factory.HandlerFactory.prototype.createFromRecipe.restore()
             spy.called.should.eql(true)
-            spy.firstCall.args[0].should.eql('thumbnail')
+            spy.firstCall.args[0].name.should.eql('thumbnail')
 
             res.statusCode.should.eql(200)
             res.headers['content-type'].should.eql('image/jpeg')
@@ -274,12 +271,12 @@ describe('Recipes', function () {
         .post('/api/recipes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
-        .end(function(err ,res) {
+        .end(function (err, res) {
           res.statusCode.should.eql(201)
 
           client
           .get('/thumbxx/test.jpg')
-          .end(function(err ,res) {
+          .end(function (err, res) {
             res.statusCode.should.eql(404)
             res.body.statusCode.should.eql(404)
             done()
@@ -322,7 +319,6 @@ describe('Recipes', function () {
 
   describe('File change monitor', function () {
     it('should reload the recipe when the file changes', function (done) {
-
       // set some config values
       var newTestConfig = JSON.parse(testConfigString)
       newTestConfig.caching.directory.enabled = false
@@ -346,16 +342,15 @@ describe('Recipes', function () {
         .post('/api/recipes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
-        .end(function(err ,res) {
+        .end(function (err, res) {
           res.statusCode.should.eql(201)
 
           client
           .get('/thumbnail/test.jpg')
-          .end(function(err ,res) {
-
+          .end(function (err, res) {
             factory.HandlerFactory.prototype.createFromFormat.restore()
-            spy.firstCall.args[0].should.eql('jpg')
-            //spy.secondCall.args[0].should.eql('jpg')
+            spy.firstCall.args[0].format.should.eql('jpg')
+            // spy.secondCall.args[0].should.eql('jpg')
 
             // Change the format within the recipe
             var recipeContent = fs.readFileSync(path.join(path.resolve(config.get('paths.recipes')), 'thumbnail.json'))
@@ -366,14 +361,13 @@ describe('Recipes', function () {
 
             spy = sinon.spy(factory.HandlerFactory.prototype, 'createFromFormat')
 
-            setTimeout(function() {
+            setTimeout(function () {
               client
               .get('/thumbnail/test.jpg')
-              .end(function(err ,res) {
-
+              .end(function (err, res) {
                 factory.HandlerFactory.prototype.createFromFormat.restore()
-                spy.firstCall.args[0].should.eql('png')
-                //spy.secondCall.args[0].should.eql('png')
+                spy.firstCall.args[0].format.should.eql('png')
+                // spy.secondCall.args[0].should.eql('png')
 
                 done()
               })

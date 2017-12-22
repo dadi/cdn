@@ -21,19 +21,19 @@ describe('Routes', function () {
     config = require(__dirname + '/../../config')
 
     sample = {
-      "route": 'sample-route',
-      "branches": [
+      'route': 'sample-route',
+      'branches': [
         {
-          "condition": {
-            "device": "desktop",
-            "language": "en",
-            //"country": ["GB", "US"],
-            "network": "cable"
+          'condition': {
+            'device': 'desktop',
+            'language': 'en',
+            // "country": ["GB", "US"],
+            'network': 'cable'
           },
-          "recipe": "thumbnail"
+          'recipe': 'thumbnail'
         },
         {
-          "recipe": "default-recipe"
+          'recipe': 'default-recipe'
         }
       ]
     }
@@ -51,7 +51,6 @@ describe('Routes', function () {
   afterEach(function (done) {
     app.stop(done)
   })
-
 
   after(function (done) {
     try {
@@ -99,7 +98,7 @@ describe('Routes', function () {
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .expect(400)
-        .end(function(err ,res) {
+        .end(function (err, res) {
           res.body.success.should.eql(false)
           res.body.errors.should.be.Array
           res.body.errors.should.containEql('Route name is missing')
@@ -124,7 +123,7 @@ describe('Routes', function () {
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .expect(400)
-        .end(function(err ,res) {
+        .end(function (err, res) {
           res.body.success.should.eql(false)
           res.body.errors.should.be.Array
           res.body.errors.should.containEql('Route name must be 5 characters or longer and contain only uppercase and lowercase letters, dashes and underscores')
@@ -145,9 +144,8 @@ describe('Routes', function () {
         .post('/api/routes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
-        .end(function(err, res) {
-
-          setTimeout(function() {
+        .end(function (err, res) {
+          setTimeout(function () {
             var expectedPath = path.join(path.resolve(config.get('paths.routes')), sample.route + '.json')
             fs.stat(expectedPath, (err, stats) => {
               (err === null).should.eql(true)
@@ -163,22 +161,22 @@ describe('Routes', function () {
     })
 
     it('should return error when trying to create route with existing name', function (done) {
-     help.getBearerToken((err, token) => {
-       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      help.getBearerToken((err, token) => {
+        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
 
-       sinon.stub(Route.prototype, 'save').returns(false)
+        sinon.stub(Route.prototype, 'save').returns(false)
 
-       client
+        client
        .post('/api/routes')
        .send(sample)
        .set('Authorization', 'Bearer ' + token)
-       .end(function(err, res) {
-          Route.prototype.save.restore()
+       .end(function (err, res) {
+         Route.prototype.save.restore()
 
-          res.body.success.should.eql(false)
-          done()
-        })
-     })
+         res.body.success.should.eql(false)
+         done()
+       })
+      })
     })
   })
 
@@ -193,9 +191,9 @@ describe('Routes', function () {
       client
       .get('/' + sample.route + '/test.jpg')
       .set('accept-language', 'en-GB')
-      .end(function(err, res) {
-        setTimeout(function() {
-          //console.log(processBranchesSpy)
+      .end(function (err, res) {
+        setTimeout(function () {
+          // console.log(processBranchesSpy)
           processBranchesSpy.calledTwice.should.eql(true)
           JSON.stringify(processBranchesSpy.firstCall.args[0]).should.eql(JSON.stringify(sample.branches))
           JSON.stringify(processBranchesSpy.secondCall.args[0]).should.eql(JSON.stringify(sample.branches))
