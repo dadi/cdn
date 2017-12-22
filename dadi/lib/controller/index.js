@@ -9,24 +9,24 @@ var sha1 = require('sha1')
 var zlib = require('zlib')
 var _ = require('underscore')
 
-var logger = require('@dadi/logger')
-
-var config = require(path.join(__dirname, '/../../../config'))
-var help = require(path.join(__dirname, '/../help'))
-var HandlerFactory = require(path.join(__dirname, '/../handlers/factory'))
-var PostController = require(path.join(__dirname, '/post'))
-var RecipeController = require(path.join(__dirname, '/recipe'))
-var RouteController = require(path.join(__dirname, '/route'))
+const config = require(path.join(__dirname, '/../../../config'))
+const help = require(path.join(__dirname, '/../help'))
+const logger = require('@dadi/logger')
+const HandlerFactory = require(path.join(__dirname, '/../handlers/factory'))
+const PostController = require(path.join(__dirname, '/post'))
+const RecipeController = require(path.join(__dirname, '/recipe'))
+const RouteController = require(path.join(__dirname, '/route'))
 
 logger.init(config.get('logging'), config.get('aws'), config.get('env'))
 
-var Controller = function (router) {
-  var self = this
+const Controller = function (router, workspace) {
+  this.workspace = workspace
 
   router.use(logger.requestLogger)
 
-  router.get('/robots.txt', function (req, res) {
-    var robotsFile = config.get('robots')
+  router.get('/robots.txt', (req, res) => {
+    const robotsFile = config.get('robots')
+
     try {
       var file = fs.readFileSync(robotsFile)
 
@@ -34,18 +34,19 @@ var Controller = function (router) {
       res.end(file.toString())
     } catch (err) {
       res.statusCode = 404
+
       return res.end('File not found')
     }
   })
 
-  router.get(/(.+)/, function (req, res) {
-    var factory = new HandlerFactory()
+  router.get(/(.+)/, (req, res) => {
+    const factory = new HandlerFactory(this.workspace)
 
-    factory.create(req).then(function (handler) {
-      return handler.get().then(function (stream) {
-        self.addContentTypeHeader(res, handler)
-        self.addCacheControlHeader(res, handler)
-        self.addLastModifiedHeader(res, handler)
+    factory.create(req).then(handler => {
+      return handler.get().then(stream => {
+        this.addContentTypeHeader(res, handler)
+        this.addCacheControlHeader(res, handler)
+        this.addLastModifiedHeader(res, handler)
 
         if (handler.storageHandler && handler.storageHandler.notFound) {
           res.statusCode = config.get('notFound.statusCode') || 404
@@ -194,7 +195,7 @@ Controller.prototype.addCacheControlHeader = function (res, handler) {
     var key = Object.keys(obj)[0]
     var value = obj[key]
 
-    if (mime.lookup(handler.getFilename()) === key) {
+    if (handler.getFilename && (mime.lookup(handler.getFilename()) === key)) {
       setHeader(value)
     }
   })
@@ -213,6 +214,8 @@ Controller.prototype.addCacheControlHeader = function (res, handler) {
   }
 }
 
-module.exports = function (model) {
-  return new Controller(model)
+Controller.prototype.setWorkspace = function (workspace) {
+  this.workspace = workspace
 }
+
+module.exports = Controller
