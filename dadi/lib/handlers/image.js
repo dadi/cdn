@@ -1,37 +1,36 @@
 'use strict'
 
-var _ = require('underscore')
-var fs = require('fs')
-var concat = require('concat-stream')
-var ExifImage = require('exif').ExifImage
-var fit = require('aspect-fit')
-var imagesize = require('imagesize')
-var lengthStream = require('length-stream')
-var mkdirp = require('mkdirp')
-var PassThrough = require('stream').PassThrough
-var path = require('path')
-var querystring = require('querystring')
-var Readable = require('stream').Readable
-var smartcrop = require('smartcrop-sharp')
-var sha1 = require('sha1')
-var sharp = require('sharp')
-var url = require('url')
-var Vibrant = require('node-vibrant')
+const _ = require('underscore')
+const fs = require('fs')
+const concat = require('concat-stream')
+const ExifImage = require('exif').ExifImage
+const fit = require('aspect-fit')
+const imagesize = require('imagesize')
+const lengthStream = require('length-stream')
+const mkdirp = require('mkdirp')
+const PassThrough = require('stream').PassThrough
+const path = require('path')
+const Readable = require('stream').Readable
+const smartcrop = require('smartcrop-sharp')
+const sha1 = require('sha1')
+const sharp = require('sharp')
+const urlParser = require('url')
+const Vibrant = require('node-vibrant')
 
-var ColourHandler = require(path.join(__dirname, '/colour'))
-var StorageFactory = require(path.join(__dirname, '/../storage/factory'))
-var HTTPStorage = require(path.join(__dirname, '/../storage/http'))
-var Cache = require(path.join(__dirname, '/../cache'))
-var config = require(path.join(__dirname, '/../../../config'))
+const ColourHandler = require(path.join(__dirname, '/colour'))
+const StorageFactory = require(path.join(__dirname, '/../storage/factory'))
+const Cache = require(path.join(__dirname, '/../cache'))
+const config = require(path.join(__dirname, '/../../../config'))
 
-var exifDirectory = path.resolve(path.join(__dirname, '/../../../workspace/_exif'))
+const exifDirectory = path.resolve(path.join(__dirname, '/../../../workspace/_exif'))
+
 mkdirp(exifDirectory, (err, made) => {
   if (err) {
     console.log(err)
   }
 })
 
-var GRAVITY_TYPES = {
+const GRAVITY_TYPES = {
   NW: 'northwest',
   N: 'north',
   NE: 'northeast',
@@ -44,112 +43,212 @@ var GRAVITY_TYPES = {
   NONE: 'none'
 }
 
+const IMAGE_PARAMETERS = [
+  { name: 'format', aliases: ['fmt'] },
+  { name: 'quality', aliases: ['q'], default: 75 },
+  { name: 'sharpen', aliases: ['sh'], default: 0, allowZero: true, minimumValue: 1 },
+  { name: 'saturate', aliases: ['sat'], default: 1, allowZero: true },
+  { name: 'width', aliases: ['w'] },
+  { name: 'height', aliases: ['h'] },
+  { name: 'ratio', aliases: ['rx'] },
+  { name: 'cropX', aliases: ['cx'] },
+  { name: 'cropY', aliases: ['cy'] },
+  { name: 'crop', aliases: ['coords'] },
+  { name: 'resizeStyle', aliases: ['resize'], default: 'aspectfill' },
+  { name: 'devicePixelRatio', aliases: ['dpr'] },
+  { name: 'gravity', aliases: ['g'], default: 'None' },
+  { name: 'filter', aliases: ['f'], default: 'lanczos', lowercase: true },
+  { name: 'trim', aliases: ['t'] },
+  { name: 'trimFuzz', aliases: ['tf'] },
+  { name: 'blur', aliases: ['b'] },
+  { name: 'strip', aliases: ['s'] },
+  { name: 'rotate', aliases: ['r'] },
+  { name: 'flip', aliases: ['fl'] }
+]
+
 /**
  * Performs checks on the supplied URL and fetches the image
  * @param {String} format - the type of image requested
  * @param {Object} req - the original HTTP request
  */
-var ImageHandler = function (format, req) {
+const ImageHandler = function (format, req, {plugins = [], workspace} = {}) {
   this.req = req
   this.storageFactory = Object.create(StorageFactory)
   this.storageHandler = null
   this.cache = Cache()
-
-  var parsedUrl = url.parse(this.req.url, true)
-  var pathname = parsedUrl.pathname.slice(1)
-
   this.url = req.url
-  this.cacheKey = this.req.url
-  this.fileName = path.basename(parsedUrl.pathname)
+  this.parsedUrl = this.parseUrl(req.url)
+
+  const pathname = this.parsedUrl.cdn.pathname.slice(1)
+
+  this.fileName = path.basename(this.parsedUrl.original.pathname)
   this.fileExt = path.extname(this.fileName).substring(1)
 
   if (this.fileExt === '') {
     this.fileExt = format
   }
 
-  if (path.extname(this.url) === '') {
-    this.url = this.fileName + '.' + this.fileExt
+  this.exifData = {}
+  this.isExternalUrl = !pathname.indexOf('http://') || !pathname.indexOf('https://')
+
+  this.plugins = Object.keys(workspace).reduce((activePlugins, file) => {
+    if ((workspace[file].type === 'plugins') && plugins.includes(file)) {
+      try {
+        return activePlugins.concat(require(workspace[file].path))
+      } catch (err) {
+        throw new Error(`Error loading plugin '${file}': ${err}`)
+      }
+    }
+
+    return activePlugins
+  }, [])
+}
+
+ImageHandler.prototype.contentType = function () {
+  if (this.options.format === 'json') {
+    return 'application/json'
   }
 
-  this.exifData = {}
-
-  if (!pathname.indexOf('http://') || !pathname.indexOf('https://')) {
-    this.externalUrl = HTTPStorage.processURL(parsedUrl.path.slice(1), this.optionSettings())
+  switch (this.format.toLowerCase()) {
+    case 'png':
+      return 'image/png'
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg'
+    case 'gif':
+      return 'image/gif'
+    default:
+      return 'image/jpeg'
   }
 }
 
-ImageHandler.prototype.put = function (stream, folderPath) {
+/**
+ * Convert image according to options specified
+ * @param {stream} stream - read stream from S3, local disk or url
+ */
+ImageHandler.prototype.convert = function (stream, imageInfo) {
+  const options = this.options
+  const calculatedDimensions = getDimensions(options, imageInfo)
+
+  imageInfo.width = parseInt(calculatedDimensions.width)
+  imageInfo.height = parseInt(calculatedDimensions.height)
+
   return new Promise((resolve, reject) => {
-    this.storageHandler = this.storageFactory.create('image', this.url)
+    // sanity check on crop requests
+    if (options.cropX !== undefined && options.cropY !== undefined) {
+      if (
+        imageInfo.width + parseInt(options.cropX) >= imageInfo.naturalWidth ||
+        imageInfo.height + parseInt(options.cropY) >= imageInfo.naturalHeight
+      ) {
+        const rectangle = (imageInfo.width + parseInt(options.cropX)).toString() + 'x' + (imageInfo.height + parseInt(options.cropY)).toString()
+        const original = imageInfo.naturalWidth.toString() + 'x' + imageInfo.naturalHeight.toString()
+        const message = 'The calculated crop rectangle is larger than (or one dimension is equal to) the original image size. Crop rectangle: ' + rectangle + ', Image size: ' + original
 
-    var colourInfoStream = new PassThrough()
-    var writeStream = new PassThrough()
+        return reject({
+          statusCode: 400,
+          message: message
+        })
+      }
+    }
 
-    stream.pipe(colourInfoStream)
-    stream.pipe(writeStream)
+    const concatStream = concat(buffer => {
+      return resolve(this.process(buffer, options, imageInfo))
+    })
 
-    var concatStream = concat(getColourInfo)
-    colourInfoStream.pipe(concatStream)
+    stream.pipe(concatStream)
+  })
+}
 
-    var self = this
-
-    function getColourInfo (buffer) {
-      var colourHandler = new ColourHandler()
-
-      self.storageHandler.put(writeStream, folderPath).then((result) => {
-        if (config.get('upload.extractColours')) {
-          colourHandler.getColours(buffer, (err, colours) => {
-            if (err) {
-              console.log(err)
-            }
-
-            if (!_.isEmpty(colours)) result.colours = colours
-
-            return resolve(result)
-          })
-        } else {
-          return resolve(result)
-        }
+/**
+ * Extract coordinates for a crop based on the entropy of the image
+ * @param {image} image - LWIP image instance
+ * @param {number} width - Crop width
+ * @param {number} heifgt - Crop height
+ */
+ImageHandler.prototype.extractEntropy = function (image, width, height) {
+  return new Promise((resolve, reject) => {
+    smartcrop.crop(image, {
+      width: width,
+      height: height
+    }).then(result => {
+      resolve({
+        x1: result.topCrop.x,
+        x2: result.topCrop.x + result.topCrop.width,
+        y1: result.topCrop.y,
+        y2: result.topCrop.y + result.topCrop.height
       })
+    }).catch(err => {
+      reject(err)
+    })
+  })
+}
+
+/**
+ * Extract EXIF data from the specified image
+ * @param {stream} stream - read stream from S3, local disk or url
+ */
+ImageHandler.prototype.extractExifData = function (file) {
+  return new Promise(function (resolve, reject) {
+    const concatStream = concat(buffer => {
+      ExifImage({ image: buffer }, (err, data) => {
+        return resolve(err ? {} : data)
+      })
+    })
+
+    try {
+      fs.createReadStream(file).pipe(concatStream)
+    } catch (err) {
+      console.log(err)
+      console.log(err.stack)
     }
   })
 }
 
 ImageHandler.prototype.get = function () {
-  this.cached = false
+  let assetPath = this.parsedUrl.asset.path
 
-  var parsedUrl = url.parse(this.req.url, true)
-
-  // Previously set options (e.g. from a recipe) take precedence.
-  // If none are set, we look for them in the URL.
-  if (!this.options) {
-    // get the image options provided as querystring or path
-    if (parsedUrl.search) {
-      // get image options from the querystring
-      var querystrings = parsedUrl.search.split('?')
-
-      if (querystrings.length > 1) {
-        this.options = querystring.decode(querystrings[querystrings.length - 1])
-      } else {
-        this.options = parsedUrl.query
+  // (!) DEPRECATED
+  //
+  // Extend the options object with settings from the legacy URL syntax.
+  if (this.req.__cdnLegacyURLSyntax) {
+    const pathParts = this.parsedUrl.cdn.pathname.split('/')
+    const urlSegments = pathParts.filter((segment, index) => {
+      if (index > 0 && segment === '') {
+        return true
       }
-    } else {
-      // get the segments of the url that relate to image manipulation options
-      var urlSegments = _.filter(parsedUrl.pathname.split('/'), function (segment, index) {
-        if (index > 0 && segment === '') return '0'
-        if (index < 13 || (index >= 13 && /^[0-1]$/.test(segment))) {
-          return segment
-        }
-      })
 
-      this.options = getImageOptions(urlSegments)
-    }
+      if (index < 13 || (index >= 13 && /^[0-1]$/.test(segment))) {
+        return Boolean(segment)
+      }
+    })
+
+    assetPath = pathParts.slice(urlSegments.length + 1).join('/')
+
+    this.options = Object.assign({}, this.options, getImageOptionsFromLegacyURL(urlSegments))
+  } else {
+    this.options = this.parsedUrl.cdn.query
   }
 
-  // clean the options array up
-  this.options = this.sanitiseOptions(this.options)
+  // Aborting the request if full remote URL is required and not enabled.
+  if (
+    this.isExternalUrl &&
+    (
+      !config.get('images.remote.enabled') ||
+      !config.get('images.remote.allowFullURL')
+    )
+  ) {
+    const err = {
+      statusCode: 403,
+      message: 'Loading images from a full remote URL is not supported by this instance of DADI CDN'
+    }
 
-  if (typeof this.options.format === 'undefined') this.options.format = this.fileExt
+    return Promise.reject(err)
+  }
+
+  // Clean the options array up.
+  this.options = this.sanitiseOptions(this.options || {})
+
+  this.options.format = this.options.format || this.fileExt
 
   if (this.options.format === 'json') {
     if (this.fileExt === this.fileName) {
@@ -161,416 +260,157 @@ ImageHandler.prototype.get = function () {
     this.format = this.options.format
   }
 
-  var message
-
-  // TODO: is there an error to raise here?
-  if (message) {
-    var err = {
-      statusCode: 400,
-      message: message
+  // Run any plugins with a `pre` method
+  this.plugins.forEach(plugin => {
+    if (typeof plugin.pre === 'function') {
+      plugin.pre({
+        options: this.options,
+        url: this.parsedUrl.original
+      })
     }
+  })
 
-    return Promise.reject(err)
-  }
+  this.storageHandler = this.storageFactory.create('image', assetPath)
 
-  return this.cache.getStream(this.cacheKey).then(stream => {
-    // if found in cache, return it
-    if (stream && this.options.format !== 'json') {
+  const cacheKey = this.url
+  const isJSONResponse = this.options.format === 'json'
+
+  return this.cache.getStream(cacheKey).then(cachedStream => {
+    let stream
+
+    if (cachedStream) {
+      // If this is a request for JSON data and we have it in cache,
+      // there's nothing else we need to do. We can return the cached
+      // stream directly.
+      if (isJSONResponse) return stream
+
       this.cached = true
 
-      return stream
+      stream = cachedStream
+    } else {
+      stream = this.storageHandler.get()
     }
 
-    // not in cache, get image from source
-    if (this.externalUrl) {
-      if (!config.get('images.remote.enabled') || !config.get('images.remote.allowFullURL')) {
-        const err = {
-          statusCode: 403,
-          message: 'Loading images from a full remote URL is not supported by this instance of DADI CDN'
-        }
+    return Promise.resolve(stream).then(stream => {
+      this.cacheStream = new PassThrough()
+      this.convertStream = new PassThrough()
+      this.exifStream = new PassThrough()
+      this.imageSizeStream = new PassThrough()
+      this.responseStream = new PassThrough()
 
-        return Promise.reject(err)
+      // duplicate the stream so we can use it for the imagesize() request and the
+      // response. this saves requesting the same data a second time.
+      stream.pipe(this.imageSizeStream)
+      stream.pipe(this.convertStream)
+
+      // pipe the stream to a temporary file to avoid back pressure buildup
+      // while we wait for the exif data to be processed
+      let tmpExifFile
+
+      if (isJSONResponse) {
+        tmpExifFile = path.join(exifDirectory, sha1(this.parsedUrl.original.path))
+        stream.pipe(this.exifStream).pipe(fs.createWriteStream(tmpExifFile))
       }
 
-      this.storageHandler = new HTTPStorage(null, this.externalUrl)
-    } else {
-      this.storageHandler = this.storageFactory.create('image', this.url)
-    }
-
-    return this.storageHandler.get()
-  }).then(stream => {
-    this.cacheStream = new PassThrough()
-    this.convertStream = new PassThrough()
-    this.exifStream = new PassThrough()
-    this.imageSizeStream = new PassThrough()
-    this.responseStream = new PassThrough()
-
-    // duplicate the stream so we can use it for the imagesize() request and the
-    // response. this saves requesting the same data a second time.
-    stream.pipe(this.imageSizeStream)
-    stream.pipe(this.convertStream)
-
-    // pipe the stream to a temporary file to avoid back pressure buildup
-    // while we wait for the exif data to be processed
-    let tmpExifFile
-
-    if (this.options.format === 'json') {
-      tmpExifFile = path.join(exifDirectory, sha1(this.url))
-      stream.pipe(this.exifStream).pipe(fs.createWriteStream(tmpExifFile))
-    }
-
-    return new Promise((resolve, reject) => {
-      // get the image size and format
-      imagesize(this.imageSizeStream, (err, imageInfo) => {
-        if (err) {
-          if (err === 'invalid') {
-            return reject({
-              statusCode: 400,
-              message: 'Image data is invalid'
-            })
+      return new Promise((resolve, reject) => {
+        // get the image size and format
+        imagesize(this.imageSizeStream, (err, data) => {
+          const imageInfo = {
+            format: data.format,
+            naturalWidth: data.width,
+            naturalHeight: data.height
           }
 
-          console.log(err)
+          if (err) {
+            if (err === 'invalid') {
+              return reject({
+                statusCode: 400,
+                message: 'Image data is invalid'
+              })
+            }
+
+            console.log(err)
+          }
+
+          return resolve({
+            imageInfo,
+            tmpExifFile
+          })
+        })
+      }).then(({imageInfo, tmpExifFile}) => {
+        let queue
+
+        // extract exif data if available
+        if (imageInfo && /jpe?g/.exec(imageInfo.format) && isJSONResponse) {
+          queue = this.extractExifData(tmpExifFile).then(exifData => {
+            this.exifData = exifData
+          })
         }
 
-        return resolve({
-          imageInfo,
-          tmpExifFile
+        return Promise.resolve(queue).then(() => imageInfo)
+      }).then(imageInfo => {
+        flushExifFiles()
+
+        // connvert image using specified options
+        return this.convert(this.convertStream, imageInfo).then(result => {
+          return {
+            imageInfo,
+            result
+          }
         })
-      })
-    })
-  }).then(({imageInfo, tmpExifFile}) => {
-    let queue
+      }).then(({imageInfo, result}) => {
+        const convertedStream = result.stream
 
-    // extract exif data if available
-    if (imageInfo && /jpe?g/.exec(imageInfo.format) && this.options.format === 'json') {
-      queue = this.extractExifData(tmpExifFile).then(exifData => {
-        this.exifData = exifData
-      })
-    }
+        convertedStream.pipe(this.cacheStream)
+        convertedStream.pipe(this.responseStream)
 
-    return Promise.resolve(queue).then(() => imageInfo)
-  }).then(imageInfo => {
-    flushExifFiles()
+        return new Promise((resolve, reject) => {
+          // Return image info only, as JSON.
+          if (isJSONResponse) {
+            this.getImageInfo(this.responseStream, imageInfo, data => {
+              // Adding data from `convert()` to response
+              Object.assign(data, result.data)
 
-    // connvert image using specified options
-    return this.convert(this.convertStream, imageInfo).then(result => {
-      return {
-        imageInfo,
-        result
-      }
-    })
-  }).then(({imageInfo, result}) => {
-    const convertedStream = result.stream
-    const dataFromConvert = result.data || {}
+              const returnStream = new Readable()
+              returnStream.push(JSON.stringify(data))
+              returnStream.push(null)
 
-    convertedStream.pipe(this.cacheStream)
-    convertedStream.pipe(this.responseStream)
-
-    // cache the file if enabled
-    return this.cache.cacheFile(this.cacheStream, this.cacheKey).then(() => {
-      return {
-        dataFromConvert,
-        imageInfo
-      }
-    })
-  }).then(({dataFromConvert, imageInfo}) => {
-    return new Promise((resolve, reject) => {
-      // return image info only, as json
-      if (this.options.format === 'json') {
-        this.getImageInfo(this.responseStream, imageInfo, data => {
-          // Adding data from `convert()` to response
-          Object.assign(data, dataFromConvert)
-
-          const returnStream = new Readable()
-          returnStream.push(JSON.stringify(data))
-          returnStream.push(null)
-
-          return resolve(returnStream)
+              return resolve(returnStream)
+            })
+          } else {
+            // return image
+            return resolve(this.responseStream)
+          }
         })
-      } else {
-        // return image
-        return resolve(this.responseStream)
-      }
+      }).then(responseStream => {
+        // Cache the file if it's not already cached and it's not a placeholder.
+        if (!this.cached && !this.storageHandler.notFound) {
+          this.cache.cacheFile(
+            this.options.format === 'json' ? responseStream : this.cacheStream,
+            cacheKey
+          )
+        }
+
+        return responseStream
+      })
     })
   })
 }
 
-/**
- * Convert image according to options specified
- * @param {stream} stream - read stream from S3, local disk or url
- */
-ImageHandler.prototype.convert = function (stream, imageInfo) {
-  var self = this
-  var options = self.options
-
-  var dimensions = getDimensions(options, imageInfo)
-  var width = parseInt(dimensions.width)
-  var height = parseInt(dimensions.height)
-
-  return new Promise((resolve, reject) => {
-    // sanity check on crop requests
-    if (typeof options.cropX !== 'undefined' && typeof options.cropY !== 'undefined') {
-      var originalWidth = parseFloat(imageInfo.width)
-      var originalHeight = parseFloat(imageInfo.height)
-
-      if ((width + parseInt(options.cropX) >= originalWidth) || (height + parseInt(options.cropY)) >= originalHeight) {
-        var rectangle = (width + parseInt(options.cropX)).toString() + 'x' + (height + parseInt(options.cropY)).toString()
-        var original = originalWidth.toString() + 'x' + originalHeight.toString()
-        var message = 'The calculated crop rectangle is larger than (or one dimension is equal to) the original image size. Crop rectangle: ' + rectangle + ', Image size: ' + original
-
-        var err = {
-          statusCode: 400,
-          message: message
-        }
-
-        return reject(err)
+ImageHandler.prototype.getAvailablePlugins = function (files) {
+  return Object.keys(files).reduce((plugins, file) => {
+    if (files[file].type === 'plugins') {
+      try {
+        plugins.push(
+          require(files[file].path)
+        )
+      } catch (err) {
+        console.log(`Plugin '${file}' failed to load:`, err)
       }
     }
 
-    var concatStream = concat(processImage)
-    stream.pipe(concatStream)
-
-    function processImage (imageBuffer) {
-      // load the input image
-      var sharpImage = sharp(imageBuffer)
-
-      var shouldExtractEntropy = ((options.resizeStyle === 'entropy') && width && height)
-        ? self.extractEntropy(imageBuffer, width, height)
-        : false
-
-      Promise.resolve(shouldExtractEntropy).then(entropy => {
-        var resizeOptions = {
-          kernel: config.get('engines.sharp.kernel'),
-          interpolator: config.get('engines.sharp.interpolator'),
-          centreSampling: config.get('engines.sharp.centreSampling')
-        }
-
-        if (width && height && typeof options.cropX !== 'undefined' && typeof options.cropY !== 'undefined') {
-          // console.log('CROP %s %s %s %s', parseInt(options.cropX), parseInt(options.cropY), width + parseInt(options.cropX), height + parseInt(options.cropY))
-
-          sharpImage.extract({
-            left: parseInt(options.cropX),
-            top: parseInt(options.cropY),
-            width: width + parseInt(options.cropX),
-            height: height + parseInt(options.cropY)
-          })
-        } else if (width && height) {
-          switch (options.resizeStyle) {
-            /*
-            Aspect Fit: Will size your image until the whole image fits within your area.
-            You are left with the extra space on top and bottom.
-            */
-            case 'aspectfit':
-              var size = fit(imageInfo.width, imageInfo.height, width, height)
-
-              sharpImage = sharpImage.resize(parseInt(size.width), parseInt(size.height), resizeOptions)
-
-              break
-            /*
-            Aspect Fill: Will size your image proportionally until the whole area is full of your image.
-            Your image is clipped. It will size proportionally to make sure there is no blank space left in your area.
-            */
-            case 'aspectfill':
-              var scaleWidth = (width / parseInt(imageInfo.width))
-              var scaleHeight = (height / parseInt(imageInfo.height))
-              var scale = Math.max(scaleWidth, scaleHeight)
-              var crops = self.getCropOffsetsByGravity(options.gravity, imageInfo, dimensions, scale)
-
-              if (scaleHeight >= scaleWidth) {
-                sharpImage = sharpImage.resize(
-                  Math.round(scale * imageInfo.width),
-                  height,
-                  resizeOptions
-                )
-              } else {
-                sharpImage = sharpImage.resize(
-                  width,
-                  Math.round(scale * imageInfo.height),
-                  resizeOptions
-                )
-              }
-
-              // Only crop if the aspect ratio is not the same
-              if (
-                (width / height) !== (imageInfo.width / imageInfo.height) &&
-                !self.storageHandler.notFound
-              ) {
-                sharpImage.extract({
-                  left: crops.x1,
-                  top: crops.y1,
-                  width: crops.x2 - crops.x1,
-                  height: crops.y2 - crops.y1
-                })
-              }
-
-              break
-
-            /*
-            Fill: Will size your image to the exact dimensions provided. Aspect ratio
-            will _not_ be preserved.
-            */
-            case 'fill':
-              sharpImage = sharpImage
-                .resize(width, height, resizeOptions)
-                .ignoreAspectRatio()
-
-              break
-
-            /*
-            Crop: Will crop the image using the coordinates provided. If dimensions are
-            provided, the resulting image will also be resized accordingly.
-            */
-            case 'crop':
-              if (options.crop) {
-                let coords = options.crop.split(',').map(coord => parseInt(coord))
-                if (coords.length === 2) {
-                  coords.push(height - coords[0])
-                  coords.push(width - coords[1])
-                }
-
-                const cropDimensions = {
-                  left: coords[1],
-                  top: coords[0],
-                  width: coords[3] - coords[1],
-                  height: coords[2] - coords[0]
-                }
-                sharpImage.extract(cropDimensions)
-
-                // resize if options.width or options.height are explicitly set
-                if (options.width || options.height) {
-                  if (options.width && options.height) {
-                    sharpImage = sharpImage.ignoreAspectRatio()
-                  }
-
-                  if (options.devicePixelRatio && options.devicePixelRatio < 4) {
-                    let adjustedWidth = parseFloat(options.width) * parseFloat(options.devicePixelRatio)
-                    let adjustedHeight = parseFloat(options.height) * parseFloat(options.devicePixelRatio)
-                    sharpImage.resize(adjustedWidth || undefined, adjustedHeight || undefined, resizeOptions)
-                  } else {
-                    sharpImage.resize(options.width, options.height, resizeOptions)
-                  }
-                } else {
-                  if (options.devicePixelRatio && options.devicePixelRatio < 4) {
-                    let adjustedWidth = parseFloat(cropDimensions.width) * parseFloat(options.devicePixelRatio)
-                    let adjustedHeight = parseFloat(cropDimensions.height) * parseFloat(options.devicePixelRatio)
-                    sharpImage.resize(adjustedWidth || undefined, adjustedHeight || undefined, resizeOptions)
-                  }
-                }
-              } else {
-                // Width & height provided, crop from centre
-                const excessWidth = Math.max(0, imageInfo.width - width)
-                const excessHeight = Math.max(0, imageInfo.height - height)
-
-                sharpImage.extract({
-                  left: Math.round(excessWidth / 2),
-                  top: Math.round(excessHeight / 2),
-                  width: width,
-                  height: height
-                })
-              }
-
-              break
-
-            /*
-            Entropy: Will crop the image using the dimensions provided. The crop
-            coordinates will be determined by analising the image entropy using
-            smartcrop.
-            */
-            case 'entropy':
-              if (entropy) {
-                sharpImage.extract({
-                  left: entropy.x1,
-                  top: entropy.y1,
-                  width: entropy.x2 - entropy.x1,
-                  height: entropy.y2 - entropy.y1
-                })
-
-                sharpImage.resize(width, height)
-              }
-
-              break
-          }
-        } else if (width && !height) {
-          sharpImage = sharpImage.resize(width, null, resizeOptions)
-        }
-
-        // @param {Number} sigma - a value between 0.3 and 1000 representing the sigma of the Gaussian mask
-        if (options.blur) sharpImage.blur(parseInt(options.blur))
-
-        // @param {String} flip - flip the image on the x axis ('x'), y axis ('y') or both ('xy')
-        switch (options.flip) {
-          case 'x':
-            sharpImage.flop()
-
-            break
-
-          case 'y':
-            sharpImage.flip()
-
-            break
-
-          case 'xy':
-            sharpImage.flip().flop()
-
-            break
-        }
-
-        // @param {Number} angle - angle of rotation, must be a multiple of 90
-        if (options.rotate) sharpImage.rotate(parseInt(options.rotate))
-        if (options.saturate < 1) sharpImage.greyscale()
-        if (options.sharpen) sharpImage.sharpen(options.sharpen)
-
-        // Image format and parameters
-        var format = (self.options.format === 'json'
-          ? imageInfo.format
-          : self.options.format).toLowerCase()
-
-        var outputFn
-        var outputOptions = {}
-
-        switch (format) {
-          case 'jpg':
-          case 'jpeg':
-            outputFn = 'jpeg'
-            outputOptions.quality = parseInt(options.quality)
-
-            break
-
-          case 'png':
-            outputFn = 'png'
-            if (options.quality >= 70) outputOptions.compressionLevel = 3
-
-            break
-        }
-
-        if (!outputFn) {
-          return reject('Invalid output format')
-        }
-
-        try {
-          sharpImage = sharpImage[outputFn](outputOptions)
-
-          sharpImage.toBuffer({}, (err, buffer, info) => {
-            if (err) return reject(err)
-
-            var bufferStream = new PassThrough()
-            bufferStream.end(buffer)
-
-            var additionalData = {}
-
-            if (entropy) {
-              additionalData.entropyCrop = entropy
-            }
-
-            return resolve({stream: bufferStream, data: additionalData})
-          })
-        } catch (err) {
-          return reject(err)
-        }
-      })
-    }
-  })
+    return plugins
+  }, [])
 }
 
 /**
@@ -644,53 +484,15 @@ ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, originalDime
 }
 
 /**
- * Extract coordinates for a crop based on the entropy of the image
- * @param {image} image - LWIP image instance
- * @param {number} width - Crop width
- * @param {number} heifgt - Crop height
+ * Returns the filename including extension of the requested image
+ * @returns {string} the filename of the image
  */
-ImageHandler.prototype.extractEntropy = function (image, width, height) {
-  return new Promise((resolve, reject) => {
-    smartcrop.crop(image, {
-      width: width,
-      height: height
-    }).then(result => {
-      resolve({
-        x1: result.topCrop.x,
-        x2: result.topCrop.x + result.topCrop.width,
-        y1: result.topCrop.y,
-        y2: result.topCrop.y + result.topCrop.height
-      })
-    }).catch(err => {
-      reject(err)
-    })
-  })
-}
-
-/**
- * Extract EXIF data from the specified image
- * @param {stream} stream - read stream from S3, local disk or url
- */
-ImageHandler.prototype.extractExifData = function (file) {
-  return new Promise(function (resolve, reject) {
-    var concatStream = concat(gotImage)
-    try {
-      fs.createReadStream(file).pipe(concatStream)
-    } catch (err) {
-      console.log(err)
-      console.log(err.stack)
-    }
-
-    function gotImage (buffer) {
-      ExifImage({ image: buffer }, function (err, data) {
-        if (err) {
-          return reject(err)
-        } else {
-          return resolve(data)
-        }
-      })
-    }
-  })
+ImageHandler.prototype.getFilename = function () {
+  if (path.extname(this.fileName) === '') {
+    return this.fileName + '.' + this.fileExt
+  } else {
+    return this.fileName
+  }
 }
 
 /**
@@ -765,6 +567,427 @@ ImageHandler.prototype.getImageInfo = function (stream, imageInfo, cb) {
     })
 }
 
+ImageHandler.prototype.getLastModified = function () {
+  if (!this.storageHandler || !this.storageHandler.getLastModified) return null
+
+  return this.storageHandler.getLastModified()
+}
+
+ImageHandler.prototype.optionSettings = function () {
+  return [
+    { name: 'format', aliases: ['fmt'] },
+    { name: 'quality', aliases: ['q'], default: 75 },
+    { name: 'sharpen', aliases: ['sh'], default: 0, allowZero: true, minimumValue: 1 },
+    { name: 'saturate', aliases: ['sat'], default: 1, allowZero: true },
+    { name: 'width', aliases: ['w'] },
+    { name: 'height', aliases: ['h'] },
+    { name: 'ratio', aliases: ['rx'] },
+    { name: 'cropX', aliases: ['cx'] },
+    { name: 'cropY', aliases: ['cy'] },
+    { name: 'crop', aliases: ['coords'] },
+    { name: 'resizeStyle', aliases: ['resize'], default: 'aspectfill' },
+    { name: 'devicePixelRatio', aliases: ['dpr'] },
+    { name: 'gravity', aliases: ['g'], default: 'None' },
+    { name: 'filter', aliases: ['f'], default: 'lanczos', lowercase: true },
+    { name: 'trim', aliases: ['t'] },
+    { name: 'trimFuzz', aliases: ['tf'] },
+    { name: 'blur', aliases: ['b'] },
+    { name: 'strip', aliases: ['s'] },
+    { name: 'rotate', aliases: ['r'] },
+    { name: 'flip', aliases: ['fl'] }
+  ]
+}
+
+ImageHandler.prototype.parseUrl = function (url) {
+  const parsedUrl = urlParser.parse(this.url, true)
+  const searchNodes = parsedUrl.search.split('?')
+
+  let cdnUrl = `${parsedUrl.pathname}?${searchNodes.slice(-1)}`
+  let assetUrl = parsedUrl.pathname
+
+  if (searchNodes.length > 2) {
+    assetUrl += `?${searchNodes.slice(-2, -1)}`
+  }
+
+  return {
+    asset: urlParser.parse(assetUrl, true),
+    original: parsedUrl,
+    cdn: urlParser.parse(cdnUrl, true)
+  }
+}
+
+ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
+  // load the input image
+  let sharpImage = sharp(imageBuffer)
+
+  const {width, height} = imageInfo
+  const shouldExtractEntropy = ((options.resizeStyle === 'entropy') && width && height)
+    ? this.extractEntropy(imageBuffer, width, height)
+    : false
+
+  return Promise.resolve(shouldExtractEntropy).then(entropy => {
+    return new Promise((resolve, reject) => {
+      const resizeOptions = {
+        kernel: config.get('engines.sharp.kernel'),
+        interpolator: config.get('engines.sharp.interpolator'),
+        centreSampling: config.get('engines.sharp.centreSampling')
+      }
+
+      if (width && height && typeof options.cropX !== 'undefined' && typeof options.cropY !== 'undefined') {
+        sharpImage.extract({
+          left: parseInt(options.cropX),
+          top: parseInt(options.cropY),
+          width: width + parseInt(options.cropX),
+          height: height + parseInt(options.cropY)
+        })
+      } else if (width && height) {
+        switch (options.resizeStyle) {
+          /*
+          Aspect Fit: Will size your image until the whole image fits within your area.
+          You are left with the extra space on top and bottom.
+          */
+          case 'aspectfit':
+            const size = fit(imageInfo.naturalWidth, imageInfo.naturalHeight, width, height)
+
+            sharpImage = sharpImage.resize(parseInt(size.width), parseInt(size.height), resizeOptions)
+
+            break
+          /*
+          Aspect Fill: Will size your image proportionally until the whole area is full of your image.
+          Your image is clipped. It will size proportionally to make sure there is no blank space left in your area.
+          */
+          case 'aspectfill':
+            var scaleWidth = (width / imageInfo.naturalWidth)
+            var scaleHeight = (height / imageInfo.naturalHeight)
+            var scale = Math.max(scaleWidth, scaleHeight)
+            var crops = this.getCropOffsetsByGravity(options.gravity, imageInfo, {width, height}, scale)
+
+            if (scaleHeight >= scaleWidth) {
+              sharpImage = sharpImage.resize(
+                Math.round(scale * imageInfo.naturalWidth),
+                height,
+                resizeOptions
+              )
+            } else {
+              sharpImage = sharpImage.resize(
+                width,
+                Math.round(scale * imageInfo.naturalHeight),
+                resizeOptions
+              )
+            }
+
+            // Only crop if the aspect ratio is not the same
+            if (
+              (width / height) !== (imageInfo.naturalWidth / imageInfo.naturalHeight) &&
+              !this.storageHandler.notFound
+            ) {
+              sharpImage.extract({
+                left: crops.x1,
+                top: crops.y1,
+                width: crops.x2 - crops.x1,
+                height: crops.y2 - crops.y1
+              })
+            }
+
+            break
+
+          /*
+          Fill: Will size your image to the exact dimensions provided. Aspect ratio
+          will _not_ be preserved.
+          */
+          case 'fill':
+            sharpImage = sharpImage
+              .resize(width, height, resizeOptions)
+              .ignoreAspectRatio()
+
+            break
+
+          /*
+          Crop: Will crop the image using the coordinates provided. If dimensions are
+          provided, the resulting image will also be resized accordingly.
+          */
+          case 'crop':
+            if (options.crop) {
+              let coords = options.crop.split(',').map(coord => parseInt(coord))
+
+              if (coords.length === 2) {
+                coords.push(height - coords[0])
+                coords.push(width - coords[1])
+              }
+
+              const cropDimensions = {
+                left: coords[1],
+                top: coords[0],
+                width: coords[3] - coords[1],
+                height: coords[2] - coords[0]
+              }
+              sharpImage.extract(cropDimensions)
+
+              // resize if options.width or options.height are explicitly set
+              if (options.width || options.height) {
+                if (options.width && options.height) {
+                  sharpImage = sharpImage.ignoreAspectRatio()
+                }
+
+                if (options.devicePixelRatio && options.devicePixelRatio < 4) {
+                  const adjustedWidth = parseFloat(options.width) * parseFloat(options.devicePixelRatio)
+                  const adjustedHeight = parseFloat(options.height) * parseFloat(options.devicePixelRatio)
+
+                  sharpImage.resize(adjustedWidth || undefined, adjustedHeight || undefined, resizeOptions)
+                } else {
+                  sharpImage.resize(options.width, options.height, resizeOptions)
+                }
+              } else {
+                if (options.devicePixelRatio && options.devicePixelRatio < 4) {
+                  const adjustedWidth = parseFloat(cropDimensions.width) * parseFloat(options.devicePixelRatio)
+                  const adjustedHeight = parseFloat(cropDimensions.height) * parseFloat(options.devicePixelRatio)
+
+                  sharpImage.resize(adjustedWidth || undefined, adjustedHeight || undefined, resizeOptions)
+                }
+              }
+            } else {
+              // Width & height provided, crop from centre
+              const excessWidth = Math.max(0, imageInfo.naturalWidth - width)
+              const excessHeight = Math.max(0, imageInfo.naturalHeight - height)
+
+              sharpImage.extract({
+                left: Math.round(excessWidth / 2),
+                top: Math.round(excessHeight / 2),
+                width: width,
+                height: height
+              })
+            }
+
+            break
+
+          /*
+          Entropy: Will crop the image using the dimensions provided. The crop
+          coordinates will be determined by analising the image entropy using
+          smartcrop.
+          */
+          case 'entropy':
+            if (entropy) {
+              sharpImage.extract({
+                left: entropy.x1,
+                top: entropy.y1,
+                width: entropy.x2 - entropy.x1,
+                height: entropy.y2 - entropy.y1
+              })
+
+              sharpImage.resize(width, height)
+            }
+
+            break
+        }
+      } else if (width && !height) {
+        sharpImage = sharpImage.resize(width, null, resizeOptions)
+      }
+
+      // @param {Number} sigma - a value between 0.3 and 1000 representing the sigma of the Gaussian mask
+      if (options.blur) sharpImage.blur(parseInt(options.blur))
+
+      // @param {String} flip - flip the image on the x axis ('x'), y axis ('y') or both ('xy')
+      switch (options.flip) {
+        case 'x':
+          sharpImage.flop()
+
+          break
+
+        case 'y':
+          sharpImage.flip()
+
+          break
+
+        case 'xy':
+          sharpImage.flip().flop()
+
+          break
+      }
+
+      // @param {Number} angle - angle of rotation, must be a multiple of 90
+      if (options.rotate) sharpImage.rotate(parseInt(options.rotate))
+      if (options.saturate < 1) sharpImage.greyscale()
+      if (options.sharpen) sharpImage.sharpen(options.sharpen)
+
+      // Image format and parameters
+      const format = (this.options.format === 'json'
+        ? imageInfo.format
+        : this.options.format).toLowerCase()
+
+      let outputFn
+      let outputOptions = {}
+
+      switch (format) {
+        case 'jpg':
+        case 'jpeg':
+          outputFn = 'jpeg'
+          outputOptions.quality = parseInt(options.quality)
+
+          break
+
+        case 'png':
+          outputFn = 'png'
+          if (options.quality >= 70) outputOptions.compressionLevel = 3
+
+          break
+      }
+
+      if (!outputFn) {
+        return reject('Invalid output format')
+      }
+
+      try {
+        let jsonData = {}
+        let pluginQueue = Promise.resolve(null)
+
+        sharpImage = sharpImage[outputFn](outputOptions)
+
+        if (entropy) {
+          jsonData.entropyCrop = entropy
+        }
+
+        // Run any plugins with a `post` method
+        this.plugins.forEach(plugin => {
+          if (typeof plugin.post === 'function') {
+            pluginQueue = pluginQueue.then(pluginStream => {
+              return plugin.post({
+                getCached: this.storageHandler.getCached,
+                jsonData,
+                options: this.options,
+                processor: sharpImage,
+                stream: pluginStream,
+                url: this.url
+              })
+            })
+          }
+        })
+
+        pluginQueue.then(pluginStream => {
+          if (pluginStream) {
+            return resolve({
+              stream: pluginStream,
+              data: jsonData
+            })
+          }
+
+          sharpImage.toBuffer({}, (err, buffer, info) => {
+            if (err) return reject(err)
+
+            let bufferStream = new PassThrough()
+            bufferStream.end(buffer)
+
+            return resolve({
+              stream: bufferStream,
+              data: jsonData
+            })
+          })
+        })
+      } catch (err) {
+        return reject(err)
+      }
+    })
+  })
+}
+
+ImageHandler.prototype.put = function (stream, folderPath) {
+  const parsedUrl = this.parsedUrl.cdn
+
+  return new Promise((resolve, reject) => {
+    this.storageHandler = this.storageFactory.create('image', parsedUrl.path)
+
+    var colourInfoStream = new PassThrough()
+    var writeStream = new PassThrough()
+
+    stream.pipe(colourInfoStream)
+    stream.pipe(writeStream)
+
+    var concatStream = concat(getColourInfo)
+    colourInfoStream.pipe(concatStream)
+
+    var self = this
+
+    function getColourInfo (buffer) {
+      var colourHandler = new ColourHandler()
+
+      self.storageHandler.put(writeStream, folderPath).then((result) => {
+        if (config.get('upload.extractColours')) {
+          colourHandler.getColours(buffer, (err, colours) => {
+            if (err) {
+              console.log(err)
+            }
+
+            if (!_.isEmpty(colours)) result.colours = colours
+
+            return resolve(result)
+          })
+        } else {
+          return resolve(result)
+        }
+      })
+    }
+  })
+}
+
+ImageHandler.prototype.sanitiseOptions = function (options) {
+  // check the options for aliases
+  // e.g. "dpr" === "devicePixelRatio"
+
+  var imageOptions = {}
+
+  // handle querystring options that came from a remote image url
+  // as if the original remote url had it's own querystring then we'll
+  // get an option here that starts with a ?, from where the CDN params were added
+  _.each(Object.keys(options), key => {
+    if (key[0] === '?') {
+      options[key.substring(1)] = options[key]
+      delete options[key]
+    }
+  })
+
+  _.each(Object.keys(options), key => {
+    var settings = _.filter(IMAGE_PARAMETERS, setting => {
+      return setting.name === key || _.contains(setting.aliases, key)
+    })
+
+    if (settings && settings[0]) {
+      var value = options[key]
+
+      if (options[key] !== '0' || settings[0].allowZero || settings[0].default) {
+        if (options[key] !== '0' || settings[0].allowZero) {
+          if (settings[0].lowercase) value = value.toLowerCase()
+          value = _.isFinite(value) ? parseFloat(value) : value
+          if (settings[0].minimumValue && value < settings[0].minimumValue) {
+            value = settings[0].minimumValue
+          } else if (settings[0].maximumValue && value > settings[0].maximumValue) {
+            value = settings[0].maximumValue
+          }
+          imageOptions[settings[0].name] = value
+        } else {
+          imageOptions[settings[0].name] = settings[0].default
+        }
+      }
+    }
+
+    delete options[key]
+  })
+
+  // ensure we have defaults for options not specified
+  var defaults = _.filter(IMAGE_PARAMETERS, setting => {
+    return setting.default
+  })
+
+  _.each(defaults, setting => {
+    if (typeof imageOptions[setting.name] === 'undefined') {
+      imageOptions[setting.name] = setting.default
+    }
+  })
+
+  // add any URL parameters that aren't part of the core set
+  _.extend(imageOptions, options)
+
+  return imageOptions
+}
+
 function getColours (buffer, options) {
   return new Promise((resolve, reject) => {
     var v = new Vibrant(buffer, options)
@@ -812,12 +1035,12 @@ function getDimensions (options, imageInfo) {
       dimensions.height = parseFloat(dimensions.width) * (parseFloat(ratio[1]) / parseFloat(ratio[0]))
       dimensions.width = parseFloat(dimensions.width)
     } else if (!dimensions.height && !dimensions.height) {
-      dimensions.width = parseFloat(imageInfo.height) * (parseFloat(ratio[0]) / parseFloat(ratio[1]))
-      dimensions.height = parseFloat(imageInfo.width) * (parseFloat(ratio[1]) / parseFloat(ratio[0]))
+      dimensions.width = parseFloat(imageInfo.naturalHeight) * (parseFloat(ratio[0]) / parseFloat(ratio[1]))
+      dimensions.height = parseFloat(imageInfo.naturalWidth) * (parseFloat(ratio[1]) / parseFloat(ratio[0]))
     }
   } else {
-    dimensions.width = dimensions.width || imageInfo.width
-    dimensions.height = dimensions.height || imageInfo.height
+    dimensions.width = dimensions.width || imageInfo.naturalWidth
+    dimensions.height = dimensions.height || imageInfo.naturalHeight
   }
 
   if (config.get('security.maxWidth') && config.get('security.maxWidth') < dimensions.width) {
@@ -846,7 +1069,7 @@ function getDimensions (options, imageInfo) {
  * @param {Array} optionsArray - the options specified in the request URL
  * @returns {object}
  */
-function getImageOptions (optionsArray) {
+function getImageOptionsFromLegacyURL (optionsArray) {
   var legacyURLFormat = optionsArray.length < 17
 
   var gravity = optionsArray[optionsArray.length - 6].substring(0, 1).toUpperCase() + optionsArray[optionsArray.length - 6].substring(1)
@@ -878,127 +1101,6 @@ function getImageOptions (optionsArray) {
   return options
 }
 
-ImageHandler.prototype.optionSettings = function () {
-  return [
-    { name: 'format', aliases: ['fmt'] },
-    { name: 'quality', aliases: ['q'], default: 75 },
-    { name: 'sharpen', aliases: ['sh'], default: 0, allowZero: true, minimumValue: 1 },
-    { name: 'saturate', aliases: ['sat'], default: 1, allowZero: true },
-    { name: 'width', aliases: ['w'] },
-    { name: 'height', aliases: ['h'] },
-    { name: 'ratio', aliases: ['rx'] },
-    { name: 'cropX', aliases: ['cx'] },
-    { name: 'cropY', aliases: ['cy'] },
-    { name: 'crop', aliases: ['coords'] },
-    { name: 'resizeStyle', aliases: ['resize'], default: 'aspectfill' },
-    { name: 'devicePixelRatio', aliases: ['dpr'] },
-    { name: 'gravity', aliases: ['g'], default: 'None' },
-    { name: 'filter', aliases: ['f'], default: 'lanczos', lowercase: true },
-    { name: 'trim', aliases: ['t'] },
-    { name: 'trimFuzz', aliases: ['tf'] },
-    { name: 'blur', aliases: ['b'] },
-    { name: 'strip', aliases: ['s'] },
-    { name: 'rotate', aliases: ['r'] },
-    { name: 'flip', aliases: ['fl'] }
-  ]
-}
-
-ImageHandler.prototype.sanitiseOptions = function (options) {
-  // check the options for aliases
-  // e.g. "dpr" === "devicePixelRatio"
-
-  var imageOptions = {}
-
-  // handle querystring options that came from a remote image url
-  // as if the original remote url had it's own querystring then we'll
-  // get an option here that starts with a ?, from where the CDN params were added
-  _.each(Object.keys(options), key => {
-    if (key[0] === '?') {
-      options[key.substring(1)] = options[key]
-      delete options[key]
-    }
-  })
-
-  _.each(Object.keys(options), key => {
-    var settings = _.filter(this.optionSettings(), setting => {
-      return setting.name === key || _.contains(setting.aliases, key)
-    })
-
-    if (settings && settings[0]) {
-      var value = options[key]
-
-      if (options[key] !== '0' || settings[0].allowZero || settings[0].default) {
-        if (options[key] !== '0' || settings[0].allowZero) {
-          if (settings[0].lowercase) value = value.toLowerCase()
-          value = _.isFinite(value) ? parseFloat(value) : value
-          if (settings[0].minimumValue && value < settings[0].minimumValue) {
-            value = settings[0].minimumValue
-          } else if (settings[0].maximumValue && value > settings[0].maximumValue) {
-            value = settings[0].maximumValue
-          }
-          imageOptions[settings[0].name] = value
-        } else {
-          imageOptions[settings[0].name] = settings[0].default
-        }
-      }
-    }
-
-    delete options[key]
-  })
-
-  // ensure we have defaults for options not specified
-  var defaults = _.filter(this.optionSettings(), setting => {
-    return setting.default
-  })
-
-  _.each(defaults, setting => {
-    if (typeof imageOptions[setting.name] === 'undefined') {
-      imageOptions[setting.name] = setting.default
-    }
-  })
-
-  // add any URL parameters that aren't part of the core set
-  _.extend(imageOptions, options)
-
-  return imageOptions
-}
-
-ImageHandler.prototype.contentType = function () {
-  if (this.options.format === 'json') {
-    return 'application/json'
-  }
-
-  switch (this.format.toLowerCase()) {
-    case 'png':
-      return 'image/png'
-    case 'jpg':
-    case 'jpeg':
-      return 'image/jpeg'
-    case 'gif':
-      return 'image/gif'
-    default:
-      return 'image/jpeg'
-  }
-}
-
-/**
- * Returns the filename including extension of the requested image
- * @returns {string} the filename of the image
- */
-ImageHandler.prototype.getFilename = function () {
-  if (path.extname(this.fileName) === '') {
-    return this.fileName + '.' + this.fileExt
-  } else {
-    return this.fileName
-  }
-}
-
-ImageHandler.prototype.getLastModified = function () {
-  if (!this.storageHandler || !this.storageHandler.getLastModified) return null
-
-  return this.storageHandler.getLastModified()
-}
-
 function flushExifFiles () {
   fs.readdir(exifDirectory, (err, files) => {
     if (err) {
@@ -1023,8 +1125,6 @@ function flushExifFiles () {
   })
 }
 
-module.exports = function (format, req) {
-  return new ImageHandler(format, req)
-}
-
+module.exports = ImageHandler
 module.exports.ImageHandler = ImageHandler
+module.exports.parameters = IMAGE_PARAMETERS
