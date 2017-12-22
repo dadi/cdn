@@ -131,9 +131,7 @@ AssetHandler.prototype.compressFile = function (stream) {
 }
 
 AssetHandler.prototype.contentType = function () {
-  if (this.format === 'js') {
-    return 'application/javascript'
-  } else if (this.format === 'css') {
+  if (this.format === 'css') {
     return 'text/css'
   }
 
