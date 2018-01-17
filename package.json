@@ -58,7 +58,7 @@
     "ua-parser-js": "^0.7.10",
     "uglify-js": "^3.0.25",
     "underscore": "~1.8.3",
-    "url-join": "^2.0.2",
+    "url-join": "^3.0.0",
     "useragent": "2.2.1",
     "uuid": "latest",
     "validate-commit-message": "^3.0.1",
