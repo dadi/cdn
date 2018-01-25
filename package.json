@@ -33,7 +33,7 @@
     "convict": "^4.0.0",
     "etag": "^1.7.0",
     "exif": "^0.6.0",
-    "farmhash": "2.0.4",
+    "farmhash": "2.0.5",
     "finalhandler": "~1.1.0",
     "he": "^1.1.0",
     "images": "^3.0.0",
