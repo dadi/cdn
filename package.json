@@ -8,7 +8,9 @@
     "start": "node index.js --node_env=development",
     "test": "standard 'dadi/**/*.js' && env NODE_ENV=test ./node_modules/.bin/istanbul cover -x '**/workspace/**' --report cobertura --report text --report html --report lcov ./node_modules/mocha/bin/_mocha test",
     "postinstall": "node ./scripts/copy-config.js",
-    "posttest": "./scripts/coverage.js"
+    "posttest": "./scripts/coverage.js",
+    "snyk-protect": "snyk protect",
+    "prepublish": "npm run snyk-protect"
   },
   "dependencies": {
     "@dadi/cache": "1.5.x",
@@ -16,7 +18,7 @@
     "@dadi/status": "latest",
     "accept-language-parser": "^1.2.0",
     "aspect-fit": "^1.0.2",
-    "aws-sdk": "2.5.4",
+    "aws-sdk": "2.178.0",
     "babel-cli": "6.26.0",
     "babel-core": "6.26.0",
     "babel-preset-env": "1.6.1",
@@ -24,7 +26,7 @@
     "bluebird": "latest",
     "body-parser": "^1.18.2",
     "busboy": "^0.2.13",
-    "chokidar": "^1.x.x",
+    "chokidar": "^2.0.0",
     "cloudfront": "~0.4.0",
     "color-namer": "^1.1.0",
     "colors": "^1.1.2",
@@ -62,7 +64,8 @@
     "useragent": "2.2.1",
     "uuid": "latest",
     "validate-commit-message": "^3.0.1",
-    "wget-improved": "git+https://github.com/jimlambie/node-wget"
+    "wget-improved": "git+https://github.com/jimlambie/node-wget",
+    "snyk": "^1.69.7"
   },
   "devDependencies": {
     "aws-sdk-mock": "^1.5.0",
@@ -98,5 +101,6 @@
     "test": "test"
   },
   "author": "DADI <team@dadi.tech>",
-  "license": "SEE LICENSE IN GPL.md"
+  "license": "SEE LICENSE IN GPL.md",
+  "snyk": true
 }
