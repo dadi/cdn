@@ -218,13 +218,13 @@ HandlerFactory.prototype.createFromRecipe = function (recipeName, req, fromRoute
             .replace('/' + fromRoute + '/', '/')
           const fullPath = path.join(referencePath, filePath)
 
-        handler.url = fullPath
+          handler.url = fullPath
           handler.fileName = path.basename(parseUrl(req).pathname.replace(recipeName, ''))
-        handler.fileExt = path.extname(parseUrl(req).pathname).replace('.', '')
-        handler.compress = recipe.settings.compress ? recipe.settings.compress.toString() : '0'
-        handler.options = recipe.settings
+          handler.fileExt = path.extname(parseUrl(req).pathname).replace('.', '')
+          handler.compress = recipe.settings.compress ? recipe.settings.compress.toString() : '0'
+          handler.options = recipe.settings
 
-        return resolve(handler)
+          return resolve(handler)
         }).catch(reject)
       })
     })
