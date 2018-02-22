@@ -38,7 +38,7 @@ var AssetHandler = function (format, req) {
     this.compress = isLegacyFormat
       ? this.urlParts[1]
       : parsedUrl.query.compress || this.compress
-  } else if (this.format === 'fonts') {
+  } else {
     this.url = this.urlParts.splice(1).join('/')
     this.fileName = path.basename(this.url)
     this.fileExt = path.extname(this.fileName).replace('.', '')
@@ -52,47 +52,40 @@ AssetHandler.prototype.get = function () {
   var self = this
   self.cached = false
 
-  return new Promise(function (resolve, reject) {
-    var message
+  var message
 
-    if (self.compress !== '0' && self.compress !== '1') {
-      message = 'The path format is invalid. Use http://www.example.com/{format-(js, css)}/{compress-(0, 1)}/{filepath}'
+  if (self.compress !== '0' && self.compress !== '1') {
+    message = 'The path format is invalid. Use http://www.example.com/{format-(js, css)}/{compress-(0, 1)}/{filepath}'
+  }
+
+  if (self.format === 'fonts' && self.supportedExtensions.indexOf(self.fileExt.toLowerCase()) < 0) {
+    message = 'Font file type should be TTF, OTF, WOFF, SVG or EOT'
+  }
+
+  if (message) {
+    var err = {
+      statusCode: 400,
+      message: message
     }
 
-    if (self.format === 'fonts' && self.supportedExtensions.indexOf(self.fileExt.toLowerCase()) < 0) {
-      message = 'Font file type should be TTF, OTF, WOFF, SVG or EOT'
-    }
+    return Promise.reject(err)
+  }
 
-    if (message) {
-      var err = {
-        statusCode: 400,
-        message: message
-      }
+  // get from cache
+  return this.cache.getStream(self.cacheKey).then(stream => {
+    if (stream) return stream
 
-      return reject(err)
-    }
+    this.storageHandler = this.storageFactory.create(
+      'asset',
+      this.fullUrl,
+      this.hasQuery
+    )
 
-    // get from cache
-    self.cache.getStream(self.cacheKey, function (stream) {
-      if (stream) {
-        self.cached = true
-        return resolve(stream)
-      }
-
-      self.storageHandler = self.storageFactory.create('asset', self.fullUrl, self.hasQuery)
-
-      self.storageHandler.get().then(function (stream) {
-        // compress, returns stream
-        self.compressFile(stream).then(function (stream) {
-          // cache, returns stream
-          self.cache.cacheFile(stream, self.cacheKey, function (stream) {
-            return resolve(stream)
-          })
-        })
-      }).catch(function (err) {
-        return reject(err)
-      })
-    })
+    return this.storageHandler.get()
+  }).then(stream => {
+    return this.compressFile(stream)
+  }).then(stream => {
+    return this.cache.cacheFile(stream, this.cacheKey)
   })
 }
 

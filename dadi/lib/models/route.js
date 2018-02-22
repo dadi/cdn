@@ -207,11 +207,6 @@ Route.prototype.getMaxmindLocation = function () {
 
       var country = db.get(this.ip)
 
-      console.log('')
-      console.log('*** IP:', this.ip)
-      console.log('---> country:', country)
-      console.log('')
-
       return resolve(
         country && country.country && country.country.iso_code
       )

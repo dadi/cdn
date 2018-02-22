@@ -71,7 +71,7 @@ S3Storage.prototype.get = function () {
       Key: this.getKey()
     }
 
-    logger.info('S3 Request (' + this.url + '):' + JSON.stringify(requestData))
+    logger.info('S3 Get Request (' + this.url + '):' + JSON.stringify(requestData))
 
     if (requestData.Bucket === '' || requestData.Key === '') {
       var err = {
@@ -174,6 +174,29 @@ S3Storage.prototype.put = function (stream, folderPath) {
     // 2) concatStream to get a buffer, which then passes the buffer to sendBuffer
     // for sending to AWS
     stream.pipe(lengthStream(lengthListener)).pipe(concatStream)
+  })
+}
+
+S3Storage.prototype.remove = function (fileName) {
+  return new Promise((resolve, reject) => {
+    var requestData = {
+      Bucket: this.getBucket(),
+      Key: fileName
+    }
+
+    logger.info('S3 Remove Request (' + this.url + '):' + JSON.stringify(requestData))
+
+    if (requestData.Bucket === '' || requestData.Key === '') {
+      var err = {
+        statusCode: 400,
+        message: 'Either no Bucket or Key provided: ' + JSON.stringify(requestData)
+      }
+      return reject(err)
+    }
+
+    var request = this.s3.deleteObject(requestData)
+    var promise = request.promise()
+    promise.then(data => resolve(data), error => reject(error))
   })
 }
 

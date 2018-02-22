@@ -96,6 +96,20 @@ DiskStorage.prototype.put = function (stream, folderPath) {
   })
 }
 
+DiskStorage.prototype.remove = function (fileName) {
+  this.path = path.join(this.path, fileName)
+
+  return new Promise((resolve, reject) => {
+    fs.stat(this.path, (err, stats) => {
+      if (err) return reject('file not found')
+      fs.unlink(this.path, (err) => {
+        if (err) return reject('delete failed')
+        resolve('ok')
+      })
+    })
+  })
+}
+
 module.exports = function (settings, url) {
   return new DiskStorage(settings, url)
 }
