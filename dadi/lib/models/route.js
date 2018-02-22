@@ -1,5 +1,6 @@
 var fs = require('fs')
 var logger = require('@dadi/logger')
+var Maxmind = require('maxmind')
 var path = require('path')
 var request = require('request-promise')
 
@@ -11,6 +12,8 @@ var Route = function (config) {
 }
 
 Route.prototype._arrayIntersect = function (object, array) {
+  if (!object) return false
+
   if (!(object instanceof Array)) {
     object = [object]
   }
@@ -191,16 +194,24 @@ Route.prototype.getLocation = function () {
 }
 
 Route.prototype.getMaxmindLocation = function () {
-  var Maxmind = require('maxmind')
-  var countryDb = Maxmind.open(config.get('geolocation.maxmind.countryDbPath'), {
-    cache: {
-      max: 1000, // max items in cache
-      maxAge: 1000 * 60 * 60 // life time in milliseconds
-    }
-  })
-  var country = countryDb.get(this.ip)
+  return new Promise((resolve, reject) => {
+    var dbPath = path.resolve(__dirname, config.get('geolocation.maxmind.countryDbPath'))
 
-  return Promise.resolve(country && country.country && country.country.iso_code)
+    Maxmind.open(dbPath, {
+      cache: {
+        max: 1000, // max items in cache
+        maxAge: 1000 * 60 * 60 // life time in milliseconds
+      }
+    }, (err, db) => {
+      if (err) return reject(err)
+
+      var country = db.get(this.ip)
+
+      return resolve(
+        country && country.country && country.country.iso_code
+      )
+    })
+  })
 }
 
 Route.prototype.getRecipe = function () {

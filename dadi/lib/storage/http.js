@@ -1,8 +1,10 @@
+var _ = require('underscore')
 var fs = require('fs')
 var mkdirp = require('mkdirp')
+var nodeUrl = require('url')
 var path = require('path')
+var querystring = require('querystring')
 var sha1 = require('sha1')
-// var stream = require('stream')
 var urljoin = require('url-join')
 var wget = require('wget-improved')
 
@@ -48,12 +50,15 @@ HTTPStorage.prototype.get = function () {
     var download = wget.download(this.getFullUrl(), this.tmpFile, options)
 
     download.on('error', (error) => {
-      var err
+      var err = {}
 
-      if (typeof error === 'string' && error.indexOf('404') > -1) {
-        err = {
-          statusCode: '404',
-          message: 'Not Found: ' + this.getFullUrl()
+      if (typeof error === 'string') {
+        if (error.indexOf('404') > -1) {
+          err.statusCode = '404'
+          err.message = 'Not Found: ' + this.getFullUrl()
+        } else if (error.indexOf('403') > -1) {
+          err.statusCode = '403'
+          err.message = 'Forbidden: ' + this.getFullUrl()
         }
 
         return reject(err)
@@ -100,3 +105,26 @@ module.exports = function (settings, url) {
 }
 
 module.exports.HTTPStorage = HTTPStorage
+
+module.exports.processURL = function (url, imageOptions) {
+  var parsedUrl = nodeUrl.parse(url, true)
+  var returnUrl = parsedUrl.protocol + '//' + parsedUrl.host + parsedUrl.pathname
+
+  var querystrings = parsedUrl.search.split('?').reverse()
+  var imageOptionsAndAliases = _.flatten(_.union(_.pluck(imageOptions, 'name'), _.pluck(imageOptions, 'aliases')))
+
+  var qs = querystrings[0]
+  var params = querystring.decode(qs)
+
+  if (_.every(Object.keys(params), (key) => { return _.contains(imageOptionsAndAliases, key) })) {
+    delete querystrings[0]
+  }
+
+  querystrings = _.compact(querystrings).reverse()
+
+  _.each(querystrings, (qs) => {
+    returnUrl += '?' + qs
+  })
+
+  return returnUrl
+}

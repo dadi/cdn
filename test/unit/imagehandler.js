@@ -3,6 +3,7 @@ var path = require('path')
 var should = require('should')
 var sinon = require('sinon')
 var Promise = require('bluebird')
+var request = require('request')
 var stream = require('stream')
 var imageHandler = require(__dirname + '/../../dadi/lib/handlers/image')
 var factory = require(__dirname + '/../../dadi/lib/storage/factory')
@@ -57,16 +58,14 @@ describe('ImageHandler', function (done) {
     var expected = path.join(path.resolve(config.get('images.directory.path')), '/test.jpg')
 
     // stub the get method so it doesn't do anything
-    var get = sinon.stub(DiskStorage.DiskStorage.prototype, 'get', function () {
+    var get = sinon.stub(DiskStorage.DiskStorage.prototype, 'get').callsFake(function () {
       return new Promise(function (resolve, reject) {
-        var readable = new stream.Readable()
-        readable.push('')
-        readable.push(null)
-        resolve(readable)
+        var readable = new fs.createReadStream(expected)
+        return resolve(readable)
       })
     })
 
-    var convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert', function (aStream, imageInfo) {
+    var convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert').callsFake(function (aStream, imageInfo) {
       return new Promise(function (resolve, reject) {
         var readable = new stream.Readable()
         readable.push('')
@@ -116,15 +115,13 @@ describe('ImageHandler', function (done) {
     var expected = path.join(path.resolve(config.get('images.directory.path')), '/test.jpg')
 
     // stub the get method so it doesn't do anything
-    var get = sinon.stub(DiskStorage.DiskStorage.prototype, 'get', function () { return new Promise(function (resolve, reject) {
-        var readable = new stream.Readable()
-        readable.push('')
-        readable.push(null)
+    var get = sinon.stub(DiskStorage.DiskStorage.prototype, 'get').callsFake(function () { return new Promise(function (resolve, reject) {
+        var readable = new fs.createReadStream(expected)
         resolve(readable)
       })
     })
 
-    var convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert', function (aStream, imageInfo) {
+    var convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert').callsFake(function (aStream, imageInfo) {
       return new Promise(function (resolve, reject) {
         var readable = new stream.Readable()
         readable.push('')
@@ -175,15 +172,20 @@ describe('ImageHandler', function (done) {
     var expected = 'https://nodejs.org/static/images/logos/nodejs-new-white-pantone.png'
 
     // stub the get method so it doesn't do anything
-    var get = sinon.stub(HTTPStorage.HTTPStorage.prototype, 'get', function () { return new Promise(function (resolve, reject) {
-        var readable = new stream.Readable()
-        readable.push('')
-        readable.push(null)
-        resolve(readable)
+    var get = sinon.stub(HTTPStorage.HTTPStorage.prototype, 'get').callsFake(function () {
+      return new Promise(function (resolve, reject) {
+        var s = new stream.PassThrough()
+
+        request
+        .get(expected)
+        .on('response', response => {})
+        .on('error', err => {})
+        .pipe(s)
+        resolve(s)
       })
     })
 
-    var convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert', function (aStream, imageInfo) {
+    var convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert').callsFake(function (aStream, imageInfo) {
       return new Promise(function (resolve, reject) {
         var readable = new stream.Readable()
         readable.push('')
@@ -231,16 +233,17 @@ describe('ImageHandler', function (done) {
     // set some expected values
     var expected = ['test.jpg']
 
+    var testImage = path.join(path.resolve(config.get('images.directory.path')), '/test.jpg')
+
     // stub the get method so it doesn't do anything
-    var get = sinon.stub(S3Storage.S3Storage.prototype, 'get', function () { return new Promise(function (resolve, reject) {
-        var readable = new stream.Readable()
-        readable.push('')
-        readable.push(null)
+    var get = sinon.stub(S3Storage.S3Storage.prototype, 'get').callsFake(function () {
+      return new Promise(function (resolve, reject) {
+        var readable = new fs.createReadStream(testImage)
         resolve(readable)
       })
     })
 
-    var convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert', function (aStream, imageInfo) {
+    var convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert').callsFake(function (aStream, imageInfo) {
       return new Promise(function (resolve, reject) {
         var readable = new stream.Readable()
         readable.push('')
@@ -264,5 +267,31 @@ describe('ImageHandler', function (done) {
 
       done()
     })
+  })
+
+  it('should return filename with jpg extension when a URL has no extension', function (done) {
+    var newTestConfig = JSON.parse(testConfigString)
+    newTestConfig.caching.directory.enabled = false
+    newTestConfig.caching.redis.enabled = false
+    cache.reset()
+    newTestConfig.images.directory.enabled = false
+    newTestConfig.images.s3.enabled = false
+    newTestConfig.images.remote.enabled = true
+    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+    config.loadFile(config.configPath())
+
+    var req = {
+      headers: {},
+      url: '/test'
+    }
+
+    // set some expected values
+    var expected = 'test.jpg'
+
+    var im = new imageHandler('jpg', req)
+    im.getFilename().should.eql(expected)
+
+    done()
   })
 })

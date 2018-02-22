@@ -1,9 +1,9 @@
-var convict = require('convict')
-var fs = require('fs')
-var path = require('path')
+const convict = require('convict')
+const fs = require('fs')
+const path = require('path')
 
 // Define a schema
-var conf = convict({
+const schema = {
   server: {
     host: {
       doc: 'The IP address the application will run on',
@@ -13,7 +13,8 @@ var conf = convict({
     port: {
       doc: 'The port number the application will bind to',
       format: 'port',
-      default: 8080
+      default: 8080,
+      env: 'PORT'
     },
     redirectPort: {
       doc: 'Port to redirect http connections to https from',
@@ -190,6 +191,11 @@ var conf = convict({
         doc: 'The remote host to request images from, for example http://media.example.com',
         format: String,
         default: ''
+      },
+      allowFullURL: {
+        doc: 'If true, images can be loaded from any remote URL',
+        format: Boolean,
+        default: true
       }
     }
   },
@@ -260,7 +266,8 @@ var conf = convict({
       enabled: {
         doc: 'If true, cache files will be saved to the filesystem',
         format: Boolean,
-        default: true
+        default: true,
+        env: 'CACHE_ENABLE_DIRECTORY'
       },
       path: {
         doc: 'The relative path to the cache directory',
@@ -272,7 +279,8 @@ var conf = convict({
       enabled: {
         doc: 'If true, cache files will be saved to the specified Redis server',
         format: Boolean,
-        default: false
+        default: false,
+        env: 'CACHE_ENABLE_REDIS'
       },
       host: {
         doc: 'The Redis server host',
@@ -295,7 +303,7 @@ var conf = convict({
     }
   },
   status: {
-  	enabled: {
+    enabled: {
       doc: "If true, status endpoint is enabled.",
       format: Boolean,
       default: true
@@ -392,7 +400,7 @@ var conf = convict({
   cluster: {
     doc: 'If true, CDN runs in cluster mode, starting a worker for each CPU core',
     format: Boolean,
-    default: false
+    default: true
   },
   paths: {
     doc: "",
@@ -462,7 +470,7 @@ var conf = convict({
   },
   env: {
     doc: 'The applicaton environment.',
-    format: ['production', 'development', 'test', 'qa'],
+    format: String,
     default: 'development',
     env: 'NODE_ENV',
     arg: 'node_env'
@@ -533,15 +541,39 @@ var conf = convict({
       format: String,
       default: 'speed.connectionType'
     }
+  },
+  engines: {
+    sharp: {
+      kernel: {
+        doc: 'The kernel to use for image reduction',
+        format: ['nearest', 'cubic', 'lanczos2', 'lanczos3'],
+        default: 'lanczos3'
+      },
+      interpolator: {
+        doc: 'The interpolator to use for image enlargement',
+        format: [
+          'nearest',
+          'bilinear',
+          'vertexSplitQuadraticBasisSpline',
+          'bicubic',
+          'locallyBoundedBicubic',
+          'nohalo'
+        ],
+        default: 'bicubic'
+      },
+      centreSampling: {
+        doc: 'Whether to use *magick centre sampling convention instead of corner sampling',
+        format: Boolean,
+        default: false
+      }
+    }
   }
-})
+}
+const conf = convict(schema)
 
 // Load environment dependent configuration
-var env = conf.get('env')
+const env = conf.get('env')
 conf.loadFile('./config/config.' + env + '.json')
-
-// Perform validation
-conf.validate({strict: false})
 
 // Update Config JSON file by domain name
 conf.updateConfigDataForDomain = function (domain) {
@@ -555,3 +587,5 @@ module.exports = conf
 module.exports.configPath = function () {
   return './config/config.' + conf.get('env') + '.json'
 }
+
+module.exports.schema = schema

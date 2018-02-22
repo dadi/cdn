@@ -179,7 +179,8 @@ Controller.prototype.addLastModifiedHeader = function (res, handler) {
   if (!handler) return
 
   if (handler.getLastModified) {
-    res.setHeader('Last-Modified', handler.getLastModified())
+    var lastMod = handler.getLastModified()
+    if (lastMod) res.setHeader('Last-Modified', lastMod)
   }
 }
 

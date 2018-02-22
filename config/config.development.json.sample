@@ -1,11 +1,9 @@
 {
+  "cluster": false,
   "server": {
-      "host": "0.0.0.0",
-      "port": 80
+    "host": "127.0.0.1",
+    "port": 8001
   },
-
-  // Either directory, s3 or remote should be enabled
-
   "images": {
     "directory": {
       "enabled": true,
@@ -23,8 +21,6 @@
       "path": ""
     }
   },
-
-  // Either directory, s3 or remote should be enabled
   "assets": {
     "directory": {
       "enabled": true,
@@ -42,18 +38,28 @@
       "path": ""
     }
   },
-
-  // Either directory or redis should be enabled
   "caching": {
-    "ttl": 3600,
+    "ttl": 60,
     "directory": {
       "enabled": true,
-      "path": "./cache/"
+      "path": "./cache/",
+      "autoFlush": true,
+      "autoFlushInterval": 120
     },
     "redis": {
       "enabled": false,
-      "host": "",
+      "host": "127.0.0.1",
       "port": 6379
+    }
+  },
+  "logging": {
+    "enabled": true,
+    "level": "debug",
+    "path": "./log",
+    "filename": "cdn",
+    "extension": "log",
+    "accessLog": {
+      "enabled": true
     }
   },
   "security": {
@@ -63,11 +69,6 @@
   "auth": {
     "clientId": "1235488",
     "secret": "asd544see68e52"
-  },
-  "cloudfront": {
-    "accessKey": "",
-    "secretKey": "",
-    "distribution": ""
   },
   "headers": {
     "useGzipCompression": true,

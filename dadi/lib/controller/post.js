@@ -55,7 +55,7 @@ PostController.prototype.post = (req, res) => {
 
   // Listen for event when Busboy finds a file to stream
   busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
-    this.fileName = filename
+    this.fileName = filename.replace(/[^a-z0-9\-_.]+/gi, '_')
     this.mimetype = mimetype
 
     file.on('data', (chunk) => {

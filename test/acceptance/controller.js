@@ -216,43 +216,35 @@ describe('Controller', function () {
           done()
         })
     })
+
+    it('v2: should extract options from querystring if an external URL with URL params is provided', function (done) {
+      // spy on the sanitiseOptions method to access the provided arguments
+      var method = sinon.spy(imageHandler.ImageHandler.prototype, 'sanitiseOptions')
+
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/https://www.google.co.uk/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png?h=32&?quality=50&width=80&height=478&gravity=North&resizeStyle=aspectfit&devicePixelRatio=2')
+        .end(function (err, res) {
+          imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
+
+          method.called.should.eql(true)
+          var options = method.returnValues[0]
+
+          options.quality.should.eql(50)
+          options.width.should.eql(80)
+          options.format.should.eql('png')
+          done()
+        })
+    })
   })
 
   describe('Assets', function () {
     this.timeout(10000)
 
-    it('should return error if compress parameter is not 0 or 1', function (done) {
-      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-      client
-        .get('/js/2/test.js')
-        .expect(400, done)
-    })
-
-    it('should return error if font file type is not TTF, OTF, WOFF, SVG or EOT', function (done) {
-      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-      client
-        .get('/fonts/test.bad')
-        .expect(400, done)
-    })
-
-    it('should handle uncompressed JS file if uri is valid', function (done) {
-      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-      client
-      .get('/js/0/test.js')
-      .expect(200, done)
-    })
-
     it('should handle uncompressed CSS file if uri is valid', function (done) {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
       .get('/css/0/test.css')
-      .expect(200, done)
-    })
-
-    it('should handle compressed JS file if uri is valid', function (done) {
-      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-      client
-      .get('/js/1/test.js')
       .expect(200, done)
     })
 
@@ -277,6 +269,33 @@ describe('Controller', function () {
       .get('/fonts/next-level/test.ttf')
       .expect('Content-Type', 'application/font-sfnt')
       .expect(200, done)
+    })
+  })
+
+  describe('JavaScript', function () {
+    this.timeout(10000)
+
+    describe('legacy URL syntax', () => {
+      it('should handle uncompressed JS file if uri is valid', function (done) {
+        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+        client
+        .get('/js/0/test.js')
+        .expect(200, done)
+      })
+
+      it('should handle compressed JS file if uri is valid', function (done) {
+        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+        client
+        .get('/js/1/test.js')
+        .expect(200, done)
+      })
+    })
+
+    it('should return JS file', function (done) {
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/test.js')
+        .expect(200, done)
     })
   })
 
@@ -410,7 +429,7 @@ describe('Controller', function () {
 
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
-        .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/768px-Rotating_earth_%28huge%29.gif')
+        .get('/jpg/50/0/0/700/700/0/0/0/1/aspectfit/North/0/0/0/0/0/768px-Rotating_earth_%28huge%29.gif')
         .end(function(err, res) {
           res.statusCode.should.eql(200)
           done()
@@ -563,7 +582,7 @@ describe('Controller', function () {
 
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
-        .get('/test.jpg?width=2000&cropX=20&cropY=20')
+        .get('/test.jpg?resize=crop&crop=0,0,3000,3000')
         .end(function(err, res) {
           res.statusCode.should.eql(400)
           res.body.message.should.exist

@@ -3,11 +3,10 @@ cache:
   directories:
     - node_modules
 notifications:
+  slack: dadi:pnhiL60xOrm7GOglHUmb7xHK
   email: false
 node_js:
   - '6'
-  - '5'
-  - '4'
 before_script:
   - npm prune
 after_success:
