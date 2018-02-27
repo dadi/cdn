@@ -13,6 +13,7 @@ const path = require('path')
 const Router = require('router')
 const router = Router()
 const dadiStatus = require('@dadi/status')
+const workspace = require('./models/workspace')
 
 // let's ensure there's at least a dev config file here
 const devConfigPath = path.join(__dirname, '/../../config/config.development.json')
@@ -156,69 +157,6 @@ Server.prototype.ensureDirectories = function () {
   })
 }
 
-/**
- * Creates an object with all the files existing in the various
- * workspace directories.
- *
- * @return {Object}
- */
-Server.prototype.getWorkspace = function () {
-  const directories = {
-    plugins: fs.readdirSync(path.resolve(config.get('paths.plugins'))),
-    processors: fs.readdirSync(path.resolve(config.get('paths.processors'))),
-    recipes: fs.readdirSync(path.resolve(config.get('paths.recipes'))),
-    routes: fs.readdirSync(path.resolve(config.get('paths.routes')))
-  }
-
-  /*
-    The following tree:
-
-    recipes/
-    |_ foo.json
-    routes/
-    |_ bar.json
-
-    ... results in an object like:
-
-    {
-      "foo": {
-        "path": "/cdn/directory/recipes/foo.json",
-        "type": "recipes"
-      },
-      "bar": {
-        "path": "/cdn/directory/routes/bar.json",
-        "type": "routes"
-      }
-    }
-  */
-  return Object.keys(directories).reduce((files, type) => {
-    directories[type].forEach(file => {
-      let extension = path.extname(file)
-
-      if (extension === '.json' || extension === '.js') {
-        let name = path.basename(file, extension)
-
-        if (files[name] !== undefined) {
-          throw new Error(`Conflict: ${name} exists in ${files[name].type} and ${type}`)
-        }
-
-        files[name] = {
-          path: path.resolve(config.get(`paths.${type}`), file),
-          type
-        }
-
-        if (type === 'recipes' || type === 'routes') {
-          delete require.cache[files[name].path]
-
-          files[name].source = require(files[name].path)
-        }
-      }
-    })
-
-    return files
-  }, {})
-}
-
 Server.prototype.start = function (done) {
   router.use((req, res, next) => {
     const FAVICON_REGEX = /\/(favicon|(apple-)?touch-icon(-i(phone|pad))?(-\d{2,}x\d{2,})?(-precomposed)?)\.(jpe?g|png|ico|gif)$/i
@@ -307,7 +245,7 @@ Server.prototype.start = function (done) {
     }
   }
 
-  this.controller = new Controller(router, this.getWorkspace())
+  this.controller = new Controller(router)
 
   var redirectInstance
   var redirectServer
@@ -369,27 +307,21 @@ Server.prototype.startWatchingFiles = function () {
 
   this.watchers.plugins = chokidar.watch(pluginDir + '/*.js', {
     usePolling: true
-  }).on('all', (event, filePath) => {
-    this.controller.setWorkspace(this.getWorkspace())
-  })
+  }).on('all', (event, filePath) => workspace.build())
 
   // Watch recipes.
   const recipeDir = path.resolve(config.get('paths.recipes'))
 
   this.watchers.recipes = chokidar.watch(recipeDir + '/*.json', {
     usePolling: true
-  }).on('all', (event, filePath) => {
-    this.controller.setWorkspace(this.getWorkspace())
-  })
+  }).on('all', (event, filePath) => workspace.build())
 
   // Watch routes.
   const routeDir = path.resolve(config.get('paths.routes'))
 
   this.watchers.routes = chokidar.watch(routeDir + '/*.json', {
     usePolling: true
-  }).on('all', (event, filePath) => {
-    this.controller.setWorkspace(this.getWorkspace())
-  })
+  }).on('all', (event, filePath) => workspace.build())
 }
 
 // this is mostly needed for tests
