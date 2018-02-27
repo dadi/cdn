@@ -267,7 +267,7 @@ ImageHandler.prototype.get = function () {
     if (typeof plugin.pre === 'function') {
       plugin.pre({
         options: this.options,
-        url: this.parsedUrl.original
+        url: this.requestUrl
       })
     }
   })
@@ -853,7 +853,11 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
           if (typeof plugin.post === 'function') {
             pluginQueue = pluginQueue.then(pluginStream => {
               return plugin.post({
-                getCached: this.storageHandler.getCached,
+                assetStore: this.storageFactory.create,
+                cache: {
+                  get: this.cache.getStream,
+                  set: this.cache.set
+                },
                 jsonData,
                 options: this.options,
                 processor: sharpImage,
