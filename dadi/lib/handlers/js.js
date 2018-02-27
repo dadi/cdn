@@ -7,6 +7,7 @@ const url = require('url')
 const userAgent = require('useragent')
 
 const Cache = require(path.join(__dirname, '/../cache'))
+const config = require(path.join(__dirname, '/../../../config'))
 const StorageFactory = require(path.join(__dirname, '/../storage/factory'))
 
 /**
@@ -46,7 +47,7 @@ JSHandler.prototype.contentType = function () {
  * @return {Promise} A stream with the file
  */
 JSHandler.prototype.get = function () {
-  if (this.url.query.transform) {
+  if (this.url.query.transform && config.get('experimental.jsTranspiling')) {
     this.cacheKey += this.getBabelPluginsHash()
   }
 
@@ -80,7 +81,7 @@ JSHandler.prototype.getBabelConfig = function () {
     presets: []
   }
 
-  if (query.transform) {
+  if (query.transform && config.get('experimental.jsTranspiling')) {
     options.presets.push(['env', this.getBabelEnvOptions()])
   }
 
