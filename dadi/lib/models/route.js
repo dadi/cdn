@@ -1,13 +1,15 @@
-var fs = require('fs')
-var logger = require('@dadi/logger')
-var Maxmind = require('maxmind')
-var path = require('path')
-var request = require('request-promise')
+const fs = require('fs')
+const languageParser = require('accept-language-parser')
+const logger = require('@dadi/logger')
+const Maxmind = require('maxmind')
+const path = require('path')
+const request = require('request-promise')
+const userAgentParser = require('ua-parser-js')
 
-var cache = require(path.join(__dirname, '/../cache'))()
-var config = require(path.join(__dirname, '/../../../config'))
+const cache = require(path.join(__dirname, '/../cache'))()
+const config = require(path.join(__dirname, '/../../../config'))
 
-var Route = function (config) {
+const Route = function (config) {
   this.config = config
 }
 
@@ -32,7 +34,7 @@ Route.prototype._getCacheKey = function () {
 Route.prototype._getPathInObject = function (path, object, breadcrumbs) {
   breadcrumbs = breadcrumbs || path.split('.')
 
-  var head = breadcrumbs[0]
+  const head = breadcrumbs[0]
 
   if (breadcrumbs.length === 1) {
     return object[head]
@@ -44,11 +46,11 @@ Route.prototype._getPathInObject = function (path, object, breadcrumbs) {
 Route.prototype._matchBranch = function (branch) {
   if (!branch.condition) return Promise.resolve(branch)
 
-  var match = true
-  var queue = []
+  let match = true
+  let queue = []
 
   Object.keys(branch.condition).every((type) => {
-    var condition = branch.condition[type]
+    let condition = branch.condition[type]
 
     switch (type) {
       case 'device':
@@ -62,9 +64,9 @@ Route.prototype._matchBranch = function (branch) {
         break
 
       case 'language':
-        var minQuality = (branch.condition.languagesMinQuality && parseInt(branch.condition.languagesMinQuality))
+        let minQuality = (branch.condition.languageMinQuality && parseFloat(branch.condition.languageMinQuality))
 
-        if ((minQuality === undefined) && isNaN(minQuality)) {
+        if ((minQuality === undefined) || isNaN(minQuality)) {
           minQuality = 1
         }
 
@@ -73,7 +75,7 @@ Route.prototype._matchBranch = function (branch) {
           condition = [condition]
         }
 
-        var languageMatch = this.getLanguages(minQuality).some((language) => {
+        const languageMatch = this.getLanguages(minQuality).some((language) => {
           return this._arrayIntersect(language, condition)
         })
 
@@ -139,9 +141,15 @@ Route.prototype.evaluateBranches = function (branches, index) {
   })
 }
 
+Route.prototype.getDevice = function () {
+  const ua = userAgentParser(this.userAgent)
+
+  return ua.device.type || 'desktop'
+}
+
 Route.prototype.getNetwork = function () {
-  var path = config.get('network.path')
-  var uri = config.get('network.url')
+  let path = config.get('network.path')
+  let uri = config.get('network.url')
 
   // Replace placeholders in uri
   uri = uri.replace('{ip}', this.ip)
@@ -157,15 +165,10 @@ Route.prototype.getNetwork = function () {
   })
 }
 
-Route.prototype.getDevice = function () {
-  var ua = require('ua-parser-js')(this.userAgent)
-
-  return ua.device.type || 'desktop'
-}
-
 Route.prototype.getLanguages = function (minQuality) {
-  var languages = require('accept-language-parser').parse(this.language)
-  var result = []
+  const languages = languageParser.parse(this.language)
+
+  let result = []
 
   languages.forEach((language) => {
     if ((result.indexOf(language.code) === -1) && (language.quality >= minQuality)) {
@@ -195,7 +198,7 @@ Route.prototype.getLocation = function () {
 
 Route.prototype.getMaxmindLocation = function () {
   return new Promise((resolve, reject) => {
-    var dbPath = path.resolve(__dirname, config.get('geolocation.maxmind.countryDbPath'))
+    const dbPath = path.resolve(__dirname, config.get('geolocation.maxmind.countryDbPath'))
 
     Maxmind.open(dbPath, {
       cache: {
@@ -205,7 +208,7 @@ Route.prototype.getMaxmindLocation = function () {
     }, (err, db) => {
       if (err) return reject(err)
 
-      var country = db.get(this.ip)
+      const country = db.get(this.ip)
 
       return resolve(
         country && country.country && country.country.iso_code
@@ -234,8 +237,8 @@ Route.prototype.getRecipe = function () {
 }
 
 Route.prototype.getRemoteLocation = function () {
-  var countryPath = config.get('geolocation.remote.countryPath')
-  var uri = config.get('geolocation.remote.url')
+  let countryPath = config.get('geolocation.remote.countryPath')
+  let uri = config.get('geolocation.remote.url')
 
   // Replace placeholders
   uri = uri.replace('{ip}', this.ip)
@@ -260,7 +263,7 @@ Route.prototype.processRoute = function () {
 }
 
 Route.prototype.save = function () {
-  var filePath = path.join(path.resolve(config.get('paths.routes')), this.config.route + '.json')
+  const filePath = path.join(path.resolve(config.get('paths.routes')), this.config.route + '.json')
 
   try {
     fs.writeFileSync(filePath, JSON.stringify(this.config, null, 2))
@@ -286,7 +289,7 @@ Route.prototype.setUserAgent = function (userAgent) {
 }
 
 Route.prototype.validate = function () {
-  var errors = []
+  let errors = []
 
   // Check for required fields
   if (!this.config.route) {
