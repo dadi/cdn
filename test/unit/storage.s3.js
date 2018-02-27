@@ -46,11 +46,12 @@ describe('Storage', function (done) {
       config.loadFile(config.configPath())
 
       var req = {
+        __cdnLegacyURLSyntax: true,
         url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
       }
 
       var settings = config.get('images')
-      var s3Storage = new S3Storage(settings, req.url)
+      var s3Storage = new S3Storage(settings.s3, req.url)
 
       s3Storage.getBucket().should.eql(settings.s3.bucketName)
     })
@@ -67,6 +68,7 @@ describe('Storage', function (done) {
       var spy = sinon.spy(factory, 'create')
 
       var req = {
+        __cdnLegacyURLSyntax: true,
         url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
       }
 
@@ -130,7 +132,7 @@ describe('Storage', function (done) {
       }
 
       var settings = config.get('images')
-      var s3Storage = new S3Storage(settings, req.url)
+      var s3Storage = new S3Storage(settings.s3, req.url)
 
       s3Storage.getBucket().should.eql('testBucket')
     })
@@ -149,7 +151,7 @@ describe('Storage', function (done) {
       }
 
       var settings = config.get('images')
-      var s3Storage = new S3Storage(settings, req.url)
+      var s3Storage = new S3Storage(settings.s3, req.url)
 
       s3Storage.getKey().should.eql('test.jpg')
     })
@@ -164,6 +166,7 @@ describe('Storage', function (done) {
       config.loadFile(config.configPath())
 
       var req = {
+        __cdnLegacyURLSyntax: true,
         url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
       }
 
@@ -175,17 +178,16 @@ describe('Storage', function (done) {
         AWS.restore()
         // here's the test
         // "data" contains the parameters passed to getObject
+        
         data.Key.should.eql(expected)
+        data.Bucket.should.eql(newTestConfig.images.s3.bucketName)
+
         done()
       })
 
       var im = new imageHandler('jpg', req)
 
-      // create the s3 handler
-      var storage = im.storageFactory.create('image', req.url)
-
-      return storage.get().then(function (stream) {
-      })
+      im.get()
     })
   })
 })

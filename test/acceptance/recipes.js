@@ -61,14 +61,12 @@ describe('Recipes', function () {
   afterEach(function (done) {
     help.clearCache()
     app.stop(done)
-  })
 
-  after(function () {
     try {
       fs.unlinkSync(path.join(path.resolve(config.get('paths.recipes')), 'thumbnail.json'))
     } catch (err) {
 
-    }
+    }    
   })
 
   describe('Create', function () {
@@ -131,26 +129,6 @@ describe('Recipes', function () {
           res.body.success.should.eql(false)
           res.body.errors.should.be.Array
           res.body.errors[0].error.should.eql('Recipe name must be 5 characters or longer and contain only uppercase and lowercase letters, dashes and underscores')
-          done()
-        })
-      })
-    })
-
-    it('should return error if recipe path is missing', function (done) {
-      help.getBearerToken(function (err, token) {
-        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-
-        delete sample['path']
-
-        client
-        .post('/api/recipes')
-        .send(sample)
-        .set('Authorization', 'Bearer ' + token)
-        .expect(400)
-        .end(function (err, res) {
-          res.body.success.should.eql(false)
-          res.body.errors.should.be.Array
-          res.body.errors[0].error.should.eql('Property "path" not found in recipe')
           done()
         })
       })
@@ -230,9 +208,6 @@ describe('Recipes', function () {
 
       config.loadFile(config.configPath())
 
-      var factory = require(__dirname + '/../../dadi/lib/handlers/factory')
-      var spy = sinon.spy(factory.HandlerFactory.prototype, 'createFromRecipe')
-
       help.getBearerToken(function (err, token) {
         var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
 
@@ -245,18 +220,16 @@ describe('Recipes', function () {
         .end(function (err, res) {
           res.statusCode.should.eql(201)
 
-          client
-          .get('/thumbnail/test.jpg')
-          .end(function (err, res) {
-            factory.HandlerFactory.prototype.createFromRecipe.restore()
-            spy.called.should.eql(true)
-            spy.firstCall.args[0].name.should.eql('thumbnail')
+          setTimeout(() => {
+            client
+            .get('/thumbnail/inside-test.jpg')
+            .end(function (err, res) {
+              res.statusCode.should.eql(200)
+              res.headers['content-type'].should.eql('image/jpeg')
 
-            res.statusCode.should.eql(200)
-            res.headers['content-type'].should.eql('image/jpeg')
-
-            done()
-          })
+              done()
+            })
+          }, 500)
         })
       })
     })
@@ -274,13 +247,15 @@ describe('Recipes', function () {
         .end(function (err, res) {
           res.statusCode.should.eql(201)
 
-          client
-          .get('/thumbxx/test.jpg')
-          .end(function (err, res) {
-            res.statusCode.should.eql(404)
-            res.body.statusCode.should.eql(404)
-            done()
-          })
+          setTimeout(() => {
+            client
+            .get('/thumbxx/test.jpg')
+            .end(function (err, res) {
+              res.statusCode.should.eql(404)
+              res.body.statusCode.should.eql(404)
+              done()
+            })
+          }, 500)
         })
       })
     })
@@ -330,9 +305,6 @@ describe('Recipes', function () {
 
       config.loadFile(config.configPath())
 
-      var factory = require(__dirname + '/../../dadi/lib/handlers/factory')
-      var spy = sinon.spy(factory.HandlerFactory.prototype, 'createFromFormat')
-
       help.getBearerToken(function (err, token) {
         var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
 
@@ -345,34 +317,30 @@ describe('Recipes', function () {
         .end(function (err, res) {
           res.statusCode.should.eql(201)
 
-          client
-          .get('/thumbnail/test.jpg')
-          .end(function (err, res) {
-            factory.HandlerFactory.prototype.createFromFormat.restore()
-            spy.firstCall.args[0].format.should.eql('jpg')
-            // spy.secondCall.args[0].should.eql('jpg')
+          setTimeout(() => {
+            client
+            .get('/thumbnail/inside-test.jpg')
+            .end(function (err, res) {
+              res.headers['content-type'].should.eql('image/jpeg')
 
-            // Change the format within the recipe
-            var recipeContent = fs.readFileSync(path.join(path.resolve(config.get('paths.recipes')), 'thumbnail.json'))
-            var recipe = JSON.parse(recipeContent.toString())
-            recipe.settings.format = 'png'
+              // Change the format within the recipe
+              var recipeContent = fs.readFileSync(path.join(path.resolve(config.get('paths.recipes')), 'thumbnail.json'))
+              var recipe = JSON.parse(recipeContent.toString())
+              recipe.settings.format = 'png'
 
-            fs.writeFileSync(path.join(path.resolve(config.get('paths.recipes')), 'thumbnail.json'), JSON.stringify(recipe))
+              fs.writeFileSync(path.join(path.resolve(config.get('paths.recipes')), 'thumbnail.json'), JSON.stringify(recipe))
 
-            spy = sinon.spy(factory.HandlerFactory.prototype, 'createFromFormat')
+              setTimeout(function () {
+                client
+                .get('/thumbnail/inside-test.jpg')
+                .end(function (err, res) {
+                  res.headers['content-type'].should.eql('image/png')
 
-            setTimeout(function () {
-              client
-              .get('/thumbnail/test.jpg')
-              .end(function (err, res) {
-                factory.HandlerFactory.prototype.createFromFormat.restore()
-                spy.firstCall.args[0].format.should.eql('png')
-                // spy.secondCall.args[0].should.eql('png')
-
-                done()
-              })
-            }, 2500)
-          })
+                  done()
+                })
+              }, 2500)
+            })
+          }, 500)
         })
       })
     })

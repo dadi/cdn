@@ -94,6 +94,7 @@ describe('Cache', function (done) {
     cache.reset()
 
     var req = {
+      __cdnLegacyURLSyntax: true,
       url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
     }
 
@@ -113,6 +114,6 @@ describe('Cache', function (done) {
 
         done()
       })
-    })
+    }).catch(console.log)
   })
 })
