@@ -21,6 +21,7 @@ const ColourHandler = require(path.join(__dirname, '/colour'))
 const StorageFactory = require(path.join(__dirname, '/../storage/factory'))
 const Cache = require(path.join(__dirname, '/../cache'))
 const config = require(path.join(__dirname, '/../../../config'))
+const workspace = require(path.join(__dirname, '/../models/workspace'))
 
 const exifDirectory = path.resolve(path.join(__dirname, '/../../../workspace/_exif'))
 
@@ -71,13 +72,14 @@ const IMAGE_PARAMETERS = [
  * @param {String} format - the type of image requested
  * @param {Object} req - the original HTTP request
  */
-const ImageHandler = function (format, req, {plugins = [], workspace} = {}) {
+const ImageHandler = function (format, req, {plugins = []} = {}) {
   this.req = req
   this.storageFactory = Object.create(StorageFactory)
   this.storageHandler = null
   this.cache = Cache()
-  this.url = req.url
-  this.parsedUrl = this.parseUrl(req.url)
+  this.requestUrl = req.url
+
+  this.setBaseUrl(req.url)
 
   const pathname = this.parsedUrl.cdn.pathname.slice(1)
 
@@ -91,10 +93,10 @@ const ImageHandler = function (format, req, {plugins = [], workspace} = {}) {
   this.exifData = {}
   this.isExternalUrl = !pathname.indexOf('http://') || !pathname.indexOf('https://')
 
-  this.plugins = Object.keys(workspace).reduce((activePlugins, file) => {
-    if ((workspace[file].type === 'plugins') && plugins.includes(file)) {
+  this.plugins = Object.keys(workspace.get()).reduce((activePlugins, file) => {
+    if ((workspace.get(file).type === 'plugins') && plugins.includes(file)) {
       try {
-        return activePlugins.concat(require(workspace[file].path))
+        return activePlugins.concat(require(workspace.get(file).path))
       } catch (err) {
         throw new Error(`Error loading plugin '${file}': ${err}`)
       }
@@ -226,7 +228,7 @@ ImageHandler.prototype.get = function () {
 
     this.options = Object.assign({}, this.options, getImageOptionsFromLegacyURL(urlSegments))
   } else {
-    this.options = this.parsedUrl.cdn.query
+    this.options = Object.assign({}, this.options, this.parsedUrl.cdn.query)
   }
 
   // Aborting the request if full remote URL is required and not enabled.
@@ -272,7 +274,7 @@ ImageHandler.prototype.get = function () {
 
   this.storageHandler = this.storageFactory.create('image', assetPath)
 
-  const cacheKey = this.url
+  const cacheKey = this.requestUrl
   const isJSONResponse = this.options.format === 'json'
 
   return this.cache.getStream(cacheKey).then(cachedStream => {
@@ -599,7 +601,7 @@ ImageHandler.prototype.optionSettings = function () {
 }
 
 ImageHandler.prototype.parseUrl = function (url) {
-  const parsedUrl = urlParser.parse(this.url, true)
+  const parsedUrl = urlParser.parse(url, true)
   const searchNodes = parsedUrl.search.split('?')
 
   let cdnUrl = `${parsedUrl.pathname}?${searchNodes.slice(-1)}`
@@ -856,7 +858,7 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
                 options: this.options,
                 processor: sharpImage,
                 stream: pluginStream,
-                url: this.url
+                url: this.requestUrl
               })
             })
           }
@@ -986,6 +988,10 @@ ImageHandler.prototype.sanitiseOptions = function (options) {
   _.extend(imageOptions, options)
 
   return imageOptions
+}
+
+ImageHandler.prototype.setBaseUrl = function (baseUrl) {
+  this.parsedUrl = this.parseUrl(baseUrl)
 }
 
 function getColours (buffer, options) {

@@ -9,6 +9,8 @@ const AssetHandler = require(path.join(__dirname, '/asset'))
 const ImageHandler = require(path.join(__dirname, '/image'))
 const JSHandler = require(path.join(__dirname, '/js'))
 const PluginHandler = require(path.join(__dirname, '/plugin'))
+const Route = require(path.join(__dirname, '/../models/Route'))
+const workspace = require(path.join(__dirname, '/../models/workspace'))
 
 function parseUrl (req) {
   return url.parse(req.url, true)
@@ -29,9 +31,7 @@ function getFormat (version, req) {
   }
 }
 
-const HandlerFactory = function (workspace) {
-  this.workspace = workspace
-}
+const HandlerFactory = function () {}
 
 HandlerFactory.prototype.create = function (req, mimetype) {
   const parsedUrl = url.parse(req.url, true)
@@ -69,11 +69,8 @@ HandlerFactory.prototype.create = function (req, mimetype) {
       req
     })
   } else {
-    console.log('')
-    console.log('*** this.workspace:', this.workspace)
-    console.log('')
     // Check if a workspace file matches the first part of the path.
-    const workspaceMatch = this.workspace[pathComponents[0]]
+    const workspaceMatch = workspace.get(pathComponents[0])
 
     switch (workspaceMatch && workspaceMatch.type) {
       case 'plugins':
@@ -114,8 +111,7 @@ HandlerFactory.prototype.callErrorHandler = function (format, req) {
 
 HandlerFactory.prototype.createFromFormat = function ({format, plugins, req}) {
   let handlerData = {
-    plugins,
-    workspace: this.workspace
+    plugins
   }
 
   return new Promise((resolve, reject) => {
@@ -150,27 +146,37 @@ HandlerFactory.prototype.createFromPlugin = function ({plugin, req}) {
 }
 
 HandlerFactory.prototype.createFromRecipe = function ({name, req, route}) {
-  if (!this.workspace[name] || this.workspace[name].type !== 'recipes') {
+  const workspaceMatch = workspace.get(name)
+
+  if (!workspaceMatch || workspaceMatch.type !== 'recipes') {
     return Promise.reject(new Error('Recipe not found'))
   }
 
   const parsedUrl = url.parse(req.url, true)
-  const recipe = this.workspace[name].source
+  const recipe = workspaceMatch.source
 
   return this.createFromFormat({
     format: recipe.settings.format,
     plugins: recipe.plugins,
     req
   }).then(handler => {
-    const referencePath = recipe.path ? recipe.path : ''
+    // We'll remove the first part of the URL, corresponding
+    // to the name of the recipe, which will leave us with the
+    // path to the file.
     const filePath = parsedUrl.pathname
-      .replace('/' + name + '/', '/')
-      .replace('/' + route + '/', '/')
-    const fullPath = path.join(referencePath, filePath)
+      .replace(new RegExp('^/' + name + '/'), '/')
+      .replace(new RegExp('^/' + route + '/'), '/')
 
-    handler.url = fullPath
-    handler.fileName = path.basename(parseUrl(req).pathname.replace(name, ''))
-    handler.fileExt = path.extname(parseUrl(req).pathname).replace('.', '')
+    // Does the recipe specify a base path?
+    const fullPath = recipe.path
+      ? path.join(recipe.path, filePath)
+      : filePath
+
+    handler.setBaseUrl(fullPath)
+
+    // handler.url = fullPath
+    // handler.fileName = path.basename(parseUrl(req).pathname.replace(name, ''))
+    // handler.fileExt = path.extname(parseUrl(req).pathname).replace('.', '')
     handler.compress = recipe.settings.compress ? recipe.settings.compress.toString() : '0'
     handler.options = Object.assign({}, recipe.settings, parsedUrl.query)
 
@@ -179,11 +185,16 @@ HandlerFactory.prototype.createFromRecipe = function ({name, req, route}) {
 }
 
 HandlerFactory.prototype.createFromRoute = function ({name, req}) {
-  if (!this.workspace[name] || this.workspace[name].type !== 'recipes') {
-    return Promise.reject(new Error('Recipe not found'))
+  const workspaceMatch = workspace.get(name)
+
+  if (!workspaceMatch || workspaceMatch.type !== 'routes') {
+    return Promise.reject(new Error('Route not found'))
   }
 
-  const route = this.workspace[name].source
+  const route = new Route(workspaceMatch.source)
+
+  route.setLanguage(req.headers['accept-language'])
+  route.setUserAgent(req.headers['user-agent'])
 
   return route.getRecipe().then(recipe => {
     if (recipe) {
@@ -198,8 +209,8 @@ HandlerFactory.prototype.createFromRoute = function ({name, req}) {
   })
 }
 
-module.exports = function (workspace) {
-  return new HandlerFactory(workspace)
+module.exports = function () {
+  return new HandlerFactory()
 }
 
 module.exports.HandlerFactory = HandlerFactory
