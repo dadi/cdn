@@ -9,7 +9,7 @@ const AssetHandler = require(path.join(__dirname, '/asset'))
 const ImageHandler = require(path.join(__dirname, '/image'))
 const JSHandler = require(path.join(__dirname, '/js'))
 const PluginHandler = require(path.join(__dirname, '/plugin'))
-const Route = require(path.join(__dirname, '/../models/Route'))
+const Route = require(path.join(__dirname, '/../models/route'))
 const workspace = require(path.join(__dirname, '/../models/workspace'))
 
 function parseUrl (req) {
