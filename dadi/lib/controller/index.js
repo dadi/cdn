@@ -1,13 +1,13 @@
-var cloudfront = require('cloudfront')
-var concat = require('concat-stream')
-var etag = require('etag')
-var fs = require('fs')
-var lengthStream = require('length-stream')
-var mime = require('mime')
-var path = require('path')
-var sha1 = require('sha1')
-var zlib = require('zlib')
-var _ = require('underscore')
+const cloudfront = require('cloudfront')
+const concat = require('concat-stream')
+const etag = require('etag')
+const fs = require('fs')
+const lengthStream = require('length-stream')
+const mime = require('mime')
+const path = require('path')
+const sha1 = require('sha1')
+const zlib = require('zlib')
+const _ = require('underscore')
 
 const config = require(path.join(__dirname, '/../../../config'))
 const help = require(path.join(__dirname, '/../help'))
@@ -16,12 +16,11 @@ const HandlerFactory = require(path.join(__dirname, '/../handlers/factory'))
 const PostController = require(path.join(__dirname, '/post'))
 const RecipeController = require(path.join(__dirname, '/recipe'))
 const RouteController = require(path.join(__dirname, '/route'))
+const workspace = require(path.join(__dirname, '/../models/workspace'))
 
 logger.init(config.get('logging'), config.get('aws'), config.get('env'))
 
-const Controller = function (router, workspace) {
-  this.workspace = workspace
-
+const Controller = function (router) {
   router.use(logger.requestLogger)
 
   router.get('/robots.txt', (req, res) => {
@@ -40,7 +39,7 @@ const Controller = function (router, workspace) {
   })
 
   router.get(/(.+)/, (req, res) => {
-    const factory = new HandlerFactory(this.workspace)
+    const factory = new HandlerFactory(workspace.get())
 
     factory.create(req).then(handler => {
       return handler.get().then(stream => {
@@ -212,10 +211,6 @@ Controller.prototype.addCacheControlHeader = function (res, handler) {
     // set the header
     res.setHeader('Cache-Control', value)
   }
-}
-
-Controller.prototype.setWorkspace = function (workspace) {
-  this.workspace = workspace
 }
 
 module.exports = Controller
