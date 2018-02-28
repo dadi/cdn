@@ -72,12 +72,16 @@ const IMAGE_PARAMETERS = [
  * @param {String} format - the type of image requested
  * @param {Object} req - the original HTTP request
  */
-const ImageHandler = function (format, req, {plugins = []} = {}) {
+const ImageHandler = function (format, req, {
+  options = {},
+  plugins = []
+} = {}) {
   this.req = req
   this.storageFactory = Object.create(StorageFactory)
   this.storageHandler = null
   this.cache = Cache()
   this.requestUrl = req.url
+  this.options = options
 
   this.setBaseUrl(req.url)
 

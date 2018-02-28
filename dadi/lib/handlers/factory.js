@@ -16,7 +16,7 @@ function parseUrl (req) {
   return url.parse(req.url, true)
 }
 
-function getFormat (version, req) {
+function getFormat (req) {
   let parsedPath = parseUrl(req).pathname
 
   // add default jpg extension
@@ -24,11 +24,11 @@ function getFormat (version, req) {
     parsedPath += '.jpg'
   }
 
-  if (version === 'v1') {
+  if (req.__cdnLegacyURLSyntax) {
     return parsedPath.split('/').find(Boolean)
-  } else if (version === 'v2') {
-    return path.extname(parsedPath).replace('.', '').toLowerCase()
   }
+
+  return path.extname(parsedPath).replace('.', '').toLowerCase()
 }
 
 const HandlerFactory = function () {}
@@ -36,19 +36,15 @@ const HandlerFactory = function () {}
 HandlerFactory.prototype.create = function (req, mimetype) {
   const parsedUrl = url.parse(req.url, true)
   const pathComponents = parsedUrl.pathname.slice(1).split('/')
-  let format
-  let version
+
+  let format = mimetype ? mime.extension(mimetype) : null
 
   // version 1 matches a string like /jpg/80/0/0/640/480/ at the beginning of the url pathname
   const v1pattern = /^\/[a-z]{3,4}\/[0-9]+\/[0-1]+\/[0-1]+\/[0-9]+\/[0-9]+\//gi
 
   if (v1pattern.test(parsedUrl.pathname) || /\/(fonts|css|js)/.test(pathComponents[0])) {
     req.__cdnLegacyURLSyntax = true
-
-    version = 'v1'
   } else {
-    version = 'v2'
-
     // ensure the querystring is decoded (removes for eg &amp; entities introduced via XSLT)
     if (parsedUrl.search) {
       parsedUrl.search = he.decode(parsedUrl.search)
@@ -56,14 +52,8 @@ HandlerFactory.prototype.create = function (req, mimetype) {
     }
   }
 
-  if (!mimetype) {
-    format = getFormat(version, req)
-  } else {
-    format = mime.extension(mimetype)
-  }
-
   // try to create a handler
-  if (version === 'v1') {
+  if (req.__cdnLegacyURLSyntax) {
     return this.createFromFormat({
       format,
       req
@@ -109,15 +99,18 @@ HandlerFactory.prototype.callErrorHandler = function (format, req) {
   return Promise.reject(error)
 }
 
-HandlerFactory.prototype.createFromFormat = function ({format, plugins, req}) {
+HandlerFactory.prototype.createFromFormat = function ({format, options, plugins, req}) {
   let handlerData = {
+    options,
     plugins
   }
+
+  format = format || getFormat(req)
 
   return new Promise((resolve, reject) => {
     switch (format) {
       case 'js':
-        return resolve(new JSHandler(format, req))
+        return resolve(new JSHandler(format, req, handlerData))
       case 'css':
       case 'fonts':
       case 'ttf':
@@ -157,6 +150,7 @@ HandlerFactory.prototype.createFromRecipe = function ({name, req, route}) {
 
   return this.createFromFormat({
     format: recipe.settings.format,
+    options: Object.assign({}, recipe.settings, parsedUrl.query),
     plugins: recipe.plugins,
     req
   }).then(handler => {
@@ -172,13 +166,9 @@ HandlerFactory.prototype.createFromRecipe = function ({name, req, route}) {
       ? path.join(recipe.path, filePath)
       : filePath
 
-    handler.setBaseUrl(fullPath)
-
-    // handler.url = fullPath
-    // handler.fileName = path.basename(parseUrl(req).pathname.replace(name, ''))
-    // handler.fileExt = path.extname(parseUrl(req).pathname).replace('.', '')
-    handler.compress = recipe.settings.compress ? recipe.settings.compress.toString() : '0'
-    handler.options = Object.assign({}, recipe.settings, parsedUrl.query)
+    if (typeof handler.setBaseUrl === 'function') {
+      handler.setBaseUrl(fullPath)
+    }
 
     return handler
   })
