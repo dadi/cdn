@@ -7,7 +7,6 @@ const mime = require('mime')
 const path = require('path')
 const sha1 = require('sha1')
 const zlib = require('zlib')
-const _ = require('underscore')
 
 const config = require(path.join(__dirname, '/../../../config'))
 const help = require(path.join(__dirname, '/../help'))
@@ -180,7 +179,7 @@ Controller.prototype.addCacheControlHeader = function (res, handler) {
   var configHeaderSets = config.get('headers.cacheControl')
 
   // If it matches, sets Cache-Control header using the file path
-  _.each(configHeaderSets.paths, function (obj) {
+  configHeaderSets.paths.forEach(obj => {
     var key = Object.keys(obj)[0]
     var value = obj[key]
 
@@ -190,7 +189,7 @@ Controller.prototype.addCacheControlHeader = function (res, handler) {
   })
 
   // If not already set, sets Cache-Control header using the file mimetype
-  _.each(configHeaderSets.mimetypes, function (obj) {
+  configHeaderSets.mimetypes.forEach(obj => {
     var key = Object.keys(obj)[0]
     var value = obj[key]
 
@@ -203,7 +202,7 @@ Controller.prototype.addCacheControlHeader = function (res, handler) {
   setHeader(configHeaderSets.default)
 
   function setHeader (value) {
-    if (_.isEmpty(value)) return
+    if (!value || (value.length === 0)) return
 
     // already set
     if (res._headers['cache-control']) return
