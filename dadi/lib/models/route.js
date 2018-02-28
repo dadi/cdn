@@ -22,7 +22,7 @@ Route.prototype._arrayIntersect = function (object, array) {
 
   return array.some((element) => {
     return object.some((objectPart) => {
-      return objectPart.toLowerCase() === element.toLowerCase()
+      return objectPart.toString().toLowerCase() === element.toString().toLowerCase()
     })
   })
 }
@@ -44,7 +44,7 @@ Route.prototype._getPathInObject = function (path, object, breadcrumbs) {
 }
 
 Route.prototype._matchBranch = function (branch) {
-  if (!branch.condition) return Promise.resolve(branch)
+  if (!branch.condition) return Promise.resolve(true)
 
   let match = true
   let queue = []
@@ -147,24 +147,6 @@ Route.prototype.getDevice = function () {
   return ua.device.type || 'desktop'
 }
 
-Route.prototype.getNetwork = function () {
-  let path = config.get('network.path')
-  let uri = config.get('network.url')
-
-  // Replace placeholders in uri
-  uri = uri.replace('{ip}', this.ip)
-  uri = uri.replace('{key}', config.get('network.key'))
-  uri = uri.replace('{secret}', config.get('network.secret'))
-
-  return this._requestAndGetPath(uri, path).then((network) => {
-    return network.split('/')
-  }).catch((err) => {
-    logger.error({module: 'routes'}, err)
-
-    return Promise.resolve(null)
-  })
-}
-
 Route.prototype.getLanguages = function (minQuality) {
   const languages = languageParser.parse(this.language)
 
@@ -214,6 +196,24 @@ Route.prototype.getMaxmindLocation = function () {
         country && country.country && country.country.iso_code
       )
     })
+  })
+}
+
+Route.prototype.getNetwork = function () {
+  let path = config.get('network.path')
+  let uri = config.get('network.url')
+
+  // Replace placeholders in uri
+  uri = uri.replace('{ip}', this.ip)
+  uri = uri.replace('{key}', config.get('network.key'))
+  uri = uri.replace('{secret}', config.get('network.secret'))
+
+  return this._requestAndGetPath(uri, path).then((network) => {
+    return network.split('/')
+  }).catch((err) => {
+    logger.error({module: 'routes'}, err)
+
+    return Promise.resolve(null)
   })
 }
 
