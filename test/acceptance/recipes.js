@@ -288,9 +288,10 @@ describe('Recipes', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/sample-js-recipe/test-es6.js')
+        .set('user-agent', 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0; Trident/5.0)')
         .expect(200)
         .end(function (err, res) {
-          res.text.should.eql('const makeFoo=(a)=>`I foo, you ${a}`;')
+          res.text.should.eql('"use strict";var makeFoo=function(a){return"I foo, you "+a};')
 
           done()
         })
