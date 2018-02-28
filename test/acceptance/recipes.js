@@ -260,7 +260,7 @@ describe('Recipes', function () {
       })
     })
 
-    it('should handle image if recipe is valid ', function (done) {
+    it('should handle image if recipe is valid', function (done) {
       var newTestConfig = JSON.parse(testConfigString)
       newTestConfig.images.directory.enabled = true
       newTestConfig.images.directory.path = './test/images'
@@ -273,6 +273,25 @@ describe('Recipes', function () {
         .get('/sample-image-recipe/test.jpg')
         .expect(200)
         .end(function (err, res) {
+          done()
+        })
+    })
+
+    it('should handle JS file if recipe is valid', function (done) {
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.assets.directory.enabled = true
+      newTestConfig.assets.directory.path = './test/assets'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+      config.loadFile(config.configPath())
+
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/sample-js-recipe/test-es6.js')
+        .expect(200)
+        .end(function (err, res) {
+          res.text.should.eql('const makeFoo=(a)=>`I foo, you ${a}`;')
+
           done()
         })
     })

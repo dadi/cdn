@@ -16,8 +16,11 @@ const StorageFactory = require(path.join(__dirname, '/../storage/factory'))
  * @param {String} format The extension of the file being handled
  * @param {Object} req    The request instance
  */
-const JSHandler = function (format, req) {
+const JSHandler = function (format, req, {
+  options = {}
+} = {}) {
   this.legacyURLOverrides = this.getLegacyURLOverrides(req.url)
+  this.options = options
   this.url = url.parse(
     this.legacyURLOverrides.url || req.url,
     true
@@ -47,7 +50,7 @@ JSHandler.prototype.contentType = function () {
  * @return {Promise} A stream with the file
  */
 JSHandler.prototype.get = function () {
-  if (this.url.query.transform && config.get('experimental.jsTranspiling')) {
+  if (this.isTransformEnabled()) {
     this.cacheKey += this.getBabelPluginsHash()
   }
 
@@ -81,11 +84,11 @@ JSHandler.prototype.getBabelConfig = function () {
     presets: []
   }
 
-  if (query.transform && config.get('experimental.jsTranspiling')) {
+  if (this.isTransformEnabled()) {
     options.presets.push(['env', this.getBabelEnvOptions()])
   }
 
-  if (this.legacyURLOverrides.compress || query.compress === '1') {
+  if (this.legacyURLOverrides.compress || query.compress === '1' || this.options.compress) {
     options.presets.push('minify')
   }
 
@@ -184,6 +187,22 @@ JSHandler.prototype.getLegacyURLOverrides = function (url) {
 }
 
 /**
+ * Returns true if transforms are enabled for this request.
+ *
+ * @return {Boolean}
+ */
+JSHandler.prototype.isTransformEnabled = function () {
+  // Currently behind a feature flag.
+  if (!config.get('experimental.jsTranspiling')) return false
+
+  return (this.url.query.transform || (this.options.transform === true))
+}
+
+JSHandler.prototype.setBaseUrl = function (baseUrl) {
+  this.url = url.parse(baseUrl, true)
+}
+
+/**
  * Transforms the code from the stream provided using Babel
  *
  * @param  {Stream} stream The input stream
@@ -214,8 +233,8 @@ JSHandler.prototype.transform = function (stream) {
   })
 }
 
-module.exports = function (format, req) {
-  return new JSHandler(format, req)
+module.exports = function (format, request, handlerData) {
+  return new JSHandler(format, request, handlerData)
 }
 
 module.exports.JSHandler = JSHandler
