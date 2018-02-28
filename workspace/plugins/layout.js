@@ -41,7 +41,7 @@ function hexToRgbA (hex) {
   throw new Error('Bad Hex')
 }
 
-const ImageLayoutProcessor = function ({assetStore, cache, req}) {
+const ImageLayoutProcessor = function ({assetStore, cache, req, setHeader}) {
   const parsedUrl = url.parse(req.url, true)
 
   this.cache = cache
@@ -50,6 +50,7 @@ const ImageLayoutProcessor = function ({assetStore, cache, req}) {
   this.processUrl(parsedUrl.pathname)
   this.fileExt = path.extname(this.outputFile.fileName).substring(1)
   this.req = req
+  this.setHeader = setHeader
 }
 
 ImageLayoutProcessor.prototype.contentType = function () {
@@ -75,6 +76,9 @@ ImageLayoutProcessor.prototype.get = function () {
     }
 
     this.format = this.fileExt
+
+    // Set content type
+    this.setHeader('content-type', this.contentType())
 
     const assetsQueue = this.inputs.map(input => {
       if (input.fileName) {
