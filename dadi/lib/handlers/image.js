@@ -423,19 +423,20 @@ ImageHandler.prototype.getAvailablePlugins = function (files) {
  *
  */
 ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, originalDimensions, croppedDimensions, scale) {
-  var originalWidth = parseInt(originalDimensions.width)
-  var originalHeight = parseInt(originalDimensions.height)
+  const originalWidth = parseInt(originalDimensions.naturalWidth)
+  const originalHeight = parseInt(originalDimensions.naturalHeight)
 
-  var croppedWidth = parseInt(croppedDimensions.width)
-  var croppedHeight = parseInt(croppedDimensions.height)
+  const croppedWidth = parseInt(croppedDimensions.width)
+  const croppedHeight = parseInt(croppedDimensions.height)
 
   if (!scale) scale = croppedWidth / originalWidth
-  var resizedWidth = originalWidth * scale
-  var resizedHeight = originalHeight * scale
+
+  const resizedWidth = originalWidth * scale
+  const resizedHeight = originalHeight * scale
 
   // No vertical offset for northern gravity
-  var verticalOffset = 0
-  var horizontalOffset = 0
+  let verticalOffset = 0
+  let horizontalOffset = 0
 
   switch (gravity.toLowerCase()) {
     case GRAVITY_TYPES.NW:
@@ -579,31 +580,6 @@ ImageHandler.prototype.getLastModified = function () {
   return this.storageHandler.getLastModified()
 }
 
-ImageHandler.prototype.optionSettings = function () {
-  return [
-    { name: 'format', aliases: ['fmt'] },
-    { name: 'quality', aliases: ['q'], default: 75 },
-    { name: 'sharpen', aliases: ['sh'], default: 0, allowZero: true, minimumValue: 1 },
-    { name: 'saturate', aliases: ['sat'], default: 1, allowZero: true },
-    { name: 'width', aliases: ['w'] },
-    { name: 'height', aliases: ['h'] },
-    { name: 'ratio', aliases: ['rx'] },
-    { name: 'cropX', aliases: ['cx'] },
-    { name: 'cropY', aliases: ['cy'] },
-    { name: 'crop', aliases: ['coords'] },
-    { name: 'resizeStyle', aliases: ['resize'], default: 'aspectfill' },
-    { name: 'devicePixelRatio', aliases: ['dpr'] },
-    { name: 'gravity', aliases: ['g'], default: 'None' },
-    { name: 'filter', aliases: ['f'], default: 'lanczos', lowercase: true },
-    { name: 'trim', aliases: ['t'] },
-    { name: 'trimFuzz', aliases: ['tf'] },
-    { name: 'blur', aliases: ['b'] },
-    { name: 'strip', aliases: ['s'] },
-    { name: 'rotate', aliases: ['r'] },
-    { name: 'flip', aliases: ['fl'] }
-  ]
-}
-
 ImageHandler.prototype.parseUrl = function (url) {
   const parsedUrl = urlParser.parse(url, true)
   const searchNodes = parsedUrl.search.split('?')
@@ -663,10 +639,15 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
           Your image is clipped. It will size proportionally to make sure there is no blank space left in your area.
           */
           case 'aspectfill':
-            var scaleWidth = (width / imageInfo.naturalWidth)
-            var scaleHeight = (height / imageInfo.naturalHeight)
-            var scale = Math.max(scaleWidth, scaleHeight)
-            var crops = this.getCropOffsetsByGravity(options.gravity, imageInfo, {width, height}, scale)
+            const scaleWidth = (width / imageInfo.naturalWidth)
+            const scaleHeight = (height / imageInfo.naturalHeight)
+            const scale = Math.max(scaleWidth, scaleHeight)
+            const crops = this.getCropOffsetsByGravity(
+              options.gravity,
+              imageInfo,
+              {width, height},
+              scale
+            )
 
             if (scaleHeight >= scaleWidth) {
               sharpImage = sharpImage.resize(
