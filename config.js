@@ -574,7 +574,7 @@ const schema = {
       doc: 'Whether to enable experimental support for on-demand JavaScript transpiling',
       format: Boolean,
       default: false,
-      env: 'EXPERIMENTAL_JSTRANSPILING'
+      env: 'JSTRANSPILING'
     }
   }
 }
