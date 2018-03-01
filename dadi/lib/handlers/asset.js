@@ -50,7 +50,7 @@ var AssetHandler = function (format, req) {
 
 AssetHandler.prototype.get = function () {
   var self = this
-  self.cached = false
+  self.isCached = false
 
   var message
 

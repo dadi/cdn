@@ -285,12 +285,12 @@ ImageHandler.prototype.get = function () {
     let stream
 
     if (cachedStream) {
+      this.isCached = true
+
       // If this is a request for JSON data and we have it in cache,
       // there's nothing else we need to do. We can return the cached
       // stream directly.
-      if (isJSONResponse) return stream
-
-      this.cached = true
+      if (isJSONResponse) return cachedStream
 
       stream = cachedStream
     } else {
@@ -390,7 +390,7 @@ ImageHandler.prototype.get = function () {
         })
       }).then(responseStream => {
         // Cache the file if it's not already cached and it's not a placeholder.
-        if (!this.cached && !this.storageHandler.notFound) {
+        if (!this.isCached && !this.storageHandler.notFound) {
           this.cache.cacheFile(
             this.options.format === 'json' ? responseStream : this.cacheStream,
             cacheKey
