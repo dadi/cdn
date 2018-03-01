@@ -602,6 +602,10 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
   // load the input image
   let sharpImage = sharp(imageBuffer)
 
+  if (this.storageHandler.notFound) {
+    options.resizeStyle = 'entropy'
+  }
+
   const {width, height} = imageInfo
   const shouldExtractEntropy = ((options.resizeStyle === 'entropy') && width && height)
     ? this.extractEntropy(imageBuffer, width, height)
@@ -665,8 +669,7 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
 
             // Only crop if the aspect ratio is not the same
             if (
-              (width / height) !== (imageInfo.naturalWidth / imageInfo.naturalHeight) &&
-              !this.storageHandler.notFound
+              (width / height) !== (imageInfo.naturalWidth / imageInfo.naturalHeight)
             ) {
               sharpImage.extract({
                 left: crops.x1,
