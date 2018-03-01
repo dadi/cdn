@@ -32,10 +32,8 @@ describe('SSL', () => {
 
     // try and close the server, unless it's crashed (as with SSL errors)
     try {
-      // console.log('stopping')
       app.stop(done)
     } catch (ex) {
-      console.log(ex)
       done()
     }
   })

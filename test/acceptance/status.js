@@ -56,12 +56,7 @@ describe('Status', function () {
     // make sure config is reset properly so other tests run ok
     // it's essential that status.standalone is disabled
     updateConfigAndReloadApp({})
-
-    try {
-      app.stop(done)
-    } catch (err) {
-      done()
-    }
+    done()
   })
 
   describe('Integrated', function () {
@@ -101,10 +96,7 @@ describe('Status', function () {
           .post(statusRoute)
           .set('Authorization', 'Bearer ' + bearerToken)
           .expect('content-type', 'application/json')
-          .expect(200)
-          .end((err, res) => {
-            done()
-          })
+          .expect(200, done)
       })
     })
 
