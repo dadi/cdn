@@ -1,0 +1,243 @@
+{
+  "path": "visual",
+  "threshold": 10,
+  "tests": [
+    {
+      "image": "measure1.png",
+      "params": {
+        "flip": "x"
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?flip=x.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "flip": "y"
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?flip=y.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "flip": "xy"
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?flip=xy.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "w": 400
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?w=400.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "w": 200,
+        "resizeStyle": "aspectfill"
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?w=200&resizeStyle=aspectfill.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "w": 200,
+        "resizeStyle": "fill"
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?w=200&resizeStyle=fill.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "h": 200
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?h=200.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "h": 200,
+        "resizeStyle": "aspectfit"
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?h=200&resizeStyle=aspectfit.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "h": 200,
+        "resizeStyle": "aspectfill"
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?h=200&resizeStyle=aspectfill.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "h": 200,
+        "resizeStyle": "fill"
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?h=200&resizeStyle=fill.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "h": 200,
+        "ratio": "16-9"
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?h=200&ratio=16-9.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "h": 200,
+        "ratio": "1-1"
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?h=200&ratio=1-1.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "h": 200,
+        "ratio": "3-2"
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?h=200&ratio=3-2.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "h": 200,
+        "ratio": "4-3"
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?h=200&ratio=4-3.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "w": 400,
+        "h": 300,
+        "resize": "entropy"
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?w=400&h=300&resize=entropy.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "resizeStyle": "crop",
+        "crop": "10,15"
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?resizeStyle=crop&crop=10,15.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "resizeStyle": "crop",
+        "crop": "10,15,200,300"
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?resizeStyle=crop&crop=10,15,200,300.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "w": 200,
+        "resizeStyle": "aspectfill",
+        "gravity": "north"
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?w=200&resizeStyle=aspectfill&gravity=north.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "w": 200,
+        "resizeStyle": "aspectfill",
+        "gravity": "east"
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?w=200&resizeStyle=aspectfill&gravity=east.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "w": 200,
+        "resizeStyle": "aspectfill",
+        "gravity": "south"
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?w=200&resizeStyle=aspectfill&gravity=south.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "w": 200,
+        "resizeStyle": "aspectfill",
+        "gravity": "west"
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?w=200&resizeStyle=aspectfill&gravity=west.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "w": 200,
+        "resizeStyle": "aspectfill",
+        "gravity": "center"
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?w=200&resizeStyle=aspectfill&gravity=center.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "resize": "crop",
+        "crop": "0,10",
+        "width": 300,
+        "height": 400
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?resize=crop&crop=0,10&width=300&height=400.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "resize": "crop",
+        "crop": "50,50,200,200"
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?resize=crop&crop=50,50,200,200.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "resize": "crop",
+        "crop": "50,50,200,200",
+        "width": 100
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?resize=crop&crop=50,50,200,200&width=100.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "resize": "crop",
+        "crop": "50,50,200,200",
+        "width": 400,
+        "height": 100
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?resize=crop&crop=50,50,200,200&width=400&height=100.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "resize": "crop",
+        "crop": "50,50,200,200",
+        "devicePixelRatio": 2
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?resize=crop&crop=50,50,200,200&devicePixelRatio=2.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "saturate": 0
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?saturate=0.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "sharpen": 5
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?sharpen=5.png"
+    }
+  ]
+}
