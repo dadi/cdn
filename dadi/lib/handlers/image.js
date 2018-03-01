@@ -55,7 +55,7 @@ const IMAGE_PARAMETERS = [
   { name: 'cropX', aliases: ['cx'] },
   { name: 'cropY', aliases: ['cy'] },
   { name: 'crop', aliases: ['coords'] },
-  { name: 'resizeStyle', aliases: ['resize'], default: 'aspectfill' },
+  { name: 'resizeStyle', aliases: ['resize'], default: 'aspectfit' },
   { name: 'devicePixelRatio', aliases: ['dpr'] },
   { name: 'gravity', aliases: ['g'], default: 'None' },
   { name: 'filter', aliases: ['f'], default: 'lanczos', lowercase: true },
