@@ -55,7 +55,11 @@ JSHandler.prototype.get = function () {
   }
 
   return this.cache.getStream(this.cacheKey).then(stream => {
-    if (stream) return stream
+    if (stream) {
+      this.isCached = true
+
+      return stream
+    }
 
     this.storageHandler = this.storageFactory.create(
       'asset',
@@ -128,7 +132,7 @@ JSHandler.prototype.getBabelEnvOptions = function () {
  * @return {String} A hash of all the plugins
  */
 JSHandler.prototype.getBabelPluginsHash = function () {
-  const functions = babelPresetEnv(this.getBabelEnvOptions()).plugins.map(plugin => plugin[0])
+  const functions = babelPresetEnv(null, this.getBabelEnvOptions()).plugins.map(plugin => plugin[0])
   const hashSource = functions.reduce((result, functionSource) => {
     if (typeof functionSource === 'function') {
       return result + functionSource.toString()
