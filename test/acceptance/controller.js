@@ -275,7 +275,7 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
       .get('/fonts/test.ttf')
-      .expect('Content-Type', 'application/font-sfnt')
+      .expect('Content-Type', 'font/ttf')
       .expect(200, done)
     })
 
@@ -283,7 +283,7 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
       .get('/fonts/next-level/test.ttf')
-      .expect('Content-Type', 'application/font-sfnt')
+      .expect('Content-Type', 'font/ttf')
       .expect(200, done)
     })
   })
