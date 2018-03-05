@@ -604,6 +604,8 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
 
   if (this.storageHandler.notFound) {
     options.resizeStyle = 'entropy'
+  } else if (options.ratio) {
+    options.resizeStyle = 'aspectfill'
   }
 
   const {width, height} = imageInfo
