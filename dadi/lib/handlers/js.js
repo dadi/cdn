@@ -202,6 +202,9 @@ JSHandler.prototype.isTransformEnabled = function () {
   return (this.url.query.transform || (this.options.transform === true))
 }
 
+/**
+ * Sets the base URL (excluding any recipe or route nodes)
+ */
 JSHandler.prototype.setBaseUrl = function (baseUrl) {
   this.url = url.parse(baseUrl, true)
 }
