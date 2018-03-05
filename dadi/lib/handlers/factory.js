@@ -5,7 +5,8 @@ const mime = require('mime')
 const path = require('path')
 const url = require('url')
 
-const AssetHandler = require(path.join(__dirname, '/asset'))
+const CSSHandler = require(path.join(__dirname, '/css'))
+const DefaultHandler = require(path.join(__dirname, '/default'))
 const ImageHandler = require(path.join(__dirname, '/image'))
 const JSHandler = require(path.join(__dirname, '/js'))
 const PluginHandler = require(path.join(__dirname, '/plugin'))
@@ -112,13 +113,7 @@ HandlerFactory.prototype.createFromFormat = function ({format, options, plugins,
       case 'js':
         return resolve(new JSHandler(format, req, handlerData))
       case 'css':
-      case 'fonts':
-      case 'ttf':
-      case 'otf':
-      case 'woff':
-      case 'svg':
-      case 'eot':
-        return resolve(new AssetHandler(format, req))
+        return resolve(new CSSHandler(format, req, handlerData))
       case 'gif':
       case 'jpg':
       case 'jpeg':
@@ -129,7 +124,7 @@ HandlerFactory.prototype.createFromFormat = function ({format, options, plugins,
         format = 'jpg'
         return resolve(new ImageHandler(format, req, handlerData))
       default:
-        return resolve(this.callErrorHandler(format, req))
+        return resolve(new DefaultHandler(format, req, handlerData))
     }
   })
 }
