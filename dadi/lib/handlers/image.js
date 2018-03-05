@@ -1118,7 +1118,7 @@ function flushExifFiles () {
         var lastModified = stats && stats.mtime && stats.mtime.valueOf()
 
         if (lastModified && (Date.now() - lastModified) / 1000 > 36) {
-          fs.unlink(filePath)
+          fs.unlinkSync(filePath)
         }
       })
     })

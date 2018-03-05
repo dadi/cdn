@@ -121,7 +121,7 @@ AssetHandler.prototype.compressFile = function (stream) {
             })
 
             stream.on('close', function () {
-              fs.unlink(fileOut)
+              fs.unlinkSync(fileOut)
             })
           }
         }
