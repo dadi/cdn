@@ -1,6 +1,7 @@
 'use strict'
 
 const he = require('he')
+const logger = require('@dadi/logger')
 const mime = require('mime')
 const path = require('path')
 const url = require('url')
@@ -45,6 +46,10 @@ HandlerFactory.prototype.create = function (req, mimetype) {
 
   if (v1pattern.test(parsedUrl.pathname) || /\/(fonts|css|js)/.test(pathComponents[0])) {
     req.__cdnLegacyURLSyntax = true
+
+    logger.warn(
+      `'${parsedUrl.pathname}': this request uses a deprecated URL format which will be removed from future versions of DADI CDN. For more information, please visit https://docs.dadi.tech/cdn#querystring-url-scheme.`
+    )
   } else {
     // ensure the querystring is decoded (removes for eg &amp; entities introduced via XSLT)
     if (parsedUrl.search) {
