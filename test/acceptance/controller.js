@@ -559,7 +559,7 @@ describe('Controller', function () {
           var info = res.body
 
           info.fileName.should.eql('test.jpg')
-          info.format.should.eql('jpeg')
+          info.format.should.eql('jpg')
           done()
         })
     })
