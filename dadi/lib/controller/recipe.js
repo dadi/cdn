@@ -1,33 +1,23 @@
-var _ = require('underscore')
-var fs = require('fs')
-var path = require('path')
+const path = require('path')
 
-var config = require(path.join(__dirname, '/../../../config'))
-var help = require(path.join(__dirname, '/../help'))
-var Recipe = require(path.join(__dirname, '/../models/recipe'))
-
-function recipeExists (recipe) {
-  var recipePath = path.join(path.resolve(config.get('paths.recipes')), recipe.name + '.json')
-
-  return new Promise((resolve, reject) => {
-    fs.stat(recipePath, (err, stats) => {
-      return resolve(!err && stats.isFile())
-    })
-  })
-}
+const help = require(path.join(__dirname, '/../help'))
+const Recipe = require(path.join(__dirname, '/../models/recipe'))
+const workspace = require(path.join(__dirname, '/../models/workspace'))
 
 module.exports.post = (req, res) => {
   // Don't accept an empty POST
-  if (_.isEmpty(req.body)) {
+  if (Object.keys(req.body).length === 0) {
     return help.sendBackJSON(400, {
       success: false,
       errors: ['Bad Request']
     }, res)
   }
 
+  let obj
+
   // Valid JSON?
   try {
-    var obj = typeof req.body === 'object' ? req.body : JSON.parse(req.body)
+    obj = typeof req.body === 'object' ? req.body : JSON.parse(req.body)
   } catch (err) {
     return help.sendBackJSON(400, {
       success: false,
@@ -35,8 +25,8 @@ module.exports.post = (req, res) => {
     }, res)
   }
 
-  var recipe = new Recipe(obj)
-  var validationErrors = recipe.validate()
+  const recipe = new Recipe(obj)
+  const validationErrors = recipe.validate()
 
   if (validationErrors) {
     return help.sendBackJSON(400, {
@@ -45,24 +35,26 @@ module.exports.post = (req, res) => {
     }, res)
   }
 
-  return recipeExists(recipe).then((exists) => {
-    // if (exists) {
-    //   return help.sendBackJSON(400, {
-    //     success: false,
-    //     errors: ['Recipe already exists']
-    //   }, res)
-    // }
+  const existingWorkspaceFile = workspace.get(recipe.name)
 
-    if (recipe.save()) {
-      return help.sendBackJSON(201, {
-        success: true,
-        message: `Recipe "${recipe.name}" created`
-      }, res)
-    } else {
-      return help.sendBackJSON(400, {
-        success: false,
-        errors: ['Error when saving recipe']
-      }, res)
-    }
-  })
+  // Do we already have a recipe (or any other workspace file)
+  // with this name?
+  if (existingWorkspaceFile) {
+    return help.sendBackJSON(400, {
+      success: false,
+      errors: [`Route ${recipe.name} already exists`]
+    }, res)
+  }
+
+  if (recipe.save()) {
+    return help.sendBackJSON(201, {
+      success: true,
+      message: `Recipe "${recipe.name}" created`
+    }, res)
+  } else {
+    return help.sendBackJSON(400, {
+      success: false,
+      errors: ['Error when saving recipe']
+    }, res)
+  }
 }

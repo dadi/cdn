@@ -1,92 +1,88 @@
-var _ = require('underscore')
-var nodeUrl = require('url')
-var path = require('path')
-var S3Storage = require(path.join(__dirname, '/s3'))
-var DiskStorage = require(path.join(__dirname, '/disk'))
-var HTTPStorage = require(path.join(__dirname, '/http'))
+const path = require('path')
+const S3Storage = require(path.join(__dirname, '/s3'))
+const DiskStorage = require(path.join(__dirname, '/disk'))
+const HTTPStorage = require(path.join(__dirname, '/http'))
 
-var config = require(path.join(__dirname, '/../../../config'))
+const config = require(path.join(__dirname, '/../../../config'))
 
-module.exports = {
-  create: function create (type, url, hasQuery) {
-    var configBlock
+const ADAPTERS = {
+  disk: {
+    configBlock: 'directory',
+    handler: DiskStorage
+  },
+  http: {
+    configBlock: 'remote',
+    handler: HTTPStorage
+  },
+  s3: {
+    configBlock: 's3',
+    handler: S3Storage
+  }
+}
 
-    // set a default version
-    var version = 'v1'
+module.exports.create = function create (type, assetPath, options = {}) {
+  if (assetPath.indexOf('/') === 0) {
+    assetPath = assetPath.slice(1)
+  }
 
-    // set version 2 if the url was supplied with a querystring
-    if (hasQuery || nodeUrl.parse(url, true).search) {
-      version = 'v2'
-    }
+  let configBlock
 
-    if (type === 'image') {
-      configBlock = config.get('images')
-    } else if (type === 'asset') {
+  switch (type) {
+    case 'asset':
       configBlock = config.get('assets')
+
+      break
+
+    case 'image':
+      configBlock = config.get('images')
+
+      break
+  }
+
+  const adapterFromPath = module.exports.extractAdapterFromPath(assetPath)
+
+  let adapter
+
+  if (adapterFromPath.adapter) {
+    adapter = adapterFromPath.adapter
+    assetPath = adapterFromPath.canonicalPath
+  } else {
+    if (
+      assetPath.indexOf('http:') === 0 ||
+      assetPath.indexOf('https:') === 0
+    ) {
+      adapter = 'http'
+    } else {
+      const enabledStorage = Object.keys(configBlock).find(key => configBlock[key].enabled)
+
+      adapter = Object.keys(ADAPTERS).find(key => {
+        return ADAPTERS[key].configBlock === enabledStorage
+      }) || 'disk'
     }
+  }
 
-    if (version === 'v1') {
-      if (type === 'image') {
-        var parsedUrl = nodeUrl.parse(url, true)
+  const Adapter = ADAPTERS[adapter].handler
 
-        // get the segments of the url that relate to image manipulation options
-        var urlSegments = _.filter(parsedUrl.pathname.split('/'), function (segment, index) {
-          if (index > 0 && segment === '') {
-            return '0'
-          } else if (index > 0 && index < 13 || (index >= 13 && /^[0-1]$/.test(segment))) {
-            return segment
-          }
-        })
+  return new Adapter(configBlock[ADAPTERS[adapter].configBlock], assetPath, options)
+}
 
-        // `/png/80/0/0/640/480/0/0/0/1/aspectfill/North/lanczos/0/0/0/0/`
-        // urlSegments = _.filter(urlSegments, (segment) => {
-        //   return typeof segment !== 'undefined'
-        // })
+module.exports.extractAdapterFromPath = function (assetPath) {
+  if (assetPath.indexOf('/') === 0) {
+    assetPath = assetPath.slice(1)
+  }
 
-        url = parsedUrl.pathname.replace(urlSegments.join('/') + '/', '')
-      }
+  let newAssetPath = assetPath
 
-      // for version 1 assets we need the part of the url following
-      // either "/fonts/" or "/css/0/" or "/js/1/"
-      if (type === 'asset') {
-        var re = /\/(css|js)\/[0-9]\//gi
-        url = url.replace(re, '')
-        var fontsre = /\/fonts\/[0-9]\//gi
-        url = url.replace(fontsre, '')
-      }
+  const adapter = Object.keys(ADAPTERS).find(key => {
+    if (assetPath.indexOf(`${key}/`) === 0) {
+      newAssetPath = assetPath.slice(key.length + 1)
+
+      return true
     }
+  })
 
-    var adapterKey
-
-    // get storage adapter from the first part of the url
-    if (version === 'v2') {
-      adapterKey = _.compact(url.split('/')).shift()
-      url = nodeUrl.parse(url, true).pathname
-    }
-
-    // get storage adapter from the configuration settings
-    if (version === 'v1' || /(disk|http|s3)/.exec(adapterKey) === null) {
-      adapterKey = _.compact(_.map(configBlock, function (storage, key) {
-        if (storage.enabled) {
-          if (key === 'directory') return 'disk'
-          if (key === 'remote') return 'http'
-          if (key === 's3') return 's3'
-          return key
-        }
-      }))
-
-      if (_.isArray(adapterKey)) adapterKey = adapterKey[0]
-    }
-
-    switch (adapterKey) {
-      case 'disk':
-        return new DiskStorage(configBlock, url)
-      case 'http':
-        return new HTTPStorage(configBlock, url)
-      case 's3':
-        return new S3Storage(configBlock, url)
-      default:
-        return new DiskStorage(configBlock, url)
-    }
+  return {
+    adapter,
+    canonicalPath: newAssetPath
   }
 }

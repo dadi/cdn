@@ -12,7 +12,7 @@ var bearerToken
 describe('Cache', function () {
   this.timeout(10000)
 
-  beforeEach(function() {
+  beforeEach(function () {
     var newTestConfig = JSON.parse(fs.readFileSync(config.configPath()))
     newTestConfig.caching.directory.enabled = true
     newTestConfig.caching.redis.enabled = false
