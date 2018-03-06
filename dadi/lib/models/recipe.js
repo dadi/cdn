@@ -1,15 +1,15 @@
-var fs = require('fs')
-var logger = require('@dadi/logger')
-var path = require('path')
-var config = require(path.join(__dirname, '/../../../config'))
+const fs = require('fs')
+const logger = require('@dadi/logger')
+const path = require('path')
+const config = require(path.join(__dirname, '/../../../config'))
 
-var Recipe = function (content) {
+const Recipe = function (content) {
   this.recipe = content
   this.name = this.recipe.recipe
 }
 
 Recipe.prototype.save = function () {
-  var recipePath = path.join(config.get('paths.recipes'), this.name) + '.json'
+  const recipePath = path.join(config.get('paths.recipes'), this.name) + '.json'
 
   try {
     fs.writeFileSync(recipePath, JSON.stringify(this.recipe, null, 2))
@@ -23,8 +23,8 @@ Recipe.prototype.save = function () {
 }
 
 Recipe.prototype.validate = function () {
-  var required = ['recipe', 'path', 'settings']
-  var errors = []
+  const required = ['recipe', 'settings']
+  let errors = []
 
   for (var key in required) {
     if (!this.recipe.hasOwnProperty(required[key])) {

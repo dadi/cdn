@@ -100,5 +100,8 @@
         "expectedResponseTime": 0.025
       }
     ]
+  },
+  "experimental": {
+    "jsTranspiling": true
   }
 }

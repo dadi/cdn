@@ -38,7 +38,7 @@ if (config.get('cluster')) {
         restartWorkers()
       }
     })
-  }else {
+  } else {
     var app = module.exports = require('./dadi/lib')
     app.start(function () {
       console.log('Process ' + process.pid + ' is listening for incoming requests')

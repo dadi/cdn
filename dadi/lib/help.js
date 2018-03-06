@@ -4,6 +4,13 @@ var streamLength = require('stream-length')
 var config = require(path.resolve(path.join(__dirname, '/../../config')))
 var cache = require(path.join(__dirname, '/cache'))
 
+module.exports.clearCache = function (pathname, callback) {
+  cache.delete(pathname, function (err) {
+    if (err) console.log(err)
+    return callback(null)
+  })
+}
+
 module.exports.contentLength = function (stream) {
   return new Promise(function (resolve, reject) {
     Promise.try(function () {
@@ -62,11 +69,4 @@ module.exports.displayUnauthorizedError = function (res) {
   }
 
   res.end(JSON.stringify(errorMsg))
-}
-
-module.exports.clearCache = function (pathname, callback) {
-  cache.delete(pathname, function (err) {
-    if (err) console.log(err)
-    return callback(null)
-  })
 }
