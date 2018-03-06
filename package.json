@@ -57,7 +57,7 @@
     "uglify-js": "^3.0.25",
     "underscore": "~1.8.3",
     "url-join": "^2.0.2",
-    "useragent": "2.2.1",
+    "useragent": "2.3.0",
     "uuid": "latest",
     "validate-commit-message": "^3.0.1",
     "wget-improved": "git+https://github.com/jimlambie/node-wget"
