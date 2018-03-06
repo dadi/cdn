@@ -5,7 +5,7 @@ const fs = require('fs')
 const concat = require('concat-stream')
 const ExifImage = require('exif').ExifImage
 const fit = require('aspect-fit')
-const imagesize = require('imagesize')
+const imagesize = require('image-size-stream')
 const lengthStream = require('length-stream')
 const mkdirp = require('mkdirp')
 const PassThrough = require('stream').PassThrough
@@ -123,6 +123,8 @@ ImageHandler.prototype.contentType = function () {
       return 'image/jpeg'
     case 'gif':
       return 'image/gif'
+    case 'webp':
+      return 'image/webp'
     default:
       return 'image/jpeg'
   }
@@ -318,31 +320,11 @@ ImageHandler.prototype.get = function () {
         stream.pipe(this.exifStream).pipe(fs.createWriteStream(tmpExifFile))
       }
 
-      return new Promise((resolve, reject) => {
-        // get the image size and format
-        imagesize(this.imageSizeStream, (err, data) => {
-          const imageInfo = {
-            format: data.format,
-            naturalWidth: data.width,
-            naturalHeight: data.height
-          }
-
-          if (err) {
-            if (err === 'invalid') {
-              return reject({
-                statusCode: 400,
-                message: 'Image data is invalid'
-              })
-            }
-
-            console.log(err)
-          }
-
-          return resolve({
-            imageInfo,
-            tmpExifFile
-          })
-        })
+      return this.getImageSize(this.imageSizeStream).then(imageInfo => {
+        return {
+          imageInfo,
+          tmpExifFile
+        }
       }).then(({imageInfo, tmpExifFile}) => {
         let queue
 
@@ -572,6 +554,24 @@ ImageHandler.prototype.getImageInfo = function (stream, imageInfo, cb) {
         return cb(data)
       })
     })
+}
+
+ImageHandler.prototype.getImageSize = function (stream) {
+  return new Promise((resolve, reject) => {
+    const size = imagesize()
+
+    size.on('size', data => {
+      resolve({
+        format: data.type,
+        naturalWidth: data.width,
+        naturalHeight: data.height
+      })
+    })
+
+    size.on('error', reject)
+
+    stream.pipe(size)
+  })
 }
 
 ImageHandler.prototype.getLastModified = function () {
@@ -820,6 +820,12 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
         case 'png':
           outputFn = 'png'
           if (options.quality >= 70) outputOptions.compressionLevel = 3
+
+          break
+
+        case 'webp':
+          outputFn = 'webp'
+          outputOptions.quality = parseInt(options.quality)
 
           break
       }

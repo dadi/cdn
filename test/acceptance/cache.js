@@ -180,4 +180,144 @@ describe('Cache', function () {
       })
     })
   })
+
+  describe('CSS', () => {
+    it('should get CSS from cache when available', done => {
+      const client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+
+      client
+      .get('/test.css')
+      .expect(200)
+      .end((err, res) => {
+        if (err) return done(err)
+
+        res.headers['content-type'].should.eql('text/css')
+        res.headers['x-cache'].should.eql('MISS')
+
+        setTimeout(() => {
+          client
+          .get('/test.css')
+          .expect(200)
+          .end((err, res) => {
+            if (err) return done(err)
+
+            res.headers['content-type'].should.eql('text/css')
+            res.headers['x-cache'].should.eql('HIT')
+
+            done()
+          })
+        }, 500)
+      })
+    })
+
+    it('should get compressed CSS from cache, independently from uncompressed version', done => {
+      const client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+
+      client
+      .get('/test.css')
+      .expect(200)
+      .end((err, res) => {
+        if (err) return done(err)
+
+        res.headers['content-type'].should.eql('text/css')
+        res.headers['x-cache'].should.eql('MISS')
+
+        setTimeout(() => {
+          client
+          .get('/test.css')
+          .expect(200)
+          .end((err, res) => {
+            if (err) return done(err)
+
+            res.headers['content-type'].should.eql('text/css')
+            res.headers['x-cache'].should.eql('HIT')
+
+            setTimeout(() => {
+              client
+              .get('/test.css?compress=1')
+              .expect(200)
+              .end((err, res) => {
+                if (err) return done(err)
+
+                res.headers['content-type'].should.eql('text/css')
+                res.headers['x-cache'].should.eql('MISS')
+
+                setTimeout(() => {
+                  client
+                  .get('/test.css?compress=1')
+                  .expect(200)
+                  .end((err, res) => {
+                    if (err) return done(err)
+
+                    res.headers['content-type'].should.eql('text/css')
+                    res.headers['x-cache'].should.eql('HIT')
+
+                    done()
+                  })
+                }, 500)
+              })
+            }, 500)
+          })
+        }, 500)
+      })
+    })
+  })
+
+  describe('Other assets', () => {
+    it('should get TTF from cache when available', done => {
+      const client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+
+      client
+      .get('/test.ttf')
+      .expect(200)
+      .end((err, res) => {
+        if (err) return done(err)
+
+        res.headers['content-type'].should.eql('font/ttf')
+        res.headers['x-cache'].should.eql('MISS')
+
+        setTimeout(() => {
+          client
+          .get('/test.ttf')
+          .expect(200)
+          .end((err, res) => {
+            if (err) return done(err)
+
+            res.headers['content-type'].should.eql('font/ttf')
+            res.headers['x-cache'].should.eql('HIT')
+
+            done()
+          })
+        }, 500)
+      })
+    })
+
+    it('should get PDF from cache when available', done => {
+      const client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+
+      client
+      .get('/test.pdf')
+      .expect(200)
+      .end((err, res) => {
+        if (err) return done(err)
+
+        res.headers['content-type'].should.eql('application/pdf')
+        res.headers['x-cache'].should.eql('MISS')
+
+        setTimeout(() => {
+          client
+          .get('/test.pdf')
+          .expect(200)
+          .end((err, res) => {
+            if (err) return done(err)
+
+            res.headers['content-type'].should.eql('application/pdf')
+            res.headers['x-cache'].should.eql('HIT')
+
+            done()
+          })
+        }, 500)
+      })
+    })
+  })   
 })
