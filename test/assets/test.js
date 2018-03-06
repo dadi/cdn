@@ -7,13 +7,13 @@
  */
 
 var cb = {}
-cb.tools = {};
-cb.tools.substitute = function(str, arr){
-	var i, pattern, re, n = arr.length;
-	for (i = 0; i < n; i++) {
-		pattern = "\\{" + i + "\\}";
-		re = new RegExp(pattern, "g");
-		str = str.replace(re, arr[i]);
-	}
-	return str;
-};
+cb.tools = {}
+cb.tools.substitute = function (str, arr) {
+  var i, pattern, re, n = arr.length
+  for (i = 0; i < n; i++) {
+    pattern = '\\{' + i + '\\}'
+    re = new RegExp(pattern, 'g')
+    str = str.replace(re, arr[i])
+  }
+  return str
+}

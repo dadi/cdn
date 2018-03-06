@@ -1,67 +1,25 @@
-var _ = require('underscore')
-var AWS = require('aws-sdk')
-var concat = require('concat-stream')
-var lengthStream = require('length-stream')
-var path = require('path')
-var stream = require('stream')
+const AWS = require('aws-sdk')
+const concat = require('concat-stream')
+const lengthStream = require('length-stream')
+const path = require('path')
+const stream = require('stream')
 
-var logger = require('@dadi/logger')
-var Missing = require(path.join(__dirname, '/missing'))
+const logger = require('@dadi/logger')
+const Missing = require(path.join(__dirname, '/missing'))
 
-var S3Storage = function (settings, url) {
-  var self = this
+const S3Storage = function (settings, url) {
+  this.settings = settings
 
   AWS.config.setPromisesDependency(require('bluebird'))
-  AWS.config.update({ accessKeyId: settings.s3.accessKey, secretAccessKey: settings.s3.secretKey })
+  AWS.config.update({ accessKeyId: settings.accessKey, secretAccessKey: settings.secretKey })
 
-  if (settings.s3.region && settings.s3.region !== '') {
-    AWS.config.update({ region: settings.s3.region })
+  if (settings.region && settings.region !== '') {
+    AWS.config.update({ region: settings.region })
   }
 
   this.url = url
+  this.urlParts = this.getUrlParts(url)
   this.s3 = new AWS.S3()
-
-  this.getBucket = function () {
-    if (self.url.indexOf('s3') > 0) {
-      return _.compact(self.urlParts())[0]
-    } else {
-      return settings.s3.bucketName
-    }
-  }
-
-  this.getKey = function () {
-    var url
-
-    if (self.url.indexOf('s3') > 0) {
-      var parts = _.compact(self.urlParts())
-      parts.shift()
-      url = parts.join('/')
-    } else if (self.url.substring(0, 1) === '/') {
-      url = self.url.substring(1)
-    } else {
-      url = self.url
-    }
-
-    return decodeURIComponent(url)
-  }
-
-  this.urlParts = function () {
-    if (self.url.indexOf('/s3') === 0) {
-      return self.url.replace('/s3', '').split('/')
-    } else if (self.url.substring(0, 1) === '/') {
-      return self.url.substring(1).split('/')
-    } else {
-      return self.url.split('/')
-    }
-  }
-}
-
-S3Storage.prototype.getFullUrl = function () {
-  return this.url.replace('/s3', '')
-}
-
-S3Storage.prototype.getLastModified = function () {
-  return this.lastModified
 }
 
 S3Storage.prototype.get = function () {
@@ -110,6 +68,52 @@ S3Storage.prototype.get = function () {
       return reject(error)
     })
   })
+}
+
+S3Storage.prototype.getBucket = function () {
+  // If the URL start with /s3, it means the second parameter
+  // is the name of the bucket.
+  if (this.url.indexOf('/s3') === 0) {
+    return this.urlParts[0]
+  }
+
+  return this.settings.bucketName
+}
+
+S3Storage.prototype.getFullUrl = function () {
+  return this.url
+}
+
+S3Storage.prototype.getKey = function () {
+  // If the URL start with /s3, it means the second parameter
+  // is the name of the bucket. Let's strip that out.
+  if (this.url.indexOf('/s3') === 0) {
+    return decodeURIComponent(
+      this.urlParts.slice(1).join('/')
+    )
+  }
+
+  return decodeURIComponent(
+    this.urlParts.join('/')
+  )
+}
+
+S3Storage.prototype.getLastModified = function () {
+  return this.lastModified
+}
+
+S3Storage.prototype.getUrlParts = function (url) {
+  let canonicalUrl = url
+
+  if (canonicalUrl.indexOf('/s3/') === 0) {
+    canonicalUrl = canonicalUrl.replace('/s3/', '')
+  }
+
+  if (canonicalUrl.substring(0, 1) === '/') {
+    canonicalUrl = canonicalUrl.substring(1)
+  }
+
+  return canonicalUrl.split('/').filter(Boolean)
 }
 
 /**

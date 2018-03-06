@@ -1,5 +1,5 @@
 {
-	"recipe": "sample-recipe",
+	"recipe": "sample-asset-recipe",
 	"path": "/js",
 	"settings": {
 		"format": "js",

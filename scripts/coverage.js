@@ -27,7 +27,7 @@ coberturaBadger(opts, function parsingResults (err, badgeStatus) {
   // console.log(badgeStatus)
 
   var readme = path.resolve(__dirname + '/../README.md')
-  var badgeUrl = badgeStatus.url; // e.g. http://img.shields.io/badge/coverage-60%-yellow.svg
+  var badgeUrl = badgeStatus.url // e.g. http://img.shields.io/badge/coverage-60%-yellow.svg
 
   // open the README.md and add this url
   fs.readFile(readme, {encoding: 'utf-8'}, function (err, body) {
