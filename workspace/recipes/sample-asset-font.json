@@ -1,5 +1,5 @@
 {
-	"recipe": "sample-recipe",
+	"recipe": "sample-font-recipe",
 	"path": "/fonts",
 	"settings": {
 		"format": "fonts"
