@@ -148,10 +148,11 @@ HandlerFactory.prototype.createFromRecipe = function ({name, req, route}) {
 
   const parsedUrl = url.parse(req.url, true)
   const recipe = workspaceMatch.source
+  const recipeSettings = recipe.settings || {}
 
   return this.createFromFormat({
-    format: recipe.settings.format,
-    options: Object.assign({}, recipe.settings, parsedUrl.query),
+    format: recipeSettings.format,
+    options: Object.assign({}, recipeSettings, parsedUrl.query),
     plugins: recipe.plugins,
     req
   }).then(handler => {
