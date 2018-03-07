@@ -50,7 +50,7 @@ describe('Visual Regression', function (done) {
 
 function requestTestImage (test) {
   return new Promise((resolve, reject) => {
-    const testFilePath = path.join(testManifest.path, test.image)
+    const testFilePath = path.join(test.recipeRoute || '', testManifest.path, test.image)
     const outputPath = path.join(__dirname, '../', test.baselineFilename.replace('baseline', 'failed'))
     const requestPath = '/' + testFilePath + '?' + querystring.encode(test.params)
     const baselineImagePath = path.join(__dirname, '../', test.baselineFilename)

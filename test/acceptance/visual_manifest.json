@@ -238,6 +238,24 @@
         "sharpen": 5
       },
       "baselineFilename": "images/visual/baseline/measure.png?sharpen=5.png"
+    },
+    {
+      "image": "measure1.png",
+      "recipeRoute": "duotone",
+      "params": {
+        "highlight": "f00e2e",
+        "shadow": "192550"
+      },
+      "baselineFilename": "images/visual/baseline/duotone-measure.png?highlight=f00e2e&shadow=192550.png"
+    },
+    {
+      "image": "measure1.png",
+      "recipeRoute": "duotone",
+      "params": {
+        "highlight": "bada55",
+        "shadow": "333aaa"
+      },
+      "baselineFilename": "images/visual/baseline/duotone-measure.png?highlight=bada55&shadow=333aaa.png"
     }
   ]
 }
