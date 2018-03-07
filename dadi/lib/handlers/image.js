@@ -55,7 +55,7 @@ const IMAGE_PARAMETERS = [
   { name: 'cropX', aliases: ['cx'] },
   { name: 'cropY', aliases: ['cy'] },
   { name: 'crop', aliases: ['coords'] },
-  { name: 'resizeStyle', aliases: ['resize'], default: 'aspectfit' },
+  { name: 'resizeStyle', aliases: ['resize'] },
   { name: 'devicePixelRatio', aliases: ['dpr'] },
   { name: 'gravity', aliases: ['g'], default: 'None' },
   { name: 'filter', aliases: ['f'], default: 'lanczos', lowercase: true },
@@ -136,7 +136,7 @@ ImageHandler.prototype.contentType = function () {
  */
 ImageHandler.prototype.convert = function (stream, imageInfo) {
   const options = this.options
-  const calculatedDimensions = getDimensions(options, imageInfo)
+  const calculatedDimensions = this.getDimensions(options, imageInfo)
 
   imageInfo.width = parseInt(calculatedDimensions.width)
   imageInfo.height = parseInt(calculatedDimensions.height)
@@ -465,6 +465,52 @@ ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, originalDime
   }
 }
 
+ImageHandler.prototype.getDimensions = function (options, imageInfo) {
+  let dimensions = {
+    width: imageInfo.naturalWidth,
+    height: imageInfo.naturalHeight
+  }
+  let ratio = imageInfo.naturalHeight / imageInfo.naturalWidth
+
+  const ratioOverride = Boolean(options.ratio) && options.ratio.match(/^(\d+)-(\d+)$/)
+
+  // Is there an explicit ratio defined?
+  if (ratioOverride) {
+    ratio = parseFloat(ratioOverride[2]) / parseFloat(ratioOverride[1])
+
+    // Scenario 1: Width override is defined, height override is not.
+    if ((options.width !== undefined) && (options.height === undefined)) {
+      dimensions.width = options.width
+      dimensions.height = Math.ceil(options.width * ratio)
+    } else if ((options.width === undefined) && (options.height !== undefined)) {
+      // Scenario 2: Width override is not defined, height override is.
+      dimensions.width = Math.ceil(options.height / ratio)
+      dimensions.height = options.height
+    } else if ((options.width === undefined) && (options.height === undefined)) {
+      // Scenario 3: Width and height overrides are not defined.
+      dimensions.height = Math.ceil(dimensions.width * ratio)
+    } else {
+      // Scenario 4: Width and height overrides are both defined.
+      // Ratio parameter is ignored.
+      dimensions.width = options.width
+      dimensions.height = options.height
+
+      ratio = dimensions.height / dimensions.width
+    }
+  } else {
+    dimensions.width = options.width || dimensions.width
+    dimensions.height = options.height || dimensions.height
+
+    ratio = dimensions.height / dimensions.width
+  }
+
+  // Ensuring dimensions are within security bounds.
+  dimensions.width = Math.min(dimensions.width, config.get('security.maxWidth'))
+  dimensions.height = Math.min(dimensions.height, config.get('security.maxHeight'))
+
+  return dimensions
+}
+
 /**
  * Returns the filename including extension of the requested image
  * @returns {string} the filename of the image
@@ -595,6 +641,16 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
   // load the input image
   let sharpImage = sharp(imageBuffer)
 
+  // Default values fot resize style
+  if (!options.resizeStyle) {
+    if (options.width && options.height) {
+      options.resizeStyle = 'entropy'
+    } else {
+      options.resizeStyle = 'aspectfit'
+    }
+  }
+
+  // Override values for resize style
   if (this.storageHandler.notFound) {
     options.resizeStyle = 'entropy'
   } else if (options.ratio) {
@@ -1019,50 +1075,6 @@ function getColours (buffer, options) {
       return resolve(colourData)
     })
   })
-}
-
-function getDimensions (options, imageInfo) {
-  var dimensions = {
-    width: options.width,
-    height: options.height
-  }
-
-  if (options.ratio) {
-    var ratio = options.ratio.split('-')
-    if (!dimensions.width && parseFloat(dimensions.height) > 0) {
-      dimensions.width = parseFloat(dimensions.height) * (parseFloat(ratio[0]) / parseFloat(ratio[1]))
-      dimensions.height = parseFloat(dimensions.height)
-    } else if (!dimensions.height && parseFloat(dimensions.width) > 0) {
-      dimensions.height = parseFloat(dimensions.width) * (parseFloat(ratio[1]) / parseFloat(ratio[0]))
-      dimensions.width = parseFloat(dimensions.width)
-    } else if (!dimensions.height && !dimensions.height) {
-      dimensions.width = parseFloat(imageInfo.naturalHeight) * (parseFloat(ratio[0]) / parseFloat(ratio[1]))
-      dimensions.height = parseFloat(imageInfo.naturalWidth) * (parseFloat(ratio[1]) / parseFloat(ratio[0]))
-    }
-  } else {
-    dimensions.width = dimensions.width || imageInfo.naturalWidth
-    dimensions.height = dimensions.height || imageInfo.naturalHeight
-  }
-
-  if (config.get('security.maxWidth') && config.get('security.maxWidth') < dimensions.width) {
-    const hwr = parseFloat(dimensions.height / dimensions.width)
-    dimensions.width = config.get('security.maxWidth')
-    dimensions.height = dimensions.width * hwr
-  }
-
-  if (config.get('security.maxHeight') && config.get('security.maxHeight') < dimensions.height) {
-    const whr = parseFloat(dimensions.width / dimensions.height)
-    dimensions.height = config.get('security.maxHeight')
-    dimensions.width = dimensions.height * whr
-  }
-
-  if (options.devicePixelRatio && options.devicePixelRatio < 4) {
-    // http://devicepixelratio.com/
-    dimensions.width = parseFloat(dimensions.width) * parseFloat(options.devicePixelRatio)
-    dimensions.height = parseFloat(dimensions.height) * parseFloat(options.devicePixelRatio)
-  }
-
-  return dimensions
 }
 
 /**
