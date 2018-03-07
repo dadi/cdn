@@ -847,9 +847,11 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
                   get: this.cache.getStream,
                   set: this.cache.set
                 },
+                imageInfo,
                 jsonData,
                 options: this.options,
                 processor: sharpImage,
+                sharp,
                 stream: pluginStream,
                 url: this.requestUrl
               })
