@@ -284,20 +284,13 @@ ImageHandler.prototype.get = function () {
   const isJSONResponse = this.options.format === 'json'
 
   return this.cache.getStream(cacheKey).then(cachedStream => {
-    let stream
-
     if (cachedStream) {
       this.isCached = true
 
-      // If this is a request for JSON data and we have it in cache,
-      // there's nothing else we need to do. We can return the cached
-      // stream directly.
-      if (isJSONResponse) return cachedStream
-
-      stream = cachedStream
-    } else {
-      stream = this.storageHandler.get()
+      return cachedStream
     }
+
+    let stream = this.storageHandler.get()
 
     return Promise.resolve(stream).then(stream => {
       this.cacheStream = new PassThrough()
@@ -854,9 +847,11 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
                   get: this.cache.getStream,
                   set: this.cache.set
                 },
+                imageInfo,
                 jsonData,
                 options: this.options,
                 processor: sharpImage,
+                sharp,
                 stream: pluginStream,
                 url: this.requestUrl
               })
