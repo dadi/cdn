@@ -1,7 +1,7 @@
 <img src="https://dadi.tech/assets/products/dadi-cdn-full.png" alt="DADI CDN" height="65"/>
 
 [![npm (scoped)](https://img.shields.io/npm/v/@dadi/cdn.svg?maxAge=10800&style=flat-square)](https://www.npmjs.com/package/@dadi/cdn)
-[![coverage](https://img.shields.io/badge/coverage-73%25-yellow.svg?style=flat)](https://github.com/dadi/cdn)
+[![coverage](https://img.shields.io/badge/coverage-74%25-yellow.svg?style=flat)](https://github.com/dadi/cdn)
 [![Build Status](https://travis-ci.org/dadi/cdn.svg?branch=master)](https://travis-ci.org/dadi/cdn)
 [![JavaScript Style Guide](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat-square)](http://standardjs.com/)
 [![Greenkeeper badge](https://badges.greenkeeper.io/dadi/cdn.svg)](https://greenkeeper.io/)
