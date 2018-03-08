@@ -11,15 +11,15 @@ var help = require(__dirname + '/help')
 var app = require(__dirname + '/../../dadi/lib/')
 
 var defaultConfig = {
-  "status": {
-    "enabled": true,
-    "requireAuthentication": true,
-    "standalone": false,
-    "port": 8112,
-    "routes": [
+  'status': {
+    'enabled': true,
+    'requireAuthentication': true,
+    'standalone': false,
+    'port': 8112,
+    'routes': [
       {
-        "route": "/test.jpg?format=png&quality=50&width=800&height=600",
-        "expectedResponseTime": 0.025
+        'route': '/test.jpg?format=png&quality=50&width=800&height=600',
+        'expectedResponseTime': 0.025
       }
     ]
   }
@@ -60,9 +60,7 @@ describe('Status', function () {
   })
 
   describe('Integrated', function () {
-
     describe('Authenticated', function () {
-
       beforeEach(function (done) {
         app.start(function (err) {
           if (err) return done(err)
@@ -100,13 +98,11 @@ describe('Status', function () {
           .expect('content-type', 'application/json')
           .expect(200, done)
       })
-
     })
 
     describe('Unauthenticated', function () {
-
       beforeEach(function (done) {
-        updateConfigAndReloadApp({ "status": { "requireAuthentication": false } })
+        updateConfigAndReloadApp({ 'status': { 'requireAuthentication': false } })
 
         app.start(function (err) {
           if (err) return done(err)
@@ -130,17 +126,13 @@ describe('Status', function () {
           .expect('content-type', 'application/json')
           .expect(200, done)
       })
-
     })
-
   })
 
   describe('Standalone', function () {
-
     describe('Authenticated', function () {
-
       beforeEach(function (done) {
-        updateConfigAndReloadApp({ "status": { "standalone": true, "requireAuthentication": true } })
+        updateConfigAndReloadApp({ 'status': { 'standalone': true, 'requireAuthentication': true } })
 
         app.start(function (err) {
           if (err) return done(err)
@@ -167,7 +159,7 @@ describe('Status', function () {
         client
           .post(statusRoute)
           .expect('content-type', 'application/json')
-          .end(function(err, res) {
+          .end(function (err, res) {
             res.statusCode.should.eql(401)
             done()
           })
@@ -181,13 +173,11 @@ describe('Status', function () {
           .expect('content-type', 'application/json')
           .expect(200, done)
       })
-
     })
 
     describe('Unauthenticated', function () {
-
       beforeEach(function (done) {
-        updateConfigAndReloadApp({ "status": { "standalone": true, "requireAuthentication": false } })
+        updateConfigAndReloadApp({ 'status': { 'standalone': true, 'requireAuthentication': false } })
 
         app.start(function (err) {
           if (err) return done(err)
@@ -211,9 +201,6 @@ describe('Status', function () {
           .expect('content-type', 'application/json')
           .expect(200, done)
       })
-
     })
-
   })
-
 })

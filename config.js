@@ -1,9 +1,9 @@
-var convict = require('convict')
-var fs = require('fs')
-var path = require('path')
+const convict = require('convict')
+const fs = require('fs')
+const path = require('path')
 
 // Define a schema
-var conf = convict({
+const schema = {
   server: {
     host: {
       doc: 'The IP address the application will run on',
@@ -28,40 +28,40 @@ var conf = convict({
       default: 'DADI (CDN)'
     },
     protocol: {
-      doc: "The protocol the web application will use",
+      doc: 'The protocol the web application will use',
       format: String,
-      default: "http",
-      env: "PROTOCOL"
+      default: 'http',
+      env: 'PROTOCOL'
     },
     sslPassphrase: {
-      doc: "The passphrase of the SSL private key",
+      doc: 'The passphrase of the SSL private key',
       format: String,
-      default: "",
-      env: "SSL_PRIVATE_KEY_PASSPHRASE"
+      default: '',
+      env: 'SSL_PRIVATE_KEY_PASSPHRASE'
     },
     sslPrivateKeyPath: {
-      doc: "The filename of the SSL private key",
+      doc: 'The filename of the SSL private key',
       format: String,
-      default: "",
-      env: "SSL_PRIVATE_KEY_PATH"
+      default: '',
+      env: 'SSL_PRIVATE_KEY_PATH'
     },
     sslCertificatePath: {
-      doc: "The filename of the SSL certificate",
+      doc: 'The filename of the SSL certificate',
       format: String,
-      default: "",
-      env: "SSL_CERTIFICATE_PATH"
+      default: '',
+      env: 'SSL_CERTIFICATE_PATH'
     },
     sslIntermediateCertificatePath: {
-      doc: "The filename of an SSL intermediate certificate, if any",
+      doc: 'The filename of an SSL intermediate certificate, if any',
       format: String,
-      default: "",
-      env: "SSL_INTERMEDIATE_CERTIFICATE_PATH"
+      default: '',
+      env: 'SSL_INTERMEDIATE_CERTIFICATE_PATH'
     },
     sslIntermediateCertificatePaths: {
-      doc: "The filenames of SSL intermediate certificates, overrides sslIntermediateCertificate (singular)",
+      doc: 'The filenames of SSL intermediate certificates, overrides sslIntermediateCertificate (singular)',
       format: Array,
       default: [],
-      env: "SSL_INTERMEDIATE_CERTIFICATE_PATHS"
+      env: 'SSL_INTERMEDIATE_CERTIFICATE_PATHS'
     }
   },
   logging: {
@@ -304,28 +304,28 @@ var conf = convict({
   },
   status: {
     enabled: {
-      doc: "If true, status endpoint is enabled.",
+      doc: 'If true, status endpoint is enabled.',
       format: Boolean,
       default: true
     },
     requireAuthentication: {
-      doc: "If true, status endpoint requires authentication.",
+      doc: 'If true, status endpoint requires authentication.',
       format: Boolean,
       default: true
     },
     standalone: {
-      doc: "If true, status endpoint will run on an standalone address/port.",
+      doc: 'If true, status endpoint will run on an standalone address/port.',
       format: Boolean,
       default: false
     },
     port: {
-      doc: "Accept connections on the specified port. A value of zero will assign a random port.",
+      doc: 'Accept connections on the specified port. A value of zero will assign a random port.',
       format: Number,
       default: 8003,
-      env: "STATUS_PORT"
+      env: 'STATUS_PORT'
     },
     routes: {
-      doc: "An array of routes to test. Each route object must contain properties `route` and `expectedResponseTime`. Note, `expectedResponseTime` is seconds.",
+      doc: 'An array of routes to test. Each route object must contain properties `route` and `expectedResponseTime`. Note, `expectedResponseTime` is seconds.',
       format: Array,
       default: [
         {
@@ -357,19 +357,19 @@ var conf = convict({
       doc: '',
       format: String,
       default: '1235488',
-      env: "AUTH_TOKEN_ID"
+      env: 'AUTH_TOKEN_ID'
     },
     secret: {
       doc: '',
       format: String,
       default: 'asd544see68e52',
-      env: "AUTH_TOKEN_SECRET"
+      env: 'AUTH_TOKEN_SECRET'
     },
     tokenTtl: {
       doc: '',
       format: Number,
       default: 1800,
-      env: "AUTH_TOKEN_TTL"
+      env: 'AUTH_TOKEN_TTL'
     }
   },
   cloudfront: {
@@ -382,19 +382,19 @@ var conf = convict({
       doc: '',
       format: String,
       default: '',
-      env: "CLOUDFRONT_ACCESS_KEY"
+      env: 'CLOUDFRONT_ACCESS_KEY'
     },
     secretKey: {
       doc: '',
       format: String,
       default: '',
-      env: "CLOUDFRONT_SECRET_KEY"
+      env: 'CLOUDFRONT_SECRET_KEY'
     },
     distribution: {
       doc: '',
       format: String,
       default: '',
-      env: "CLOUDFRONT_DISTRIBUTION"
+      env: 'CLOUDFRONT_DISTRIBUTION'
     }
   },
   cluster: {
@@ -403,9 +403,10 @@ var conf = convict({
     default: true
   },
   paths: {
-    doc: "",
+    doc: '',
     format: Object,
     default: {
+      plugins: __dirname + '/workspace/plugins',
       processors: __dirname + '/workspace/processors',
       recipes: __dirname + '/workspace/recipes',
       routes: __dirname + '/workspace/routes'
@@ -423,15 +424,15 @@ var conf = convict({
       default: true
     },
     cacheControl: {
-      doc: "A set of cache control headers based on specified mimetypes or paths",
+      doc: 'A set of cache control headers based on specified mimetypes or paths',
       format: Object,
       default: {
-        "default": "public, max-age=3600",
-        "paths": [],
-        "mimetypes": [
-          {"text/css": "public, max-age=86400"},
-          {"text/javascript": "public, max-age=86400"},
-          {"application/javascript": "public, max-age=86400"}
+        'default': 'public, max-age=3600',
+        'paths': [],
+        'mimetypes': [
+          {'text/css': 'public, max-age=86400'},
+          {'text/javascript': 'public, max-age=86400'},
+          {'application/javascript': 'public, max-age=86400'}
         ]
       }
     }
@@ -567,11 +568,20 @@ var conf = convict({
         default: false
       }
     }
+  },
+  experimental: {
+    jsTranspiling: {
+      doc: 'Whether to enable experimental support for on-demand JavaScript transpiling',
+      format: Boolean,
+      default: false,
+      env: 'JSTRANSPILING'
+    }
   }
-})
+}
+const conf = convict(schema)
 
 // Load environment dependent configuration
-var env = conf.get('env')
+const env = conf.get('env')
 conf.loadFile('./config/config.' + env + '.json')
 
 // Update Config JSON file by domain name
@@ -586,3 +596,5 @@ module.exports = conf
 module.exports.configPath = function () {
   return './config/config.' + conf.get('env') + '.json'
 }
+
+module.exports.schema = schema

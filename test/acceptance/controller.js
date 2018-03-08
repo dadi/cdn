@@ -49,7 +49,7 @@ describe('Controller', function () {
   })
 
   after(function (done) {
-    //help.clearCache()
+    // help.clearCache()
     app.stop(done)
   })
 
@@ -201,6 +201,11 @@ describe('Controller', function () {
       // spy on the sanitiseOptions method to access the provided arguments
       var method = sinon.spy(imageHandler.ImageHandler.prototype, 'sanitiseOptions')
 
+      var configStub = sinon.stub(config, 'get')
+      configStub.withArgs('images.remote.enabled').returns(true)
+      configStub.withArgs('images.remote.allowFullURL').returns(true)
+      configStub.callThrough()
+
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/https://www.google.co.uk/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png?quality=50&width=80&height=478&gravity=North&resizeStyle=aspectfit&devicePixelRatio=2')
@@ -213,6 +218,9 @@ describe('Controller', function () {
           options.quality.should.eql(50)
           options.width.should.eql(80)
           options.format.should.eql('png')
+
+          configStub.restore()
+
           done()
         })
     })
@@ -220,6 +228,11 @@ describe('Controller', function () {
     it('v2: should extract options from querystring if an external URL with URL params is provided', function (done) {
       // spy on the sanitiseOptions method to access the provided arguments
       var method = sinon.spy(imageHandler.ImageHandler.prototype, 'sanitiseOptions')
+
+      var configStub = sinon.stub(config, 'get')
+      configStub.withArgs('images.remote.enabled').returns(true)
+      configStub.withArgs('images.remote.allowFullURL').returns(true)
+      configStub.callThrough()
 
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
@@ -233,6 +246,9 @@ describe('Controller', function () {
           options.quality.should.eql(50)
           options.width.should.eql(80)
           options.format.should.eql('png')
+
+          configStub.restore()
+
           done()
         })
     })
@@ -241,38 +257,10 @@ describe('Controller', function () {
   describe('Assets', function () {
     this.timeout(10000)
 
-    it('should return error if compress parameter is not 0 or 1', function (done) {
-      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-      client
-        .get('/js/2/test.js')
-        .expect(400, done)
-    })
-
-    it('should return error if font file type is not TTF, OTF, WOFF, SVG or EOT', function (done) {
-      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-      client
-        .get('/fonts/test.bad')
-        .expect(400, done)
-    })
-
-    it('should handle uncompressed JS file if uri is valid', function (done) {
-      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-      client
-      .get('/js/0/test.js')
-      .expect(200, done)
-    })
-
     it('should handle uncompressed CSS file if uri is valid', function (done) {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
       .get('/css/0/test.css')
-      .expect(200, done)
-    })
-
-    it('should handle compressed JS file if uri is valid', function (done) {
-      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-      client
-      .get('/js/1/test.js')
       .expect(200, done)
     })
 
@@ -287,7 +275,7 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
       .get('/fonts/test.ttf')
-      .expect('Content-Type', 'application/font-sfnt')
+      .expect('Content-Type', 'font/ttf')
       .expect(200, done)
     })
 
@@ -295,8 +283,35 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
       .get('/fonts/next-level/test.ttf')
-      .expect('Content-Type', 'application/font-sfnt')
+      .expect('Content-Type', 'font/ttf')
       .expect(200, done)
+    })
+  })
+
+  describe('JavaScript', function () {
+    this.timeout(10000)
+
+    describe('legacy URL syntax', () => {
+      it('should handle uncompressed JS file if uri is valid', function (done) {
+        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+        client
+        .get('/js/0/test.js')
+        .expect(200, done)
+      })
+
+      it('should handle compressed JS file if uri is valid', function (done) {
+        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+        client
+        .get('/js/1/test.js')
+        .expect(200, done)
+      })
+    })
+
+    it('should return JS file', function (done) {
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .get('/test.js')
+        .expect(200, done)
     })
   })
 
@@ -312,7 +327,7 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
-        .end(function(err, res) {
+        .end(function (err, res) {
           res.statusCode.should.eql(200)
           done()
         })
@@ -329,7 +344,7 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/jpg/50/0/0/801/478/aspectfit/North/0/0/0/0/0/test.jpg')
-        .end(function(err, res) {
+        .end(function (err, res) {
           res.statusCode.should.eql(200)
           done()
         })
@@ -346,7 +361,7 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/jpg/50/0/0/801/478/aspectfit/North/0/0/0/0/0/next-level/test.jpg')
-        .end(function(err, res) {
+        .end(function (err, res) {
           res.statusCode.should.eql(200)
           done()
         })
@@ -363,7 +378,7 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/next-level/test.jpg')
-        .end(function(err, res) {
+        .end(function (err, res) {
           res.statusCode.should.eql(200)
           done()
         })
@@ -380,7 +395,7 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/jpg/50/0/0/801/478/0/0/0//0/North/0/0/0/0/0/test.jpg')
-        .end(function(err, res) {
+        .end(function (err, res) {
           res.statusCode.should.eql(200)
           done()
         })
@@ -397,7 +412,7 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/jpg/50/0/0/801/478/0/0/0//0/North/0/0/0/0/0/next-level/test.jpg')
-        .end(function(err, res) {
+        .end(function (err, res) {
           res.statusCode.should.eql(200)
           done()
         })
@@ -414,7 +429,7 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test%20copy.jpg')
-        .end(function(err, res) {
+        .end(function (err, res) {
           res.statusCode.should.eql(200)
           done()
         })
@@ -431,7 +446,7 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/jpg/50/0/0/700/700/0/0/0/1/aspectfit/North/0/0/0/0/0/768px-Rotating_earth_%28huge%29.gif')
-        .end(function(err, res) {
+        .end(function (err, res) {
           res.statusCode.should.eql(200)
           done()
         })
@@ -448,7 +463,7 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/shane%20long%20new%20contract.JPG?quality=100')
-        .end(function(err, res) {
+        .end(function (err, res) {
           res.statusCode.should.eql(200)
           done()
         })
@@ -465,7 +480,7 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/jpg/50/0/0/801/478/0/0/0/aspectfit/North/0/0/xxxtest.jpg')
-        .end(function(err, res) {
+        .end(function (err, res) {
           res.statusCode.should.eql(404)
           done()
         })
@@ -490,7 +505,7 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/testxxx.jpg')
-        .end(function(err, res) {
+        .end(function (err, res) {
           res.statusCode.should.eql(404)
           done()
         })
@@ -516,7 +531,7 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/testxxx.jpg')
-        .end(function(err, res) {
+        .end(function (err, res) {
           res.statusCode.should.eql(410)
 
           newTestConfig.notFound.statusCode = 404
@@ -539,12 +554,12 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/json/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
-        .end(function(err, res) {
+        .end(function (err, res) {
           res.statusCode.should.eql(200)
           var info = res.body
 
           info.fileName.should.eql('test.jpg')
-          info.format.should.eql('jpeg')
+          info.format.should.eql('jpg')
           done()
         })
     })
@@ -560,8 +575,7 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/test.jpg?quality=100&width=180&height=180&resizeStyle=entropy&format=json')
-        .end(function(err, res) {
-
+        .end(function (err, res) {
           res.statusCode.should.eql(200)
 
           res.body.entropyCrop.should.have.property('x1').and.be.type('number')
@@ -584,7 +598,7 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/test.jpg?resize=crop&crop=0,0,3000,3000')
-        .end(function(err, res) {
+        .end(function (err, res) {
           res.statusCode.should.eql(400)
           res.body.message.should.exist
 
@@ -610,7 +624,7 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/jpg/50/0/0/801/478/0/0/0/1/aspectfit/North/0/0/0/0/0/test.jpg')
-        .end(function(err, res) {
+        .end(function (err, res) {
           res.statusCode.should.eql(200)
 
           res.headers['x-cache'].should.exist
@@ -619,7 +633,7 @@ describe('Controller', function () {
           setTimeout(function () {
             client
               .get('/jpg/50/0/0/801/478/0/0/0/1/aspectfit/North/0/0/0/0/0/test.jpg')
-              .end(function(err, res) {
+              .end(function (err, res) {
                 res.statusCode.should.eql(200)
 
                 res.headers['x-cache'].should.exist
@@ -636,7 +650,7 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/')
-        .end(function(err, res) {
+        .end(function (err, res) {
           res.statusCode.should.eql(200)
           res.text.should.eql('Welcome to DADI CDN')
           done()
@@ -647,7 +661,7 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/robots.txt')
-        .end(function(err, res) {
+        .end(function (err, res) {
           res.statusCode.should.eql(404)
           res.text.should.eql('File not found')
           done()
@@ -664,11 +678,28 @@ describe('Controller', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
         .get('/robots.txt')
-        .end(function(err, res) {
+        .end(function (err, res) {
           res.statusCode.should.eql(200)
           res.text.should.eql('User-Agent: *\nDisallow: /')
           done()
         })
+    })
+
+    it('should return a 204 for favicons', function (done) {
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.images.directory.enabled = true
+      newTestConfig.images.directory.path = './test/images'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+      config.loadFile(config.configPath())
+
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+      .get('/favicon.ico')
+      .end(function (err, res) {
+        res.statusCode.should.eql(204)
+        done()
+      })
     })
 
     it('should handle requests for unknown formats', function (done) {
@@ -681,7 +712,7 @@ describe('Controller', function () {
 
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
       client
-      .get('/favicon.ico')
+      .get('/something-else.zip')
       .end(function (err, res) {
         res.statusCode.should.eql(404)
         done()

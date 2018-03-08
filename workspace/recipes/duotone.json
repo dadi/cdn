@@ -1,0 +1,4 @@
+{
+  "recipe": "duotone",
+  "plugins": ["duotone-plugin"]
+}
