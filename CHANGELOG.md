@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.0.0-rc1] - 2018-03-08
+
+## Added
+
+* Plugin support
+* On-demand JavaScript transpiling (experimental)
+* Support for any type of asset
+* [#259](https://github.com/dadi/cdn/issues/259) WebP image support
+* Simplified paths for non-image assets
+
+## Changed
+
+* [#255](https://github.com/dadi/cdn/issues/255): default value for the `resizeStyle` property is now `aspectfit`, except when an explicit ratio is defined (i.e. `width` and `height` or `ratio` are defined)
+* [#282](https://github.com/dadi/cdn/issues/282): deliver the fallback image even when crop is present
+* [#283](https://github.com/dadi/cdn/issues/283): use correct dimensions when original or calculated size is above the configured security limit
+* [#291](https://github.com/dadi/cdn/issues/291): cache JSON response of images, in the same way as the actual images are
+* refactor parts of the code base to use ES6 features
+* fix an issue where the `gravity` URL parameter was not applied correctly
+* fix an issue whereby it was not possible to minify JavaScript files that contain ES6 code
+* begin removal of Underscore.js dependency
+
 ## [1.13.3] - 2017-11-02
 
 ## Changed
