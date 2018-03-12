@@ -1,6 +1,6 @@
 const concat = require('concat-stream')
 const imageLib = require('images')
-const imagesize = require('imagesize')
+const imagesize = require('image-size-stream')
 const PassThrough = require('stream').PassThrough
 const Readable = require('stream').Readable
 const path = require('path')
@@ -100,12 +100,12 @@ ImageLayoutProcessor.prototype.get = function () {
 
           try {
             if (obj instanceof Buffer) {
-              let scaleWidth = (600 / input.originalImageSize.width)
-              let scaleHeight = (600 / input.originalImageSize.height)
+              let scaleWidth = (600 / input.originalImageSize.naturalWidth)
+              let scaleHeight = (600 / input.originalImageSize.naturalHeight)
               let scale = Math.max(scaleWidth, scaleHeight)
 
-              let calculatedWidth = input.originalImageSize.width * scale
-              let calculatedHeight = input.originalImageSize.height * scale
+              let calculatedWidth = input.originalImageSize.naturalWidth * scale
+              let calculatedHeight = input.originalImageSize.naturalHeight * scale
               let sc = Math.max(input.width / calculatedWidth, input.height / calculatedHeight)
               let resizedWidth = calculatedWidth * sc
               let resizedHeight = calculatedHeight * sc
@@ -153,7 +153,7 @@ ImageLayoutProcessor.prototype.get = function () {
             streams[index].pipe(imageSizeStream)
             streams[index].pipe(imageStream)
 
-            imagesize(imageSizeStream, (err, imageInfo) => {
+            this.getImageSize(imageSizeStream).then(imageInfo => {
               input.originalImageSize = imageInfo
               imageStream.pipe(concatStream)
             })
@@ -165,6 +165,24 @@ ImageLayoutProcessor.prototype.get = function () {
         })
       })
     })
+  })
+}
+
+ImageLayoutProcessor.prototype.getImageSize = function (stream) {
+  return new Promise((resolve, reject) => {
+    const size = imagesize()
+
+    size.on('size', data => {
+      resolve({
+        format: data.type,
+        naturalWidth: data.width,
+        naturalHeight: data.height
+      })
+    })
+
+    size.on('error', reject)
+
+    stream.pipe(size)
   })
 }
 
