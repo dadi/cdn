@@ -82,6 +82,8 @@
   },
   "greenkeeper": {
     "ignore": [
+      "nock",
+      "sinon",
       "standard",
       "mocha",
       "aws-sdk"
