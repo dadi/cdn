@@ -1,6 +1,6 @@
 {
   "name": "@dadi/cdn",
-  "version": "2.0.0-rc1",
+  "version": "2.0.0",
   "product": "DADI CDN",
   "description": "A high performance, just-in-time asset manipulation and delivery layer designed as a modern content distribution solution.",
   "scripts": {
@@ -35,6 +35,7 @@
     "farmhash": "2.0.5",
     "finalhandler": "~1.1.0",
     "he": "^1.1.0",
+    "image-size": "^0.6.2",
     "image-size-stream": "1.1.0",
     "images": "^3.0.0",
     "length-stream": "~0.1.1",
@@ -82,6 +83,8 @@
   },
   "greenkeeper": {
     "ignore": [
+      "nock",
+      "sinon",
       "standard",
       "mocha",
       "aws-sdk"

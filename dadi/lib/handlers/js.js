@@ -10,6 +10,8 @@ const Cache = require(path.join(__dirname, '/../cache'))
 const config = require(path.join(__dirname, '/../../../config'))
 const StorageFactory = require(path.join(__dirname, '/../storage/factory'))
 
+const DEFAULT_UA = 'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.0; Trident/4.0)'
+
 /**
  * Creates a new JSHandler instance.
  *
@@ -89,7 +91,7 @@ JSHandler.prototype.getBabelConfig = function () {
   }
 
   if (this.isTransformEnabled()) {
-    options.presets.push(['env', this.getBabelEnvOptions()])
+    options.presets.push(['env', this.getBabelEnvOptions(this.userAgent)])
   }
 
   if (this.legacyURLOverrides.compress || query.compress === '1' || this.options.compress) {
@@ -105,8 +107,17 @@ JSHandler.prototype.getBabelConfig = function () {
  *
  * @return {Object} Babel targets object
  */
-JSHandler.prototype.getBabelEnvOptions = function () {
-  const agent = userAgent.parse(this.userAgent).toAgent()
+JSHandler.prototype.getBabelEnvOptions = function (userAgentString) {
+  const agent = userAgent.parse(userAgentString).toAgent()
+
+  // If the agent is "Other", it means we don't have a valid browser
+  // target to give to the Babel preset. When this happens, we assume
+  // we're dealing with an old browser and therefore transpile for the
+  // default target, defined by the user agent string in `DEFAULT_UA`.
+  if (agent.indexOf('Other ') === 0) {
+    return this.getBabelEnvOptions(DEFAULT_UA)
+  }
+
   const dotIndexes = Array.from(agent).reduce((indexes, character, index) => {
     if (character === '.') {
       return indexes.concat(index)
@@ -132,7 +143,8 @@ JSHandler.prototype.getBabelEnvOptions = function () {
  * @return {String} A hash of all the plugins
  */
 JSHandler.prototype.getBabelPluginsHash = function () {
-  const functions = babelPresetEnv(null, this.getBabelEnvOptions()).plugins.map(plugin => plugin[0])
+  const babelOptions = this.getBabelEnvOptions(this.userAgent)
+  const functions = babelPresetEnv(null, babelOptions).plugins.map(plugin => plugin[0])
   const hashSource = functions.reduce((result, functionSource) => {
     if (typeof functionSource === 'function') {
       return result + functionSource.toString()

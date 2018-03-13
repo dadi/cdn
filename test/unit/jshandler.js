@@ -10,15 +10,13 @@ const JSHandler = require(__dirname + '/../../dadi/lib/handlers/js')
 
 const mockRequest = (url, browser) => {
   let request = {
-    headers: {
-      'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36'
-    },
+    headers: {},
     url
   }
 
   switch (browser) {
-    case 'chrome-64':
-      request.headers['user-agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36'
+    case 'chrome-65':
+      request.headers['user-agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.146 Safari/537.36'
 
       break
 
@@ -167,6 +165,54 @@ describe('JS handler', function () {
       })
     })
 
+    it('delivers transpiled JS when the user agent header is missing', () => {
+      const mockJsFile = [
+        'const greeter = name => {',
+        '  return \`Hello, \${name}\`;',
+        '};'
+      ].join('\n')
+
+      mockDiskStorageGet = sinon.stub(DiskStorage.prototype, 'get').resolves(makeStream(mockJsFile))
+
+      const jsHandler = new JSHandler('.js', mockRequest('/foo.js?transform=1'))
+
+      return jsHandler.get().then(readStream).then(out => {
+        out.should.eql(
+          [
+            '"use strict";',
+            '',
+            'var greeter = function greeter(name) {',
+            '  return "Hello, " + name;',
+            '};'
+          ].join('\n')
+        )
+      })
+    })
+
+    it('delivers transpiled JS when the user agent has not been matched to a valid browser target', () => {
+      const mockJsFile = [
+        'const greeter = name => {',
+        '  return \`Hello, \${name}\`;',
+        '};'
+      ].join('\n')
+
+      mockDiskStorageGet = sinon.stub(DiskStorage.prototype, 'get').resolves(makeStream(mockJsFile))
+
+      const jsHandler = new JSHandler('.js', mockRequest('/foo.js?transform=1', 'some funky user agent'))
+
+      return jsHandler.get().then(readStream).then(out => {
+        out.should.eql(
+          [
+            '"use strict";',
+            '',
+            'var greeter = function greeter(name) {',
+            '  return "Hello, " + name;',
+            '};'
+          ].join('\n')
+        )
+      })
+    })
+
     it('delivers untouched JS for browsers that support original features', () => {
       const mockJsFile = [
         'const greeter = name => {',
@@ -176,7 +222,7 @@ describe('JS handler', function () {
 
       mockDiskStorageGet = sinon.stub(DiskStorage.prototype, 'get').resolves(makeStream(mockJsFile))
 
-      const jsHandler = new JSHandler('.js', mockRequest('/foo.js?transform=1', 'chrome-64'))
+      const jsHandler = new JSHandler('.js', mockRequest('/foo.js?transform=1', 'chrome-65'))
 
       return jsHandler.get().then(readStream).then(out => {
         out.should.eql('"use strict";\n\n' + mockJsFile)
