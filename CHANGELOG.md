@@ -4,9 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [2.0.0-rc1] - 2018-03-08
+## [2.0.0] - 2018-03-13
 
 ## Added
+
+[Full release notes](https://github.com/dadi/cdn/releases/tag/v2.0.0)
 
 * Plugin support
 * On-demand JavaScript transpiling (experimental)
