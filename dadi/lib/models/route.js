@@ -226,6 +226,7 @@ Route.prototype.getRecipe = function () {
         return cache.set(this._getCacheKey(), recipe).then(() => {
           return recipe
         }).catch((err) => {
+          console.log(err)
           return recipe
         })
       }
