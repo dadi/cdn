@@ -218,8 +218,8 @@ Route.prototype.getNetwork = function () {
 }
 
 Route.prototype.getRecipe = function () {
-  return cache.get(this._getCacheKey()).then((cachedRecipe) => {
-    if (cachedRecipe) return Promise.resolve(cachedRecipe)
+  return cache.getStream(this._getCacheKey()).then(cachedRecipe => {
+    if (cachedRecipe) return cachedRecipe
 
     return this.processRoute().then((recipe) => {
       if (recipe) {
