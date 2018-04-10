@@ -1,5 +1,6 @@
 const convict = require('convict')
 const fs = require('fs')
+const objectPath = require('object-path')
 const path = require('path')
 
 // Define a schema
@@ -190,7 +191,8 @@ const schema = {
       path: {
         doc: 'The remote host to request images from, for example http://media.example.com',
         format: String,
-        default: ''
+        default: '',
+        allowDomainOverride: true
       },
       allowFullURL: {
         doc: 'If true, images can be loaded from any remote URL',
@@ -403,13 +405,23 @@ const schema = {
     default: true
   },
   paths: {
-    doc: '',
-    format: Object,
-    default: {
-      plugins: __dirname + '/workspace/plugins',
-      processors: __dirname + '/workspace/processors',
-      recipes: __dirname + '/workspace/recipes',
-      routes: __dirname + '/workspace/routes'
+    plugins: {
+      doc: 'Path to plugins directory',
+      format: String,
+      default: 'workspace/plugins',
+      allowDomainOverride: true
+    },
+    recipes: {
+      doc: 'Path to recipes directory',
+      format: String,
+      default: 'workspace/recipes',
+      allowDomainOverride: true
+    },
+    routes: {
+      doc: 'Path to routes directory',
+      format: String,
+      default: 'workspace/routes',
+      allowDomainOverride: true
     }
   },
   gzip: {
@@ -576,25 +588,112 @@ const schema = {
       default: false,
       env: 'JSTRANSPILING'
     }
+  },
+  multiDomain: {
+    directory: {
+      doc: 'Path to domains directory',
+      format: 'String',
+      default: 'domains'
+    },
+    enabled: {
+      doc: 'Enable multi-domain configuration for this CDN instance',
+      format: Boolean,
+      default: false
+    }
   }
 }
-const conf = convict(schema)
 
-// Load environment dependent configuration
-const env = conf.get('env')
-conf.loadFile('./config/config.' + env + '.json')
+const Config = function () {
+  this.loadFile(this.configPath())
+
+  this.domainSchema = {}
+  this.createDomainSchema(schema, this.domainSchema)
+
+  this.domainConfigs = this.loadDomainConfigs()
+}
+
+Config.prototype = convict(schema)
+
+Config.prototype.configPath = function () {
+  let environment = this.get('env')
+
+  return `./config/config.${environment}.json`
+}
+
+Config.prototype.createDomainSchema = function (schema, target, tail = []) {
+  if (!schema || typeof schema !== 'object') return
+
+  if (schema.allowDomainOverride) {
+    let path = tail.join('.')
+
+    objectPath.set(
+      target,
+      path,
+      Object.assign({}, schema, {
+        default: this.get(path)
+      })
+    )
+    
+    return
+  }
+  
+  Object.keys(schema).forEach(key => {
+    this.createDomainSchema(schema[key], target, tail.concat(key))
+  })
+}
+
+Config.prototype._get = Config.prototype.get
+
+Config.prototype.get = function (path, domain) {
+  if (
+    domain === undefined ||
+    this.domainConfigs[domain] === undefined
+  ) {
+    return this._get(path)
+  }
+
+  return this.domainConfigs[domain].get(path)
+}
+
+Config.prototype.loadDomainConfigs = function () {
+  let configs = {}
+  let domainsDirectory = path.resolve(
+    this.get('multiDomain.directory')
+  )
+
+  fs.readdirSync(domainsDirectory).forEach(domain => {
+    let domainStats = fs.statSync(path.join(domainsDirectory, domain))
+
+    if (domainStats.isDirectory()) {
+      let filePath = path.join(
+        domainsDirectory,
+        domain,
+        `config/config.${this.get('env')}.json`
+      )
+
+      try {
+        let file = fs.statSync(filePath)
+
+        if (file.isFile()) {
+          configs[domain] = convict(this.domainSchema)
+          configs[domain].loadFile(filePath)
+        }
+      } catch (err) {
+        console.log(err)
+      }
+    }
+  })
+
+  return configs
+}
 
 // Update Config JSON file by domain name
-conf.updateConfigDataForDomain = function (domain) {
-  if (fs.existsSync(path.resolve(__dirname + '/workspace/domain-loader/' + domain + '.config.' + env + '.json'))) {
-    conf.loadFile(__dirname + '/workspace/domain-loader/' + domain + '.config.' + env + '.json')
-  }
-}
+// conf.updateConfigDataForDomain = function (domain) {
+//   if (fs.existsSync(path.resolve(__dirname + '/workspace/domain-loader/' + domain + '.config.' + env + '.json'))) {
+//     conf.loadFile(__dirname + '/workspace/domain-loader/' + domain + '.config.' + env + '.json')
+//   }
+// }
 
-module.exports = conf
-
-module.exports.configPath = function () {
-  return './config/config.' + conf.get('env') + '.json'
-}
+module.exports = new Config()
 
 module.exports.schema = schema

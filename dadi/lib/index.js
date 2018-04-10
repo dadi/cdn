@@ -264,18 +264,22 @@ Server.prototype.start = function (done) {
     redirectServer.on('listening', function () { onRedirectListening(this) })
   }
 
-  var app = createServer((req, res) => {
-    config.updateConfigDataForDomain(req.headers.host)
+  let app = createServer((req, res) => {
+    if (config.get('multiDomain.enabled')) {
+      req.__domain = req.headers.host.split(':')[0]
+    }
 
     res.setHeader('Server', config.get('server.name'))
     res.setHeader('Access-Control-Allow-Origin', '*')
 
-    if (req.url === '/api/status') res.setHeader('Cache-Control', 'no-cache')
+    if (req.url === '/api/status') {
+      res.setHeader('Cache-Control', 'no-cache')
+    }
 
     router(req, res, finalhandler(req, res))
   })
 
-  var server = this.server = app.listen(config.get('server.port'))
+  let server = this.server = app.listen(config.get('server.port'))
   server.on('listening', function () { onListening(this) })
 
   this.readyState = 1

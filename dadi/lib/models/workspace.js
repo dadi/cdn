@@ -46,9 +46,11 @@ Workspace.prototype.build = function () {
  * @param  {String} item
  * @return {Object}
  */
-Workspace.prototype.get = function (item) {
+Workspace.prototype.get = function (item, domain) {
   if (item !== undefined) {
-    return this.workspace[item]
+    let key = domain ? `${domain}:${item}`: item
+
+    return this.workspace[key]
   }
 
   return this.workspace
@@ -61,18 +63,77 @@ Workspace.prototype.get = function (item) {
  * @return {Object}
  */
 Workspace.prototype.read = function () {
-  const directories = {
-    plugins: fs.readdirSync(path.resolve(config.get('paths.plugins'))),
-    processors: fs.readdirSync(path.resolve(config.get('paths.processors'))),
-    recipes: fs.readdirSync(path.resolve(config.get('paths.recipes'))),
-    routes: fs.readdirSync(path.resolve(config.get('paths.routes')))
+  let directories = [
+    {
+      items: fs.readdirSync(path.resolve(config.get('paths.plugins'))),
+      type: 'plugins'
+    },
+    {
+      items: fs.readdirSync(path.resolve(config.get('paths.recipes'))),
+      type: 'recipes'
+    },
+    {
+      items: fs.readdirSync(path.resolve(config.get('paths.routes'))),
+      type: 'routes'
+    }
+  ]
+
+  // Adding domain-specific workspace directories.
+  if (config.get('multiDomain.enabled')) {
+    let domainsDirectory = path.resolve(config.get('multiDomain.directory'))
+
+    fs.readdirSync(domainsDirectory).forEach(domain => {
+      let stats = fs.statSync(path.join(domainsDirectory, domain))
+
+      if (stats.isDirectory()) {
+        let pluginsPath = path.resolve(
+          domainsDirectory,
+          domain,
+          config.get('paths.plugins', domain)
+        )
+
+        directories.push({
+          domain,
+          items: fs.readdirSync(pluginsPath),
+          type: 'plugins'
+        })
+
+        let recipesPath = path.resolve(
+          domainsDirectory,
+          domain,
+          config.get('paths.recipes', domain)
+        )
+
+        directories.push({
+          domain,
+          items: fs.readdirSync(recipesPath),
+          type: 'recipes'
+        })
+
+        let routesPath = path.resolve(
+          domainsDirectory,
+          domain,
+          config.get('paths.routes', domain)
+        )
+
+        directories.push({
+          domain,
+          items: fs.readdirSync(routesPath),
+          type: 'routes'
+        })
+      }
+    })
   }
 
-  return Object.keys(directories).reduce((files, type) => {
-    directories[type].forEach(file => {
+  return directories.reduce((files, {domain, items, type}) => {
+    items.forEach(file => {
       const extension = path.extname(file)
       const baseName = path.basename(file, extension)
-      const fullPath = path.resolve(config.get(`paths.${type}`), file)
+      const fullPath = path.resolve(
+        domain ? `${config.get('multiDomain.directory')}/${domain}` : '',
+        config.get(`paths.${type}`),
+        file
+      )
 
       if (!this.VALID_EXTENSIONS.includes(extension)) return
 
@@ -91,11 +152,17 @@ Workspace.prototype.read = function () {
         workspaceKey = source.route || workspaceKey
       }
 
+      // Prepend workspace key with domain.
+      if (domain) {
+        workspaceKey = `${domain}:${workspaceKey}`
+      }
+
       if (files[workspaceKey] !== undefined) {
         throw new Error(`Naming conflict: ${workspaceKey} exists in both '${files[workspaceKey].path}' and '${fullPath}'`)
       }
 
       files[workspaceKey] = {
+        domain,
         path: fullPath,
         source: source,
         type
