@@ -8,7 +8,6 @@ const finalhandler = require('finalhandler')
 const fs = require('fs')
 const http = require('http')
 const https = require('https')
-const mkdirp = require('mkdirp')
 const path = require('path')
 const Router = require('router')
 const router = Router()
@@ -136,26 +135,6 @@ function onStatusListening (server) {
 }
 
 var Server = function () {}
-
-Server.prototype.ensureDirectories = function () {
-  const directories = Object.keys(config.get('paths')).map(k => config.get(`paths.${k}`))
-
-  let directoriesCreated = 0
-
-  return new Promise((resolve, reject) => {
-    directories.forEach(directory => {
-      mkdirp(path.resolve(directory), err => {
-        if (err) return reject(err)
-
-        directoriesCreated++
-
-        if (directoriesCreated === directories.length) {
-          resolve()
-        }
-      })
-    })
-  })
-}
 
 Server.prototype.start = function (done) {
   router.use((req, res, next) => {
@@ -286,11 +265,11 @@ Server.prototype.start = function (done) {
 
   this.startWatchingFiles()
 
-  this.ensureDirectories().then(() => {
-    if (typeof done === 'function') {
-      done()
-    }
-  })
+  workspace.createDirectories()
+
+  if (typeof done === 'function') {
+    done()
+  }
 }
 
 Server.prototype.startWatchingFiles = function () {

@@ -1,4 +1,6 @@
 const fs = require('fs')
+const logger = require('@dadi/logger')
+const mkdirp = require('mkdirp')
 const path = require('path')
 const config = require(path.join(__dirname, '/../../../config'))
 
@@ -37,6 +39,69 @@ Workspace.prototype.build = function () {
   this.workspace = this.read()
 
   return this.workspace
+}
+
+/**
+ * Ensures that all workspace directories exist, creating any that
+ * are missing.
+ *
+ * @return {Array<String>} list of directories created
+ */
+Workspace.prototype.createDirectories = function () {
+  let directories = [
+    path.resolve(config.get('paths.plugins')),
+    path.resolve(config.get('paths.recipes')),
+    path.resolve(config.get('paths.routes'))
+  ]
+
+  // Adding domain-specific workspace directories.
+  if (config.get('multiDomain.enabled')) {
+    let domainsDirectory = path.resolve(config.get('multiDomain.directory'))
+
+    fs.readdirSync(domainsDirectory).forEach(domain => {
+      let stats = fs.statSync(path.join(domainsDirectory, domain))
+
+      if (stats.isDirectory()) {
+        directories.push(
+          path.resolve(
+            domainsDirectory,
+            domain,
+            config.get('paths.plugins', domain)
+          )
+        )
+
+        directories.push(
+          path.resolve(
+            domainsDirectory,
+            domain,
+            config.get('paths.recipes', domain)
+          )
+        )
+
+        directories.push(
+          path.resolve(
+            domainsDirectory,
+            domain,
+            config.get('paths.routes', domain)
+          )
+        )
+      }
+    })
+  }
+
+  let createDirectories = directories.reduce((directories, directory) => {
+    let result = mkdirp.sync(directory)
+
+    if (result) {
+      logger.info({module: 'workspace'}, `Created directory: '${directory}'`)
+
+      directories.push(directory)
+    }
+
+    return directories
+  }, [])
+
+  return createDirectories
 }
 
 /**
