@@ -141,7 +141,7 @@ HandlerFactory.prototype.createFromPlugin = function ({plugin, req}) {
   return Promise.resolve(new PluginHandler(req, plugin))
 }
 
-HandlerFactory.prototype.createFromRecipe = function ({name, req, recipe, workspaceMatch}) {
+HandlerFactory.prototype.createFromRecipe = function ({name, req, route, workspaceMatch}) {
   const parsedUrl = url.parse(req.url, true)
   const source = workspaceMatch.source
   const recipeSettings = source.settings || {}
@@ -178,13 +178,15 @@ HandlerFactory.prototype.createFromRoute = function ({name, req, workspaceMatch}
   route.setLanguage(req.headers['accept-language'])
   route.setUserAgent(req.headers['user-agent'])
 
-  return route.getRecipe().then(recipe => {
-    if (recipe) {
-      // (!) workspaceMatch is missing
+  return route.getRecipe().then(recipeName => {
+    let workspaceMatch = workspace.get(recipeName, req.__domain)
+
+    if (workspaceMatch && workspaceMatch.type === 'recipes') {
       return this.createFromRecipe({
-        name: recipe,
+        name: recipeName,
         req,
-        route: name
+        route: name,
+        workspaceMatch
       })
     }
 
