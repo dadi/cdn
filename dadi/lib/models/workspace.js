@@ -48,7 +48,7 @@ Workspace.prototype.build = function () {
  */
 Workspace.prototype.get = function (item, domain) {
   if (item !== undefined) {
-    let key = domain ? `${domain}:${item}`: item
+    let key = domain ? `${domain}:${item}` : item
 
     return this.workspace[key]
   }
