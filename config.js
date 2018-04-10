@@ -647,7 +647,8 @@ Config.prototype._get = Config.prototype.get
 Config.prototype.get = function (path, domain) {
   if (
     domain === undefined ||
-    this.domainConfigs[domain] === undefined
+    this.domainConfigs[domain] === undefined ||
+    !objectPath.get(schema, `${path}.allowDomainOverride`)
   ) {
     return this._get(path)
   }
@@ -687,13 +688,6 @@ Config.prototype.loadDomainConfigs = function () {
   return configs
 }
 
-// Update Config JSON file by domain name
-// conf.updateConfigDataForDomain = function (domain) {
-//   if (fs.existsSync(path.resolve(__dirname + '/workspace/domain-loader/' + domain + '.config.' + env + '.json'))) {
-//     conf.loadFile(__dirname + '/workspace/domain-loader/' + domain + '.config.' + env + '.json')
-//   }
-// }
-
 module.exports = new Config()
-
+module.exports.Config = Config
 module.exports.schema = schema
