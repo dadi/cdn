@@ -1,6 +1,4 @@
-const fs = require('fs')
-const logger = require('@dadi/logger')
-const mkdirp = require('mkdirp')
+const fs = require('fs-extra')
 const path = require('path')
 const config = require(path.join(__dirname, '/../../../config'))
 
@@ -36,9 +34,11 @@ const Workspace = function () {
  * @return {Object} The new workspace
  */
 Workspace.prototype.build = function () {
-  this.workspace = this.read()
+  return this.read().then(workspace => {
+    this.workspace = workspace
 
-  return this.workspace
+    return this.workspace
+  })
 }
 
 /**
@@ -53,57 +53,41 @@ Workspace.prototype.createDirectories = function () {
     path.resolve(config.get('paths.recipes')),
     path.resolve(config.get('paths.routes'))
   ]
+  let domainDirectoryQueue
 
   // Adding domain-specific workspace directories.
   if (config.get('multiDomain.enabled')) {
     let domainsDirectory = path.resolve(config.get('multiDomain.directory'))
 
-    fs.readdirSync(domainsDirectory).forEach(domain => {
-      let stats = fs.statSync(path.join(domainsDirectory, domain))
+    domainDirectoryQueue = fs.readdir(domainsDirectory).then(domains => {
+      let domainQueue = domains.map(domain => {
+        return fs.stat(path.join(domainsDirectory, domain))
+          .then(stats => {
+            if (!stats.isDirectory()) return
 
-      if (stats.isDirectory()) {
-        directories.push(
-          path.resolve(
-            domainsDirectory,
-            domain,
-            config.get('paths.plugins', domain)
-          )
-        )
+            ['plugins', 'recipes', 'routes'].forEach(type => {
+              directories.push(
+                path.resolve(
+                  domainsDirectory,
+                  domain,
+                  config.get(`paths.${type}`, domain)
+                )
+              )
+            })
+          })
+      })
 
-        directories.push(
-          path.resolve(
-            domainsDirectory,
-            domain,
-            config.get('paths.recipes', domain)
-          )
-        )
-
-        directories.push(
-          path.resolve(
-            domainsDirectory,
-            domain,
-            config.get('paths.routes', domain)
-          )
-        )
-      }
+      return Promise.all(domainQueue)
     })
   }
 
-  let createDirectories = directories.reduce((directories, directory) => {
-    let result = mkdirp.sync(directory)
-
-    if (result) {
-      logger.info({module: 'workspace'}, `Created directory: '${directory}'`)
-
-      console.log(`Created directory: '${directory}'`)
-
-      directories.push(directory)
-    }
-
-    return directories
-  }, [])
-
-  return createDirectories
+  return Promise.resolve(domainDirectoryQueue).then(() => {
+    return Promise.all(
+      directories.map(directory => {
+        return fs.ensureDir(directory)
+      })
+    )
+  })
 }
 
 /**
@@ -130,114 +114,114 @@ Workspace.prototype.get = function (item, domain) {
  * @return {Object}
  */
 Workspace.prototype.read = function () {
-  let directories = [
-    {
-      items: fs.readdirSync(path.resolve(config.get('paths.plugins'))),
-      type: 'plugins'
-    },
-    {
-      items: fs.readdirSync(path.resolve(config.get('paths.recipes'))),
-      type: 'recipes'
-    },
-    {
-      items: fs.readdirSync(path.resolve(config.get('paths.routes'))),
-      type: 'routes'
-    }
-  ]
+  let directories = []
+  let queue = ['plugins', 'recipes', 'routes'].reduce((queue, type) => {
+    let directoryPath = path.resolve(
+      config.get(`paths.${type}`)
+    )
+
+    return queue.then(() => {
+      return fs.readdir(directoryPath).then(items => {
+        directories.push({
+          items,
+          type
+        })
+      })
+    })
+  }, Promise.resolve())
 
   // Adding domain-specific workspace directories.
   if (config.get('multiDomain.enabled')) {
-    let domainsDirectory = path.resolve(config.get('multiDomain.directory'))
+    let domainsDirectory = path.resolve(
+      config.get('multiDomain.directory')
+    )
 
-    fs.readdirSync(domainsDirectory).forEach(domain => {
-      let stats = fs.statSync(path.join(domainsDirectory, domain))
-
-      if (stats.isDirectory()) {
-        let pluginsPath = path.resolve(
+    queue = queue.then(() => {
+      return fs.readdir(domainsDirectory)
+    }).then(domains => {
+      let domainQueue = domains.map(domain => {
+        let domainPath = path.join(
           domainsDirectory,
-          domain,
-          config.get('paths.plugins', domain)
+          domain
         )
 
-        directories.push({
-          domain,
-          items: fs.readdirSync(pluginsPath),
-          type: 'plugins'
+        return fs.stat(domainPath).then(stats => {
+          if (!stats.isDirectory()) return
+
+          let typeQueue = ['plugins', 'recipes', 'routes'].map(type => {
+            let typePath = path.resolve(
+              domainsDirectory,
+              domain,
+              config.get(`paths.${type}`, domain)
+            )
+
+            return fs.readdir(typePath).then(items => {
+              directories.push({
+                domain,
+                items,
+                type
+              })
+            })
+          })
+
+          return Promise.all(typeQueue)
         })
+      })
 
-        let recipesPath = path.resolve(
-          domainsDirectory,
-          domain,
-          config.get('paths.recipes', domain)
-        )
-
-        directories.push({
-          domain,
-          items: fs.readdirSync(recipesPath),
-          type: 'recipes'
-        })
-
-        let routesPath = path.resolve(
-          domainsDirectory,
-          domain,
-          config.get('paths.routes', domain)
-        )
-
-        directories.push({
-          domain,
-          items: fs.readdirSync(routesPath),
-          type: 'routes'
-        })
-      }
+      return Promise.all(domainQueue)
     })
   }
 
-  return directories.reduce((files, {domain, items, type}) => {
-    items.forEach(file => {
-      const extension = path.extname(file)
-      const baseName = path.basename(file, extension)
-      const fullPath = path.resolve(
-        domain ? `${config.get('multiDomain.directory')}/${domain}` : '',
-        config.get(`paths.${type}`),
-        file
-      )
+  return this.createDirectories().then(() => {
+    return queue
+  }).then(() => {
+    return directories.reduce((files, {domain, items, type}) => {
+      items.forEach(file => {
+        const extension = path.extname(file)
+        const baseName = path.basename(file, extension)
+        const fullPath = path.resolve(
+          domain ? `${config.get('multiDomain.directory')}/${domain}` : '',
+          config.get(`paths.${type}`),
+          file
+        )
 
-      if (!this.VALID_EXTENSIONS.includes(extension)) return
+        if (!this.VALID_EXTENSIONS.includes(extension)) return
 
-      let source
-      let workspaceKey = baseName
+        let source
+        let workspaceKey = baseName
 
-      if (extension === '.json') {
-        delete require.cache[fullPath]
+        if (extension === '.json') {
+          delete require.cache[fullPath]
 
-        source = require(fullPath)
-      }
+          source = require(fullPath)
+        }
 
-      if (type === 'recipes') {
-        workspaceKey = source.recipe || workspaceKey
-      } else if (type === 'routes') {
-        workspaceKey = source.route || workspaceKey
-      }
+        if (type === 'recipes') {
+          workspaceKey = source.recipe || workspaceKey
+        } else if (type === 'routes') {
+          workspaceKey = source.route || workspaceKey
+        }
 
-      // Prepend workspace key with domain.
-      if (domain) {
-        workspaceKey = `${domain}:${workspaceKey}`
-      }
+        // Prepend workspace key with domain.
+        if (domain) {
+          workspaceKey = `${domain}:${workspaceKey}`
+        }
 
-      if (files[workspaceKey] !== undefined) {
-        throw new Error(`Naming conflict: ${workspaceKey} exists in both '${files[workspaceKey].path}' and '${fullPath}'`)
-      }
+        if (files[workspaceKey] !== undefined) {
+          throw new Error(`Naming conflict: ${workspaceKey} exists in both '${files[workspaceKey].path}' and '${fullPath}'`)
+        }
 
-      files[workspaceKey] = {
-        domain,
-        path: fullPath,
-        source: source,
-        type
-      }
-    })
+        files[workspaceKey] = {
+          domain,
+          path: fullPath,
+          source: source,
+          type
+        }
+      })
 
-    return files
-  }, {})
+      return files
+    }, {})
+  })
 }
 
 module.exports = new Workspace()
