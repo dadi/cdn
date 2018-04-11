@@ -3,7 +3,9 @@ const fs = require('fs')
 const path = require('path')
 const should = require('should')
 const sinon = require('sinon')
-const workspaceFactory = require(__dirname + '/../../dadi/lib/models/workspace').factory
+const workspaceFactory = require(
+  __dirname + '/../../dadi/lib/models/workspace'
+).factory
 
 /**
  * Generates a workspace file with the given type and content.
@@ -12,26 +14,36 @@ const workspaceFactory = require(__dirname + '/../../dadi/lib/models/workspace')
  * @param  {String} type
  * @param  {String} name
  * @param  {String} content
- * @return {String}         The full path to the generate file
+ * @return {String}         The full path to the generated file
  */
-const mockWorkspaceFile = (type, name, content = null) => {
-  const fullPath = path.join(
-    path.resolve(config.get(`paths.${type}`)),
+const mockWorkspaceFile = function ({
+  content = {},
+  delete: isDelete = false,
+  domain,
+  name,
+  type
+}) {
+  let domainSubPath = domain
+    ? path.join(config.get('multiDomain.directory'), domain)
+    : ''
+  let fullPath = path.resolve(
+    domainSubPath,
+    config.get(`paths.${type}`),
     name
   )
 
-  if (content) {
-    const serialisedContent = typeof content === 'string' ? content : JSON.stringify(content, null, 2)
-
-    fs.writeFileSync(fullPath, serialisedContent)
-
-    return fullPath
-  } else {
+  if (isDelete) {
     try {
       fs.unlinkSync(fullPath)
 
       return fullPath
     } catch (err) {}
+  } else {
+    const serialisedContent = typeof content === 'string' ? content : JSON.stringify(content, null, 2)
+
+    fs.writeFileSync(fullPath, serialisedContent)
+
+    return fullPath
   }
 }
 
@@ -58,7 +70,11 @@ describe('Workspace', function () {
 
   describe('read()', () => {
     it('should return a tree structure with the workspace files', done => {
-      const samplePluginPath = mockWorkspaceFile('plugins', 'my-plugin.js', 'const a = "foo"')
+      const samplePluginPath = mockWorkspaceFile({
+        type: 'plugins',
+        name: 'my-plugin.js',
+        content: 'const a = "foo"'
+      })
       const sampleRecipe = {
         recipe: 'my-recipe',
         path: '/directory',
@@ -66,7 +82,11 @@ describe('Workspace', function () {
           format: 'png'
         }
       }
-      const sampleRecipePath = mockWorkspaceFile('recipes', 'my-recipe.json', sampleRecipe)
+      const sampleRecipePath = mockWorkspaceFile({
+        type: 'recipes',
+        name: 'my-recipe.json',
+        content: sampleRecipe
+      })
 
       const tree = workspace.read()
 
@@ -83,8 +103,76 @@ describe('Workspace', function () {
       tree['my-recipe'].path.should.eql(sampleRecipePath)
       tree['my-recipe'].type.should.eql('recipes')
 
-      mockWorkspaceFile('plugins', 'my-plugin.js', null)
-      mockWorkspaceFile('recipes', 'my-recipe.json', null)
+      mockWorkspaceFile({
+        type: 'plugins',
+        name: 'my-plugin.js',
+        delete: true
+      })
+      mockWorkspaceFile({
+        type: 'recipes',
+        name: 'my-recipe.json',
+        delete: true
+      })
+
+      done()
+    })
+
+    it('should read files from domain-specific workspace directories', done => {
+      let configBackup = config.get('multiDomain')
+
+      config.set('multiDomain.enabled', true)
+      config.set('multiDomain.directory', 'domains')
+
+      const samplePluginPath = mockWorkspaceFile({
+        type: 'plugins',
+        name: 'my-plugin.js',
+        content: 'const a = "foo"'
+      })
+      const sampleRecipe = {
+        recipe: 'my-domain-recipe',
+        path: '/directory',
+        settings: {
+          format: 'png'
+        }
+      }
+      const sampleRecipePath = mockWorkspaceFile({
+        domain: 'testdomain.com',
+        type: 'recipes',
+        name: 'my-domain-recipe.json',
+        content: sampleRecipe
+      })
+
+      const tree = workspace.read()
+
+      // Plugin
+      tree['my-plugin'].should.be.Object
+      tree['my-plugin'].path.should.eql(samplePluginPath)
+      tree['my-plugin'].type.should.eql('plugins')
+      
+      // Recipe
+      const source = require(sampleRecipePath)
+
+      tree['testdomain.com:my-domain-recipe'].should.be.Object
+      JSON.stringify(tree['testdomain.com:my-domain-recipe'].source).should.eql(
+        JSON.stringify(sampleRecipe)
+      )
+      tree['testdomain.com:my-domain-recipe'].path.should.eql(sampleRecipePath)
+      tree['testdomain.com:my-domain-recipe'].type.should.eql('recipes')
+      tree['testdomain.com:my-domain-recipe'].domain.should.eql('testdomain.com')
+
+      mockWorkspaceFile({
+        type: 'plugins',
+        name: 'my-plugin.js',
+        delete: true
+      })
+      mockWorkspaceFile({
+        domain: 'testdomain.com',
+        type: 'recipes',
+        name: 'my-domain-recipe.json',
+        delete: true
+      })
+
+      config.set('multiDomain', configBackup)
 
       done()
     })
@@ -103,16 +191,32 @@ describe('Workspace', function () {
           format: 'jpg'
         }
       }
-      const sampleRecipe1Path = mockWorkspaceFile('recipes', 'my-first-recipe.json', sampleRecipe1)
-      const sampleRecipe2Path = mockWorkspaceFile('recipes', 'my-second-recipe.json', sampleRecipe2)
+      const sampleRecipe1Path = mockWorkspaceFile({
+        type: 'recipes',
+        name: 'my-first-recipe.json',
+        content: sampleRecipe1
+      })
+      const sampleRecipe2Path = mockWorkspaceFile({
+        type: 'recipes',
+        name: 'my-second-recipe.json',
+        content: sampleRecipe2
+      })
 
       const tree = workspace.read()
 
       tree['my-recipe'].should.be.Object
       tree['my-second-recipe'].should.be.Object
 
-      mockWorkspaceFile('recipes', 'my-first-recipe.json', null)
-      mockWorkspaceFile('recipes', 'my-second-recipe.json', null)
+      mockWorkspaceFile({
+        type: 'recipes',
+        name: 'my-first-recipe.json',
+        delete: true
+      })
+      mockWorkspaceFile({
+        type: 'recipes',
+        name: 'my-second-recipe.json',
+        delete: true
+      })
 
       done()
     })
@@ -132,8 +236,16 @@ describe('Workspace', function () {
           format: 'jpg'
         }
       }
-      const sampleRecipe1Path = mockWorkspaceFile('recipes', 'my-recipe.json', sampleRecipe1)
-      const sampleRecipe2Path = mockWorkspaceFile('recipes', 'my-other-recipe.json', sampleRecipe2)
+      const sampleRecipe1Path = mockWorkspaceFile({
+        type: 'recipes',
+        name: 'my-recipe.json',
+        content: sampleRecipe1
+      })
+      const sampleRecipe2Path = mockWorkspaceFile({
+        type: 'recipes',
+        name: 'my-other-recipe.json',
+        content: sampleRecipe2
+      })
 
       try {
         workspace.read()
@@ -142,8 +254,16 @@ describe('Workspace', function () {
       } catch (err) {
         err.message.should.eql(`Naming conflict: ${sampleRecipe1.recipe} exists in both '${sampleRecipe2Path}' and '${sampleRecipe1Path}'`)
       } finally {
-        mockWorkspaceFile('recipes', 'my-recipe.json', null)
-        mockWorkspaceFile('recipes', 'my-other-recipe.json', null)
+        mockWorkspaceFile({
+          type: 'recipes',
+          name: 'my-recipe.json',
+          delete: true
+        })
+        mockWorkspaceFile({
+          type: 'recipes',
+          name: 'my-other-recipe.json',
+          delete: true
+        })
 
         done()
       }
@@ -157,25 +277,43 @@ describe('Workspace', function () {
           format: 'png'
         }
       }
-      let sampleRecipePath = mockWorkspaceFile('recipes', 'my-recipe.json', sampleRecipe)
+      let sampleRecipePath = mockWorkspaceFile({
+        type: 'recipes',
+        name: 'my-recipe.json',
+        content: sampleRecipe
+      })
 
       const tree = workspace.read()
 
       tree['my-recipe'].should.be.Object
       tree['my-recipe'].source.settings.format.should.eql('png')
 
-      sampleRecipePath = mockWorkspaceFile('recipes', 'my-recipe.json', Object.assign({}, sampleRecipe, {
-        settings: Object.assign({}, sampleRecipe.settings, {
-          format: 'jpg'
-        })
-      }))
+      sampleRecipePath = mockWorkspaceFile({
+        type: 'recipes',
+        name: 'my-recipe.json',
+        content: Object.assign(
+          {},
+          sampleRecipe,
+          {
+            settings: Object.assign(
+              {},
+              sampleRecipe.settings,
+              {format: 'jpg'}
+            )
+          }
+        )
+      })
 
       const newTree = workspace.read()
 
       newTree['my-recipe'].should.be.Object
       newTree['my-recipe'].source.settings.format.should.eql('jpg')
 
-      mockWorkspaceFile('recipes', 'my-recipe.json', null)
+      mockWorkspaceFile({
+        type: 'recipes',
+        name: 'my-recipe.json',
+        delete: true
+      })
 
       done()
     })
@@ -211,7 +349,11 @@ describe('Workspace', function () {
           format: 'png'
         }
       }
-      const sampleRecipePath = mockWorkspaceFile('recipes', 'my-recipe.json', sampleRecipe)
+      const sampleRecipePath = mockWorkspaceFile({
+        type: 'recipes',
+        name: 'my-recipe.json',
+        content: sampleRecipe
+      })
       const tree = workspace.read()
 
       workspace.build()
@@ -224,9 +366,164 @@ describe('Workspace', function () {
 
       should.not.exist(workspace.get('not-existing-file'))
 
-      mockWorkspaceFile('recipes', 'my-recipe.json', null)
+      mockWorkspaceFile({
+        type: 'recipes',
+        name: 'my-recipe.json',
+        delete: true
+      })
 
       done()
+    })
+
+    describe('by domain', () => {
+      let configBackup = config.get('multiDomain')
+
+      beforeEach(() => {
+        config.set('multiDomain.enabled', true)
+        config.set('multiDomain.directory', 'domains')
+      })
+
+      afterEach(() => {
+        config.set('multiDomain', configBackup)
+      })
+
+      it('should return a file for the given domain', () => {
+        const sampleRecipe = {
+          recipe: 'my-recipe',
+          path: '/directory',
+          settings: {
+            format: 'png'
+          }
+        }
+        const sampleRecipePath = mockWorkspaceFile({
+          domain: 'testdomain.com',
+          type: 'recipes',
+          name: 'my-recipe.json',
+          content: sampleRecipe
+        })
+        const tree = workspace.read()
+
+        workspace.build()
+
+        should.not.exist(workspace.get('my-recipe'))
+
+        let workspaceItem = workspace.get('my-recipe', 'testdomain.com')
+
+        workspaceItem.should.be.Object
+        workspaceItem.source.should.eql(sampleRecipe)
+        workspaceItem.type.should.eql('recipes')
+
+        mockWorkspaceFile({
+          domain: 'testdomain.com',
+          type: 'recipes',
+          name: 'my-recipe.json',
+          delete: true
+        })
+      })
+
+      it('should return `undefined` if the given file exists at root level, not in the domain', () => {
+        const sampleRecipe = {
+          recipe: 'my-recipe',
+          path: '/directory',
+          settings: {
+            format: 'png'
+          }
+        }
+        const sampleRecipePath = mockWorkspaceFile({
+          type: 'recipes',
+          name: 'my-recipe.json',
+          content: sampleRecipe
+        })
+        const tree = workspace.read()
+
+        workspace.build()
+
+        should.not.exist(workspace.get('my-recipe', 'testdomain.com'))
+
+        mockWorkspaceFile({
+          type: 'recipes',
+          name: 'my-recipe.json',
+          delete: true
+        })
+      })
+
+      it('should return the file for the domain if the a file with the same key exists at root level', () => {
+        const sampleRecipe1 = {
+          recipe: 'my-recipe',
+          path: '/directory',
+          settings: {
+            format: 'png'
+          }
+        }
+        const sampleRecipe1Path = mockWorkspaceFile({
+          type: 'recipes',
+          name: 'my-recipe.json',
+          content: sampleRecipe1
+        })
+        const sampleRecipe2 = {
+          recipe: 'my-recipe',
+          path: '/directory',
+          settings: {
+            format: 'jpg'
+          }
+        }
+        const sampleRecipe2Path = mockWorkspaceFile({
+          domain: 'testdomain.com',
+          type: 'recipes',
+          name: 'my-recipe.json',
+          content: sampleRecipe2
+        })
+        const tree = workspace.read()
+
+        workspace.build()
+
+        workspace.get('my-recipe').source.settings.format.should.eql('png')
+        workspace.get('my-recipe', 'testdomain.com').source.settings.format.should.eql('jpg')
+
+        mockWorkspaceFile({
+          type: 'recipes',
+          name: 'my-recipe.json',
+          delete: true
+        })
+
+        mockWorkspaceFile({
+          domain: 'testdomain.com',
+          type: 'recipes',
+          name: 'my-recipe.json',
+          delete: true
+        })
+      })
+
+      it('should return `undefined` if the given file exists at domain level but `multiDomain.enabled` is `false`', () => {
+        config.set('multiDomain.enabled', false)
+
+        const sampleRecipe = {
+          recipe: 'my-recipe',
+          path: '/directory',
+          settings: {
+            format: 'png'
+          }
+        }
+        const sampleRecipePath = mockWorkspaceFile({
+          domain: 'testdomain.com',
+          type: 'recipes',
+          name: 'my-recipe.json',
+          content: sampleRecipe
+        })
+        const tree = workspace.read()
+
+        workspace.build()
+
+        should.not.exist(workspace.get('my-recipe'))
+        should.not.exist(workspace.get('my-recipe', 'testdomain.com'))
+
+        mockWorkspaceFile({
+          domain: 'testdomain.com',
+          type: 'recipes',
+          name: 'my-recipe.json',
+          delete: true
+        })
+      })
     })
   })
 })
