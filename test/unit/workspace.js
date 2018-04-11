@@ -43,10 +43,6 @@ const mockWorkspaceFile = function ({
       ? content
       : JSON.stringify(content, null, 2)
 
-    console.log('')
-    console.log('--> Creating mock workspace file:', fullPath)
-    console.log('')
-
     fs.writeFileSync(fullPath, serialisedContent)
 
     return fullPath
@@ -58,6 +54,7 @@ let workspace
 describe('Workspace', function () {
   beforeEach(() => {
     workspace = workspaceFactory()
+    workspace.createDirectories()
   })
 
   it('should export an instance', done => {
