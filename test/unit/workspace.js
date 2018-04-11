@@ -1,5 +1,5 @@
 const config = require(__dirname + '/../../config')
-const fs = require('fs')
+const fs = require('fs-extra')
 const path = require('path')
 const should = require('should')
 const sinon = require('sinon')
