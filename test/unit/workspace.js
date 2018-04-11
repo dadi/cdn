@@ -74,8 +74,10 @@ describe('Workspace', function () {
   })
 
   describe('read()', () => {
-    beforeEach(() => {
+    beforeEach(done => {
       workspace.createDirectories()
+
+      setTimeout(done, 500)
     })
 
     it('should return a tree structure with the workspace files', done => {
@@ -387,11 +389,13 @@ describe('Workspace', function () {
     describe('by domain', () => {
       let configBackup = config.get('multiDomain')
 
-      beforeEach(() => {
+      beforeEach(done => {
         config.set('multiDomain.enabled', true)
         config.set('multiDomain.directory', 'domains')
 
         workspace.createDirectories()
+
+        setTimeout(done, 500)
       })
 
       afterEach(() => {
