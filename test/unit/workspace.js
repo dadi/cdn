@@ -55,6 +55,19 @@ const mockWorkspaceFile = function ({
 let workspace
 
 describe('Workspace', function () {
+  before(done => {
+    let configBackup = config.get('multiDomain')
+
+    console.log('')
+    console.log('*** BEFORE: Creating directories...')
+    console.log('')
+    workspaceFactory().createDirectories()
+
+    config.set('multiDomain', configBackup)
+
+    setTimeout(done, 500)
+  })
+
   beforeEach(() => {
     workspace = workspaceFactory()
   })
@@ -74,12 +87,6 @@ describe('Workspace', function () {
   })
 
   describe('read()', () => {
-    beforeEach(done => {
-      workspace.createDirectories()
-
-      setTimeout(done, 500)
-    })
-
     it('should return a tree structure with the workspace files', done => {
       const samplePluginPath = mockWorkspaceFile({
         type: 'plugins',
@@ -389,13 +396,9 @@ describe('Workspace', function () {
     describe('by domain', () => {
       let configBackup = config.get('multiDomain')
 
-      beforeEach(done => {
+      beforeEach(() => {
         config.set('multiDomain.enabled', true)
         config.set('multiDomain.directory', 'domains')
-
-        workspace.createDirectories()
-
-        setTimeout(done, 500)
       })
 
       afterEach(() => {
