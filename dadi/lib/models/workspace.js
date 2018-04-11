@@ -1,6 +1,6 @@
-const fs = require('fs')
+const fs = require('fs-extra')
 const logger = require('@dadi/logger')
-const mkdirp = require('mkdirp')
+// const mkdirp = require('mkdirp')
 const path = require('path')
 const config = require(path.join(__dirname, '/../../../config'))
 
@@ -90,7 +90,7 @@ Workspace.prototype.createDirectories = function () {
   }
 
   let createDirectories = directories.reduce((directories, directory) => {
-    let result = mkdirp.sync(directory)
+    let result = fs.ensureDirSync(directory)
 
     if (result) {
       logger.info({module: 'workspace'}, `Created directory: '${directory}'`)
@@ -102,6 +102,20 @@ Workspace.prototype.createDirectories = function () {
   }, [])
 
   return createDirectories
+
+  // let createDirectories = directories.reduce((directories, directory) => {
+  //   let result = mkdirp.sync(directory)
+
+  //   if (result) {
+  //     logger.info({module: 'workspace'}, `Created directory: '${directory}'`)
+
+  //     directories.push(directory)
+  //   }
+
+  //   return directories
+  // }, [])
+
+  // return createDirectories
 }
 
 /**

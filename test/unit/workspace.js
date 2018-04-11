@@ -1,6 +1,5 @@
 const config = require(__dirname + '/../../config')
 const fs = require('fs')
-const mkdirp = require('mkdirp')
 const path = require('path')
 const should = require('should')
 const sinon = require('sinon')
@@ -47,8 +46,6 @@ const mockWorkspaceFile = function ({
       ? content
       : JSON.stringify(content, null, 2)
 
-    mkdirp.sync(directory)
-
     fs.writeFileSync(fullPath, serialisedContent)
 
     return fullPath
@@ -77,6 +74,10 @@ describe('Workspace', function () {
   })
 
   describe('read()', () => {
+    beforeEach(() => {
+      workspace.createDirectories()
+    })
+
     it('should return a tree structure with the workspace files', done => {
       const samplePluginPath = mockWorkspaceFile({
         type: 'plugins',
@@ -389,6 +390,8 @@ describe('Workspace', function () {
       beforeEach(() => {
         config.set('multiDomain.enabled', true)
         config.set('multiDomain.directory', 'domains')
+
+        workspace.createDirectories()
       })
 
       afterEach(() => {
