@@ -39,7 +39,13 @@ const mockWorkspaceFile = function ({
       return fullPath
     } catch (err) {}
   } else {
-    const serialisedContent = typeof content === 'string' ? content : JSON.stringify(content, null, 2)
+    const serialisedContent = typeof content === 'string'
+      ? content
+      : JSON.stringify(content, null, 2)
+
+    console.log('')
+    console.log('--> Creating mock workspace file:', fullPath)
+    console.log('')
 
     fs.writeFileSync(fullPath, serialisedContent)
 
