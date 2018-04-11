@@ -1,5 +1,6 @@
 const config = require(__dirname + '/../../config')
 const fs = require('fs')
+const mkdirp = require('mkdirp')
 const path = require('path')
 const should = require('should')
 const sinon = require('sinon')
@@ -26,9 +27,12 @@ const mockWorkspaceFile = function ({
   let domainSubPath = domain
     ? path.join(config.get('multiDomain.directory'), domain)
     : ''
-  let fullPath = path.resolve(
+  let directory = path.resolve(
     domainSubPath,
-    config.get(`paths.${type}`),
+    config.get(`paths.${type}`)
+  )
+  let fullPath = path.join(
+    directory,
     name
   )
 
@@ -43,6 +47,8 @@ const mockWorkspaceFile = function ({
       ? content
       : JSON.stringify(content, null, 2)
 
+    mkdirp.sync(directory)
+
     fs.writeFileSync(fullPath, serialisedContent)
 
     return fullPath
@@ -54,7 +60,6 @@ let workspace
 describe('Workspace', function () {
   beforeEach(() => {
     workspace = workspaceFactory()
-    workspace.createDirectories()
   })
 
   it('should export an instance', done => {
