@@ -46,6 +46,7 @@ const mockWorkspaceFile = function ({
       ? content
       : JSON.stringify(content, null, 2)
 
+    fs.ensureDirSync(directory)
     fs.writeFileSync(fullPath, serialisedContent)
 
     return fullPath
