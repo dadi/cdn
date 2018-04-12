@@ -8,7 +8,6 @@ const finalhandler = require('finalhandler')
 const fs = require('fs')
 const http = require('http')
 const https = require('https')
-const mkdirp = require('mkdirp')
 const path = require('path')
 const Router = require('router')
 const router = Router()
@@ -137,26 +136,6 @@ function onStatusListening (server) {
 
 var Server = function () {}
 
-Server.prototype.ensureDirectories = function () {
-  const directories = Object.keys(config.get('paths')).map(k => config.get(`paths.${k}`))
-
-  let directoriesCreated = 0
-
-  return new Promise((resolve, reject) => {
-    directories.forEach(directory => {
-      mkdirp(path.resolve(directory), err => {
-        if (err) return reject(err)
-
-        directoriesCreated++
-
-        if (directoriesCreated === directories.length) {
-          resolve()
-        }
-      })
-    })
-  })
-}
-
 Server.prototype.start = function (done) {
   router.use((req, res, next) => {
     const FAVICON_REGEX = /\/(favicon|(apple-)?touch-icon(-i(phone|pad))?(-\d{2,}x\d{2,})?(-precomposed)?)\.(jpe?g|png|ico|gif)$/i
@@ -264,29 +243,33 @@ Server.prototype.start = function (done) {
     redirectServer.on('listening', function () { onRedirectListening(this) })
   }
 
-  var app = createServer((req, res) => {
-    config.updateConfigDataForDomain(req.headers.host)
+  let app = createServer((req, res) => {
+    if (config.get('multiDomain.enabled')) {
+      req.__domain = req.headers.host.split(':')[0]
+    }
 
     res.setHeader('Server', config.get('server.name'))
     res.setHeader('Access-Control-Allow-Origin', '*')
 
-    if (req.url === '/api/status') res.setHeader('Cache-Control', 'no-cache')
+    if (req.url === '/api/status') {
+      res.setHeader('Cache-Control', 'no-cache')
+    }
 
     router(req, res, finalhandler(req, res))
   })
 
-  var server = this.server = app.listen(config.get('server.port'))
+  let server = this.server = app.listen(config.get('server.port'))
   server.on('listening', function () { onListening(this) })
 
   this.readyState = 1
 
   this.startWatchingFiles()
 
-  this.ensureDirectories().then(() => {
-    if (typeof done === 'function') {
-      done()
-    }
-  })
+  workspace.createDirectories()
+
+  if (typeof done === 'function') {
+    done()
+  }
 }
 
 Server.prototype.startWatchingFiles = function () {

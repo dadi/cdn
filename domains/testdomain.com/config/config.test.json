@@ -1,0 +1,10 @@
+{
+  "server": {
+    "host": "9.8.7.6"
+  },
+  "images": {
+    "remote": {
+      "path": "https://images.testdomain.com"
+    }
+  }
+}

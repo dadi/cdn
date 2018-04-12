@@ -58,7 +58,7 @@ HandlerFactory.prototype.create = function (req, mimetype) {
     }
   }
 
-  // try to create a handler
+  // Create an image handler if the request uses a legacy URL.
   if (req.__cdnLegacyURLSyntax) {
     return this.createFromFormat({
       format,
@@ -66,7 +66,7 @@ HandlerFactory.prototype.create = function (req, mimetype) {
     })
   } else {
     // Check if a workspace file matches the first part of the path.
-    const workspaceMatch = workspace.get(pathComponents[0])
+    const workspaceMatch = workspace.get(pathComponents[0], req.__domain)
 
     switch (workspaceMatch && workspaceMatch.type) {
       case 'plugins':
@@ -78,13 +78,15 @@ HandlerFactory.prototype.create = function (req, mimetype) {
       case 'recipes':
         return this.createFromRecipe({
           name: pathComponents[0],
-          req
+          req,
+          workspaceMatch
         })
 
       case 'routes':
         return this.createFromRoute({
           name: pathComponents[0],
-          req
+          req,
+          workspaceMatch
         })
 
       default:
@@ -139,21 +141,15 @@ HandlerFactory.prototype.createFromPlugin = function ({plugin, req}) {
   return Promise.resolve(new PluginHandler(req, plugin))
 }
 
-HandlerFactory.prototype.createFromRecipe = function ({name, req, route}) {
-  const workspaceMatch = workspace.get(name)
-
-  if (!workspaceMatch || workspaceMatch.type !== 'recipes') {
-    return Promise.reject(new Error('Recipe not found'))
-  }
-
+HandlerFactory.prototype.createFromRecipe = function ({name, req, route, workspaceMatch}) {
   const parsedUrl = url.parse(req.url, true)
-  const recipe = workspaceMatch.source
-  const recipeSettings = recipe.settings || {}
+  const source = workspaceMatch.source
+  const recipeSettings = source.settings || {}
 
   return this.createFromFormat({
     format: recipeSettings.format,
     options: Object.assign({}, recipeSettings, parsedUrl.query),
-    plugins: recipe.plugins,
+    plugins: source.plugins,
     req
   }).then(handler => {
     // We'll remove the first part of the URL, corresponding
@@ -164,8 +160,8 @@ HandlerFactory.prototype.createFromRecipe = function ({name, req, route}) {
       .replace(new RegExp('^/' + route + '/'), '/')
 
     // Does the recipe specify a base path?
-    const fullPath = recipe.path
-      ? path.join(recipe.path, filePath)
+    const fullPath = source.path
+      ? path.join(source.path, filePath)
       : filePath
 
     if (typeof handler.setBaseUrl === 'function') {
@@ -176,24 +172,21 @@ HandlerFactory.prototype.createFromRecipe = function ({name, req, route}) {
   })
 }
 
-HandlerFactory.prototype.createFromRoute = function ({name, req}) {
-  const workspaceMatch = workspace.get(name)
-
-  if (!workspaceMatch || workspaceMatch.type !== 'routes') {
-    return Promise.reject(new Error('Route not found'))
-  }
-
+HandlerFactory.prototype.createFromRoute = function ({name, req, workspaceMatch}) {
   const route = new Route(workspaceMatch.source)
 
   route.setLanguage(req.headers['accept-language'])
   route.setUserAgent(req.headers['user-agent'])
 
-  return route.getRecipe().then(recipe => {
-    if (recipe) {
+  return route.getRecipe().then(recipeName => {
+    let workspaceMatch = workspace.get(recipeName, req.__domain)
+
+    if (workspaceMatch && workspaceMatch.type === 'recipes') {
       return this.createFromRecipe({
-        name: recipe,
+        name: recipeName,
         req,
-        route: name
+        route: name,
+        workspaceMatch
       })
     }
 

@@ -221,7 +221,7 @@ Route.prototype.getRecipe = function () {
   return cache.getStream(this._getCacheKey()).then(cachedRecipe => {
     if (cachedRecipe) return cachedRecipe
 
-    return this.processRoute().then((recipe) => {
+    return this.processRoute().then(recipe => {
       if (recipe) {
         return cache.set(this._getCacheKey(), recipe).then(() => {
           return recipe
