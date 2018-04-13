@@ -42,14 +42,14 @@ module.exports.reset = function () {
 Cache.prototype.cacheFile = function (stream, key, wait) {
   if (!this.enabled) return Promise.resolve(stream)
 
-  const encryptedKey = sha1(key)
-  const cacheStream = PassThrough()
-  const responseStream = PassThrough()
+  let encryptedKey = this.getNormalisedKey(key)
+  let cacheStream = PassThrough()
+  let responseStream = PassThrough()
 
   stream.pipe(cacheStream)
   stream.pipe(responseStream)
 
-  const write = cache.set(encryptedKey, cacheStream)
+  let write = cache.set(encryptedKey, cacheStream)
 
   if (wait) {
     return write.then(() => responseStream)
@@ -65,6 +65,29 @@ Cache.prototype.get = function (key) {
   if (!this.enabled) return Promise.resolve(null)
 
   return cache.get(key)
+}
+
+/**
+ * Returns a normalised key. If the input is an array,
+ * each element will be hashed individually and concatenated,
+ * in order, to form the final string. Otherwise, the hash
+ * of the string version of the input will be returned.
+ *
+ * @param  {Array/String} key
+ * @return {String}
+ */
+Cache.prototype.getNormalisedKey = function (key) {
+  if (Array.isArray(key)) {
+    return key.reduce((normalisedKey, node) => {
+      if (node || (node === 0)) {
+        normalisedKey += sha1(node.toString())
+      }
+
+      return normalisedKey
+    }, '')
+  }
+
+  return sha1(key.toString())
 }
 
 /**
@@ -88,7 +111,7 @@ Cache.prototype.set = function (key, value) {
 Cache.prototype.getStream = function (key) {
   if (!this.enabled) return Promise.resolve(null)
 
-  const encryptedKey = sha1(key)
+  let encryptedKey = this.getNormalisedKey(key)
 
   return cache.get(encryptedKey).catch(err => { // eslint-disable-line handle-callback-err
     return null
