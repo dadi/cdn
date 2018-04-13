@@ -28,7 +28,10 @@ Route.prototype._arrayIntersect = function (object, array) {
 }
 
 Route.prototype._getCacheKey = function () {
-  return this.ip + this.config.route
+  return [
+    this.domain,
+    this.ip + this.config.route
+  ]
 }
 
 Route.prototype._getPathInObject = function (path, object, breadcrumbs) {
@@ -274,6 +277,10 @@ Route.prototype.save = function () {
 
     return false
   }
+}
+
+Route.prototype.setDomain = function (domain) {
+  this.domain = domain
 }
 
 Route.prototype.setIP = function (ip) {
