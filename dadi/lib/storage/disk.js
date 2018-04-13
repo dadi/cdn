@@ -1,3 +1,4 @@
+const config = require('./../../../config')
 const fs = require('fs')
 const mkdirp = require('mkdirp')
 const nodeUrl = require('url')
@@ -5,10 +6,11 @@ const path = require('path')
 
 const Missing = require(path.join(__dirname, '/missing'))
 
-const DiskStorage = function (settings, url) {
-  this.settings = settings
+const DiskStorage = function ({assetType = 'assets', url}) {
+  let assetPath = config.get(`${assetType}.directory.path`)
+
   this.url = nodeUrl.parse(url, true).pathname
-  this.path = path.resolve(this.settings.path)
+  this.path = path.resolve(assetPath)
 }
 
 DiskStorage.prototype.getFullUrl = function () {
@@ -87,7 +89,7 @@ DiskStorage.prototype.put = function (stream, folderPath) {
 
         var data = {
           message: 'File uploaded',
-          path: filePath.replace(path.resolve(this.settings.path), '')
+          path: filePath.replace(this.path, '')
         }
 
         return resolve(data)
