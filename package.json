@@ -78,7 +78,7 @@
     "nock": "^9.0.2",
     "proxyquire": "~2.0.0",
     "redis": "^2.6.3",
-    "should": "~13.1.2",
+    "should": "~13.2.0",
     "sinon": "^4.0.2",
     "standard": "8.x.x",
     "supertest": "~3.0.0"
