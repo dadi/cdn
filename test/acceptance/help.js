@@ -1,9 +1,35 @@
-var fs = require('fs')
-var path = require('path')
-var should = require('should')
-var config = require(__dirname + '/../../config')
-var request = require('supertest')
-var _ = require('underscore')
+const fs = require('fs')
+const Jimp = require('jimp')
+const path = require('path')
+const should = require('should')
+const config = require(__dirname + '/../../config')
+const request = require('supertest')
+const req = require('request')
+
+module.exports.imagesEqual = function ({base, headers, test}) {
+  let fullBasePath = path.resolve(base)
+
+  if (test.indexOf('/') === 0) {
+    test = `http://${config.get('server.host')}:${config.get('server.port')}${test}`
+  }
+
+  return Jimp
+    .read(fullBasePath)
+    .then(baselineImage => {
+      return Jimp.read(test).then(testImage => {
+        let diff = Jimp.diff(baselineImage, testImage, 0.1)
+        let distance = Jimp.distance(baselineImage, testImage)
+
+        if (distance < 0.15 || diff.percent < 0.15) {
+          return true
+        }
+
+        return false
+      })
+    }).catch(err => {
+      console.error(err)
+    })
+}
 
 module.exports.getBearerToken = function (done) {
   request('http://' + config.get('server.host') + ':' + config.get('server.port'))

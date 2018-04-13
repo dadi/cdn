@@ -70,6 +70,7 @@
     "env-test": "^1.0.0",
     "fakeredis": "^2.0.0",
     "greenkeeper-postpublish": "^1.0.1",
+    "http-proxy": "^1.16.2",
     "istanbul": "^1.1.0-alpha.1",
     "istanbul-cobertura-badger": "^1.2.1",
     "it-each": "^0.3.1",
