@@ -20,12 +20,12 @@ const ADAPTERS = {
   }
 }
 
-module.exports.create = function create (type, assetPath, options = {}) {
+module.exports.create = function create (type, assetPath, {domain} = {}) {
   if (assetPath.indexOf('/') === 0) {
     assetPath = assetPath.slice(1)
   }
 
-  let configBlock
+  let configBlock = {}
 
   switch (type) {
     case 'asset':
@@ -63,7 +63,11 @@ module.exports.create = function create (type, assetPath, options = {}) {
 
   const Adapter = ADAPTERS[adapter].handler
 
-  return new Adapter(configBlock[ADAPTERS[adapter].configBlock], assetPath, options)
+  return new Adapter({
+    assetType: (type === 'image') ? 'images' : 'assets',
+    domain,
+    url: assetPath
+  })
 }
 
 module.exports.extractAdapterFromPath = function (assetPath) {

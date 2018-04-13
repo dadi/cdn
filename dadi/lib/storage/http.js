@@ -1,5 +1,6 @@
 'use strict'
 
+const config = require('./../../../config')
 const fs = require('fs')
 const mkdirp = require('mkdirp')
 const path = require('path')
@@ -15,19 +16,20 @@ mkdirp(tmpDirectory, (err, made) => {
   }
 })
 
-const HTTPStorage = function (settings, url) {
-  const isExternalURL = url.indexOf('http:') === 0 ||
+const HTTPStorage = function ({assetType = 'assets', domain, url}) {
+  let isExternalURL = url.indexOf('http:') === 0 ||
     url.indexOf('https:') === 0
+  let remoteAddress = config.get(`${assetType}.remote.path`, domain)
 
-  if (!isExternalURL && settings && !settings.path) {
-    throw new Error('Remote address not specified')
+  if (!isExternalURL) {
+    if (!remoteAddress) {
+      throw new Error('Remote address not specified')
+    }
+
+    this.baseUrl = remoteAddress
   }
 
   this.url = url
-
-  if (settings && !isExternalURL) {
-    this.baseUrl = settings.path
-  }
 }
 
 /**
@@ -53,7 +55,10 @@ HTTPStorage.prototype.getFullUrl = function () {
 
 HTTPStorage.prototype.get = function () {
   return new Promise((resolve, reject) => {
-    this.tmpFile = path.join(tmpDirectory, sha1(this.url) + '-' + Date.now() + path.extname(this.url))
+    this.tmpFile = path.join(
+      tmpDirectory,
+      sha1(this.url) + '-' + Date.now() + path.extname(this.url)
+    )
 
     const options = {
       headers: {
