@@ -62,7 +62,10 @@ describe('Routes model', () => {
 
       route.ip = '123.456.78.9'
 
-      route._getCacheKey().should.eql(route.ip + sampleRoute.route)
+      route._getCacheKey().should.eql([
+        undefined,
+        route.ip + sampleRoute.route
+      ])
     })
   })
 

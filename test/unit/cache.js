@@ -106,7 +106,7 @@ describe('Cache', function (done) {
       getStream.restore()
 
       var args = getStream.firstCall.args
-      args[0].should.eql(req.url)
+      args[0].includes(req.url).should.eql(true)
 
       var returnValue = getStream.firstCall.returnValue
       returnValue.then(err => {
