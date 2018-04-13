@@ -1,6 +1,6 @@
 {
 	"recipe": "sample-image-recipe",
-	"path": "/directory",
+	"path": "/next-level",
 	"settings": {
 		"format": "png"
 	}
