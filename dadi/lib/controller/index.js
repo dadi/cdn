@@ -104,7 +104,7 @@ const Controller = function (router) {
       }, res)
     }
 
-    let pattern = req.body.pattern === '*' ? pattern : sha1(req.body.pattern).slice(0, 10)
+    let pattern = req.body.pattern === '*' ? '' : sha1(req.body.pattern)
 
     help.clearCache(pattern, (err) => {
       if (err) console.log(err)
