@@ -112,7 +112,7 @@ describe('Storage', function (done) {
           var readable = new stream.Readable()
           readable.push('')
           readable.push(null)
-          resolve({stream:readable})
+          resolve({stream: readable})
         })
       })
 
@@ -122,8 +122,7 @@ describe('Storage', function (done) {
       // fake the http request so it doesn't do anything
       var scope = nock('https://www.google.co.uk')
         .get('/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png')
-        .reply(200, function(uri, requestBody) {
-
+        .reply(200, function (uri, requestBody) {
           var testImage = 'http://www.google.co.uk/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png'
           var s = new stream.PassThrough()
 
@@ -136,7 +135,7 @@ describe('Storage', function (done) {
           .pipe(s)
 
           return s
-      })
+        })
 
       return im.get().then(function (stream) {
         imageHandler.ImageHandler.prototype.convert.restore()

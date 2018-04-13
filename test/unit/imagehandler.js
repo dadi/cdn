@@ -51,6 +51,7 @@ describe('ImageHandler', function (done) {
     var spy = sinon.spy(factory, 'create')
 
     var req = {
+      __cdnLegacyURLSyntax: true,
       url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
     }
 
@@ -70,7 +71,7 @@ describe('ImageHandler', function (done) {
         var readable = new stream.Readable()
         readable.push('')
         readable.push(null)
-        resolve({stream:readable})
+        resolve({stream: readable})
       })
     })
 
@@ -107,6 +108,7 @@ describe('ImageHandler', function (done) {
     var spy = sinon.spy(factory, 'create')
 
     var req = {
+      __cdnLegacyURLSyntax: true,
       headers: {},
       url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
     }
@@ -115,7 +117,8 @@ describe('ImageHandler', function (done) {
     var expected = path.join(path.resolve(config.get('images.directory.path')), '/test.jpg')
 
     // stub the get method so it doesn't do anything
-    var get = sinon.stub(DiskStorage.DiskStorage.prototype, 'get').callsFake(function () { return new Promise(function (resolve, reject) {
+    var get = sinon.stub(DiskStorage.DiskStorage.prototype, 'get').callsFake(function () {
+      return new Promise(function (resolve, reject) {
         var readable = new fs.createReadStream(expected)
         resolve(readable)
       })
@@ -126,7 +129,7 @@ describe('ImageHandler', function (done) {
         var readable = new stream.Readable()
         readable.push('')
         readable.push(null)
-        resolve({stream:readable})
+        resolve({stream: readable})
       })
     })
 
@@ -164,6 +167,7 @@ describe('ImageHandler', function (done) {
     var spy = sinon.spy(factory, 'create')
 
     var req = {
+      __cdnLegacyURLSyntax: true,
       headers: {},
       url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/static/images/logos/nodejs-new-white-pantone.png'
     }
@@ -190,7 +194,7 @@ describe('ImageHandler', function (done) {
         var readable = new stream.Readable()
         readable.push('')
         readable.push(null)
-        resolve({stream:readable})
+        resolve({stream: readable})
       })
     })
 
@@ -227,6 +231,7 @@ describe('ImageHandler', function (done) {
     var spy = sinon.spy(factory, 'create')
 
     var req = {
+      __cdnLegacyURLSyntax: true,
       url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
     }
 
@@ -248,7 +253,7 @@ describe('ImageHandler', function (done) {
         var readable = new stream.Readable()
         readable.push('')
         readable.push(null)
-        resolve({stream:readable})
+        resolve({stream: readable})
       })
     })
 
@@ -263,7 +268,7 @@ describe('ImageHandler', function (done) {
       get.called.should.eql(true)
 
       var returnValue = spy.firstCall.returnValue
-      returnValue.urlParts().should.eql(expected)
+      returnValue.urlParts.should.eql(expected)
 
       done()
     })

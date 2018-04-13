@@ -1,0 +1,7 @@
+{
+  "recipe": "sample-js-recipe",
+  "settings": {
+    "transform": true,
+    "compress": true
+  }
+}

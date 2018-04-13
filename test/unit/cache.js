@@ -82,7 +82,7 @@ describe('Cache', function (done) {
     done()
   })
 
-  it("should receive null from cache.getStream() if the caching is disabled", function (done) {
+  it('should receive null from cache.getStream() if the caching is disabled', function (done) {
     var newTestConfig = JSON.parse(testConfigString)
     newTestConfig.caching.directory.enabled = false
     newTestConfig.caching.directory.path = './cache'
@@ -94,6 +94,7 @@ describe('Cache', function (done) {
     cache.reset()
 
     var req = {
+      __cdnLegacyURLSyntax: true,
       url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
     }
 
@@ -108,9 +109,11 @@ describe('Cache', function (done) {
       args[0].should.eql(req.url)
 
       var returnValue = getStream.firstCall.returnValue
-      should.not.exist(returnValue)
+      returnValue.then(err => {
+        should.not.exist(err)
 
-      done()
-    })
+        done()
+      })
+    }).catch(console.log)
   })
 })

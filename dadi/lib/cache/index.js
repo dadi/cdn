@@ -1,24 +1,25 @@
-var logger = require('@dadi/logger')
-var PassThrough = require('stream').PassThrough
-var path = require('path')
-var sha1 = require('sha1')
+const logger = require('@dadi/logger')
+const PassThrough = require('stream').PassThrough
+const path = require('path')
+const sha1 = require('sha1')
 
-var config = require(path.join(__dirname, '/../../../config'))
+const config = require(path.join(__dirname, '/../../../config'))
 
-var DadiCache = require('@dadi/cache')
-var cache = new DadiCache(config.get('caching'))
+const DadiCache = require('@dadi/cache')
+const cache = new DadiCache(config.get('caching'))
 
 /**
  * Creates a new Cache instance for the server
  * @constructor
  */
-var Cache = function () {
+const Cache = function () {
   this.enabled = config.get('caching.directory.enabled') || config.get('caching.redis.enabled')
 
   if (config.get('env') !== 'test') logger.info({module: 'cache'}, 'Cache logging started')
 }
 
-var instance
+let instance
+
 module.exports = function () {
   if (!instance) {
     instance = new Cache()
@@ -32,21 +33,29 @@ module.exports.reset = function () {
 }
 
 /**
- *
+ * Adds a stream to the cache
+ * @param  {Stream}  stream   The stream to be cached
+ * @param  {String}  key      The cache key
+ * @param  {Boolean} wait     Whether to wait for the write operation
+ * @return {Promise}
  */
-Cache.prototype.cacheFile = function (stream, key, cb) {
-  if (!this.enabled) return cb(stream)
+Cache.prototype.cacheFile = function (stream, key, wait) {
+  if (!this.enabled) return Promise.resolve(stream)
 
-  var cacheStream = PassThrough()
-  var responseStream = PassThrough()
+  const encryptedKey = sha1(key)
+  const cacheStream = PassThrough()
+  const responseStream = PassThrough()
+
   stream.pipe(cacheStream)
   stream.pipe(responseStream)
 
-  var encryptedKey = sha1(key)
+  const write = cache.set(encryptedKey, cacheStream)
 
-  cache.set(encryptedKey, cacheStream).then(() => {
-    return cb(responseStream)
-  })
+  if (wait) {
+    return write.then(() => responseStream)
+  }
+
+  return responseStream
 }
 
 /**
@@ -68,19 +77,21 @@ Cache.prototype.set = function (key, value) {
 }
 
 /**
+ * Gets a stream for the given cache key, if it exists.
  *
+ * Will return a Promise that is resolved with the Stream
+ * if the cache key exists, or resolved with null otherwise.
+ *
+ * @param  {String} key The cache key
+ * @return {Promise}
  */
-Cache.prototype.getStream = function (key, cb) {
-  if (!this.enabled) return cb(null)
+Cache.prototype.getStream = function (key) {
+  if (!this.enabled) return Promise.resolve(null)
 
-  var encryptedKey = sha1(key)
+  const encryptedKey = sha1(key)
 
-  cache.get(encryptedKey).then((stream) => {
-    return cb(stream)
-  }).catch((err) => {
-    // key doesn't exist
-    console.log(err)
-    return cb(null)
+  return cache.get(encryptedKey).catch(err => { // eslint-disable-line handle-callback-err
+    return null
   })
 }
 

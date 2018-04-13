@@ -1,9 +1,10 @@
-var convict = require('convict')
-var fs = require('fs')
-var path = require('path')
+const convict = require('convict')
+const fs = require('fs')
+const objectPath = require('object-path')
+const path = require('path')
 
 // Define a schema
-var conf = convict({
+const schema = {
   server: {
     host: {
       doc: 'The IP address the application will run on',
@@ -28,40 +29,40 @@ var conf = convict({
       default: 'DADI (CDN)'
     },
     protocol: {
-      doc: "The protocol the web application will use",
+      doc: 'The protocol the web application will use',
       format: String,
-      default: "http",
-      env: "PROTOCOL"
+      default: 'http',
+      env: 'PROTOCOL'
     },
     sslPassphrase: {
-      doc: "The passphrase of the SSL private key",
+      doc: 'The passphrase of the SSL private key',
       format: String,
-      default: "",
-      env: "SSL_PRIVATE_KEY_PASSPHRASE"
+      default: '',
+      env: 'SSL_PRIVATE_KEY_PASSPHRASE'
     },
     sslPrivateKeyPath: {
-      doc: "The filename of the SSL private key",
+      doc: 'The filename of the SSL private key',
       format: String,
-      default: "",
-      env: "SSL_PRIVATE_KEY_PATH"
+      default: '',
+      env: 'SSL_PRIVATE_KEY_PATH'
     },
     sslCertificatePath: {
-      doc: "The filename of the SSL certificate",
+      doc: 'The filename of the SSL certificate',
       format: String,
-      default: "",
-      env: "SSL_CERTIFICATE_PATH"
+      default: '',
+      env: 'SSL_CERTIFICATE_PATH'
     },
     sslIntermediateCertificatePath: {
-      doc: "The filename of an SSL intermediate certificate, if any",
+      doc: 'The filename of an SSL intermediate certificate, if any',
       format: String,
-      default: "",
-      env: "SSL_INTERMEDIATE_CERTIFICATE_PATH"
+      default: '',
+      env: 'SSL_INTERMEDIATE_CERTIFICATE_PATH'
     },
     sslIntermediateCertificatePaths: {
-      doc: "The filenames of SSL intermediate certificates, overrides sslIntermediateCertificate (singular)",
+      doc: 'The filenames of SSL intermediate certificates, overrides sslIntermediateCertificate (singular)',
       format: Array,
       default: [],
-      env: "SSL_INTERMEDIATE_CERTIFICATE_PATHS"
+      env: 'SSL_INTERMEDIATE_CERTIFICATE_PATHS'
     }
   },
   logging: {
@@ -190,7 +191,8 @@ var conf = convict({
       path: {
         doc: 'The remote host to request images from, for example http://media.example.com',
         format: String,
-        default: ''
+        default: '',
+        allowDomainOverride: true
       },
       allowFullURL: {
         doc: 'If true, images can be loaded from any remote URL',
@@ -304,28 +306,28 @@ var conf = convict({
   },
   status: {
     enabled: {
-      doc: "If true, status endpoint is enabled.",
+      doc: 'If true, status endpoint is enabled.',
       format: Boolean,
       default: true
     },
     requireAuthentication: {
-      doc: "If true, status endpoint requires authentication.",
+      doc: 'If true, status endpoint requires authentication.',
       format: Boolean,
       default: true
     },
     standalone: {
-      doc: "If true, status endpoint will run on an standalone address/port.",
+      doc: 'If true, status endpoint will run on an standalone address/port.',
       format: Boolean,
       default: false
     },
     port: {
-      doc: "Accept connections on the specified port. A value of zero will assign a random port.",
+      doc: 'Accept connections on the specified port. A value of zero will assign a random port.',
       format: Number,
       default: 8003,
-      env: "STATUS_PORT"
+      env: 'STATUS_PORT'
     },
     routes: {
-      doc: "An array of routes to test. Each route object must contain properties `route` and `expectedResponseTime`. Note, `expectedResponseTime` is seconds.",
+      doc: 'An array of routes to test. Each route object must contain properties `route` and `expectedResponseTime`. Note, `expectedResponseTime` is seconds.',
       format: Array,
       default: [
         {
@@ -357,19 +359,19 @@ var conf = convict({
       doc: '',
       format: String,
       default: '1235488',
-      env: "AUTH_TOKEN_ID"
+      env: 'AUTH_TOKEN_ID'
     },
     secret: {
       doc: '',
       format: String,
       default: 'asd544see68e52',
-      env: "AUTH_TOKEN_SECRET"
+      env: 'AUTH_TOKEN_SECRET'
     },
     tokenTtl: {
       doc: '',
       format: Number,
       default: 1800,
-      env: "AUTH_TOKEN_TTL"
+      env: 'AUTH_TOKEN_TTL'
     }
   },
   cloudfront: {
@@ -382,19 +384,19 @@ var conf = convict({
       doc: '',
       format: String,
       default: '',
-      env: "CLOUDFRONT_ACCESS_KEY"
+      env: 'CLOUDFRONT_ACCESS_KEY'
     },
     secretKey: {
       doc: '',
       format: String,
       default: '',
-      env: "CLOUDFRONT_SECRET_KEY"
+      env: 'CLOUDFRONT_SECRET_KEY'
     },
     distribution: {
       doc: '',
       format: String,
       default: '',
-      env: "CLOUDFRONT_DISTRIBUTION"
+      env: 'CLOUDFRONT_DISTRIBUTION'
     }
   },
   cluster: {
@@ -403,12 +405,23 @@ var conf = convict({
     default: true
   },
   paths: {
-    doc: "",
-    format: Object,
-    default: {
-      processors: __dirname + '/workspace/processors',
-      recipes: __dirname + '/workspace/recipes',
-      routes: __dirname + '/workspace/routes'
+    plugins: {
+      doc: 'Path to plugins directory',
+      format: String,
+      default: 'workspace/plugins',
+      allowDomainOverride: true
+    },
+    recipes: {
+      doc: 'Path to recipes directory',
+      format: String,
+      default: 'workspace/recipes',
+      allowDomainOverride: true
+    },
+    routes: {
+      doc: 'Path to routes directory',
+      format: String,
+      default: 'workspace/routes',
+      allowDomainOverride: true
     }
   },
   gzip: {
@@ -423,15 +436,15 @@ var conf = convict({
       default: true
     },
     cacheControl: {
-      doc: "A set of cache control headers based on specified mimetypes or paths",
+      doc: 'A set of cache control headers based on specified mimetypes or paths',
       format: Object,
       default: {
-        "default": "public, max-age=3600",
-        "paths": [],
-        "mimetypes": [
-          {"text/css": "public, max-age=86400"},
-          {"text/javascript": "public, max-age=86400"},
-          {"application/javascript": "public, max-age=86400"}
+        'default': 'public, max-age=3600',
+        'paths': [],
+        'mimetypes': [
+          {'text/css': 'public, max-age=86400'},
+          {'text/javascript': 'public, max-age=86400'},
+          {'application/javascript': 'public, max-age=86400'}
         ]
       }
     }
@@ -567,22 +580,114 @@ var conf = convict({
         default: false
       }
     }
-  }
-})
-
-// Load environment dependent configuration
-var env = conf.get('env')
-conf.loadFile('./config/config.' + env + '.json')
-
-// Update Config JSON file by domain name
-conf.updateConfigDataForDomain = function (domain) {
-  if (fs.existsSync(path.resolve(__dirname + '/workspace/domain-loader/' + domain + '.config.' + env + '.json'))) {
-    conf.loadFile(__dirname + '/workspace/domain-loader/' + domain + '.config.' + env + '.json')
+  },
+  experimental: {
+    jsTranspiling: {
+      doc: 'Whether to enable experimental support for on-demand JavaScript transpiling',
+      format: Boolean,
+      default: false,
+      env: 'JSTRANSPILING'
+    }
+  },
+  multiDomain: {
+    directory: {
+      doc: 'Path to domains directory',
+      format: 'String',
+      default: 'domains'
+    },
+    enabled: {
+      doc: 'Enable multi-domain configuration for this CDN instance',
+      format: Boolean,
+      default: false
+    }
   }
 }
 
-module.exports = conf
+const Config = function () {
+  this.loadFile(this.configPath())
 
-module.exports.configPath = function () {
-  return './config/config.' + conf.get('env') + '.json'
+  this.domainSchema = {}
+  this.createDomainSchema(schema, this.domainSchema)
+
+  this.domainConfigs = this.loadDomainConfigs()
 }
+
+Config.prototype = convict(schema)
+
+Config.prototype.configPath = function () {
+  let environment = this.get('env')
+
+  return `./config/config.${environment}.json`
+}
+
+Config.prototype.createDomainSchema = function (schema, target, tail = []) {
+  if (!schema || typeof schema !== 'object') return
+
+  if (schema.allowDomainOverride) {
+    let path = tail.join('.')
+
+    objectPath.set(
+      target,
+      path,
+      Object.assign({}, schema, {
+        default: this.get(path)
+      })
+    )
+    
+    return
+  }
+  
+  Object.keys(schema).forEach(key => {
+    this.createDomainSchema(schema[key], target, tail.concat(key))
+  })
+}
+
+Config.prototype._get = Config.prototype.get
+
+Config.prototype.get = function (path, domain) {
+  if (
+    domain === undefined ||
+    this.domainConfigs[domain] === undefined ||
+    !objectPath.get(schema, `${path}.allowDomainOverride`)
+  ) {
+    return this._get(path)
+  }
+
+  return this.domainConfigs[domain].get(path)
+}
+
+Config.prototype.loadDomainConfigs = function () {
+  let configs = {}
+  let domainsDirectory = path.resolve(
+    this.get('multiDomain.directory')
+  )
+
+  fs.readdirSync(domainsDirectory).forEach(domain => {
+    let domainStats = fs.statSync(path.join(domainsDirectory, domain))
+
+    if (domainStats.isDirectory()) {
+      let filePath = path.join(
+        domainsDirectory,
+        domain,
+        `config/config.${this.get('env')}.json`
+      )
+
+      try {
+        let file = fs.statSync(filePath)
+
+        if (file.isFile()) {
+          configs[domain] = convict(this.domainSchema)
+          configs[domain].loadFile(filePath)
+        }
+      } catch (err) {
+        console.log(err)
+      }
+    }
+  })
+
+  return configs
+}
+
+module.exports = new Config()
+module.exports.Config = Config
+module.exports.schema = schema

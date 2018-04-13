@@ -12,7 +12,6 @@ var app = require(__dirname + '/../../dadi/lib/')
 var testConfig
 
 describe('Index', function () {
-
   before(function (done) {
     testConfig = JSON.parse(fs.readFileSync(config.configPath()).toString())
 
@@ -27,7 +26,7 @@ describe('Index', function () {
   })
 
   after(function (done) {
-    app.stop(function() {
+    app.stop(function () {
       fs.writeFileSync(config.configPath(), JSON.stringify(testConfig, null, 2))
       done()
     })
@@ -35,7 +34,6 @@ describe('Index', function () {
 
   describe('File change monitor', function () {
     it('should reload the config when the current config file changes', function (done) {
-
       var configContent = JSON.parse(fs.readFileSync(config.configPath()).toString())
 
       configContent.logging.level = 'trace'
@@ -43,7 +41,7 @@ describe('Index', function () {
       fs.writeFileSync(config.configPath(), JSON.stringify(configContent, null, 2))
 
       // reload
-      setTimeout(function() {
+      setTimeout(function () {
         delete require.cache[__dirname + '/../../config']
         config = require(__dirname + '/../../config')
         config.get('logging.level').should.eql('trace')
