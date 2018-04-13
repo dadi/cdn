@@ -13,7 +13,7 @@ const config = require(__dirname + '/../../config')
 const help = require(__dirname + '/help')
 
 const cdnUrl = `http://${config.get('server.host')}:${config.get('server.port')}`
-const proxyPort = 5050
+const proxyPort = config.get('server.port') + 1
 const proxyUrl = `http://localhost:${proxyPort}`
 
 const images = {
@@ -43,19 +43,13 @@ let proxy = httpProxy.createProxyServer({})
 
 proxy.on('proxyReq', (proxyReq, req, res, options) => {
   let parsedUrl = url.parse(req.url, true)
-  let searchParams = new url.URLSearchParams(parsedUrl.search)
+  let mockDomain = parsedUrl.query.mockdomain
 
-  searchParams.delete('mockdomain')
+  parsedUrl.search = null
+  delete parsedUrl.query.mockdomain
 
-  let newUrl = parsedUrl.pathname
-  let newSearch = searchParams.toString()
-
-  if (newSearch.length) {
-    newUrl += '?' + newSearch
-  }
-
-  proxyReq.path = newUrl
-  proxyReq.setHeader('Host', parsedUrl.query.mockdomain)
+  proxyReq.path = url.format(parsedUrl)
+  proxyReq.setHeader('Host', mockDomain)
 })
 
 let proxyServer = http.createServer((req, res) => {
