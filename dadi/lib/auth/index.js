@@ -1,9 +1,9 @@
-var path = require('path')
-var persist = require('node-persist')
-var uuid = require('uuid')
+const path = require('path')
+const persist = require('node-persist')
+const uuid = require('uuid')
 
-var config = require(path.join(__dirname, '/../../../config.js'))
-var help = require(path.join(__dirname, '/../help'))
+const config = require(path.join(__dirname, '/../../../config.js'))
+const help = require(path.join(__dirname, '/../help'))
 
 function mustAuthenticate (requestUrl) {
   if (requestUrl.indexOf('/api/upload') > -1 && config.get('upload.requireAuthentication') === false) {
@@ -24,10 +24,10 @@ module.exports = function (router) {
     }
   })
 
-  var tokenRoute = '/token'
+  let tokenRoute = '/token'
 
   // Authorize
-  router.use(function (req, res, next) {
+  router.use((req, res, next) => {
     // Let requests for tokens through, along with endpoints configured to not use authentication
     if (req.url === tokenRoute) return next()
     if (!mustAuthenticate(req.url)) return next()
@@ -38,8 +38,8 @@ module.exports = function (router) {
     }
 
     // Strip token value out of request headers
-    var parts = req.headers.authorization.split(' ')
-    var token
+    let parts = req.headers.authorization.split(' ')
+    let token
 
     // Headers should be `Authorization: Bearer <%=tokenvalue%>`
     if (parts.length === 2 && /^Bearer$/i.test(parts[0])) {
@@ -50,11 +50,13 @@ module.exports = function (router) {
       return fail('NoToken', res)
     }
 
-    persist.getItem('token').then((tokenList) => {
+    persist.getItem('token').then(tokenList => {
       if (tokenList.length > 0) {
-        var existToken = 0
-        for (var i = 0; i < tokenList.length; i++) {
-          var localToken = tokenList[i]
+        let existToken = 0
+
+        for (let i = 0; i < tokenList.length; i++) {
+          let localToken = tokenList[i]
+
           if (token === localToken.token && parseInt(localToken.tokenExpire) >= Date.now()) {
             existToken++
           }
@@ -72,17 +74,17 @@ module.exports = function (router) {
   })
 
   // Setup token service
-  router.use(tokenRoute, function (req, res, next) {
-    var method = req.method && req.method.toLowerCase()
+  router.use(tokenRoute, (req, res, next) => {
+    let method = req.method && req.method.toLowerCase()
 
     if (method === 'post') {
-      var clientId = req.body.clientId
-      var secret = req.body.secret
+      let clientId = req.body.clientId
+      let secret = req.body.secret
 
       if (clientId === config.get('auth.clientId') && secret === config.get('auth.secret')) {
-        var token = uuid.v4()
+        let token = uuid.v4()
 
-        persist.getItem('token').then((tokenList) => {
+        persist.getItem('token').then(tokenList => {
           tokenList.push({token: token, tokenExpire: Date.now() + (config.get('auth.tokenTtl') * 1000)})
           persist.setItemSync('token', tokenList)
 
