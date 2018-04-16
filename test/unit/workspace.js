@@ -94,19 +94,19 @@ describe('Workspace', function () {
         content: sampleRecipe
       })
 
-      return workspace.read().then(tree => {
+      return workspace.read().then(({files}) => {
         // Plugin
-        tree['my-plugin'].should.be.Object
-        tree['my-plugin'].path.should.eql(samplePluginPath)
-        tree['my-plugin'].type.should.eql('plugins')
+        files['my-plugin'].should.be.Object
+        files['my-plugin'].path.should.eql(samplePluginPath)
+        files['my-plugin'].type.should.eql('plugins')
         
         // Recipe
         const source = require(sampleRecipePath)
 
-        tree['my-recipe'].should.be.Object
-        JSON.stringify(tree['my-recipe'].source).should.eql(JSON.stringify(sampleRecipe))
-        tree['my-recipe'].path.should.eql(sampleRecipePath)
-        tree['my-recipe'].type.should.eql('recipes')
+        files['my-recipe'].should.be.Object
+        JSON.stringify(files['my-recipe'].source).should.eql(JSON.stringify(sampleRecipe))
+        files['my-recipe'].path.should.eql(sampleRecipePath)
+        files['my-recipe'].type.should.eql('recipes')
 
         mockWorkspaceFile({
           type: 'plugins',
@@ -146,22 +146,22 @@ describe('Workspace', function () {
         content: sampleRecipe
       })
 
-      return workspace.read().then(tree => {
+      return workspace.read().then(({files}) => {
         // Plugin
-        tree['my-plugin'].should.be.Object
-        tree['my-plugin'].path.should.eql(samplePluginPath)
-        tree['my-plugin'].type.should.eql('plugins')
+        files['my-plugin'].should.be.Object
+        files['my-plugin'].path.should.eql(samplePluginPath)
+        files['my-plugin'].type.should.eql('plugins')
 
         // Recipe
         const source = require(sampleRecipePath)
 
-        tree['testdomain.com:my-domain-recipe'].should.be.Object
-        JSON.stringify(tree['testdomain.com:my-domain-recipe'].source).should.eql(
+        files['testdomain.com:my-domain-recipe'].should.be.Object
+        JSON.stringify(files['testdomain.com:my-domain-recipe'].source).should.eql(
           JSON.stringify(sampleRecipe)
         )
-        tree['testdomain.com:my-domain-recipe'].path.should.eql(sampleRecipePath)
-        tree['testdomain.com:my-domain-recipe'].type.should.eql('recipes')
-        tree['testdomain.com:my-domain-recipe'].domain.should.eql('testdomain.com')
+        files['testdomain.com:my-domain-recipe'].path.should.eql(sampleRecipePath)
+        files['testdomain.com:my-domain-recipe'].type.should.eql('recipes')
+        files['testdomain.com:my-domain-recipe'].domain.should.eql('testdomain.com')
 
         mockWorkspaceFile({
           type: 'plugins',
@@ -204,9 +204,9 @@ describe('Workspace', function () {
         content: sampleRecipe2
       })
 
-      return workspace.read().then(tree => {
-        tree['my-recipe'].should.be.Object
-        tree['my-second-recipe'].should.be.Object
+      return workspace.read().then(({files}) => {
+        files['my-recipe'].should.be.Object
+        files['my-second-recipe'].should.be.Object
 
         mockWorkspaceFile({
           type: 'recipes',
@@ -279,9 +279,9 @@ describe('Workspace', function () {
         content: sampleRecipe
       })
 
-      return workspace.read().then(tree => {
-        tree['my-recipe'].should.be.Object
-        tree['my-recipe'].source.settings.format.should.eql('png')
+      return workspace.read().then(({files}) => {
+        files['my-recipe'].should.be.Object
+        files['my-recipe'].source.settings.format.should.eql('png')
 
         sampleRecipePath = mockWorkspaceFile({
           type: 'recipes',
@@ -300,9 +300,9 @@ describe('Workspace', function () {
         })
 
         return workspace.read()   
-      }).then(newTree => {
-        newTree['my-recipe'].should.be.Object
-        newTree['my-recipe'].source.settings.format.should.eql('jpg')
+      }).then(({files}) => {
+        files['my-recipe'].should.be.Object
+        files['my-recipe'].source.settings.format.should.eql('jpg')
 
         mockWorkspaceFile({
           type: 'recipes',
@@ -315,11 +315,10 @@ describe('Workspace', function () {
 
   describe('build()', () => {
     it('should generate a tree structure of the workspace files and save it internally', () => {
-      return workspace.read().then(tree1 => {
+      return workspace.read().then(({files: tree1}) => {
         workspace.workspace.should.eql({})
         
-
-        return workspace.build().then(tree2 => {
+        return workspace.build().then(({files: tree2}) => {
           workspace.workspace.should.eql(tree1)
           workspace.workspace.should.eql(tree2)
         })
@@ -329,9 +328,9 @@ describe('Workspace', function () {
 
   describe('get()', () => {
     it('should return the entire workspace tree when given no arguments', () => {
-      return workspace.read().then(tree => {
+      return workspace.read().then(({files}) => {
         return workspace.build().then(() => {
-          workspace.get().should.eql(tree)    
+          workspace.get().should.eql(files)    
         })
       })
     })

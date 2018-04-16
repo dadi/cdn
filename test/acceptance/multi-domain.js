@@ -5,7 +5,7 @@ const nock = require('nock')
 const path = require('path')
 const should = require('should')
 const sinon = require('sinon')
-const request = require('request')
+const request = require('supertest')
 const url = require('url')
 
 const app = require(__dirname + '/../../dadi/lib/')
@@ -59,6 +59,62 @@ let proxyServer = http.createServer((req, res) => {
 })
 
 describe('Multi-domain', function () {
+  describe('if multi-domain is disabled', () => {
+    let configBackup = {
+      multiDomain: config.get('multiDomain')
+    }
+
+    before(done => {
+      config.set('multiDomain.enabled', false)
+
+      app.start(err => {
+        if (err) return done(err)
+
+        setTimeout(done, 500)
+      })
+    })
+
+    after(done => {
+      config.set('multiDomain', configBackup.multiDomain)
+
+      proxyServer.close(() => {
+        app.stop(done)  
+      })
+    })
+
+    it('should retrieve a remote image from a path specified by a recipe regardless of whether the domain is configured', () => {
+      return help.imagesEqual({
+        base: images['localhost'],
+        test: `${cdnUrl}/sample-image-recipe/test.jpg`
+      }).then(match => {
+        match.should.eql(true)
+
+        return help.imagesEqual({
+          base: images['localhost'],
+          test: `${cdnUrl}/sample-image-recipe/test.jpg?mockdomain=unknowndomain.com`
+        }).then(match => {
+          match.should.eql(true)
+        })
+      })
+    }).timeout(5000)
+
+    it('should retrieve a remote image regardless of whether the domain is configured', () => {
+      return help.imagesEqual({
+        base: images['localhost'],
+        test: `${cdnUrl}/test.jpg`
+      }).then(match => {
+        match.should.eql(true)
+
+        return help.imagesEqual({
+          base: images['localhost'],
+          test: `${cdnUrl}/test.jpg?mockdomain=unknowndomain.com`
+        }).then(match => {
+          match.should.eql(true)
+        })
+      })
+    }).timeout(5000)
+  })
+
   describe('if multi-domain is enabled', () => {
     let configBackup = {
       images: config.get('images'),
@@ -90,7 +146,7 @@ describe('Multi-domain', function () {
       })
     })
 
-    it('should retrieve a remote image from the path specified by a recipe at domain domain level', () => {
+    it('should retrieve a remote image from the path specified by a recipe at domain level', () => {
       return help.imagesEqual({
         base: images['localhost'],
         test: `${proxyUrl}/test-recipe/test.jpg?mockdomain=localhost`
@@ -120,6 +176,62 @@ describe('Multi-domain', function () {
           match.should.eql(true)
         })
       })
-    }).timeout(5000)    
+    }).timeout(5000)
+
+    describe('when the target domain is not configured', () => {
+      let testDomain = 'unknowndomain.com'
+
+      it('should return 404 when trying to retrieve a remote image', done => {
+        request(cdnUrl)
+          .get('/test.jpg')
+          .set('Host', `${testDomain}:80`)
+          .expect(404)
+          .end((err, res) => {
+            res.body.message.should.eql(
+              `Domain not configured: ${testDomain}`
+            )
+
+            done()
+          })
+      })
+
+      it('should return 404 when trying to reach a recipe', done => {
+        request(cdnUrl)
+          .get('/sample-image-recipe/test.jpg')
+          .set('Host', `${testDomain}:80`)
+          .expect(404)
+          .end((err, res) => {
+            res.body.message.should.eql(
+              `Domain not configured: ${testDomain}`
+            )
+
+            done()
+          })
+      })
+
+      it('should return 404 when trying to retrieve an asset', done => {
+        request(cdnUrl)
+          .get('/test.js')
+          .set('Host', `${testDomain}:80`)
+          .expect(404)
+          .end((err, res) => {
+            res.body.message.should.eql(
+              `Domain not configured: ${testDomain}`
+            )
+
+            request(cdnUrl)
+              .get('/test.css')
+              .set('Host', `${testDomain}:80`)
+              .expect(404)
+              .end((err, res) => {
+                res.body.message.should.eql(
+                  `Domain not configured: ${testDomain}`
+                )
+
+                done()
+              })
+          })
+      })
+    })
   })
 })

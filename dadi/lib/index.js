@@ -6,6 +6,7 @@ const colors = require('colors') // eslint-disable-line
 const bodyParser = require('body-parser')
 const finalhandler = require('finalhandler')
 const fs = require('fs')
+const help = require('./help')
 const http = require('http')
 const https = require('https')
 const path = require('path')
@@ -245,7 +246,16 @@ Server.prototype.start = function (done) {
 
   let app = createServer((req, res) => {
     if (config.get('multiDomain.enabled')) {
-      req.__domain = req.headers.host.split(':')[0]
+      let domain = req.headers.host.split(':')[0]
+
+      if (!workspace.hasDomain(domain)) {
+        return help.sendBackJSON(404, {
+          result: 'Failed',
+          message: `Domain not configured: ${domain}`
+        }, res)
+      }
+
+      req.__domain = domain
     }
 
     res.setHeader('Server', config.get('server.name'))
