@@ -5,7 +5,7 @@ var config = require(path.resolve(path.join(__dirname, '/../../config')))
 var cache = require(path.join(__dirname, '/cache'))
 
 module.exports.clearCache = function (pathname, callback) {
-  cache.delete(pathname, (err) => {
+  cache().delete(pathname, (err) => {
     if (err) console.log(err)
     return callback(null)
   })

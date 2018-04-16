@@ -13,23 +13,9 @@ const cache = new DadiCache(config.get('caching'))
  * @constructor
  */
 const Cache = function () {
-  this.enabled = config.get('caching.directory.enabled') || config.get('caching.redis.enabled')
-
-  if (config.get('env') !== 'test') logger.info({module: 'cache'}, 'Cache logging started')
-}
-
-let instance
-
-module.exports = function () {
-  if (!instance) {
-    instance = new Cache()
+  if (config.get('env') !== 'test') {
+    logger.info({module: 'cache'}, 'Cache logging started')
   }
-  return instance
-}
-
-// reset method for unit tests
-module.exports.reset = function () {
-  instance = null
 }
 
 /**
@@ -40,7 +26,7 @@ module.exports.reset = function () {
  * @return {Promise}
  */
 Cache.prototype.cacheFile = function (stream, key, wait) {
-  if (!this.enabled) return Promise.resolve(stream)
+  if (!this.isEnabled()) return Promise.resolve(stream)
 
   let encryptedKey = this.getNormalisedKey(key)
   let cacheStream = PassThrough()
@@ -59,10 +45,28 @@ Cache.prototype.cacheFile = function (stream, key, wait) {
 }
 
 /**
+ * Deletes an item from cache.
  *
+ * @param  {String}   pattern
+ * @param  {Function} callback
+ */
+Cache.prototype.delete = function (pattern, callback) {
+  cache.flush(pattern).then(() => {
+    return callback(null)
+  }).catch((err) => {
+    console.log(err)
+    return callback(null)
+  })
+}
+
+/**
+ * Gets an item from cache.
+ *
+ * @param  {String} key
+ * @return {Mixed}
  */
 Cache.prototype.get = function (key) {
-  if (!this.enabled) return Promise.resolve(null)
+  if (!this.isEnabled()) return Promise.resolve(null)
 
   return cache.get(key)
 }
@@ -91,15 +95,6 @@ Cache.prototype.getNormalisedKey = function (key) {
 }
 
 /**
- *
- */
-Cache.prototype.set = function (key, value) {
-  if (!this.enabled) return Promise.resolve(null)
-
-  return cache.set(key, value)
-}
-
-/**
  * Gets a stream for the given cache key, if it exists.
  *
  * Will return a Promise that is resolved with the Stream
@@ -109,7 +104,7 @@ Cache.prototype.set = function (key, value) {
  * @return {Promise}
  */
 Cache.prototype.getStream = function (key) {
-  if (!this.enabled) return Promise.resolve(null)
+  if (!this.isEnabled()) return Promise.resolve(null)
 
   let encryptedKey = this.getNormalisedKey(key)
 
@@ -119,13 +114,34 @@ Cache.prototype.getStream = function (key) {
 }
 
 /**
+ * Checks whether caching is enabled.
  *
+ * @return {Boolean}
  */
-module.exports.delete = function (pattern, callback) {
-  cache.flush(pattern).then(() => {
-    return callback(null)
-  }).catch((err) => {
-    console.log(err)
-    return callback(null)
-  })
+Cache.prototype.isEnabled = function () {
+  return config.get('caching.directory.enabled') ||
+    config.get('caching.redis.enabled')
+}
+
+/**
+ * Saves an item to cache.
+ *
+ * @param {String} key   cache key
+ * @param {[type]} value
+ */
+Cache.prototype.set = function (key, value) {
+  if (!this.isEnabled()) return Promise.resolve(null)
+
+  return cache.set(key, value)
+}
+
+let instance
+
+module.exports = () => instance || new Cache()
+
+module.exports.Cache = Cache
+
+// Reset method (for unit tests).
+module.exports.reset = function () {
+  instance = null
 }
