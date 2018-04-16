@@ -24,17 +24,17 @@ DiskStorage.prototype.getLastModified = function () {
 DiskStorage.prototype.get = function () {
   return new Promise((resolve, reject) => {
     // attempt to open
-    const stream = fs.createReadStream(this.getFullUrl())
+    let stream = fs.createReadStream(this.getFullUrl())
 
     stream.on('open', () => {
       // check file size
-      const stats = fs.statSync(this.getFullUrl())
-      const fileSize = parseInt(stats.size)
+      let stats = fs.statSync(this.getFullUrl())
+      let fileSize = parseInt(stats.size)
 
       this.lastModified = stats.mtime
 
       if (fileSize === 0) {
-        const err = {
+        let err = {
           statusCode: 404,
           message: 'File size is 0 bytes'
         }
@@ -46,7 +46,7 @@ DiskStorage.prototype.get = function () {
     })
 
     stream.on('error', () => {
-      const err = {
+      let err = {
         statusCode: 404,
         message: 'File not found: ' + this.getFullUrl()
       }
@@ -72,22 +72,21 @@ DiskStorage.prototype.put = function (stream, folderPath) {
         return reject(err)
       }
 
-      var filePath = this.getFullUrl()
+      let filePath = this.getFullUrl()
 
       fs.stat(filePath, (err, stats) => {
-        if (err) {
-          // file not found on disk, so ok to write it with no filename changes
-        } else {
+        if (!err) {
           // file exists, give it a new name
-          var pathParts = path.parse(filePath)
-          var newFileName = pathParts.name + '-' + Date.now().toString()
+          let pathParts = path.parse(filePath)
+          let newFileName = pathParts.name + '-' + Date.now().toString()
+
           filePath = path.join(this.path, newFileName + pathParts.ext)
         }
 
-        var writeStream = fs.createWriteStream(filePath)
+        let writeStream = fs.createWriteStream(filePath)
         stream.pipe(writeStream)
 
-        var data = {
+        let data = {
           message: 'File uploaded',
           path: filePath.replace(this.path, '')
         }

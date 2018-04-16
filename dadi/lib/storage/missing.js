@@ -1,10 +1,12 @@
-var fs = require('fs')
-var path = require('path')
+const fs = require('fs')
+const path = require('path')
 
-var config = require(path.join(__dirname, '/../../../config'))
+const config = require(path.join(__dirname, '/../../../config'))
 
-var Missing = function () {
-  this.url = config.get('notFound.images.enabled') ? config.get('notFound.images.path') : null
+const Missing = function () {
+  this.url = config.get('notFound.images.enabled')
+    ? config.get('notFound.images.path')
+    : null
 }
 
 Missing.prototype.get = function () {
@@ -14,15 +16,15 @@ Missing.prototype.get = function () {
     }
 
     // attempt to open
-    var stream = fs.createReadStream(this.url)
+    let stream = fs.createReadStream(this.url)
 
     stream.on('open', () => {
       // check file size
-      var stats = fs.statSync(this.url)
-      var fileSize = parseInt(stats.size)
+      let stats = fs.statSync(this.url)
+      let fileSize = parseInt(stats.size)
 
       if (fileSize === 0) {
-        var err = {
+        let err = {
           statusCode: 404,
           message: 'File size is 0 bytes'
         }
@@ -34,7 +36,7 @@ Missing.prototype.get = function () {
     })
 
     stream.on('error', () => {
-      var err = {
+      let err = {
         statusCode: 404,
         message: 'File not found: ' + this.url
       }

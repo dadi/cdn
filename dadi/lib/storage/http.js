@@ -60,13 +60,17 @@ HTTPStorage.prototype.get = function () {
       sha1(this.url) + '-' + Date.now() + path.extname(this.url)
     )
 
-    const options = {
+    let options = {
       headers: {
         'User-Agent': 'DADI CDN'
       }
     }
 
-    const download = wget.download(this.getFullUrl(), this.tmpFile, options)
+    let download = wget.download(
+      this.getFullUrl(),
+      this.tmpFile,
+      options
+    )
 
     download.on('error', (error) => {
       let err = {}
