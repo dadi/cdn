@@ -24,7 +24,7 @@ const config = require(path.join(__dirname, '/../../../config'))
   }
 */
 const Workspace = function () {
-  this.VALID_EXTENSIONS = ['.js', '.json']
+  this.domains = []
   this.workspace = {}
 }
 
@@ -34,10 +34,14 @@ const Workspace = function () {
  * @return {Object} The new workspace
  */
 Workspace.prototype.build = function () {
-  return this.read().then(workspace => {
-    this.workspace = workspace
+  return this.read().then(({domains, files}) => {
+    this.domains = domains
+    this.workspace = files
 
-    return this.workspace
+    return {
+      domains,
+      files
+    }
   })
 }
 
@@ -108,6 +112,17 @@ Workspace.prototype.get = function (item, domain) {
 }
 
 /**
+ * Returns whether the CDN instance is configured for a given
+ * domain name.
+ *
+ * @param  {String}  domain
+ * @return {Boolean}
+ */
+Workspace.prototype.hasDomain = function (domain) {
+  return this.domains.includes(domain)
+}
+
+/**
  * Creates an object with all the files existing in the various
  * workspace directories.
  *
@@ -115,6 +130,7 @@ Workspace.prototype.get = function (item, domain) {
  */
 Workspace.prototype.read = function () {
   let directories = []
+  let configuredDomains = []
   let queue = ['plugins', 'recipes', 'routes'].reduce((queue, type) => {
     let directoryPath = path.resolve(
       config.get(`paths.${type}`)
@@ -148,6 +164,8 @@ Workspace.prototype.read = function () {
         return fs.stat(domainPath).then(stats => {
           if (!stats.isDirectory()) return
 
+          configuredDomains.push(domain)
+
           let typeQueue = ['plugins', 'recipes', 'routes'].map(type => {
             let typePath = path.resolve(
               domainsDirectory,
@@ -175,7 +193,7 @@ Workspace.prototype.read = function () {
   return this.createDirectories().then(() => {
     return queue
   }).then(() => {
-    return directories.reduce((files, {domain, items, type}) => {
+    let files = directories.reduce((files, {domain, items, type}) => {
       items.forEach(file => {
         const extension = path.extname(file)
         const baseName = path.basename(file, extension)
@@ -185,7 +203,7 @@ Workspace.prototype.read = function () {
           file
         )
 
-        if (!this.VALID_EXTENSIONS.includes(extension)) return
+        if (!['.js', '.json'].includes(extension)) return
 
         let source
         let workspaceKey = baseName
@@ -221,6 +239,11 @@ Workspace.prototype.read = function () {
 
       return files
     }, {})
+
+    return {
+      domains: configuredDomains,
+      files
+    }
   })
 }
 
