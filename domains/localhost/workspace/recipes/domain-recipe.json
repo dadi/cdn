@@ -1,0 +1,6 @@
+{
+  "recipe": "test-recipe",
+  "settings": {
+    "format": "png"
+  }
+}

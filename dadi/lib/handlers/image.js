@@ -232,9 +232,17 @@ ImageHandler.prototype.get = function () {
 
     assetPath = pathParts.slice(urlSegments.length + 1).join('/')
 
-    this.options = Object.assign({}, this.options, getImageOptionsFromLegacyURL(urlSegments))
+    this.options = Object.assign(
+      {},
+      this.options,
+      getImageOptionsFromLegacyURL(urlSegments)
+    )
   } else {
-    this.options = Object.assign({}, this.options, this.parsedUrl.cdn.query)
+    this.options = Object.assign(
+      {},
+      this.options,
+      this.parsedUrl.cdn.query
+    )
   }
 
   // Aborting the request if full remote URL is required and not enabled.
@@ -278,9 +286,17 @@ ImageHandler.prototype.get = function () {
     }
   })
 
-  this.storageHandler = this.storageFactory.create('image', assetPath)
+  this.storageHandler = this.storageFactory.create(
+    'image',
+    assetPath,
+    {domain: this.req.__domain}
+  )
 
-  const cacheKey = this.requestUrl
+  const cacheKey = [
+    this.req.__domain,
+    this.parsedUrl.cdn.pathname,
+    JSON.stringify(this.options)
+  ]
   const isJSONResponse = this.options.format === 'json'
 
   return this.cache.getStream(cacheKey).then(cachedStream => {

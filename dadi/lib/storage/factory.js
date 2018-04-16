@@ -20,12 +20,12 @@ const ADAPTERS = {
   }
 }
 
-module.exports.create = function create (type, assetPath, options = {}) {
+module.exports.create = function create (type, assetPath, {domain} = {}) {
   if (assetPath.indexOf('/') === 0) {
     assetPath = assetPath.slice(1)
   }
 
-  let configBlock
+  let configBlock = {}
 
   switch (type) {
     case 'asset':
@@ -39,7 +39,7 @@ module.exports.create = function create (type, assetPath, options = {}) {
       break
   }
 
-  const adapterFromPath = module.exports.extractAdapterFromPath(assetPath)
+  let adapterFromPath = module.exports.extractAdapterFromPath(assetPath)
 
   let adapter
 
@@ -53,7 +53,7 @@ module.exports.create = function create (type, assetPath, options = {}) {
     ) {
       adapter = 'http'
     } else {
-      const enabledStorage = Object.keys(configBlock).find(key => configBlock[key].enabled)
+      let enabledStorage = Object.keys(configBlock).find(key => configBlock[key].enabled)
 
       adapter = Object.keys(ADAPTERS).find(key => {
         return ADAPTERS[key].configBlock === enabledStorage
@@ -61,9 +61,13 @@ module.exports.create = function create (type, assetPath, options = {}) {
     }
   }
 
-  const Adapter = ADAPTERS[adapter].handler
+  let Adapter = ADAPTERS[adapter].handler
 
-  return new Adapter(configBlock[ADAPTERS[adapter].configBlock], assetPath, options)
+  return new Adapter({
+    assetType: (type === 'image') ? 'images' : 'assets',
+    domain,
+    url: assetPath
+  })
 }
 
 module.exports.extractAdapterFromPath = function (assetPath) {
@@ -72,8 +76,7 @@ module.exports.extractAdapterFromPath = function (assetPath) {
   }
 
   let newAssetPath = assetPath
-
-  const adapter = Object.keys(ADAPTERS).find(key => {
+  let adapter = Object.keys(ADAPTERS).find(key => {
     if (assetPath.indexOf(`${key}/`) === 0) {
       newAssetPath = assetPath.slice(key.length + 1)
 

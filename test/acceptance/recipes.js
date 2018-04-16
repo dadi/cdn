@@ -260,7 +260,7 @@ describe('Recipes', function () {
       })
     })
 
-    it('should handle image if recipe is valid', function (done) {
+    it('should handle image if recipe is valid', () => {
       var newTestConfig = JSON.parse(testConfigString)
       newTestConfig.images.directory.enabled = true
       newTestConfig.images.directory.path = './test/images'
@@ -268,13 +268,12 @@ describe('Recipes', function () {
 
       config.loadFile(config.configPath())
 
-      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-      client
-        .get('/sample-image-recipe/test.jpg')
-        .expect(200)
-        .end(function (err, res) {
-          done()
-        })
+      return help.imagesEqual({
+        base: 'test/images/test.jpg',
+        test: '/sample-image-recipe/test.jpg'
+      }).then(match => {
+        match.should.eql(true)
+      })
     })
 
     it('should handle JS file if recipe is valid', function (done) {

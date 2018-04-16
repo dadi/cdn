@@ -175,6 +175,7 @@ HandlerFactory.prototype.createFromRecipe = function ({name, req, route, workspa
 HandlerFactory.prototype.createFromRoute = function ({name, req, workspaceMatch}) {
   const route = new Route(workspaceMatch.source)
 
+  route.setDomain(req.__domain)
   route.setLanguage(req.headers['accept-language'])
   route.setUserAgent(req.headers['user-agent'])
 

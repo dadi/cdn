@@ -4,7 +4,7 @@
   },
   "images": {
     "remote": {
-      "path": "https://images.testdomain.com"
+      "path": "http://two.somedomain.tech"
     }
   }
 }

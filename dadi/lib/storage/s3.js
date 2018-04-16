@@ -1,5 +1,6 @@
 const AWS = require('aws-sdk')
 const concat = require('concat-stream')
+const config = require('./../../../config')
 const lengthStream = require('length-stream')
 const path = require('path')
 const stream = require('stream')
@@ -7,16 +8,22 @@ const stream = require('stream')
 const logger = require('@dadi/logger')
 const Missing = require(path.join(__dirname, '/missing'))
 
-const S3Storage = function (settings, url) {
-  this.settings = settings
-
+const S3Storage = function ({assetType = 'assets', url}) {
   AWS.config.setPromisesDependency(require('bluebird'))
-  AWS.config.update({ accessKeyId: settings.accessKey, secretAccessKey: settings.secretKey })
+  AWS.config.update({
+    accessKeyId: config.get(`${assetType}.s3.accessKey`),
+    secretAccessKey: config.get(`${assetType}.s3.secretKey`)
+  })
 
-  if (settings.region && settings.region !== '') {
-    AWS.config.update({ region: settings.region })
+  let region = config.get(`${assetType}.s3.region`)
+
+  if (region && region !== '') {
+    AWS.config.update({
+      region
+    })
   }
 
+  this.bucketName = config.get(`${assetType}.s3.bucketName`)
   this.url = url
   this.urlParts = this.getUrlParts(url)
   this.s3 = new AWS.S3()
@@ -77,7 +84,7 @@ S3Storage.prototype.getBucket = function () {
     return this.urlParts[0]
   }
 
-  return this.settings.bucketName
+  return this.bucketName
 }
 
 S3Storage.prototype.getFullUrl = function () {
@@ -181,8 +188,5 @@ S3Storage.prototype.put = function (stream, folderPath) {
   })
 }
 
-module.exports = function (settings, url) {
-  return new S3Storage(settings, url)
-}
-
+module.exports = S3Storage
 module.exports.S3Storage = S3Storage
