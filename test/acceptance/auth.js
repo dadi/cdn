@@ -51,32 +51,32 @@ describe('Authentication', function () {
       .expect(401, done)
   })
 
-  it('should allow `/api` request containing token', function (done) {
+  it('should allow `/api/flush` request containing token', function (done) {
     help.getBearerToken(function (err, token) {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
 
       client
-        .post('/api')
-        .send({invalidate: 'test'})
+        .post('/api/flush')
+        .send({pattern: 'test'})
         .set('Authorization', 'Bearer ' + token)
         .expect('content-type', 'application/json')
         .expect(200, done)
     })
   })
 
-  it('should not allow `/api` request containing invalid token', function (done) {
+  it('should not allow `/api/flush` request containing invalid token', function (done) {
     help.getBearerToken(function (err, token) {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
 
       client
-        .post('/api')
-        .send({invalidate: 'test'})
+        .post('/api/flush')
+        .send({pattern: 'test'})
         .set('Authorization', 'Bearer badtokenvalue')
         .expect(401, done)
     })
   })
 
-  it('should not allow `/api` request with expired tokens', function (done) {
+  it('should not allow `/api/flush` request with expired tokens', function (done) {
     this.timeout(4000)
 
     var oldTtl = Number(config.get('auth.tokenTtl'))
@@ -91,8 +91,8 @@ describe('Authentication', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
 
       client
-        .post('/api')
-        .send({invalidate: 'test'})
+        .post('/api/flush')
+        .send({pattern: 'test'})
         .set('Authorization', 'Bearer ' + token)
         .expect(200, function (err) {
           if (err) return _done(err)

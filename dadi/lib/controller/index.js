@@ -96,46 +96,44 @@ const Controller = function (router) {
   })
 
   // Invalidation request
-  router.post('/api', function (req, res) {
-    if (req.body.invalidate) {
-      var invalidate = ''
-      if (req.body.invalidate && req.body.invalidate !== '*') {
-        invalidate = sha1(req.body.invalidate)
-      }
-
-      help.clearCache(invalidate, function (err) {
-        if (err) console.log(err)
-
-        if (config.get('cloudfront.enabled')) {
-          var cf = cloudfront.createClient(config.get('cloudfront.accessKey'), config.get('cloudfront.secretKey'))
-
-          cf.getDistribution(config.get('cloudfront.distribution'), function (err, distribution) {
-            if (err) console.log(err)
-
-            var callerReference = (new Date()).toString()
-
-            distribution.invalidate(callerReference, ['/' + req.body.invalidate], function (err, invalidation) {
-              if (err) console.log(err)
-
-              help.sendBackJSON(200, {
-                result: 'success',
-                message: 'Succeed to clear'
-              }, res)
-            })
-          })
-        } else {
-          help.sendBackJSON(200, {
-            result: 'success',
-            message: 'Succeed to clear'
-          }, res)
-        }
-      })
-    } else {
-      help.sendBackJSON(400, {
+  router.post('/api/flush', function (req, res) {
+    if (!req.body.pattern) {
+      return help.sendBackJSON(400, {
         result: 'Failed',
-        message: "Please pass 'invalidate' path"
+        message: "A 'pattern' must be specified"
       }, res)
     }
+
+    let pattern = req.body.pattern === '*' ? '' : sha1(req.body.pattern)
+
+    help.clearCache(pattern, (err) => {
+      if (err) console.log(err)
+
+      if (!config.get('cloudfront.enabled')) {
+        return help.sendBackJSON(200, {
+          result: 'success',
+          message: `Cache flushed for pattern "${req.body.pattern}"`
+        }, res)
+      }
+
+      // Invalidate the Cloudfront cache
+      let cf = cloudfront.createClient(config.get('cloudfront.accessKey'), config.get('cloudfront.secretKey'))
+
+      cf.getDistribution(config.get('cloudfront.distribution'), function (err, distribution) {
+        if (err) console.log(err)
+
+        let callerReference = (new Date()).toString()
+
+        distribution.invalidate(callerReference, ['/' + req.body.pattern], function (err, invalidation) {
+          if (err) console.log(err)
+
+          return help.sendBackJSON(200, {
+            result: 'success',
+            message: 'Cache and cloudfront flushed for pattern ' + req.body.pattern
+          }, res)
+        })
+      })
+    })
   })
 
   router.post('/api/recipes', function (req, res) {

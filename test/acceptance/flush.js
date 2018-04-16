@@ -61,9 +61,9 @@ describe('Cache', function () {
           res.headers['x-cache'].should.eql('MISS')
 
           client
-            .post('/api')
+            .post('/api/flush')
             .set('Authorization', 'Bearer ' + bearerToken)
-            .send({invalidate: '/jpg/70/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'})
+            .send({pattern: '/jpg/70/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'})
             .expect(200)
             .end(function (err, res) {
               if (err) return done(err)
@@ -107,9 +107,9 @@ describe('Cache', function () {
           res.headers['x-cache'].should.eql('MISS')
 
           client
-            .post('/api')
+            .post('/api/flush')
             .set('Authorization', 'Bearer ' + bearerToken)
-            .send({invalidate: '/jpg/70/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'})
+            .send({pattern: '/jpg/70/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'})
             .expect(200)
             .end(function (err, res) {
               if (err) return done(err)
@@ -141,9 +141,9 @@ describe('Cache', function () {
           res.headers['x-cache'].should.eql('MISS')
 
           client
-            .post('/api')
+            .post('/api/flush')
             .set('Authorization', 'Bearer ' + bearerToken)
-            .send({invalidate: '*'})
+            .send({pattern: '*'})
             .expect(200)
             .end(function (err, res) {
               if (err) return done(err)
@@ -180,7 +180,7 @@ describe('Cache', function () {
       var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
 
       client
-        .post('/api')
+        .post('/api/flush')
         .set('Authorization', 'Bearer ' + bearerToken)
         .expect(400, done)
     })
