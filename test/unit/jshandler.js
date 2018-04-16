@@ -55,18 +55,22 @@ const readStream = stream => {
 }
 
 describe('JS handler', function () {
-  let mockCacheGet = sinon.spy(Cache.Cache.prototype, 'getStream')
+  let mockCacheGet
 
   beforeEach(() => {
-    mockCacheGet.reset()
+    mockCacheGet = sinon.spy(Cache.Cache.prototype, 'getStream')
   })
 
   afterEach(() => {
     mockDiskStorageGet.restore()
+
+    mockCacheGet.restore()
   })
 
   after(() => {
     mockCacheGet.restore()
+
+    Cache.reset()
   })
 
   describe('legacy URL syntax', () => {
