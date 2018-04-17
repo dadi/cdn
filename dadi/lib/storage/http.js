@@ -73,21 +73,30 @@ HTTPStorage.prototype.get = function () {
     )
 
     download.on('error', (error) => {
-      let err = {}
-
-      if (typeof error === 'string') {
-        if (error.indexOf('404') > -1) {
-          err.statusCode = '404'
-          err.message = 'Not Found: ' + this.getFullUrl()
-        } else if (error.indexOf('403') > -1) {
-          err.statusCode = '403'
-          err.message = 'Forbidden: ' + this.getFullUrl()
-        }
-
-        return reject(err)
-      } else {
-        return reject(error)
+      let expression = /Server responded with unhandled status: (\d*)/
+      let match = (typeof error === 'string') && error.match(expression)
+      let err = {
+        statusCode: (match && match[1]) || 400
       }
+
+      switch (err.statusCode) {
+        case '404':
+          err.message = `Not Found: ${this.getFullUrl()}`
+
+          break
+
+        case '403':
+          err.message = `Forbidden: ${this.getFullUrl()}`
+
+          break
+
+        default:
+          err.message = `Remote server responded with error code ${match[1]} for URL: ${this.getFullUrl()}`
+
+          break
+      }
+
+      return reject(err)
     })
 
     download.on('end', (output) => {
