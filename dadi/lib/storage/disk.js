@@ -1,6 +1,5 @@
 const config = require('./../../../config')
 const fs = require('fs')
-const mkdirp = require('mkdirp')
 const nodeUrl = require('url')
 const path = require('path')
 
@@ -58,40 +57,6 @@ DiskStorage.prototype.get = function () {
       }).catch((e) => {
         console.log(e)
         return reject(err)
-      })
-    })
-  })
-}
-
-DiskStorage.prototype.put = function (stream, folderPath) {
-  this.path = path.join(this.path, folderPath)
-
-  return new Promise((resolve, reject) => {
-    mkdirp(this.path, (err, made) => {
-      if (err) {
-        return reject(err)
-      }
-
-      let filePath = this.getFullUrl()
-
-      fs.stat(filePath, (err, stats) => {
-        if (!err) {
-          // file exists, give it a new name
-          let pathParts = path.parse(filePath)
-          let newFileName = pathParts.name + '-' + Date.now().toString()
-
-          filePath = path.join(this.path, newFileName + pathParts.ext)
-        }
-
-        let writeStream = fs.createWriteStream(filePath)
-        stream.pipe(writeStream)
-
-        let data = {
-          message: 'File uploaded',
-          path: filePath.replace(this.path, '')
-        }
-
-        return resolve(data)
       })
     })
   })

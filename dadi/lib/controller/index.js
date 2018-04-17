@@ -12,7 +12,6 @@ const config = require(path.join(__dirname, '/../../../config'))
 const help = require(path.join(__dirname, '/../help'))
 const logger = require('@dadi/logger')
 const HandlerFactory = require(path.join(__dirname, '/../handlers/factory'))
-const PostController = require(path.join(__dirname, '/post'))
 const RecipeController = require(path.join(__dirname, '/recipe'))
 const RouteController = require(path.join(__dirname, '/route'))
 const workspace = require(path.join(__dirname, '/../models/workspace'))
@@ -142,14 +141,6 @@ const Controller = function (router) {
 
   router.post('/api/routes', function (req, res) {
     return RouteController.post(req, res)
-  })
-
-  router.post('/api/upload', function (req, res, next) {
-    if (!config.get('upload.enabled')) {
-      return next()
-    }
-
-    return new PostController().post(req, res)
   })
 }
 

@@ -6,11 +6,7 @@ const config = require(path.join(__dirname, '/../../../config.js'))
 const help = require(path.join(__dirname, '/../help'))
 
 function mustAuthenticate (requestUrl) {
-  if (requestUrl.indexOf('/api/upload') > -1 && config.get('upload.requireAuthentication') === false) {
-    return false
-  }
-
-  // all /api requests must be authenticated
+  // All /api requests must be authenticated.
   return requestUrl.indexOf('/api') === 0
 }
 

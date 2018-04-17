@@ -17,7 +17,6 @@ const sharp = require('sharp')
 const urlParser = require('url')
 const Vibrant = require('node-vibrant')
 
-const ColourHandler = require(path.join(__dirname, '/colour'))
 const StorageFactory = require(path.join(__dirname, '/../storage/factory'))
 const Cache = require(path.join(__dirname, '/../cache'))
 const config = require(path.join(__dirname, '/../../../config'))
@@ -955,45 +954,6 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
         return reject(err)
       }
     })
-  })
-}
-
-ImageHandler.prototype.put = function (stream, folderPath) {
-  const parsedUrl = this.parsedUrl.cdn
-
-  return new Promise((resolve, reject) => {
-    this.storageHandler = this.storageFactory.create('image', parsedUrl.path)
-
-    var colourInfoStream = new PassThrough()
-    var writeStream = new PassThrough()
-
-    stream.pipe(colourInfoStream)
-    stream.pipe(writeStream)
-
-    var concatStream = concat(getColourInfo)
-    colourInfoStream.pipe(concatStream)
-
-    var self = this
-
-    function getColourInfo (buffer) {
-      var colourHandler = new ColourHandler()
-
-      self.storageHandler.put(writeStream, folderPath).then((result) => {
-        if (config.get('upload.extractColours')) {
-          colourHandler.getColours(buffer, (err, colours) => {
-            if (err) {
-              console.log(err)
-            }
-
-            if (!_.isEmpty(colours)) result.colours = colours
-
-            return resolve(result)
-          })
-        } else {
-          return resolve(result)
-        }
-      })
-    }
   })
 }
 
