@@ -189,7 +189,7 @@ describe.only('Controller', function () {
     it('should extract options from querystring if an external URL is provided', function (done) {
       let server = nock('https://cdn.somedomain.tech')
         .get('/images/mock/logo.png')
-        .replyWithFile(200, 'images/measure1.png', {
+        .replyWithFile(200, 'test/images/visual/measure1.png', {
           'Content-Type': 'image/png'
         })
 
@@ -226,7 +226,7 @@ describe.only('Controller', function () {
       let server = nock('https://cdn.somedomain.tech')
         .get('/images/mock/logo.png')
         .query({height: '100', width: '500'})
-        .replyWithFile(200, 'images/measure1.png', {
+        .replyWithFile(200, 'test/images/visual/measure1.png', {
           'Content-Type': 'image/png'
         })
 
@@ -655,14 +655,14 @@ describe.only('Controller', function () {
       it('should retrieve image from remote URL using `images.remote.path` as base URL', () => {
         let server = nock('https://one.somedomain.tech')
           .get('/images/mock/logo.png')
-          .replyWithFile(200, 'images/measure1.png', {
+          .replyWithFile(200, 'test/images/visual/measure1.png', {
             'Content-Type': 'image/png'
           })
 
         config.set('images.remote.path', 'https://one.somedomain.tech')
 
         return help.imagesEqual({
-          base: 'images/measure1.png',
+          base: 'test/images/visual/measure1.png',
           test: `${cdnUrl}/images/mock/logo.png`
         }).then(match => {
           match.should.eql(true)
@@ -687,7 +687,7 @@ describe.only('Controller', function () {
       it('should retrieve image from remote URL using a full URL', () => {
         let server = nock('https://two.somedomain.tech')
           .get('/images/mock/logo.png')
-          .replyWithFile(200, 'images/measure1.png', {
+          .replyWithFile(200, 'test/images/visual/measure1.png', {
             'Content-Type': 'image/png'
           })
 
@@ -695,7 +695,7 @@ describe.only('Controller', function () {
         config.set('images.remote.path', 'https://one.somedomain.tech')
 
         return help.imagesEqual({
-          base: 'images/measure1.png',
+          base: 'test/images/visual/measure1.png',
           test: `${cdnUrl}/https://two.somedomain.tech/images/mock/logo.png`
         }).then(match => {
           match.should.eql(true)
