@@ -295,7 +295,7 @@ ImageHandler.prototype.get = function () {
   const cacheKey = [
     this.req.__domain,
     this.parsedUrl.cdn.pathname,
-    JSON.stringify(this.options)
+    this.parsedUrl.cdn.search.slice(1)
   ]
   const isJSONResponse = this.options.format === 'json'
 

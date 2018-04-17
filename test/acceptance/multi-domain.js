@@ -3,12 +3,14 @@ const http = require('http')
 const httpProxy = require('http-proxy')
 const nock = require('nock')
 const path = require('path')
+const sha1 = require('sha1')
 const should = require('should')
 const sinon = require('sinon')
 const request = require('supertest')
 const url = require('url')
 
 const app = require(__dirname + '/../../dadi/lib/')
+const Cache = require(__dirname + '/../../dadi/lib/cache')
 const config = require(__dirname + '/../../config')
 const help = require(__dirname + '/help')
 
@@ -75,7 +77,7 @@ describe('Multi-domain', function () {
     })
 
     after(done => {
-      config.set('multiDomain', configBackup.multiDomain)
+      config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
 
       proxyServer.close(() => {
         app.stop(done)  
@@ -113,6 +115,57 @@ describe('Multi-domain', function () {
         })
       })
     }).timeout(5000)
+
+    describe('Caching', () => {
+      let configBackup = config.get('caching')
+
+      beforeEach(() => {
+        help.clearCache()
+
+        config.set('caching.redis.enabled', false)
+        config.set('caching.directory.enabled', true)
+      })
+
+      after(() => {
+        help.clearCache()
+        Cache.reset()
+
+        config.set('caching.redis.enabled', configBackup.redis.enabled)
+        config.set('caching.directory.enabled', configBackup.directory.enabled)
+      })
+
+      it('should not include domain name as part of cache key', done => {
+        let cacheSet = sinon.spy(
+          Cache.Cache.prototype,
+          'cacheFile'
+        )
+
+        request(cdnUrl)
+          .get('/test.jpg')
+          .set('Host', 'testdomain.com:80')
+          .expect(200)
+          .end((err, res) => {
+            res.headers['x-cache'].should.eql('MISS')
+
+            setTimeout(() => {
+              request(cdnUrl)
+                .get('/test.jpg')
+                .set('Host', 'testdomain.com:80')
+                .expect(200)
+                .end((err, res) => {
+                  res.headers['x-cache'].should.eql('HIT')
+                  cacheSet.getCall(0).args[1].should.eql([
+                    undefined, '/test.jpg', ''
+                  ])
+
+                  cacheSet.restore()
+
+                  done()
+                })
+            }, 1000)
+          })
+      }).timeout(5000)
+    })    
   })
 
   describe('if multi-domain is enabled', () => {
@@ -121,7 +174,7 @@ describe('Multi-domain', function () {
       multiDomain: config.get('multiDomain')
     }
 
-    before(done => {
+    beforeEach(done => {
       config.set('images.directory.enabled', false)
       config.set('images.s3.enabled', false)
       config.set('images.remote.enabled', true)
@@ -137,9 +190,12 @@ describe('Multi-domain', function () {
       })
     })
 
-    after(done => {
-      config.set('images', configBackup.images)
-      config.set('multiDomain', configBackup.multiDomain)
+    afterEach(done => {
+      config.set('images.directory.enabled', configBackup.images.directory.enabled)
+      config.set('images.s3.enabled', configBackup.images.s3.enabled)
+      config.set('images.remote.enabled', configBackup.images.remote.enabled)
+      config.set('images.remote.path', configBackup.images.remote.path)
+      config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
 
       proxyServer.close(() => {
         app.stop(done)  
@@ -232,6 +288,57 @@ describe('Multi-domain', function () {
               })
           })
       })
+    })
+
+    describe('Caching', () => {
+      let configBackup = config.get('caching')
+
+      beforeEach(() => {
+        help.clearCache()
+
+        config.set('caching.redis.enabled', false)
+        config.set('caching.directory.enabled', true)
+      })
+
+      after(() => {
+        help.clearCache()
+        Cache.reset()
+
+        config.set('caching.redis.enabled', configBackup.redis.enabled)
+        config.set('caching.directory.enabled', configBackup.directory.enabled)
+      })
+
+      it('should include domain name as part of cache key', done => {
+        let cacheSet = sinon.spy(
+          Cache.Cache.prototype,
+          'cacheFile'
+        )
+
+        request(cdnUrl)
+          .get('/test.jpg')
+          .set('Host', 'testdomain.com:80')
+          .expect(200)
+          .end((err, res) => {
+            res.headers['x-cache'].should.eql('MISS')
+
+            setTimeout(() => {
+              request(cdnUrl)
+                .get('/test.jpg')
+                .set('Host', 'testdomain.com:80')
+                .expect(200)
+                .end((err, res) => {
+                  res.headers['x-cache'].should.eql('HIT')
+                  cacheSet.getCall(0).args[1].should.eql([
+                    'testdomain.com', '/test.jpg', ''
+                  ])
+
+                  cacheSet.restore()
+
+                  done()
+                })
+            }, 1000)
+          })
+      }).timeout(5000)
     })
   })
 })

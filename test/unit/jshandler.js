@@ -58,11 +58,18 @@ describe('JS handler', function () {
   let mockCacheGet
 
   beforeEach(() => {
-    mockCacheGet = sinon.spy(Cache(), 'getStream')
+    mockCacheGet = sinon.spy(Cache.Cache.prototype, 'getStream')
   })
 
   afterEach(() => {
     mockDiskStorageGet.restore()
+
+    mockCacheGet.restore()
+  })
+
+  after(() => {
+    mockCacheGet.restore()
+
     Cache.reset()
   })
 
