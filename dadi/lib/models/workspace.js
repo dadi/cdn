@@ -57,15 +57,15 @@ Workspace.prototype.build = function () {
  * @return {Array<String>} list of directories created
  */
 Workspace.prototype.createDirectories = function () {
-  let directories = [
-    path.resolve(config.get('paths.plugins')),
-    path.resolve(config.get('paths.recipes')),
-    path.resolve(config.get('paths.routes'))
-  ]
+  let directories = Object.keys(this.TYPES).map(type => {
+    return path.resolve(config.get(`paths.${type}`))
+  })
 
-  domainManager.getDomains().forEach(({domain, path}) => {
+  domainManager.getDomains().forEach(({domain, path: domainPath}) => {
     Object.keys(this.TYPES).forEach(type => {
-      directories.push(path)
+      directories.push(
+        path.join(domainPath, config.get(`paths.${type}`, domain))
+      )
     })
   })
 
