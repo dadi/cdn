@@ -213,6 +213,21 @@ Workspace.prototype.startWatchingFiles = function () {
     ).on('all', (event, filePath) => this.build())
   })
 
+  // Watch files within domain-level workspace directories.
+  domainManager.getDomains().forEach(({domain, path: domainPath}) => {
+    Object.keys(this.TYPES).forEach(type => {
+      let directory = path.resolve(
+        domainPath,
+        config.get(`paths.${type}`, domain)
+      )
+
+      watchers[`${domain}:${type}`] = chokidar.watch(
+        `${directory}/${this.TYPES[type]}`,
+        {usePolling: true}
+      ).on('all', (event, filePath) => this.build())
+    })
+  })
+
   this.watchers = watchers
 }
 
