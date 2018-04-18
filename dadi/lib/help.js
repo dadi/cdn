@@ -16,6 +16,7 @@ module.exports.sendBackJSON = function (successCode, results, res) {
   let resBody = JSON.stringify(results)
 
   if (results instanceof Error && resBody === '{}') {
+    console.log('---> ERROR:', results)
     resBody = JSON.stringify({ message: results.message || 'unknown error' })
   }
 
