@@ -746,7 +746,6 @@ describe('Controller', function () {
           .get('/images/mock/logo.png')
           .expect(404)
           .end((err, res) => {
-            console.log('!!!', res.body, res.statusCode)
             res.body.message.should.eql(
               'Not Found: https://one.somedomain.tech/images/mock/logo.png'
             )
