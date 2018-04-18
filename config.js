@@ -1,3 +1,4 @@
+const chokidar = require('chokidar')
 const convict = require('convict')
 const domainManager = require('./dadi/lib/models/domain-manager')
 const fs = require('fs')
@@ -585,6 +586,13 @@ const schema = {
 
 const Config = function () {
   this.loadFile(this.configPath())
+
+  this.watcher = chokidar.watch(
+    this.configPath(),
+    {usePolling: true}
+  ).on('all', (event, filePath) => {
+    this.loadFile(this.configPath())
+  })
 
   this.domainSchema = {}
   this.createDomainSchema(schema, this.domainSchema)
