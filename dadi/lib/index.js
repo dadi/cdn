@@ -1,7 +1,6 @@
 const site = require('../../package.json').name
 const version = require('../../package.json').version
 const nodeVersion = Number(process.version.match(/^v(\d+\.\d+)/)[1])
-const chokidar = require('chokidar')
 const colors = require('colors') // eslint-disable-line
 const bodyParser = require('body-parser')
 const finalhandler = require('finalhandler')
@@ -13,6 +12,7 @@ const path = require('path')
 const Router = require('router')
 const router = Router()
 const dadiStatus = require('@dadi/status')
+const domainManager = require('./models/domain-manager')
 const workspace = require('./models/workspace')
 
 // let's ensure there's at least a dev config file here
@@ -248,7 +248,7 @@ Server.prototype.start = function (done) {
     if (config.get('multiDomain.enabled')) {
       let domain = req.headers.host.split(':')[0]
 
-      if (!workspace.hasDomain(domain)) {
+      if (!domainManager.getDomain(domain)) {
         return help.sendBackJSON(404, {
           result: 'Failed',
           message: `Domain not configured: ${domain}`
@@ -273,55 +273,19 @@ Server.prototype.start = function (done) {
 
   this.readyState = 1
 
-  this.startWatchingFiles()
-
   workspace.createDirectories()
+  workspace.startWatchingFiles()
 
   if (typeof done === 'function') {
     done()
   }
 }
 
-Server.prototype.startWatchingFiles = function () {
-  this.watchers = {}
-
-  // Watch config files.
-  this.watchers.config = chokidar.watch(config.configPath(), {
-    depth: 0,
-    ignored: /[\\]\./,
-    ignoreInitial: true,
-    useFsEvents: false
-  }).on('change', function (filePath) {
-    config.loadFile(filePath)
-  })
-
-  // Watch plugins.
-  const pluginDir = path.resolve(config.get('paths.plugins'))
-
-  this.watchers.plugins = chokidar.watch(pluginDir + '/*.js', {
-    usePolling: true
-  }).on('all', (event, filePath) => workspace.build())
-
-  // Watch recipes.
-  const recipeDir = path.resolve(config.get('paths.recipes'))
-
-  this.watchers.recipes = chokidar.watch(recipeDir + '/*.json', {
-    usePolling: true
-  }).on('all', (event, filePath) => workspace.build())
-
-  // Watch routes.
-  const routeDir = path.resolve(config.get('paths.routes'))
-
-  this.watchers.routes = chokidar.watch(routeDir + '/*.json', {
-    usePolling: true
-  }).on('all', (event, filePath) => workspace.build())
-}
-
 // this is mostly needed for tests
 Server.prototype.stop = function (done) {
   this.readyState = 3
 
-  this.stopWatchingFiles()
+  workspace.stopWatchingFiles()
 
   this.server.close(err => {
     // if statusServer is running in standalone, close that too
@@ -336,12 +300,6 @@ Server.prototype.stop = function (done) {
 
       done && done(err)
     }
-  })
-}
-
-Server.prototype.stopWatchingFiles = function () {
-  Object.keys(this.watchers).forEach(name => {
-    this.watchers[name].close()
   })
 }
 

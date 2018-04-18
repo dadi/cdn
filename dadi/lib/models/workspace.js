@@ -1,6 +1,8 @@
+const chokidar = require('chokidar')
 const fs = require('fs-extra')
 const path = require('path')
 const config = require(path.join(__dirname, '/../../../config'))
+const domainManager = require('./domain-manager')
 
 /*
   The following tree:
@@ -24,7 +26,14 @@ const config = require(path.join(__dirname, '/../../../config'))
   }
 */
 const Workspace = function () {
+  this.TYPES = {
+    plugins: '*.js',
+    recipes: '*.json',
+    routes: '*.json'
+  }
+
   this.domains = []
+  this.watchers = {}
   this.workspace = {}
 }
 
@@ -34,14 +43,10 @@ const Workspace = function () {
  * @return {Object} The new workspace
  */
 Workspace.prototype.build = function () {
-  return this.read().then(({domains, files}) => {
-    this.domains = domains
+  return this.read().then(files => {
     this.workspace = files
 
-    return {
-      domains,
-      files
-    }
+    return files
   })
 }
 
@@ -57,41 +62,18 @@ Workspace.prototype.createDirectories = function () {
     path.resolve(config.get('paths.recipes')),
     path.resolve(config.get('paths.routes'))
   ]
-  let domainDirectoryQueue
 
-  // Adding domain-specific workspace directories.
-  if (config.get('multiDomain.enabled')) {
-    let domainsDirectory = path.resolve(config.get('multiDomain.directory'))
-
-    domainDirectoryQueue = fs.readdir(domainsDirectory).then(domains => {
-      let domainQueue = domains.map(domain => {
-        return fs.stat(path.join(domainsDirectory, domain))
-          .then(stats => {
-            if (!stats.isDirectory()) return
-
-            ['plugins', 'recipes', 'routes'].forEach(type => {
-              directories.push(
-                path.resolve(
-                  domainsDirectory,
-                  domain,
-                  config.get(`paths.${type}`, domain)
-                )
-              )
-            })
-          })
-      })
-
-      return Promise.all(domainQueue)
+  domainManager.getDomains().forEach(({domain, path}) => {
+    Object.keys(this.TYPES).forEach(type => {
+      directories.push(path)
     })
-  }
-
-  return Promise.resolve(domainDirectoryQueue).then(() => {
-    return Promise.all(
-      directories.map(directory => {
-        return fs.ensureDir(directory)
-      })
-    )
   })
+
+  return Promise.all(
+    directories.map(directory => {
+      return fs.ensureDir(directory)
+    })
+  )
 }
 
 /**
@@ -112,17 +94,6 @@ Workspace.prototype.get = function (item, domain) {
 }
 
 /**
- * Returns whether the CDN instance is configured for a given
- * domain name.
- *
- * @param  {String}  domain
- * @return {Boolean}
- */
-Workspace.prototype.hasDomain = function (domain) {
-  return this.domains.includes(domain)
-}
-
-/**
  * Creates an object with all the files existing in the various
  * workspace directories.
  *
@@ -130,8 +101,7 @@ Workspace.prototype.hasDomain = function (domain) {
  */
 Workspace.prototype.read = function () {
   let directories = []
-  let configuredDomains = []
-  let queue = ['plugins', 'recipes', 'routes'].reduce((queue, type) => {
+  let queue = Object.keys(this.TYPES).reduce((queue, type) => {
     let directoryPath = path.resolve(
       config.get(`paths.${type}`)
     )
@@ -148,52 +118,34 @@ Workspace.prototype.read = function () {
 
   // Adding domain-specific workspace directories.
   if (config.get('multiDomain.enabled')) {
-    let domainsDirectory = path.resolve(
-      config.get('multiDomain.directory')
-    )
-
     queue = queue.then(() => {
-      return fs.readdir(domainsDirectory)
-    }).then(domains => {
-      let domainQueue = domains.map(domain => {
-        let domainPath = path.join(
-          domainsDirectory,
-          domain
-        )
+      return Promise.all(
+        domainManager.getDomains().map(({domain, path: domainPath}) => {
+          return Promise.all(
+            Object.keys(this.TYPES).map(type => {
+              let typePath = path.resolve(
+                domainPath,
+                config.get(`paths.${type}`, domain)
+              )
 
-        return fs.stat(domainPath).then(stats => {
-          if (!stats.isDirectory()) return
-
-          configuredDomains.push(domain)
-
-          let typeQueue = ['plugins', 'recipes', 'routes'].map(type => {
-            let typePath = path.resolve(
-              domainsDirectory,
-              domain,
-              config.get(`paths.${type}`, domain)
-            )
-
-            return fs.readdir(typePath).then(items => {
-              directories.push({
-                domain,
-                items,
-                type
+              return fs.readdir(typePath).then(items => {
+                directories.push({
+                  domain,
+                  items,
+                  type
+                })
               })
             })
-          })
-
-          return Promise.all(typeQueue)
+          )
         })
-      })
-
-      return Promise.all(domainQueue)
+      )
     })
   }
 
   return this.createDirectories().then(() => {
     return queue
   }).then(() => {
-    let files = directories.reduce((files, {domain, items, type}) => {
+    return directories.reduce((files, {domain, items, type}) => {
       items.forEach(file => {
         const extension = path.extname(file)
         const baseName = path.basename(file, extension)
@@ -239,12 +191,43 @@ Workspace.prototype.read = function () {
 
       return files
     }, {})
-
-    return {
-      domains: configuredDomains,
-      files
-    }
   })
+}
+
+Workspace.prototype.startWatchingFiles = function () {
+  let watchers = {}
+
+  // Watch config files.
+  watchers.config = chokidar.watch(config.configPath(), {
+    depth: 0,
+    ignored: /[\\]\./,
+    ignoreInitial: true,
+    useFsEvents: false
+  }).on('change', filePath => {
+    config.loadFile(filePath)
+  })
+
+  // Watch each workspace type.
+  Object.keys(this.TYPES).forEach(type => {
+    let directory = path.resolve(
+      config.get(`paths.${type}`)
+    )
+
+    watchers[type] = chokidar.watch(
+      `${directory}/${this.TYPES[type]}`,
+      {usePolling: true}
+    ).on('all', (event, filePath) => this.build())
+  })
+
+  this.watchers = watchers
+}
+
+Workspace.prototype.stopWatchingFiles = function () {
+  Object.keys(this.watchers).forEach(key => {
+    this.watchers[key].close()
+  })
+
+  this.watchers = {}
 }
 
 module.exports = new Workspace()
