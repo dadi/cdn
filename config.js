@@ -594,12 +594,27 @@ const Config = function () {
 
 Config.prototype = convict(schema)
 
+/**
+ * Retrieves the full path for the configuration file associated
+ * with the current environment,
+ *
+ * @return {String}
+ */
 Config.prototype.configPath = function () {
   let environment = this.get('env')
 
   return `./config/config.${environment}.json`
 }
 
+/**
+ * Creates a Convict schema for domains, including only the properties
+ * that can be overridden at domain level, as well as the default values
+ * obtained from the main config.
+ *
+ * @param  {Object} schema - main schema
+ * @param  {Object} target - variable to write the schema to
+ * @param  {Array}  tail   - helper variable for recursion
+ */
 Config.prototype.createDomainSchema = function (schema, target, tail = []) {
   if (!schema || typeof schema !== 'object') return
 
@@ -626,8 +641,22 @@ Config.prototype.createDomainSchema = function (schema, target, tail = []) {
   })
 }
 
+/**
+ * A reference to the original `get` method from convict.
+ *
+ * @type {Function}
+ */
 Config.prototype._get = Config.prototype.get
 
+/**
+ * Gets a configuration value for a domain if the property can
+ * be defined at domain level *and* a domain name is supplied.
+ * Otherwise, behaves as the native `get` method from Convict.
+ *
+ * @param  {String} path   - config property
+ * @param  {String} domain - domain name
+ * @return {Object}
+ */
 Config.prototype.get = function (path, domain) {
   if (
     domain === undefined ||
@@ -640,6 +669,12 @@ Config.prototype.get = function (path, domain) {
   return this.domainConfigs[domain].get(path)
 }
 
+/**
+ * Builds a hash map with a Convict instance for each configured
+ * domain.
+ *
+ * @return {Object}
+ */
 Config.prototype.loadDomainConfigs = function () {
   let configs = {}
   let domainsDirectory = this.get('multiDomain.directory')
@@ -660,7 +695,10 @@ Config.prototype.loadDomainConfigs = function () {
           configs[domain].loadFile(configPath)
         }
       } catch (err) {
-        logger.info({module: 'config'}, `'${this.get('env')}' config not found for domain ${domain}`)
+        logger.info(
+          {module: 'config'},
+          `'${this.get('env')}' config not found for domain ${domain}`
+        )
       }    
     })
 

@@ -194,18 +194,12 @@ Workspace.prototype.read = function () {
   })
 }
 
+/**
+ * Starts watching workspace files for changes and rebuild the workspace
+ * tree when something changes.
+ */
 Workspace.prototype.startWatchingFiles = function () {
   let watchers = {}
-
-  // Watch config files.
-  watchers.config = chokidar.watch(config.configPath(), {
-    depth: 0,
-    ignored: /[\\]\./,
-    ignoreInitial: true,
-    useFsEvents: false
-  }).on('change', filePath => {
-    config.loadFile(filePath)
-  })
 
   // Watch each workspace type.
   Object.keys(this.TYPES).forEach(type => {
@@ -222,6 +216,9 @@ Workspace.prototype.startWatchingFiles = function () {
   this.watchers = watchers
 }
 
+/**
+ * Stop watching workspace files for changes.
+ */
 Workspace.prototype.stopWatchingFiles = function () {
   Object.keys(this.watchers).forEach(key => {
     this.watchers[key].close()
