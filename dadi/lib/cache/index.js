@@ -60,18 +60,6 @@ Cache.prototype.delete = function (pattern, callback) {
 }
 
 /**
- * Gets an item from cache.
- *
- * @param  {String} key
- * @return {Mixed}
- */
-Cache.prototype.get = function (key) {
-  if (!this.isEnabled()) return Promise.resolve(null)
-
-  return cache.get(key)
-}
-
-/**
  * Returns a normalised key. If the input is an array,
  * each element will be hashed individually and concatenated,
  * in order, to form the final string. Otherwise, the hash

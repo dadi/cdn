@@ -14,7 +14,7 @@ let config = require(__dirname + '/../../config')
 let cdnUrl = 'http://' + config.get('server.host') + ':' + config.get('server.port')
 let testConfigString
 
-describe.only('Controller', function () {
+describe('Controller', function () {
   this.timeout(10000)
   let tokenRoute = config.get('auth.tokenUrl')
 
