@@ -1,5 +1,7 @@
 const convict = require('convict')
+const domainManager = require('./dadi/lib/models/domain-manager')
 const fs = require('fs')
+const logger = require('@dadi/logger')
 const objectPath = require('object-path')
 const path = require('path')
 
@@ -616,7 +618,11 @@ Config.prototype.createDomainSchema = function (schema, target, tail = []) {
   }
   
   Object.keys(schema).forEach(key => {
-    this.createDomainSchema(schema[key], target, tail.concat(key))
+    this.createDomainSchema(
+      schema[key],
+      target,
+      tail.concat(key)
+    )
   })
 }
 
@@ -636,32 +642,27 @@ Config.prototype.get = function (path, domain) {
 
 Config.prototype.loadDomainConfigs = function () {
   let configs = {}
-  let domainsDirectory = path.resolve(
-    this.get('multiDomain.directory')
-  )
+  let domainsDirectory = this.get('multiDomain.directory')
 
-  fs.readdirSync(domainsDirectory).forEach(domain => {
-    let domainStats = fs.statSync(path.join(domainsDirectory, domain))
-
-    if (domainStats.isDirectory()) {
-      let filePath = path.join(
-        domainsDirectory,
-        domain,
+  domainManager
+    .scanDomains(domainsDirectory)
+    .getDomains().forEach(({domain, path: domainPath}) => {
+      let configPath = path.join(
+        domainPath,
         `config/config.${this.get('env')}.json`
       )
 
       try {
-        let file = fs.statSync(filePath)
+        let file = fs.statSync(configPath)
 
         if (file.isFile()) {
           configs[domain] = convict(this.domainSchema)
-          configs[domain].loadFile(filePath)
+          configs[domain].loadFile(configPath)
         }
       } catch (err) {
-        console.log(err)
-      }
-    }
-  })
+        logger.info({module: 'config'}, `'${this.get('env')}' config not found for domain ${domain}`)
+      }    
+    })
 
   return configs
 }
