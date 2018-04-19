@@ -262,6 +262,12 @@ const schema = {
     }
   },
   caching: {
+    expireAt: {
+      doc: 'Cron-style pattern specifying when the cache should be expired',
+      format: String,
+      default: null,
+      allowDomainOverride: true
+    },
     ttl: {
       doc: '',
       format: Number,

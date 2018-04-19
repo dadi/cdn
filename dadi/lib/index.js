@@ -278,9 +278,17 @@ Server.prototype.start = function (done) {
   workspace.createDirectories()
   workspace.startWatchingFiles()
 
+  this.startCacheFlushing()
+
   if (typeof done === 'function') {
     done()
   }
+}
+
+Server.prototype.startCacheFlushing = function () {
+  domainManager.getDomains().forEach(({domain, path: domainPath}) => {
+    console.log('---> Domain:', domain, config.get('caching.expireAt', domain))
+  })
 }
 
 /**
