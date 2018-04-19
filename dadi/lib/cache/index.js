@@ -51,7 +51,9 @@ Cache.prototype.cacheFile = function (stream, key, wait) {
  * @param  {Function} callback
  */
 Cache.prototype.delete = function (pattern, callback) {
-  cache.flush(pattern).then(() => {
+  let hashedPattern = this.getNormalisedKey(pattern)
+
+  cache.flush(hashedPattern).then(() => {
     return callback(null)
   }).catch((err) => {
     console.log(err)
@@ -69,6 +71,8 @@ Cache.prototype.delete = function (pattern, callback) {
  * @return {String}
  */
 Cache.prototype.getNormalisedKey = function (key) {
+  if (key === '') return key
+
   if (Array.isArray(key)) {
     return key.reduce((normalisedKey, node) => {
       if (node || (node === 0)) {

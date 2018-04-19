@@ -1,112 +1,88 @@
-var fs = require('fs')
-var should = require('should')
-var request = require('supertest')
-var assert = require('assert')
-var help = require(__dirname + '/help')
-var app = require(__dirname + '/../../dadi/lib/')
-var cache = require(__dirname + '/../../dadi/lib/cache')
-var config = require(__dirname + '/../../config')
+const app = require('./../../dadi/lib/')
+const assert = require('assert')
+const cache = require('./../../dadi/lib/cache')
+const config = require('./../../config')
+const fs = require('fs')
+const help = require('./help')
+const nock = require('nock')
+const request = require('supertest')
+const should = require('should')
 
 let bearerToken
-let configBackup
+let cdnUrl = `http://${config.get('server.host')}:${config.get('server.port')}`
+let configBackup = config.get()
 
-describe.only('Cache', function () {
+describe('Cache', function () {
   this.timeout(10000)
 
   describe('Flush', function () {
     describe('when multi-domain is not enabled', () => {
-      // let configBackup = {
-      //   images: config.get('images'),
-      //   multiDomain: config.get('multiDomain')
-      // }
-      before(done => {
-        configBackup = JSON.parse(fs.readFileSync(config.configPath()))
-
-        // config.set('images.directory.enabled', false)
-        // config.set('images.s3.enabled', false)
-        // config.set('images.remote.enabled', true)
-        // config.set('images.remote.path', 'http://one.somedomain.tech')
-        // config.set('multiDomain.enabled', false)
-        // config.set('caching.directory.enabled', true)
-        // config.set('caching.redis.enabled', false)
-
-        let newTestConfig = Object.assign({}, configBackup)
-        newTestConfig.caching.directory.enabled = true
-        newTestConfig.caching.redis.enabled = false
-        newTestConfig.multiDomain = {
-          enabled: false
-        }
+      beforeEach(done => {
+        config.set('caching.directory.enabled', true)
+        config.set('caching.redis.enabled', false)
+        config.set('multiDomain.enabled', false)
 
         cache.reset()
 
-        fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
-        config.loadFile(config.configPath())
-
-        done()
-      })
-
-      after(done => {
-        // proxyServer.close(() => {
-        fs.writeFileSync(config.configPath(), JSON.stringify(configBackup, null, 2))
-        done()
-        // })
-      })
-
-      beforeEach(done => {
         app.start(() => {
           help.getBearerToken((err, token) => {
             if (err) return done(err)
 
             bearerToken = token
             help.clearCache()
-            var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
 
-            client
+            request(`http://${config.get('server.host')}:${config.get('server.port')}`)
             .get('/test.jpg?q=50')
             .expect(200)
             .end((err, res) => {
               if (err) return done(err)
+
               res.headers['x-cache'].should.exist
               res.headers['x-cache'].should.eql('MISS')
+
               done()
             })
           })
         })
       })
 
-      afterEach(function (done) {
+      afterEach(done => {
         help.clearCache()
+
         app.stop(done)
+
+        config.set('caching.directory.enabled', configBackup.caching.directory.enabled)
+        config.set('caching.redis.enabled', configBackup.caching.redis.enabled)
+        config.set('multiDomain.enabled', configBackup.multiDomain.enabled)        
       })
 
-      it("should not flush cached items that don't match the specified path", function (done) {
-        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-        client
+      it('should not flush cached items that don\'t match the specified path', done => {
+        request(cdnUrl)
           .get('/test.jpg?q=70')
           .expect(200)
-          .end(function (err, res) {
+          .end((err, res) => {
             res.headers['x-cache'].should.eql('MISS')
 
-            client
+            request(cdnUrl)
               .post('/api/flush')
               .set('Authorization', 'Bearer ' + bearerToken)
               .send({pattern: '/test.jpg?q=70'})
               .expect(200)
-              .end(function (err, res) {
+              .end((err, res) => {
                 res.body.result.should.equal('success')
 
-                setTimeout(function () {
-                  client
+                setTimeout(() => {
+                  request(cdnUrl)
                     .get('/test.jpg?q=50')
                     .expect(200)
-                    .end(function (err, res) {
+                    .end((err, res) => {
                       res.headers['x-cache'].should.eql('HIT')
 
-                      setTimeout(function () {
-                        client
+                      setTimeout(() => {
+                        request(cdnUrl)
                           .get('/test.jpg?q=70')
                           .expect(200)
-                          .end(function (err, res) {
+                          .end((err, res) => {
                             res.headers['x-cache'].should.eql('MISS')
                             done()
                           })
@@ -117,30 +93,29 @@ describe.only('Cache', function () {
           })
       })
 
-      it('should flush only cached items matching the specified path', function (done) {
-        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-        client
+      it('should flush only cached items matching the specified path', done => {
+        request(cdnUrl)
           .get('/test.jpg?q=70')
           .expect(200)
-          .end(function (err, res) {
+          .end((err, res) => {
             if (err) return done(err)
             res.headers['x-cache'].should.exist
             res.headers['x-cache'].should.eql('MISS')
 
-            client
+            request(cdnUrl)
               .post('/api/flush')
               .set('Authorization', 'Bearer ' + bearerToken)
               .send({pattern: '/test.jpg?q=70'})
               .expect(200)
-              .end(function (err, res) {
+              .end((err, res) => {
                 if (err) return done(err)
 
                 res.body.result.should.equal('success')
-                setTimeout(function () {
-                  client
+                setTimeout(() => {
+                  request(cdnUrl)
                     .get('/test.jpg?q=70')
                     .expect(200)
-                    .end(function (err, res) {
+                    .end((err, res) => {
                       if (err) return done(err)
                       res.headers['x-cache'].should.exist
                       res.headers['x-cache'].should.eql('MISS')
@@ -151,40 +126,39 @@ describe.only('Cache', function () {
           })
       })
 
-      it('should flush all cached items when path is "*"', function (done) {
-        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-        client
+      it('should flush all cached items when path is "*"', done => {
+        request(cdnUrl)
           .get('/test.jpg?q=70')
           .expect(200)
-          .end(function (err, res) {
+          .end((err, res) => {
             if (err) return done(err)
             res.headers['x-cache'].should.exist
             res.headers['x-cache'].should.eql('MISS')
 
-            client
+            request(cdnUrl)
               .post('/api/flush')
               .set('Authorization', 'Bearer ' + bearerToken)
               .send({pattern: '*'})
               .expect(200)
-              .end(function (err, res) {
+              .end((err, res) => {
                 if (err) return done(err)
 
                 res.body.result.should.equal('success')
 
-                setTimeout(function () {
-                  client
+                setTimeout(() => {
+                  request(cdnUrl)
                     .get('/test.jpg?q=50')
                     .expect(200)
-                    .end(function (err, res) {
+                    .end((err, res) => {
                       if (err) return done(err)
                       res.headers['x-cache'].should.exist
                       res.headers['x-cache'].should.eql('MISS')
 
-                      setTimeout(function () {
-                        client
+                      setTimeout(() => {
+                        request(cdnUrl)
                           .get('/test.jpg?q=70')
                           .expect(200)
-                          .end(function (err, res) {
+                          .end((err, res) => {
                             if (err) return done(err)
                             res.headers['x-cache'].should.exist
                             res.headers['x-cache'].should.eql('MISS')
@@ -197,11 +171,213 @@ describe.only('Cache', function () {
           })
       })
 
-      it('should return error when no path is specified', function (done) {
-        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-
-        client
+      it('should return error when no path is specified', done => {
+        request(cdnUrl)
           .post('/api/flush')
+          .set('Authorization', 'Bearer ' + bearerToken)
+          .expect(400, done)
+      })
+    })
+
+    describe('when multi-domain is enabled', () => {
+      beforeEach(done => {
+        config.set('caching.directory.enabled', true)
+        config.set('caching.redis.enabled', false)
+        config.set('multiDomain.enabled', true)
+
+        cache.reset()
+
+        app.start(() => {
+          help.getBearerToken((err, token) => {
+            if (err) return done(err)
+
+            bearerToken = token
+            help.clearCache()
+
+            done()
+          })
+        })
+      })
+
+      afterEach(done => {
+        help.clearCache()
+
+        app.stop(done)
+
+        config.set('caching.directory.enabled', configBackup.caching.directory.enabled)
+        config.set('caching.redis.enabled', configBackup.caching.redis.enabled)
+        config.set('multiDomain.enabled', configBackup.multiDomain.enabled)        
+      })
+
+      it('should only flush cached items for the target domain', done => {
+        request(cdnUrl)
+          .get('/test.jpg')
+          .set('host', 'testdomain.com:80')
+          .expect(200)
+          .end((err, res) => {
+            res.headers['x-cache'].should.eql('MISS')
+
+            request(cdnUrl)
+              .get('/test.jpg')
+              .set('host', 'localhost:80')
+              .expect(200)
+              .end((err, res) => {
+                res.headers['x-cache'].should.eql('MISS')
+
+                setTimeout(() => {
+                  request(cdnUrl)
+                    .get('/test.jpg')
+                    .set('host', 'testdomain.com:80')
+                    .expect(200)
+                    .end((err, res) => {
+                      res.headers['x-cache'].should.eql('HIT')
+
+                      request(cdnUrl)
+                        .post('/api/flush')
+                        .set('Authorization', 'Bearer ' + bearerToken)
+                        .set('host', 'testdomain.com:80')
+                        .send({pattern: '*'})
+                        .expect(200)
+                        .end((err, res) => {
+                          res.body.result.should.equal('success')
+
+                          setTimeout(() => {
+                            request(cdnUrl)
+                              .get('/test.jpg')
+                              .set('host', 'testdomain.com:80')
+                              .expect(200)
+                              .end((err, res) => {
+                                res.headers['x-cache'].should.eql('MISS')
+
+                                request(cdnUrl)
+                                  .get('/test.jpg')
+                                  .set('host', 'localhost:80')
+                                  .expect(200)
+                                  .end((err, res) => {
+                                    res.headers['x-cache'].should.eql('HIT')
+
+                                    done()
+                                  })
+
+                              })
+                          }, 500)
+                        })
+                    })
+                }, 500)
+              })
+          })
+      })
+
+      it('should flush all cached items for a given domain', done => {
+        request(cdnUrl)
+          .get('/test.jpg')
+          .set('host', 'testdomain.com:80')
+          .expect(200)
+          .end((err, res) => {
+            res.headers['x-cache'].should.eql('MISS')
+
+            request(cdnUrl)
+              .get('/original.jpg')
+              .set('host', 'testdomain.com:80')
+              .expect(200)
+              .end((err, res) => {
+                res.headers['x-cache'].should.eql('MISS')
+
+                setTimeout(() => {
+                  request(cdnUrl)
+                    .get('/test.jpg')
+                    .set('host', 'testdomain.com:80')
+                    .expect(200)
+                    .end((err, res) => {
+                      res.headers['x-cache'].should.eql('HIT')
+
+                      request(cdnUrl)
+                        .post('/api/flush')
+                        .set('Authorization', 'Bearer ' + bearerToken)
+                        .set('host', 'testdomain.com:80')
+                        .send({pattern: '*'})
+                        .expect(200)
+                        .end((err, res) => {
+                          res.body.result.should.equal('success')
+
+                          setTimeout(() => {
+                            request(cdnUrl)
+                              .get('/test.jpg')
+                              .set('host', 'testdomain.com:80')
+                              .expect(200)
+                              .end((err, res) => {
+                                res.headers['x-cache'].should.eql('MISS')
+
+                                request(cdnUrl)
+                                  .get('/original.jpg')
+                                  .set('host', 'testdomain.com:80')
+                                  .expect(200)
+                                  .end((err, res) => {
+                                    res.headers['x-cache'].should.eql('MISS')
+
+                                    done()
+                                  })
+
+                              })
+                          }, 500)
+                        })
+                    })
+                }, 500)
+              })
+          })
+      })
+
+      it('should not flush cached items that don\'t match the specified path', done => {
+        request(cdnUrl)
+          .get('/test.jpg?q=70')
+          .set('host', 'localhost:80')
+          .expect(200)
+          .end((err, res) => {
+            res.headers['x-cache'].should.eql('MISS')
+
+            request(cdnUrl)
+              .get('/test.jpg?q=50')
+              .set('host', 'localhost:80')
+              .expect(200)
+              .end((err, res) => {
+                request(cdnUrl)
+                  .post('/api/flush')
+                  .set('host', 'localhost:80')
+                  .set('Authorization', 'Bearer ' + bearerToken)
+                  .send({pattern: '/test.jpg?q=70'})
+                  .expect(200)
+                  .end((err, res) => {
+                    res.body.result.should.equal('success')
+
+                    setTimeout(() => {
+                      request(cdnUrl)
+                        .get('/test.jpg?q=50')
+                        .set('host', 'localhost:80')
+                        .expect(200)
+                        .end((err, res) => {
+                          res.headers['x-cache'].should.eql('HIT')
+
+                          setTimeout(() => {
+                            request(cdnUrl)
+                              .get('/test.jpg?q=70')
+                              .set('host', 'localhost:80')
+                              .expect(200)
+                              .end((err, res) => {
+                                res.headers['x-cache'].should.eql('MISS')
+                                done()
+                              })
+                          }, 500)
+                        })
+                    }, 500)
+                  })
+              })
+          })
+      })
+
+      it('should return error when no path is specified', done => {
+        request(cdnUrl)
+          .post('/api/flush')
+          .set('host', 'localhost:80')
           .set('Authorization', 'Bearer ' + bearerToken)
           .expect(400, done)
       })

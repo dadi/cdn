@@ -8,7 +8,6 @@ const path = require('path')
 const urlParser = require('url')
 const zlib = require('zlib')
 
-const Cache = require(path.join(__dirname, '/../cache'))
 const config = require(path.join(__dirname, '/../../../config'))
 const help = require(path.join(__dirname, '/../help'))
 const logger = require('@dadi/logger')
@@ -104,12 +103,12 @@ const Controller = function (router) {
       }, res)
     }
 
-    let pattern = ''
+    let pattern = [req.__domain]
 
     if (req.body.pattern !== '*') {
       let parsedUrl = urlParser.parse(req.body.pattern, true)
 
-      pattern = Cache().getNormalisedKey([
+      pattern = pattern.concat([
         parsedUrl.pathname,
         parsedUrl.search.slice(1)
       ])
