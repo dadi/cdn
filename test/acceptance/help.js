@@ -1,10 +1,37 @@
-const fs = require('fs')
+const fs = require('fs-extra')
 const Jimp = require('jimp')
 const path = require('path')
 const should = require('should')
 const config = require(__dirname + '/../../config')
 const request = require('supertest')
 const req = require('request')
+
+module.exports.createTempFile = function (filePath, content, options, callback) {
+  return fs.ensureDir(
+    path.dirname(path.resolve(filePath))
+  ).then(() => {
+    if (typeof options === 'function') {
+      callback = options
+      options = {}
+    }
+
+    let serialisedContent = typeof content === 'string'
+      ? content
+      : JSON.stringify(content, null, 2)
+
+    return fs.writeFile(filePath, serialisedContent)
+  }).then(() => {
+    let removeFn = () => fs.removeSync(filePath)
+
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        callback(removeFn, content)
+
+        resolve()
+      }, (options.interval || 0))
+    })
+  })
+}
 
 module.exports.imagesEqual = function ({base, headers, test}) {
   let fullBasePath = path.resolve(base)

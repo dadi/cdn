@@ -1,5 +1,8 @@
+const chokidar = require('chokidar')
 const convict = require('convict')
+const domainManager = require('./dadi/lib/models/domain-manager')
 const fs = require('fs')
+const logger = require('@dadi/logger')
 const objectPath = require('object-path')
 const path = require('path')
 
@@ -584,6 +587,13 @@ const schema = {
 const Config = function () {
   this.loadFile(this.configPath())
 
+  this.watcher = chokidar.watch(
+    this.configPath(),
+    {usePolling: true}
+  ).on('all', (event, filePath) => {
+    this.loadFile(this.configPath())
+  })
+
   this.domainSchema = {}
   this.createDomainSchema(schema, this.domainSchema)
 
@@ -592,12 +602,27 @@ const Config = function () {
 
 Config.prototype = convict(schema)
 
+/**
+ * Retrieves the full path for the configuration file associated
+ * with the current environment,
+ *
+ * @return {String}
+ */
 Config.prototype.configPath = function () {
   let environment = this.get('env')
 
   return `./config/config.${environment}.json`
 }
 
+/**
+ * Creates a Convict schema for domains, including only the properties
+ * that can be overridden at domain level, as well as the default values
+ * obtained from the main config.
+ *
+ * @param  {Object} schema - main schema
+ * @param  {Object} target - variable to write the schema to
+ * @param  {Array}  tail   - helper variable for recursion
+ */
 Config.prototype.createDomainSchema = function (schema, target, tail = []) {
   if (!schema || typeof schema !== 'object') return
 
@@ -616,12 +641,30 @@ Config.prototype.createDomainSchema = function (schema, target, tail = []) {
   }
   
   Object.keys(schema).forEach(key => {
-    this.createDomainSchema(schema[key], target, tail.concat(key))
+    this.createDomainSchema(
+      schema[key],
+      target,
+      tail.concat(key)
+    )
   })
 }
 
+/**
+ * A reference to the original `get` method from convict.
+ *
+ * @type {Function}
+ */
 Config.prototype._get = Config.prototype.get
 
+/**
+ * Gets a configuration value for a domain if the property can
+ * be defined at domain level *and* a domain name is supplied.
+ * Otherwise, behaves as the native `get` method from Convict.
+ *
+ * @param  {String} path   - config property
+ * @param  {String} domain - domain name
+ * @return {Object}
+ */
 Config.prototype.get = function (path, domain) {
   if (
     domain === undefined ||
@@ -634,34 +677,38 @@ Config.prototype.get = function (path, domain) {
   return this.domainConfigs[domain].get(path)
 }
 
+/**
+ * Builds a hash map with a Convict instance for each configured
+ * domain.
+ *
+ * @return {Object}
+ */
 Config.prototype.loadDomainConfigs = function () {
   let configs = {}
-  let domainsDirectory = path.resolve(
-    this.get('multiDomain.directory')
-  )
+  let domainsDirectory = this.get('multiDomain.directory')
 
-  fs.readdirSync(domainsDirectory).forEach(domain => {
-    let domainStats = fs.statSync(path.join(domainsDirectory, domain))
-
-    if (domainStats.isDirectory()) {
-      let filePath = path.join(
-        domainsDirectory,
-        domain,
+  domainManager
+    .scanDomains(domainsDirectory)
+    .getDomains().forEach(({domain, path: domainPath}) => {
+      let configPath = path.join(
+        domainPath,
         `config/config.${this.get('env')}.json`
       )
 
       try {
-        let file = fs.statSync(filePath)
+        let file = fs.statSync(configPath)
 
         if (file.isFile()) {
           configs[domain] = convict(this.domainSchema)
-          configs[domain].loadFile(filePath)
+          configs[domain].loadFile(configPath)
         }
       } catch (err) {
-        console.log(err)
-      }
-    }
-  })
+        logger.info(
+          {module: 'config'},
+          `'${this.get('env')}' config not found for domain ${domain}`
+        )
+      }    
+    })
 
   return configs
 }

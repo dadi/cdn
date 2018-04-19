@@ -94,7 +94,7 @@ describe('Workspace', function () {
         content: sampleRecipe
       })
 
-      return workspace.read().then(({files}) => {
+      return workspace.read().then(files => {
         // Plugin
         files['my-plugin'].should.be.Object
         files['my-plugin'].path.should.eql(samplePluginPath)
@@ -146,7 +146,7 @@ describe('Workspace', function () {
         content: sampleRecipe
       })
 
-      return workspace.read().then(({files}) => {
+      return workspace.read().then(files => {
         // Plugin
         files['my-plugin'].should.be.Object
         files['my-plugin'].path.should.eql(samplePluginPath)
@@ -204,7 +204,7 @@ describe('Workspace', function () {
         content: sampleRecipe2
       })
 
-      return workspace.read().then(({files}) => {
+      return workspace.read().then(files => {
         files['my-recipe'].should.be.Object
         files['my-second-recipe'].should.be.Object
 
@@ -279,7 +279,7 @@ describe('Workspace', function () {
         content: sampleRecipe
       })
 
-      return workspace.read().then(({files}) => {
+      return workspace.read().then(files => {
         files['my-recipe'].should.be.Object
         files['my-recipe'].source.settings.format.should.eql('png')
 
@@ -300,7 +300,7 @@ describe('Workspace', function () {
         })
 
         return workspace.read()   
-      }).then(({files}) => {
+      }).then(files => {
         files['my-recipe'].should.be.Object
         files['my-recipe'].source.settings.format.should.eql('jpg')
 
@@ -315,10 +315,10 @@ describe('Workspace', function () {
 
   describe('build()', () => {
     it('should generate a tree structure of the workspace files and save it internally', () => {
-      return workspace.read().then(({files: tree1}) => {
+      return workspace.read().then(tree1 => {
         workspace.workspace.should.eql({})
         
-        return workspace.build().then(({files: tree2}) => {
+        return workspace.build().then(tree2 => {
           workspace.workspace.should.eql(tree1)
           workspace.workspace.should.eql(tree2)
         })
@@ -328,7 +328,7 @@ describe('Workspace', function () {
 
   describe('get()', () => {
     it('should return the entire workspace tree when given no arguments', () => {
-      return workspace.read().then(({files}) => {
+      return workspace.read().then(files => {
         return workspace.build().then(() => {
           workspace.get().should.eql(files)    
         })
