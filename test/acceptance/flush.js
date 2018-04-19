@@ -10,7 +10,7 @@ var config = require(__dirname + '/../../config')
 let bearerToken
 let configBackup
 
-describe('Cache', function () {
+describe.only('Cache', function () {
   this.timeout(10000)
 
   describe('Flush', function () {
