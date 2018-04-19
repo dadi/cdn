@@ -37,6 +37,13 @@ const config = require(configPath)
 
 const Server = function () {}
 
+/**
+ * Creates an HTTP or HTTPS server and calls `listener`
+ * once the server is listening for requests.
+ *
+ * @param  {Function} listener
+ * @return {http.Server}
+ */
 Server.prototype.create = function (listener) {
   let protocol = config.get('server.protocol')
 
@@ -99,6 +106,9 @@ Server.prototype.create = function (listener) {
   }
 }
 
+/**
+ * Handler function for when the server is listening for requests.
+ */
 Server.prototype.onListening = function () {
   let address = this.address()
   let env = config.get('env')
@@ -119,6 +129,10 @@ Server.prototype.onListening = function () {
   }
 }
 
+/**
+ * Handler function for when the HTTP->HTTPS redirect server
+ * is listening for requests.
+ */
 Server.prototype.onRedirectListening = function () {
   let address = this.address()
   let env = config.get('env')
@@ -134,6 +148,10 @@ Server.prototype.onRedirectListening = function () {
   }
 }
 
+/**
+ * Handler function for when the status endpoint server is
+ * listening for requests.
+ */
 Server.prototype.onStatusListening = function () {
   var address = this.address()
   let env = config.get('env')
@@ -149,6 +167,12 @@ Server.prototype.onStatusListening = function () {
   }
 }
 
+/**
+ * Bootstraps the application, initialising the web server and
+ * attaching all the necessary middleware and routing logic.
+ *
+ * @param  {Function} done - callback function
+ */
 Server.prototype.start = function (done) {
   router.use((req, res, next) => {
     const FAVICON_REGEX = /\/(favicon|(apple-)?touch-icon(-i(phone|pad))?(-\d{2,}x\d{2,})?(-precomposed)?)\.(jpe?g|png|ico|gif)$/i
@@ -259,6 +283,13 @@ Server.prototype.start = function (done) {
   }
 }
 
+/**
+ * Responds to requests to the status endpoint.
+ *
+ * @param  {http.ClientRequest}   req
+ * @param  {http.ServerResponse}  res
+ * @param  {Function}             next
+ */
 Server.prototype.status = function (req, res, next) {
   let method = req.method && req.method.toLowerCase()
   let authorization = req.headers.authorization
@@ -303,7 +334,12 @@ Server.prototype.status = function (req, res, next) {
   })
 }
 
-// This is mostly needed for tests.
+/**
+ * Stops all the server instances and terminates the file watcher.
+ * Used mostly for unit tests.
+ *
+ * @param  {Function} done
+ */
 Server.prototype.stop = function (done) {
   this.readyState = 3
 
