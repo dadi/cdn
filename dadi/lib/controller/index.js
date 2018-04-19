@@ -5,9 +5,10 @@ const fs = require('fs')
 const lengthStream = require('length-stream')
 const mime = require('mime')
 const path = require('path')
-const sha1 = require('sha1')
+const urlParser = require('url')
 const zlib = require('zlib')
 
+const Cache = require(path.join(__dirname, '/../cache'))
 const config = require(path.join(__dirname, '/../../../config'))
 const help = require(path.join(__dirname, '/../help'))
 const logger = require('@dadi/logger')
@@ -103,7 +104,16 @@ const Controller = function (router) {
       }, res)
     }
 
-    let pattern = req.body.pattern === '*' ? '' : sha1(req.body.pattern)
+    let pattern = ''
+
+    if (req.body.pattern !== '*') {
+      let parsedUrl = urlParser.parse(req.body.pattern, true)
+
+      pattern = Cache().getNormalisedKey([
+        parsedUrl.pathname,
+        parsedUrl.search.slice(1)
+      ])
+    }
 
     help.clearCache(pattern, (err) => {
       if (err) console.log(err)
