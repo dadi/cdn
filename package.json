@@ -10,7 +10,7 @@
     "posttest": "./scripts/coverage.js"
   },
   "dependencies": {
-    "@dadi/cache": "^1.5.4",
+    "@dadi/cache": "^1.5.5",
     "@dadi/logger": "latest",
     "@dadi/status": "latest",
     "accept-language-parser": "^1.2.0",
