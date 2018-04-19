@@ -66,7 +66,7 @@
     "wget-improved": "git+https://github.com/jimlambie/node-wget"
   },
   "devDependencies": {
-    "aws-sdk-mock": "^1.5.0",
+    "aws-sdk-mock": "^2.0.0",
     "env-test": "^1.0.0",
     "fakeredis": "^2.0.0",
     "greenkeeper-postpublish": "^1.0.1",
