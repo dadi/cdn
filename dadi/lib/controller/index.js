@@ -98,7 +98,7 @@ const Controller = function (router) {
   router.post('/api/flush', function (req, res) {
     if (!req.body.pattern) {
       return help.sendBackJSON(400, {
-        result: 'Failed',
+        success: false,
         message: "A 'pattern' must be specified"
       }, res)
     }
@@ -119,7 +119,7 @@ const Controller = function (router) {
 
       if (!config.get('cloudfront.enabled')) {
         return help.sendBackJSON(200, {
-          result: 'success',
+          success: true,
           message: `Cache flushed for pattern "${req.body.pattern}"`
         }, res)
       }
@@ -136,7 +136,7 @@ const Controller = function (router) {
           if (err) console.log(err)
 
           return help.sendBackJSON(200, {
-            result: 'success',
+            success: true,
             message: 'Cache and cloudfront flushed for pattern ' + req.body.pattern
           }, res)
         })
