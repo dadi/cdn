@@ -15,7 +15,7 @@
     "@dadi/status": "latest",
     "accept-language-parser": "^1.2.0",
     "aspect-fit": "^1.0.2",
-    "aws-sdk": "2.5.4",
+    "aws-sdk": "2.226.1",
     "babel-cli": "6.26.0",
     "babel-core": "6.26.0",
     "babel-preset-env": "1.6.1",
