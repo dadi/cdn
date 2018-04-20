@@ -1,22 +1,8 @@
-const fs = require('fs')
 const path = require('path')
-
-const config = require(path.join(__dirname, '/../../../config'))
 const help = require(path.join(__dirname, '/../help'))
+const logger = require('@dadi/logger')
 const Route = require(path.join(__dirname, '/../models/route'))
-
-function routeExists (route) {
-  const routePath = path.join(
-    path.resolve(config.get('paths.routes')),
-    route + '.json'
-  )
-
-  return new Promise((resolve, reject) => {
-    fs.stat(routePath, (err, stats) => {
-      return resolve(!err && stats.isFile())
-    })
-  })
-}
+const workspace = require(path.join(__dirname, '/../models/workspace'))
 
 module.exports.post = (req, res) => {
   const route = new Route(req.body)
@@ -37,23 +23,23 @@ module.exports.post = (req, res) => {
     }, res)
   }
 
-  return routeExists(req.body.route).then((routeExists) => {
-    if (routeExists) {
-      return help.sendBackJSON(400, {
-        success: false,
-        errors: ['Route already exists']
-      }, res)
-    }
+  if (workspace.get(route.config.route, req.__domain)) {
+    return help.sendBackJSON(400, {
+      success: false,
+      errors: [`Route '${route.config.route}' already exists`]
+    }, res)
+  }
 
-    if (route.save()) {
-      return help.sendBackJSON(200, {
-        success: true
-      }, res)
-    } else {
-      return help.sendBackJSON(400, {
-        success: false,
-        errors: ['Error when saving route']
-      }, res)
-    }
+  return route.save(req.__domain).then(() => {
+    return help.sendBackJSON(200, {
+      success: true
+    }, res)
+  }).catch(err => {
+    logger.error({module: 'routes'}, err)
+
+    return help.sendBackJSON(400, {
+      success: false,
+      errors: ['Error when saving route']
+    }, res)
   })
 }
