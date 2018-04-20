@@ -13,7 +13,7 @@ Recipe.prototype.save = function (domainName) {
   let recipePath = path.resolve(
     path.join(
       domain ? domain.path : '',
-      config.get('paths.recipes'),
+      config.get('paths.recipes', domainName),
       `${this.name}.json`
     )
   )
