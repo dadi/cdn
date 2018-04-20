@@ -39,7 +39,7 @@ let server2 = nock('http://two.somedomain.tech')
     return fs.createReadStream(
       path.resolve(images['testdomain.com'])
     )
-  }) 
+  })
 
 let proxy = httpProxy.createProxyServer({})
 
@@ -334,7 +334,15 @@ describe('Multi-domain', function () {
 
                   cacheSet.restore()
 
-                  done()
+                  request(cdnUrl)
+                    .get('/test.jpg')
+                    .set('Host', 'localhost:80')
+                    .expect(200)
+                    .end((err, res) => {
+                      res.headers['x-cache'].should.eql('MISS')
+
+                      done()
+                    })
                 })
             }, 1000)
           })
