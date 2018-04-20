@@ -69,7 +69,7 @@ describe('Cache', function () {
               .send({pattern: '/test.jpg?q=70'})
               .expect(200)
               .end((err, res) => {
-                res.body.result.should.equal('success')
+                res.body.success.should.eql(true)
 
                 setTimeout(() => {
                   request(cdnUrl)
@@ -110,7 +110,7 @@ describe('Cache', function () {
               .end((err, res) => {
                 if (err) return done(err)
 
-                res.body.result.should.equal('success')
+                res.body.success.should.eql(true)
                 setTimeout(() => {
                   request(cdnUrl)
                     .get('/test.jpg?q=70')
@@ -143,7 +143,7 @@ describe('Cache', function () {
               .end((err, res) => {
                 if (err) return done(err)
 
-                res.body.result.should.equal('success')
+                res.body.success.should.eql(true)
 
                 setTimeout(() => {
                   request(cdnUrl)
@@ -239,7 +239,7 @@ describe('Cache', function () {
                         .send({pattern: '*'})
                         .expect(200)
                         .end((err, res) => {
-                          res.body.result.should.equal('success')
+                          res.body.success.should.eql(true)
 
                           setTimeout(() => {
                             request(cdnUrl)
@@ -298,7 +298,7 @@ describe('Cache', function () {
                         .send({pattern: '*'})
                         .expect(200)
                         .end((err, res) => {
-                          res.body.result.should.equal('success')
+                          res.body.success.should.eql(true)
 
                           setTimeout(() => {
                             request(cdnUrl)
@@ -347,7 +347,7 @@ describe('Cache', function () {
                   .send({pattern: '/test.jpg?q=70'})
                   .expect(200)
                   .end((err, res) => {
-                    res.body.result.should.equal('success')
+                    res.body.success.should.eql(true)
 
                     setTimeout(() => {
                       request(cdnUrl)
