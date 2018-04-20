@@ -30,6 +30,7 @@
     "concat-stream": "^1.5.1",
     "console-stamp": "^0.2.2",
     "convict": "^4.0.0",
+    "cron": "^1.3.0",
     "etag": "^1.7.0",
     "exif": "^0.6.0",
     "farmhash": "2.0.5",
