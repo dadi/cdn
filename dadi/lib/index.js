@@ -251,7 +251,7 @@ Server.prototype.start = function (done) {
 
       if (!domainManager.getDomain(domain)) {
         return help.sendBackJSON(404, {
-          result: 'Failed',
+          success: false,
           message: `Domain not configured: ${domain}`
         }, res)
       }
@@ -287,7 +287,7 @@ Server.prototype.start = function (done) {
 
 Server.prototype.startCacheFlushing = function () {
   domainManager.getDomains().forEach(({domain, path: domainPath}) => {
-    console.log('---> Domain:', domain, config.get('caching.expireAt', domain))
+    // console.log('---> Domain:', domain, config.get('caching.expireAt', domain))
   })
 }
 
