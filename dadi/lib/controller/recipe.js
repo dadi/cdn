@@ -1,6 +1,7 @@
 const path = require('path')
 
 const help = require(path.join(__dirname, '/../help'))
+const logger = require('@dadi/logger')
 const Recipe = require(path.join(__dirname, '/../models/recipe'))
 const workspace = require(path.join(__dirname, '/../models/workspace'))
 
@@ -25,8 +26,8 @@ module.exports.post = (req, res) => {
     }, res)
   }
 
-  const recipe = new Recipe(obj)
-  const validationErrors = recipe.validate()
+  let recipe = new Recipe(obj)
+  let validationErrors = recipe.validate()
 
   if (validationErrors) {
     return help.sendBackJSON(400, {
@@ -35,7 +36,10 @@ module.exports.post = (req, res) => {
     }, res)
   }
 
-  const existingWorkspaceFile = workspace.get(recipe.name)
+  let existingWorkspaceFile = workspace.get(
+    recipe.name,
+    req.__domain
+  )
 
   // Do we already have a recipe (or any other workspace file)
   // with this name?
@@ -46,15 +50,17 @@ module.exports.post = (req, res) => {
     }, res)
   }
 
-  if (recipe.save()) {
+  return recipe.save(req.__domain).then(() => {
     return help.sendBackJSON(201, {
       success: true,
       message: `Recipe "${recipe.name}" created`
     }, res)
-  } else {
+  }).catch(err => {
+    logger.error({module: 'recipes'}, err)
+
     return help.sendBackJSON(400, {
       success: false,
       errors: ['Error when saving recipe']
     }, res)
-  }
+  })
 }
