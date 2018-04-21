@@ -377,7 +377,7 @@ describe('Recipes (with multi-domain)', () => {
   })
 
   it('should create a recipe for the given domain only', done => {
-    help.getBearerToken((err, token) => {
+    help.getBearerToken('localhost', (err, token) => {
       request(cdnUrl)
       .post('/api/recipes')
       .send(sample)

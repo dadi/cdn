@@ -448,7 +448,7 @@ describe('Routes (with multi-domain)', () => {
   })
 
   it('should create a route for the given domain only', done => {
-    help.getBearerToken((err, token) => {
+    help.getBearerToken('localhost', (err, token) => {
       request(cdnUrl)
       .post('/api/routes')
       .send(sample)

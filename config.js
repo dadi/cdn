@@ -381,6 +381,11 @@ const schema = {
       format: Number,
       default: 1800,
       env: 'AUTH_TOKEN_TTL'
+    },
+    privateKey: {
+      doc: 'Private key for signing JSON Web Tokens',
+      format: String,
+      default: 'YOU-MUST-CHANGE-ME-NOW!'
     }
   },
   cloudfront: {

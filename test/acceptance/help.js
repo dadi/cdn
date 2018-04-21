@@ -58,10 +58,15 @@ module.exports.imagesEqual = function ({base, headers, test}) {
     })
 }
 
-module.exports.getBearerToken = function (done) {
+module.exports.getBearerToken = function (domain, done) {
+  if (typeof domain === 'function') {
+    done = domain
+    domain = 'localhost'
+  }
+
   request('http://' + config.get('server.host') + ':' + config.get('server.port'))
     .post(config.get('auth.tokenUrl'))
-    .set('host', 'localhost:80')
+    .set('host', `${domain}:80`)
     .send({
       clientId: 'test',
       secret: 'test'
