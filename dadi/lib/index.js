@@ -1,6 +1,8 @@
+const CronJob = require('cron').CronJob
 const site = require('../../package.json').name
 const version = require('../../package.json').version
 const nodeVersion = Number(process.version.match(/^v(\d+\.\d+)/)[1])
+const cache = require('./cache')
 const colors = require('colors') // eslint-disable-line
 const bodyParser = require('body-parser')
 const finalhandler = require('finalhandler')
@@ -8,6 +10,7 @@ const fs = require('fs')
 const help = require('./help')
 const http = require('http')
 const https = require('https')
+const logger = require('@dadi/logger')
 const path = require('path')
 const Router = require('router')
 const router = Router()
@@ -35,7 +38,9 @@ const Controller = require(path.join(__dirname, '/controller'))
 const configPath = path.resolve(path.join(__dirname, '/../../config'))
 const config = require(configPath)
 
-const Server = function () {}
+const Server = function () {
+  this.crons = {}
+}
 
 /**
  * Creates an HTTP or HTTPS server and calls `listener`
@@ -251,7 +256,7 @@ Server.prototype.start = function (done) {
 
       if (!domainManager.getDomain(domain)) {
         return help.sendBackJSON(404, {
-          result: 'Failed',
+          success: false,
           message: `Domain not configured: ${domain}`
         }, res)
       }
@@ -278,17 +283,52 @@ Server.prototype.start = function (done) {
   workspace.createDirectories()
   workspace.startWatchingFiles()
 
-  this.startCacheFlushing()
+  this.startFrequencyCache()
 
   if (typeof done === 'function') {
     done()
   }
 }
 
-Server.prototype.startCacheFlushing = function () {
-  domainManager.getDomains().forEach(({domain, path: domainPath}) => {
-    console.log('---> Domain:', domain, config.get('caching.expireAt', domain))
-  })
+/**
+ * Starts the frequency cache flushing process.
+ */
+Server.prototype.startFrequencyCache = function () {
+  let crons = {}
+
+  // If multi-domain is enabled, we'll set up a cron for each domain.
+  if (config.get('multiDomain.enabled')) {
+    domainManager.getDomains().forEach(({domain, path: domainPath}) => {
+      let cronString = config.get('caching.expireAt', domain)
+
+      if (typeof cronString !== 'string') return
+
+      crons[domain] = new CronJob(cronString, () => {
+        try {
+          // Flush cache for this domain.
+          cache().delete([domain])
+        } catch (err) {
+          logger.error({module: 'expireAt-flush'}, err)
+        }
+      }, null, true)
+    })
+  } else {
+    let cronString = config.get('caching.expireAt')
+
+    if (typeof cronString !== 'string') return
+
+    // Otherwise, we'll set a single cron to flush the cache globally.
+    crons.__global = new CronJob(cronString, () => {
+      try {
+        // Flush cache globally.
+        cache().delete()
+      } catch (err) {
+        logger.error({module: 'expireAt-flush'}, err)
+      }
+    }, null, true)
+  }
+
+  this.crons = crons
 }
 
 /**
@@ -351,6 +391,8 @@ Server.prototype.status = function (req, res, next) {
 Server.prototype.stop = function (done) {
   this.readyState = 3
 
+  this.stopFrequencyCache()
+
   workspace.stopWatchingFiles()
 
   this.server.close(err => {
@@ -371,6 +413,17 @@ Server.prototype.stop = function (done) {
       }
     }
   })
+}
+
+/**
+ * Starts the frequency cache flushing process.
+ */
+Server.prototype.stopFrequencyCache = function () {
+  Object.keys(this.crons).forEach(id => {
+    this.crons[id].stop()
+  })
+
+  this.crons = {}
 }
 
 module.exports = new Server()

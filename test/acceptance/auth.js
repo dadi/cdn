@@ -1,32 +1,31 @@
-var should = require('should')
-var request = require('supertest')
-var config = require(__dirname + '/../../config')
-var help = require(__dirname + '/help')
-var app = require(__dirname + '/../../dadi/lib/')
-var fs = require('fs')
+const jwt = require('jsonwebtoken')
+const should = require('should')
+const request = require('supertest')
+const config = require(__dirname + '/../../config')
+const help = require(__dirname + '/help')
+const app = require(__dirname + '/../../dadi/lib/')
+const fs = require('fs')
+
+let cdnUrl = `http://${config.get('server.host')}:${config.get('server.port')}`
+let configBackup = config.get()
 
 describe('Authentication', function () {
-  var tokenRoute = config.get('auth.tokenUrl')
+  let tokenRoute = config.get('auth.tokenUrl')
 
-  before(function (done) {
-    app.start(function (err) {
+  before(done => {
+    app.start(err => {
       if (err) return done(err)
 
-      // give it a moment for http.Server to finish starting
-      setTimeout(function () {
-        done()
-      }, 500)
+      setTimeout(done, 500)
     })
   })
 
-  after(function (done) {
+  after(done => {
     app.stop(done)
   })
 
-  it('should issue a bearer token', function (done) {
-    var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-
-    client
+  it('should issue a bearer token', done => {
+    request(cdnUrl)
       .post(tokenRoute)
       .send({
         clientId: 'test',
@@ -35,13 +34,18 @@ describe('Authentication', function () {
       .expect('content-type', 'application/json')
       .expect('pragma', 'no-cache')
       .expect('Cache-Control', 'no-store')
-      .expect(200, done)
+      .expect(200)
+      .end((err, res) => {
+        res.body.accessToken.should.be.String
+        res.body.tokenType.should.be.String
+        res.body.expiresIn.should.be.Number
+
+        done()
+      })
   })
 
-  it('should not issue token if credentials are invalid', function (done) {
-    var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-
-    client
+  it('should not issue token if credentials are invalid', done => {
+    request(cdnUrl)
       .post(tokenRoute)
       .send({
         clientId: 'test123',
@@ -51,11 +55,9 @@ describe('Authentication', function () {
       .expect(401, done)
   })
 
-  it('should allow `/api/flush` request containing token', function (done) {
-    help.getBearerToken(function (err, token) {
-      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-
-      client
+  it('should allow `/api/flush` request containing token', done => {
+    help.getBearerToken((err, token) => {
+      request(cdnUrl)
         .post('/api/flush')
         .send({pattern: 'test'})
         .set('Authorization', 'Bearer ' + token)
@@ -64,11 +66,9 @@ describe('Authentication', function () {
     })
   })
 
-  it('should not allow `/api/flush` request containing invalid token', function (done) {
-    help.getBearerToken(function (err, token) {
-      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-
-      client
+  it('should not allow `/api/flush` request containing invalid token', done => {
+    help.getBearerToken((err, token) => {
+      request(cdnUrl)
         .post('/api/flush')
         .send({pattern: 'test'})
         .set('Authorization', 'Bearer badtokenvalue')
@@ -76,34 +76,107 @@ describe('Authentication', function () {
     })
   })
 
-  it('should not allow `/api/flush` request with expired tokens', function (done) {
-    this.timeout(4000)
-
-    var oldTtl = Number(config.get('auth.tokenTtl'))
+  it('should not allow `/api/flush` request with expired tokens', done => {
     config.set('auth.tokenTtl', 1)
 
-    var _done = function (err) {
-      config.set('auth.tokenTtl', oldTtl)
+    let _done = err => {
+      config.set('auth.tokenTtl', configBackup.auth.tokenTtl)
+
       done(err)
     }
 
-    help.getBearerToken(function (err, token) {
-      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-
-      client
+    help.getBearerToken((err, token) => {
+      request(cdnUrl)
         .post('/api/flush')
         .send({pattern: 'test'})
         .set('Authorization', 'Bearer ' + token)
-        .expect(200, function (err) {
+        .expect(200, (err) => {
           if (err) return _done(err)
 
-          setTimeout(function () {
-            client
+          setTimeout(() => {
+            request(cdnUrl)
               .post('/api')
               .send({invalidate: 'test'})
               .set('Authorization', 'Bearer ' + token)
               .expect(401, _done)
           }, 2000)
+        })
+    })
+  }).timeout(4000)
+
+  describe('when multi-domain is enabled', () => {
+    before(() => {
+      config.set('multiDomain.enabled', true)
+      config.set('multiDomain.directory', 'domains')
+    })
+
+    after(() => {
+      config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
+      config.set('multiDomain.directory', configBackup.multiDomain.directory)
+    })
+
+    it('should encode the domain in the JWT', done => {
+      request(cdnUrl)
+        .post(tokenRoute)
+        .send({
+          clientId: 'test',
+          secret: 'test'
+        })
+        .set('host', 'testdomain.com:80')
+        .expect('content-type', 'application/json')
+        .expect('pragma', 'no-cache')
+        .expect('Cache-Control', 'no-store')
+        .expect(200)
+        .end((err, res) => {
+          res.body.accessToken.should.be.String
+          res.body.tokenType.should.be.String
+          res.body.expiresIn.should.be.Number
+
+          jwt.verify(
+            res.body.accessToken,
+            config.get('auth.privateKey'),
+            (err, decoded) => {
+              if (err) return done(err)
+
+              decoded.domain.should.eql('testdomain.com')
+
+              done()
+            }
+          )
+        })
+    })
+
+    it('should reject bearer tokens that were not generated for the current domain', done => {
+      request(cdnUrl)
+        .post(tokenRoute)
+        .send({
+          clientId: 'test',
+          secret: 'test'
+        })
+        .set('host', 'testdomain.com:80')
+        .expect('content-type', 'application/json')
+        .expect('pragma', 'no-cache')
+        .expect('Cache-Control', 'no-store')
+        .expect(200)
+        .end((err, res) => {
+          let token = res.body.accessToken
+
+          request(cdnUrl)
+            .post('/api/flush')
+            .set('host', 'testdomain.com:80')
+            .send({pattern: 'test'})
+            .set('Authorization', 'Bearer ' + token)
+            .expect('content-type', 'application/json')
+            .expect(200)
+            .end((err, res) => {
+              request(cdnUrl)
+                .post('/api/flush')
+                .set('host', 'localhost:80')
+                .send({pattern: 'test'})
+                .set('Authorization', 'Bearer ' + token)
+                .expect('content-type', 'application/json')
+                .expect(401, done)
+            })
         })
     })
   })

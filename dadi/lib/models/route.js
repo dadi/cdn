@@ -1,4 +1,5 @@
-const fs = require('fs')
+const domainManager = require('./domain-manager')
+const fs = require('fs-extra')
 const languageParser = require('accept-language-parser')
 const logger = require('@dadi/logger')
 const Maxmind = require('maxmind')
@@ -228,8 +229,9 @@ Route.prototype.getRecipe = function () {
       if (recipe) {
         return cache.set(this._getCacheKey(), recipe).then(() => {
           return recipe
-        }).catch((err) => {
-          console.log(err)
+        }).catch(err => {
+          logger.error({module: 'routes'}, err)
+
           return recipe
         })
       }
@@ -265,18 +267,19 @@ Route.prototype.processRoute = function () {
   })
 }
 
-Route.prototype.save = function () {
-  const filePath = path.join(path.resolve(config.get('paths.routes')), this.config.route + '.json')
+Route.prototype.save = function (domainName) {
+  let domain = domainManager.getDomain(domainName)
+  let routePath = path.resolve(
+    path.join(
+      domain ? domain.path : '',
+      config.get('paths.routes', domainName),
+      `${this.config.route}.json`
+    )
+  )
 
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(this.config, null, 2))
-
-    return true
-  } catch (err) {
-    logger.error({module: 'routes'}, err)
-
-    return false
-  }
+  return fs.writeJson(routePath, this.config, {
+    spaces: 2
+  })
 }
 
 Route.prototype.setDomain = function (domain) {

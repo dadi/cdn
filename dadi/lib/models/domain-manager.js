@@ -12,6 +12,8 @@ const DomainManager = function () {
  * @return {Object}
  */
 DomainManager.prototype.getDomain = function (domain) {
+  if (typeof domain !== 'string') return null
+
   return this.domains.find(item => {
     return item.domain === domain
   })

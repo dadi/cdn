@@ -1,6 +1,7 @@
 const fs = require('fs')
 const should = require('should')
 const request = require('supertest')
+const sinon = require('sinon')
 const assert = require('assert')
 const help = require(__dirname + '/help')
 const app = require(__dirname + '/../../dadi/lib/')
@@ -8,6 +9,7 @@ const cache = require(__dirname + '/../../dadi/lib/cache')
 const config = require(__dirname + '/../../config')
 
 let bearerToken
+let configBackup = config.get()
 
 const USER_AGENTS = {
   chrome64: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.167 Safari/537.36',
@@ -319,5 +321,67 @@ describe('Cache', function () {
         }, 500)
       })
     })
-  })   
+  })
+})
+
+describe('Frequency cache flush', () => {
+  afterEach(() => {
+    cache.reset()
+    help.clearCache()
+  })
+
+  describe('with multi-domain disabled', () => {
+    it('should flush the entire cache in the interval defined by the `expireAt` property', done => {
+      // Every second.
+      config.set('caching.expireAt', '* * * * * *')
+      config.set('multiDomain.enabled', false)
+
+      app.start(() => {
+        let mockCacheDelete = sinon.spy(cache.Cache.prototype, 'delete')
+
+        setTimeout(() => {
+          mockCacheDelete.args.every(callArgs => {
+            return callArgs.length === 0
+          }).should.eql(true)
+          mockCacheDelete.callCount.should.eql(5)
+
+          mockCacheDelete.restore()
+
+          config.set('caching.expireAt', configBackup.caching.expireAt)
+          config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
+
+          app.stop(done)
+        }, 5200)
+      })
+    }).timeout(6000)
+  })
+
+  describe('with multi-domain enabled', () => {
+    it('should flush the entire cache in the interval defined by the `expireAt` property', done => {
+      // Every second.
+      config.set('caching.expireAt', '* * * * * *', 'testdomain.com')
+      config.set('multiDomain.enabled', true)
+
+      app.start(() => {
+        let mockCacheDelete = sinon.spy(cache.Cache.prototype, 'delete')
+
+        setTimeout(() => {
+          mockCacheDelete.args.every(callArgs => {
+            callArgs.length.should.eql(1)
+            callArgs[0].should.eql(['testdomain.com'])
+
+            return true
+          }).should.eql(true)
+          mockCacheDelete.callCount.should.eql(5)
+
+          mockCacheDelete.restore()
+
+          config.set('caching.expireAt', configBackup.caching.expireAt, 'testdomain.com')
+          config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
+
+          app.stop(done)
+        }, 5200)
+      })
+    }).timeout(6000)
+  })
 })

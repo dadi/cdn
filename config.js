@@ -381,6 +381,11 @@ const schema = {
       format: Number,
       default: 1800,
       env: 'AUTH_TOKEN_TTL'
+    },
+    privateKey: {
+      doc: 'Private key for signing JSON Web Tokens',
+      format: String,
+      default: 'YOU-MUST-CHANGE-ME-NOW!'
     }
   },
   cloudfront: {
@@ -717,6 +722,34 @@ Config.prototype.loadDomainConfigs = function () {
     })
 
   return configs
+}
+
+/**
+ * A reference to the original `set` method from convict.
+ *
+ * @type {Function}
+ */
+Config.prototype._set = Config.prototype.set
+
+/**
+ * Sets a configuration value for a given domain name, if one
+ * is specified. If not, the method behaves like the original
+ * `set` method from Convict.
+ *
+ * @param {String} path
+ * @param {Object} value
+ * @param {String} domain
+ */
+Config.prototype.set = function (path, value, domain) {
+  if (
+    domain === undefined ||
+    this.domainConfigs[domain] === undefined ||
+    !objectPath.get(schema, `${path}.allowDomainOverride`)
+  ) {
+    return this._set(path, value)
+  }
+
+  return this.domainConfigs[domain].set(path, value)  
 }
 
 module.exports = new Config()

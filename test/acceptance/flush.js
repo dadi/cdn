@@ -69,7 +69,7 @@ describe('Cache', function () {
               .send({pattern: '/test.jpg?q=70'})
               .expect(200)
               .end((err, res) => {
-                res.body.result.should.equal('success')
+                res.body.success.should.eql(true)
 
                 setTimeout(() => {
                   request(cdnUrl)
@@ -110,7 +110,7 @@ describe('Cache', function () {
               .end((err, res) => {
                 if (err) return done(err)
 
-                res.body.result.should.equal('success')
+                res.body.success.should.eql(true)
                 setTimeout(() => {
                   request(cdnUrl)
                     .get('/test.jpg?q=70')
@@ -143,7 +143,7 @@ describe('Cache', function () {
               .end((err, res) => {
                 if (err) return done(err)
 
-                res.body.result.should.equal('success')
+                res.body.success.should.eql(true)
 
                 setTimeout(() => {
                   request(cdnUrl)
@@ -188,14 +188,9 @@ describe('Cache', function () {
         cache.reset()
 
         app.start(() => {
-          help.getBearerToken((err, token) => {
-            if (err) return done(err)
+          help.clearCache()
 
-            bearerToken = token
-            help.clearCache()
-
-            done()
-          })
+          done()
         })
       })
 
@@ -210,176 +205,188 @@ describe('Cache', function () {
       })
 
       it('should only flush cached items for the target domain', done => {
-        request(cdnUrl)
-          .get('/test.jpg')
-          .set('host', 'testdomain.com:80')
-          .expect(200)
-          .end((err, res) => {
-            res.headers['x-cache'].should.eql('MISS')
+        help.getBearerToken('testdomain.com', (err, bearerToken) => {
+          if (err) return done(err)
 
-            request(cdnUrl)
-              .get('/test.jpg')
-              .set('host', 'localhost:80')
-              .expect(200)
-              .end((err, res) => {
-                res.headers['x-cache'].should.eql('MISS')
+          request(cdnUrl)
+            .get('/test.jpg')
+            .set('host', 'testdomain.com:80')
+            .expect(200)
+            .end((err, res) => {
+              res.headers['x-cache'].should.eql('MISS')
 
-                setTimeout(() => {
-                  request(cdnUrl)
-                    .get('/test.jpg')
-                    .set('host', 'testdomain.com:80')
-                    .expect(200)
-                    .end((err, res) => {
-                      res.headers['x-cache'].should.eql('HIT')
+              request(cdnUrl)
+                .get('/test.jpg')
+                .set('host', 'localhost:80')
+                .expect(200)
+                .end((err, res) => {
+                  res.headers['x-cache'].should.eql('MISS')
 
-                      request(cdnUrl)
-                        .post('/api/flush')
-                        .set('Authorization', 'Bearer ' + bearerToken)
-                        .set('host', 'testdomain.com:80')
-                        .send({pattern: '*'})
-                        .expect(200)
-                        .end((err, res) => {
-                          res.body.result.should.equal('success')
+                  setTimeout(() => {
+                    request(cdnUrl)
+                      .get('/test.jpg')
+                      .set('host', 'testdomain.com:80')
+                      .expect(200)
+                      .end((err, res) => {
+                        res.headers['x-cache'].should.eql('HIT')
 
-                          setTimeout(() => {
-                            request(cdnUrl)
-                              .get('/test.jpg')
-                              .set('host', 'testdomain.com:80')
-                              .expect(200)
-                              .end((err, res) => {
-                                res.headers['x-cache'].should.eql('MISS')
+                        request(cdnUrl)
+                          .post('/api/flush')
+                          .set('Authorization', 'Bearer ' + bearerToken)
+                          .set('host', 'testdomain.com:80')
+                          .send({pattern: '*'})
+                          .expect(200)
+                          .end((err, res) => {
+                            res.body.success.should.eql(true)
 
-                                request(cdnUrl)
-                                  .get('/test.jpg')
-                                  .set('host', 'localhost:80')
-                                  .expect(200)
-                                  .end((err, res) => {
-                                    res.headers['x-cache'].should.eql('HIT')
+                            setTimeout(() => {
+                              request(cdnUrl)
+                                .get('/test.jpg')
+                                .set('host', 'testdomain.com:80')
+                                .expect(200)
+                                .end((err, res) => {
+                                  res.headers['x-cache'].should.eql('MISS')
 
-                                    done()
-                                  })
+                                  request(cdnUrl)
+                                    .get('/test.jpg')
+                                    .set('host', 'localhost:80')
+                                    .expect(200)
+                                    .end((err, res) => {
+                                      res.headers['x-cache'].should.eql('HIT')
 
-                              })
-                          }, 500)
-                        })
-                    })
-                }, 500)
-              })
-          })
+                                      done()
+                                    })
+
+                                })
+                            }, 500)
+                          })
+                      })
+                  }, 500)
+                })
+            })          
+        })
       })
 
       it('should flush all cached items for a given domain', done => {
-        request(cdnUrl)
-          .get('/test.jpg')
-          .set('host', 'testdomain.com:80')
-          .expect(200)
-          .end((err, res) => {
-            res.headers['x-cache'].should.eql('MISS')
+        help.getBearerToken('testdomain.com', (err, bearerToken) => {
+          if (err) return done(err)
 
-            request(cdnUrl)
-              .get('/original.jpg')
-              .set('host', 'testdomain.com:80')
-              .expect(200)
-              .end((err, res) => {
-                res.headers['x-cache'].should.eql('MISS')
+          request(cdnUrl)
+            .get('/test.jpg')
+            .set('host', 'testdomain.com:80')
+            .expect(200)
+            .end((err, res) => {
+              res.headers['x-cache'].should.eql('MISS')
 
-                setTimeout(() => {
-                  request(cdnUrl)
-                    .get('/test.jpg')
-                    .set('host', 'testdomain.com:80')
-                    .expect(200)
-                    .end((err, res) => {
-                      res.headers['x-cache'].should.eql('HIT')
+              request(cdnUrl)
+                .get('/original.jpg')
+                .set('host', 'testdomain.com:80')
+                .expect(200)
+                .end((err, res) => {
+                  res.headers['x-cache'].should.eql('MISS')
 
-                      request(cdnUrl)
-                        .post('/api/flush')
-                        .set('Authorization', 'Bearer ' + bearerToken)
-                        .set('host', 'testdomain.com:80')
-                        .send({pattern: '*'})
-                        .expect(200)
-                        .end((err, res) => {
-                          res.body.result.should.equal('success')
+                  setTimeout(() => {
+                    request(cdnUrl)
+                      .get('/test.jpg')
+                      .set('host', 'testdomain.com:80')
+                      .expect(200)
+                      .end((err, res) => {
+                        res.headers['x-cache'].should.eql('HIT')
 
-                          setTimeout(() => {
-                            request(cdnUrl)
-                              .get('/test.jpg')
-                              .set('host', 'testdomain.com:80')
-                              .expect(200)
-                              .end((err, res) => {
-                                res.headers['x-cache'].should.eql('MISS')
+                        request(cdnUrl)
+                          .post('/api/flush')
+                          .set('Authorization', 'Bearer ' + bearerToken)
+                          .set('host', 'testdomain.com:80')
+                          .send({pattern: '*'})
+                          .expect(200)
+                          .end((err, res) => {
+                            res.body.success.should.eql(true)
 
-                                request(cdnUrl)
-                                  .get('/original.jpg')
-                                  .set('host', 'testdomain.com:80')
-                                  .expect(200)
-                                  .end((err, res) => {
-                                    res.headers['x-cache'].should.eql('MISS')
+                            setTimeout(() => {
+                              request(cdnUrl)
+                                .get('/test.jpg')
+                                .set('host', 'testdomain.com:80')
+                                .expect(200)
+                                .end((err, res) => {
+                                  res.headers['x-cache'].should.eql('MISS')
 
-                                    done()
-                                  })
+                                  request(cdnUrl)
+                                    .get('/original.jpg')
+                                    .set('host', 'testdomain.com:80')
+                                    .expect(200)
+                                    .end((err, res) => {
+                                      res.headers['x-cache'].should.eql('MISS')
 
-                              })
-                          }, 500)
-                        })
-                    })
-                }, 500)
-              })
-          })
+                                      done()
+                                    })
+
+                                })
+                            }, 500)
+                          })
+                      })
+                  }, 500)
+                })
+            })
+        })
       })
 
       it('should not flush cached items that don\'t match the specified path', done => {
-        request(cdnUrl)
-          .get('/test.jpg?q=70')
-          .set('host', 'localhost:80')
-          .expect(200)
-          .end((err, res) => {
-            res.headers['x-cache'].should.eql('MISS')
+        help.getBearerToken('localhost', (err, bearerToken) => {
+          request(cdnUrl)
+            .get('/test.jpg?q=70')
+            .set('host', 'localhost:80')
+            .expect(200)
+            .end((err, res) => {
+              res.headers['x-cache'].should.eql('MISS')
 
-            request(cdnUrl)
-              .get('/test.jpg?q=50')
-              .set('host', 'localhost:80')
-              .expect(200)
-              .end((err, res) => {
-                request(cdnUrl)
-                  .post('/api/flush')
-                  .set('host', 'localhost:80')
-                  .set('Authorization', 'Bearer ' + bearerToken)
-                  .send({pattern: '/test.jpg?q=70'})
-                  .expect(200)
-                  .end((err, res) => {
-                    res.body.result.should.equal('success')
+              request(cdnUrl)
+                .get('/test.jpg?q=50')
+                .set('host', 'localhost:80')
+                .expect(200)
+                .end((err, res) => {
+                  request(cdnUrl)
+                    .post('/api/flush')
+                    .set('host', 'localhost:80')
+                    .set('Authorization', 'Bearer ' + bearerToken)
+                    .send({pattern: '/test.jpg?q=70'})
+                    .expect(200)
+                    .end((err, res) => {
+                      res.body.success.should.eql(true)
 
-                    setTimeout(() => {
-                      request(cdnUrl)
-                        .get('/test.jpg?q=50')
-                        .set('host', 'localhost:80')
-                        .expect(200)
-                        .end((err, res) => {
-                          res.headers['x-cache'].should.eql('HIT')
+                      setTimeout(() => {
+                        request(cdnUrl)
+                          .get('/test.jpg?q=50')
+                          .set('host', 'localhost:80')
+                          .expect(200)
+                          .end((err, res) => {
+                            res.headers['x-cache'].should.eql('HIT')
 
-                          setTimeout(() => {
-                            request(cdnUrl)
-                              .get('/test.jpg?q=70')
-                              .set('host', 'localhost:80')
-                              .expect(200)
-                              .end((err, res) => {
-                                res.headers['x-cache'].should.eql('MISS')
-                                done()
-                              })
-                          }, 500)
-                        })
-                    }, 500)
-                  })
-              })
-          })
+                            setTimeout(() => {
+                              request(cdnUrl)
+                                .get('/test.jpg?q=70')
+                                .set('host', 'localhost:80')
+                                .expect(200)
+                                .end((err, res) => {
+                                  res.headers['x-cache'].should.eql('MISS')
+                                  done()
+                                })
+                            }, 500)
+                          })
+                      }, 500)
+                    })
+                })
+            })        
+        })
       })
 
       it('should return error when no path is specified', done => {
-        request(cdnUrl)
-          .post('/api/flush')
-          .set('host', 'localhost:80')
-          .set('Authorization', 'Bearer ' + bearerToken)
-          .expect(400, done)
+        help.getBearerToken('localhost', (err, bearerToken) => {
+          request(cdnUrl)
+            .post('/api/flush')
+            .set('host', 'localhost:80')
+            .set('Authorization', 'Bearer ' + bearerToken)
+            .expect(400, done)
+        })
       })
     })
   })
