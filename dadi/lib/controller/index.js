@@ -65,7 +65,10 @@ const Controller = function (router) {
             res.statusCode = 304
             res.end()
           } else {
-            res.setHeader('X-Cache', handler.isCached ? 'HIT' : 'MISS')
+            let cacheHeader = (handler.getHeader && handler.getHeader('x-cache')) ||
+              (handler.isCached ? 'HIT' : 'MISS')
+
+            res.setHeader('X-Cache', cacheHeader)
             res.end(buffer)
           }
         }
