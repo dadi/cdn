@@ -212,7 +212,7 @@ ImageHandler.prototype.extractExifData = function (file) {
 }
 
 ImageHandler.prototype.get = function () {
-  let assetPath = this.parsedUrl.asset.path
+  let assetPath = this.parsedUrl.asset.href
 
   // (!) DEPRECATED
   //
@@ -635,11 +635,23 @@ ImageHandler.prototype.getLastModified = function () {
 }
 
 ImageHandler.prototype.parseUrl = function (url) {
-  const parsedUrl = urlParser.parse(url, true)
-  const searchNodes = parsedUrl.search.split('?')
-
+  // (!) A lot of this logic could be simplified if we used the WHATWG
+  // URL API (https://nodejs.org/api/url.html#url_the_whatwg_url_api),
+  // which required Node 7.
+  let parsedUrl = urlParser.parse(url, true)
+  let searchNodes = parsedUrl.search.split('?')
   let cdnUrl = `${parsedUrl.pathname}?${searchNodes.slice(-1)}`
   let assetUrl = parsedUrl.pathname
+
+  if (parsedUrl.protocol && parsedUrl.host) {
+    let baseUrl = `${parsedUrl.protocol}//${parsedUrl.host}`
+
+    if (parsedUrl.port) {
+      baseUrl += `:${parsedUrl.port}`
+    }
+
+    assetUrl = baseUrl + assetUrl
+  }
 
   if (searchNodes.length > 2) {
     assetUrl += `?${searchNodes.slice(-2, -1)}`

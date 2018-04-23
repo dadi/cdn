@@ -76,22 +76,22 @@ HTTPStorage.prototype.get = function () {
       let expression = /Server responded with unhandled status: (\d*)/
       let match = (typeof error === 'string') && error.match(expression)
       let err = {
-        statusCode: (match && match[1]) || 400
+        statusCode: (match && parseInt(match[1])) || 400
       }
 
       switch (err.statusCode) {
-        case '404':
+        case 404:
           err.message = `Not Found: ${this.getFullUrl()}`
 
           break
 
-        case '403':
+        case 403:
           err.message = `Forbidden: ${this.getFullUrl()}`
 
           break
 
         default:
-          err.message = `Remote server responded with error code ${match[1]} for URL: ${this.getFullUrl()}`
+          err.message = `Remote server responded with error code ${err.statusCode} for URL: ${this.getFullUrl()}`
 
           break
       }

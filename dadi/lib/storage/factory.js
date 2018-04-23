@@ -40,7 +40,6 @@ module.exports.create = function create (type, assetPath, {domain} = {}) {
   }
 
   let adapterFromPath = module.exports.extractAdapterFromPath(assetPath)
-
   let adapter
 
   if (adapterFromPath.adapter) {
