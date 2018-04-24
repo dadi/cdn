@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.0.0-RC1] - 2018-04-24
+
+## Added
+
+* [#254](https://github.com/dadi/cdn/issues/313): ability to define full remote URLs at recipe level
+* [#313](https://github.com/dadi/cdn/issues/313): add config export
+* [#314](https://github.com/dadi/cdn/issues/314): allow controller plugins to set X-Cache header
+* [#326](https://github.com/dadi/cdn/pull/326): use domain as part of cache key
+* [#327](https://github.com/dadi/cdn/pull/327): return 404 if multi-domain is enabled and a request is made for a domain that is not configured
+* [#330](https://github.com/dadi/cdn/issues/331): add file monitors to domain-specific workspace directories
+* [#331](https://github.com/dadi/cdn/issues/331): make `/api/recipes` and `/api/routes` endpoints work with multiple domains
+* [#336](https://github.com/dadi/cdn/pull/336): flush cache by domain
+
+## Changed
+
+* [#324](https://github.com/dadi/cdn/issues/324): modify cache flush endpoint to match other products
+* [#329](https://github.com/dadi/cdn/pull/329): remove upload support
+
 ## [2.0.0] - 2018-03-13
 
 ## Added
