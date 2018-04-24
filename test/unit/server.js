@@ -12,6 +12,16 @@ describe('Server', function () {
     done()
   })
 
+  it('should export the Server prototype', function (done) {
+    server.Server.should.be.Function
+    done()
+  })
+
+  it('should export the app config', function (done) {
+    server.config.should.be.Function
+    done()
+  })
+
   describe('start', function () {
     it('should set readyState', function (done) {
       var stub = sinon.stub(fs, 'readdirSync').callsFake(function () { return [] })

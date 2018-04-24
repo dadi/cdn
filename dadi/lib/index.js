@@ -427,4 +427,5 @@ Server.prototype.stopFrequencyCache = function () {
 }
 
 module.exports = new Server()
+module.exports.config = config
 module.exports.Server = Server
