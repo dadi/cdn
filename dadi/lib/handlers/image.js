@@ -635,9 +635,6 @@ ImageHandler.prototype.getLastModified = function () {
 }
 
 ImageHandler.prototype.parseUrl = function (url) {
-  // (!) A lot of this logic could be simplified if we used the WHATWG
-  // URL API (https://nodejs.org/api/url.html#url_the_whatwg_url_api),
-  // which required Node 7.
   let parsedUrl = urlParser.parse(url, true)
   let searchNodes = parsedUrl.search.split('?')
   let cdnUrl = `${parsedUrl.pathname}?${searchNodes.slice(-1)}`
