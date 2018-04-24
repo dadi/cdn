@@ -6,7 +6,7 @@ const mkdirp = require('mkdirp')
 const path = require('path')
 const sha1 = require('sha1')
 const urljoin = require('url-join')
-const wget = require('wget-improved')
+const wget = require('@dadi/wget')
 
 const tmpDirectory = path.resolve(path.join(__dirname, '/../../../workspace/_tmp'))
 
