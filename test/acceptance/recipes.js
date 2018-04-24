@@ -1,4 +1,5 @@
 const fs = require('fs-extra')
+const nock = require('nock')
 const path = require('path')
 const should = require('should')
 const sinon = require('sinon')
@@ -221,7 +222,99 @@ describe('Recipes', function () {
       })
     })
 
+    it('should prepend the contents of the `path` property to the image path, if `path` is a relative path', done => {
+      let server = nock('https://one.somedomain.tech')
+        .get('/test/images/mock.png')
+        .replyWithFile(200, 'test/images/visual/measure1.png', {
+          'Content-Type': 'image/png'
+        })
+
+      // set some config values
+      let newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.caching.directory.enabled = false
+      newTestConfig.caching.redis.enabled = false
+      cache.reset()
+      newTestConfig.images.directory.enabled = false
+      newTestConfig.images.remote.enabled = true
+      newTestConfig.images.remote.path = 'https://one.somedomain.tech'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+      config.loadFile(config.configPath())
+
+      help.getBearerToken((err, token) => {
+        sample.recipe = 'thumbnail'
+
+        request(cdnUrl)
+        .post('/api/recipes')
+        .send(sample)
+        .set('Authorization', 'Bearer ' + token)
+        .end((err, res) => {
+          res.statusCode.should.eql(201)
+
+          setTimeout(() => {
+            request(cdnUrl)
+            .get('/thumbnail/images/mock.png')
+            .expect(200)
+            .end((err, res) => {
+              server.isDone().should.eql(true)
+
+              done()
+            })
+          }, 500)
+        })
+      })
+    })
+
+    it('should use the value of the `path` property as the base URL if `path` is a full URL, replacing the one defined in the config', done => {
+      let server = nock('https://two.somedomain.tech')
+        .get('/test/images/mock.png')
+        .reply(200, 'test/images/visual/measure1.png', {
+          'Content-Type': 'image/png'
+        })
+
+      // set some config values
+      let newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.caching.directory.enabled = false
+      newTestConfig.caching.redis.enabled = false
+      cache.reset()
+      newTestConfig.images.directory.enabled = false
+      newTestConfig.images.s3.enabled = false
+      newTestConfig.images.remote.enabled = true
+      newTestConfig.images.remote.path = 'https://one.somedomain.tech'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+      config.loadFile(config.configPath())
+
+      help.getBearerToken((err, token) => {
+        sample.recipe = 'thumbnail'
+        sample.path = 'https://two.somedomain.tech/test'
+
+        request(cdnUrl)
+        .post('/api/recipes')
+        .send(sample)
+        .set('Authorization', 'Bearer ' + token)
+        .end((err, res) => {
+          res.statusCode.should.eql(201)
+
+          setTimeout(() => {
+            request(cdnUrl)
+            .get('/thumbnail/images/mock.png')
+            .expect(200)
+            .end((err, res) => {
+              server.isDone().should.eql(true)
+
+              done()
+            })
+          }, 500)
+        })
+      })
+    })
+
     it('should return error if the recipe is not found', function (done) {
+      let server = nock('https://one.somedomain.tech')
+        .get('/thumbxx/test.jpg')
+        .reply(404)
+
       help.getBearerToken((err, token) => {
         sample.recipe = 'thumbnail'
 

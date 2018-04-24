@@ -5,6 +5,7 @@ const logger = require('@dadi/logger')
 const mime = require('mime')
 const path = require('path')
 const url = require('url')
+const urljoin = require('url-join')
 
 const CSSHandler = require(path.join(__dirname, '/css'))
 const DefaultHandler = require(path.join(__dirname, '/default'))
@@ -159,12 +160,20 @@ HandlerFactory.prototype.createFromRecipe = function ({name, req, route, workspa
       .replace(new RegExp('^/' + name + '/'), '/')
       .replace(new RegExp('^/' + route + '/'), '/')
 
-    // Does the recipe specify a base path?
-    const fullPath = source.path
-      ? path.join(source.path, filePath)
-      : filePath
-
     if (typeof handler.setBaseUrl === 'function') {
+      let fullPath = filePath
+
+      // Does the recipe specify a base path?
+      if (source.path) {
+        // Is it a full URL?
+        if (/^http(s?):\/\//.test(source.path)) {
+          fullPath = urljoin(source.path, filePath)
+        } else {
+          // It's a relative path.
+          fullPath = path.join(source.path, filePath)
+        }
+      }
+
       handler.setBaseUrl(fullPath)
     }
 

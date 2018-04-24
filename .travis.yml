@@ -3,7 +3,7 @@ notifications:
   slack: dadi:pnhiL60xOrm7GOglHUmb7xHK
   email: false
 node_js:
-  - '6.11.1'
+  - '8'
 before_script:
   - npm prune
 branches:
