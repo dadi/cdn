@@ -34,7 +34,7 @@
     "cron": "^1.3.0",
     "etag": "^1.7.0",
     "exif": "^0.6.0",
-    "farmhash": "2.0.5",
+    "farmhash": "2.1.0",
     "finalhandler": "~1.1.0",
     "fs-extra": "^5.0.0",
     "he": "^1.1.0",
