@@ -695,6 +695,10 @@ Config.prototype.get = function (path, domain) {
  * @return {Object}
  */
 Config.prototype.loadDomainConfigs = function () {
+  if (!this.get('multiDomain.enabled')) {
+    return {}
+  }
+
   let configs = {}
   let domainsDirectory = this.get('multiDomain.directory')
 
