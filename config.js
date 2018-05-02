@@ -608,7 +608,7 @@ const Config = function () {
   this.domainSchema = {}
   this.createDomainSchema(schema, this.domainSchema)
 
-  this.domainConfigs = this.loadDomainConfigs()
+  this.loadDomainConfigs()
 }
 
 Config.prototype = convict(schema)
@@ -724,6 +724,8 @@ Config.prototype.loadDomainConfigs = function () {
         )
       }    
     })
+
+  this.domainConfigs = configs
 
   return configs
 }
