@@ -1,7 +1,7 @@
 'use strict'
 
 const _ = require('underscore')
-const fs = require('fs')
+const fs = require('fs-extra')
 const concat = require('concat-stream')
 const ExifImage = require('exif').ExifImage
 const fit = require('aspect-fit')
@@ -990,19 +990,18 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
  * @returns {Buffer} a GIF encoded buffer
  */
 ImageHandler.prototype.processGif = function (buffer) {
-  return new Promise((resolve, reject) => {
-    Jimp.read(buffer).then(image => {
-      let bitmap = new BitmapImage(image.bitmap)
-      GifUtil.quantizeDekker(bitmap)
-      let frame = new GifFrame(bitmap)
+  return Jimp.read(buffer).then(image => {
+    let bitmap = new BitmapImage(image.bitmap)
 
-      let tmpGifFile = `${path.join(tmpDirectory, sha1(this.parsedUrl.original.path))}.gif`
+    GifUtil.quantizeDekker(bitmap)
 
-      GifUtil.write(tmpGifFile, [frame]).then(gif => {
-        fs.unlinkSync(tmpGifFile)
-        return resolve(gif.buffer)
-      }).catch(err => {
-        return reject(err)
+    let frame = new GifFrame(bitmap)
+
+    let tmpGifFile = `${path.join(tmpDirectory, sha1(this.parsedUrl.original.path))}.gif`
+
+    return GifUtil.write(tmpGifFile, [frame]).then(gif => {
+      return fs.unlink(tmpGifFile).then(() => {
+        return gif.buffer
       })
     })
   })
