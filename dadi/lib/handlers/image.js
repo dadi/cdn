@@ -5,7 +5,9 @@ const fs = require('fs')
 const concat = require('concat-stream')
 const ExifImage = require('exif').ExifImage
 const fit = require('aspect-fit')
+const { BitmapImage, GifFrame, GifUtil } = require('gifwrap')
 const imagesize = require('image-size-stream')
+const Jimp = require('jimp')
 const lengthStream = require('length-stream')
 const mkdirp = require('mkdirp')
 const PassThrough = require('stream').PassThrough
@@ -23,6 +25,7 @@ const config = require(path.join(__dirname, '/../../../config'))
 const workspace = require(path.join(__dirname, '/../models/workspace'))
 
 const exifDirectory = path.resolve(path.join(__dirname, '/../../../workspace/_exif'))
+const tmpDirectory = path.resolve(path.join(__dirname, '/../../../workspace/_tmp'))
 
 mkdirp(exifDirectory, (err, made) => {
   if (err) {
@@ -883,6 +886,7 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
       let outputOptions = {}
 
       switch (format) {
+        case 'gif':
         case 'jpg':
         case 'jpeg':
           outputFn = 'jpeg'
@@ -950,18 +954,56 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
           sharpImage.toBuffer({}, (err, buffer, info) => {
             if (err) return reject(err)
 
-            let bufferStream = new PassThrough()
-            bufferStream.end(buffer)
+            let processBuffer = Promise.resolve(buffer)
 
-            return resolve({
-              stream: bufferStream,
-              data: jsonData
+            if (format === 'gif') {
+              processBuffer = this.processGif(buffer)
+            }
+
+            processBuffer.then(buffer => {
+              let bufferStream = new PassThrough()
+              bufferStream.end(buffer)
+
+              return resolve({
+                stream: bufferStream,
+                data: jsonData
+              })
             })
           })
         })
       } catch (err) {
         return reject(err)
       }
+    })
+  })
+}
+
+/**
+ * Transcodes an input buffer to a GIF, ensures colours are appropriate
+ * for GIF encoding via a "quantize" method.
+ *
+ * Saves the encoded GIF to a temporary file and removes to before returning
+ * the buffer.
+ *
+ * @param {Buffer} buffer - a Buffer extracted from the main image
+ * processor after applying image manipulations
+ * @returns {Buffer} a GIF encoded buffer
+ */
+ImageHandler.prototype.processGif = function (buffer) {
+  return new Promise((resolve, reject) => {
+    Jimp.read(buffer).then(image => {
+      let bitmap = new BitmapImage(image.bitmap)
+      GifUtil.quantizeDekker(bitmap)
+      let frame = new GifFrame(bitmap)
+
+      let tmpGifFile = `${path.join(tmpDirectory, sha1(this.parsedUrl.original.path))}.gif`
+
+      GifUtil.write(tmpGifFile, [frame]).then(gif => {
+        fs.unlinkSync(tmpGifFile)
+        return resolve(gif.buffer)
+      }).catch(err => {
+        return reject(err)
+      })
     })
   })
 }
