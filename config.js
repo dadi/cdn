@@ -608,7 +608,7 @@ const Config = function () {
   this.domainSchema = {}
   this.createDomainSchema(schema, this.domainSchema)
 
-  this.domainConfigs = this.loadDomainConfigs()
+  this.loadDomainConfigs()
 }
 
 Config.prototype = convict(schema)
@@ -695,6 +695,10 @@ Config.prototype.get = function (path, domain) {
  * @return {Object}
  */
 Config.prototype.loadDomainConfigs = function () {
+  if (!this.get('multiDomain.enabled')) {
+    return {}
+  }
+
   let configs = {}
   let domainsDirectory = this.get('multiDomain.directory')
 
@@ -720,6 +724,8 @@ Config.prototype.loadDomainConfigs = function () {
         )
       }    
     })
+
+  this.domainConfigs = configs
 
   return configs
 }
