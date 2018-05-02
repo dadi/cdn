@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.0.0-RC2] - 2018-05-02
+
+## Changed
+
+* [#345](https://github.com/dadi/cdn/issues/345): stop requiring the existence of the domains directory if multi-domain is not enabled and handle it gracefully with an informative error message if it is enabled and the directory doesn't exist
+
 ## [3.0.0-RC1] - 2018-04-24
 
 ## Added
