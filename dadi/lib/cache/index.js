@@ -1,4 +1,3 @@
-const logger = require('@dadi/logger')
 const PassThrough = require('stream').PassThrough
 const path = require('path')
 const sha1 = require('sha1')
