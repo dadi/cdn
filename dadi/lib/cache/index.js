@@ -12,11 +12,7 @@ const cache = new DadiCache(config.get('caching'))
  * Creates a new Cache instance for the server
  * @constructor
  */
-const Cache = function () {
-  if (config.get('env') !== 'test') {
-    logger.info({module: 'cache'}, 'Cache logging started')
-  }
-}
+const Cache = function () {}
 
 /**
  * Adds a stream to the cache

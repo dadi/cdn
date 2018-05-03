@@ -7,18 +7,25 @@ const logger = require('@dadi/logger')
 const Missing = require(path.join(__dirname, '/missing'))
 
 const S3Storage = function ({assetType = 'assets', url}) {
-  AWS.config.setPromisesDependency(require('bluebird'))
+  this.providerType = 'Amazon S3'
+
   AWS.config.update({
     accessKeyId: config.get(`${assetType}.s3.accessKey`),
     secretAccessKey: config.get(`${assetType}.s3.secretKey`)
   })
 
   let region = config.get(`${assetType}.s3.region`)
+  let endpoint = config.get(`${assetType}.s3.endpoint`)
 
-  if (region && region !== '') {
-    AWS.config.update({
-      region
-    })
+  if (region !== '') {
+    AWS.config.update({region})
+  }
+
+  // Allow configuration of endpoint for Digital Ocean Spaces
+  if (endpoint !== '') {
+    AWS.config.update({endpoint})
+
+    this.providerType = 'DigitalOcean'
   }
 
   this.bucketName = config.get(`${assetType}.s3.bucketName`)
@@ -34,7 +41,7 @@ S3Storage.prototype.get = function () {
       Key: this.getKey()
     }
 
-    logger.info('S3 Request (' + this.url + '):' + JSON.stringify(requestData))
+    logger.info(`${this.providerType} Request (${this.url}):${JSON.stringify(requestData)}`)
 
     if (requestData.Bucket === '' || requestData.Key === '') {
       var err = {
@@ -76,7 +83,7 @@ S3Storage.prototype.get = function () {
 }
 
 S3Storage.prototype.getBucket = function () {
-  // If the URL start with /s3, it means the second parameter
+  // If the URL starts with /s3, it means the second parameter
   // is the name of the bucket.
   if (this.url.indexOf('/s3') === 0) {
     return this.urlParts[0]
