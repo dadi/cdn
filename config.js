@@ -146,7 +146,8 @@ const schema = {
       enabled: {
         doc: 'If true, image files will be loaded from the filesystem',
         format: Boolean,
-        default: false
+        default: false,
+        allowDomainOverride: true
       },
       path: {
         doc: 'The path to the image directory',
@@ -189,7 +190,8 @@ const schema = {
       enabled: {
         doc: 'If true, image files will be requested from a remote host',
         format: Boolean,
-        default: false
+        default: false,
+        allowDomainOverride: true
       },
       path: {
         doc: 'The remote host to request images from, for example http://media.example.com',
@@ -209,7 +211,8 @@ const schema = {
       enabled: {
         doc: 'If true, asset files will be loaded from the filesystem',
         format: Boolean,
-        default: false
+        default: false,
+        allowDomainOverride: true
       },
       path: {
         doc: '',
@@ -252,7 +255,8 @@ const schema = {
       enabled: {
         doc: 'If true, asset files will be requested from a remote host',
         format: Boolean,
-        default: false
+        default: false,
+        allowDomainOverride: true
       },
       path: {
         doc: 'The remote host to request assets from, for example http://media.example.com',
