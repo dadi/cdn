@@ -146,7 +146,8 @@ const schema = {
       enabled: {
         doc: 'If true, image files will be loaded from the filesystem',
         format: Boolean,
-        default: false
+        default: false,
+        allowDomainOverride: true
       },
       path: {
         doc: 'The path to the image directory',
@@ -195,7 +196,8 @@ const schema = {
       enabled: {
         doc: 'If true, image files will be requested from a remote host',
         format: Boolean,
-        default: false
+        default: false,
+        allowDomainOverride: true
       },
       path: {
         doc: 'The remote host to request images from, for example http://media.example.com',
@@ -215,7 +217,8 @@ const schema = {
       enabled: {
         doc: 'If true, asset files will be loaded from the filesystem',
         format: Boolean,
-        default: false
+        default: false,
+        allowDomainOverride: true
       },
       path: {
         doc: '',
@@ -264,7 +267,8 @@ const schema = {
       enabled: {
         doc: 'If true, asset files will be requested from a remote host',
         format: Boolean,
-        default: false
+        default: false,
+        allowDomainOverride: true
       },
       path: {
         doc: 'The remote host to request assets from, for example http://media.example.com',
@@ -620,7 +624,7 @@ const Config = function () {
   this.domainSchema = {}
   this.createDomainSchema(schema, this.domainSchema)
 
-  this.domainConfigs = this.loadDomainConfigs()
+  this.loadDomainConfigs()
 }
 
 Config.prototype = convict(schema)
@@ -707,6 +711,10 @@ Config.prototype.get = function (path, domain) {
  * @return {Object}
  */
 Config.prototype.loadDomainConfigs = function () {
+  if (!this.get('multiDomain.enabled')) {
+    return {}
+  }
+
   let configs = {}
   let domainsDirectory = this.get('multiDomain.directory')
 
@@ -732,6 +740,8 @@ Config.prototype.loadDomainConfigs = function () {
         )
       }
     })
+
+  this.domainConfigs = configs
 
   return configs
 }
