@@ -4,15 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.0.0-RC3] - 2018-05-08
+
+### Changed
+
+* Allow `remote.enabled` to be overridden at domain level.
+
 ## [3.0.0-RC2] - 2018-05-02
 
-## Changed
+### Changed
 
 * [#345](https://github.com/dadi/cdn/issues/345): stop requiring the existence of the domains directory if multi-domain is not enabled and handle it gracefully with an informative error message if it is enabled and the directory doesn't exist
 
 ## [3.0.0-RC1] - 2018-04-24
 
-## Added
+### Added
 
 * [#254](https://github.com/dadi/cdn/issues/313): ability to define full remote URLs at recipe level
 * [#313](https://github.com/dadi/cdn/issues/313): add config export
@@ -23,14 +29,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 * [#331](https://github.com/dadi/cdn/issues/331): make `/api/recipes` and `/api/routes` endpoints work with multiple domains
 * [#336](https://github.com/dadi/cdn/pull/336): flush cache by domain
 
-## Changed
+### Changed
 
 * [#324](https://github.com/dadi/cdn/issues/324): modify cache flush endpoint to match other products
 * [#329](https://github.com/dadi/cdn/pull/329): remove upload support
 
 ## [2.0.0] - 2018-03-13
 
-## Added
+### Added
 
 [Full release notes](https://github.com/dadi/cdn/releases/tag/v2.0.0)
 
@@ -40,7 +46,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 * [#259](https://github.com/dadi/cdn/issues/259) WebP image support
 * Simplified paths for non-image assets
 
-## Changed
+### Changed
 
 * [#255](https://github.com/dadi/cdn/issues/255): default value for the `resizeStyle` property is now `aspectfit`, except when an explicit ratio is defined (i.e. `width` and `height` or `ratio` are defined)
 * [#282](https://github.com/dadi/cdn/issues/282): deliver the fallback image even when crop is present
@@ -53,19 +59,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [1.13.3] - 2017-11-02
 
-## Changed
+### Changed
 
 * [#276](https://github.com/dadi/cdn/issues/276): ensure images can be processed with no sharpening
 
 ## [1.13.2] - 2017-10-25
 
-## Changed
+### Changed
 
 * fix an issue where the aspect ratio was not respected when maxWidth/maxHeight resizes were being made
 
 ## [1.13.1] - 2017-10-21
 
-## Changed
+### Changed
 
 * [#260](https://github.com/dadi/cdn/pulls/260): update [finalhandler](https://www.npmjs.com/package/finalhandler) to version 1.1.0
 * [#264](https://github.com/dadi/cdn/pulls/264): update [request](https://www.npmjs.com/package/request) to version 2.83.0
@@ -74,7 +80,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [1.13.0] - 2017-10-20
 
-## Changed
+### Changed
 
 * [#270](https://github.com/dadi/cdn/issues/270): cropping modifications to make it behave more intuitively. DevicePixelRatio is now respected, along with distorting images by providing both width & height. These changes only affect resize style `crop`. See the [documentation](https://docs.dadi.tech/#cdn) for more information.
 
