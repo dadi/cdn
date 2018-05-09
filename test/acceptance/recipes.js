@@ -28,7 +28,7 @@ describe('Recipes', function () {
     testConfigString = fs.readFileSync(config.configPath())
 
     sample = {
-      'recipe': 'sample-recipe',
+      'recipe': 'test-recipe',
       'path': '/test',
       'settings': {
         'format': 'jpg',
@@ -66,10 +66,12 @@ describe('Recipes', function () {
     app.stop(done)
 
     try {
-      fs.unlinkSync(path.join(path.resolve(config.get('paths.recipes')), 'thumbnail.json'))
-    } catch (err) {
+      fs.unlinkSync(path.join(path.resolve(config.get('paths.recipes')), 'test-recipe.json'))
+    } catch (err) {}
 
-    }    
+    try {
+      fs.unlinkSync(path.join(path.resolve(config.get('paths.recipes')), 'test-recipe-two.json'))
+    } catch (err) {}
   })
 
   describe('Create', function () {
@@ -95,11 +97,9 @@ describe('Recipes', function () {
 
     it('should return error if recipe name is missing', function (done) {
       help.getBearerToken((err, token) => {
-        delete sample['recipe']
-
         request(cdnUrl)
         .post('/api/recipes')
-        .send(sample)
+        .send(Object.assign({}, sample, {recipe: undefined}))
         .set('Authorization', 'Bearer ' + token)
         .expect(400)
         .end(function (err, res) {
@@ -113,11 +113,9 @@ describe('Recipes', function () {
 
     it('should return error if recipe name is too short', function (done) {
       help.getBearerToken((err, token) => {
-        sample['recipe'] = 'xxxx'
-
         request(cdnUrl)
         .post('/api/recipes')
-        .send(sample)
+        .send(Object.assign({}, sample, {recipe: 'xxxx'}))
         .set('Authorization', 'Bearer ' + token)
         .expect(400)
         .end(function (err, res) {
@@ -131,11 +129,9 @@ describe('Recipes', function () {
 
     it('should return error if recipe settings are missing', function (done) {
       help.getBearerToken((err, token) => {
-        delete sample['settings']
-
         request(cdnUrl)
         .post('/api/recipes')
-        .send(sample)
+        .send(Object.assign({}, sample, {settings: undefined}))
         .set('Authorization', 'Bearer ' + token)
         .expect(400)
         .end(function (err, res) {
@@ -149,8 +145,6 @@ describe('Recipes', function () {
 
     it('should set the correct recipe filepath', function (done) {
       help.getBearerToken((err, token) => {
-        sample.recipe = 'thumbnail'
-
         let stub = sinon.stub(fs, 'writeJson').resolves(true)
 
         request(cdnUrl)
@@ -160,7 +154,7 @@ describe('Recipes', function () {
         .end(function (err, res) {
           stub.called.should.eql(true)
           stub.getCall(0).args[0].should.eql(
-            path.join(path.resolve(config.get('paths.recipes')), 'thumbnail.json')
+            path.join(path.resolve(config.get('paths.recipes')), 'test-recipe.json')
           )
           fs.writeJson.restore()
 
@@ -171,8 +165,6 @@ describe('Recipes', function () {
 
     it('should save valid recipe to filesystem', function (done) {
       help.getBearerToken((err, token) => {
-        sample.recipe = 'thumbnail'
-
         request(cdnUrl)
         .post('/api/recipes')
         .send(sample)
@@ -199,8 +191,6 @@ describe('Recipes', function () {
       config.loadFile(config.configPath())
 
       help.getBearerToken((err, token) => {
-        sample.recipe = 'thumbnail'
-
         request(cdnUrl)
         .post('/api/recipes')
         .send(sample)
@@ -210,7 +200,7 @@ describe('Recipes', function () {
 
           setTimeout(() => {
             request(cdnUrl)
-            .get('/thumbnail/inside-test.jpg')
+            .get('/test-recipe/inside-test.jpg')
             .end(function (err, res) {
               res.statusCode.should.eql(200)
               res.headers['content-type'].should.eql('image/jpeg')
@@ -242,8 +232,6 @@ describe('Recipes', function () {
       config.loadFile(config.configPath())
 
       help.getBearerToken((err, token) => {
-        sample.recipe = 'thumbnail'
-
         request(cdnUrl)
         .post('/api/recipes')
         .send(sample)
@@ -253,7 +241,7 @@ describe('Recipes', function () {
 
           setTimeout(() => {
             request(cdnUrl)
-            .get('/thumbnail/images/mock.png')
+            .get('/test-recipe/images/mock.png')
             .expect(200)
             .end((err, res) => {
               server.isDone().should.eql(true)
@@ -286,19 +274,16 @@ describe('Recipes', function () {
       config.loadFile(config.configPath())
 
       help.getBearerToken((err, token) => {
-        sample.recipe = 'thumbnail'
-        sample.path = 'https://two.somedomain.tech/test'
-
         request(cdnUrl)
         .post('/api/recipes')
-        .send(sample)
+        .send(Object.assign({}, sample, {path: 'https://two.somedomain.tech/test'}))
         .set('Authorization', 'Bearer ' + token)
         .end((err, res) => {
           res.statusCode.should.eql(201)
 
           setTimeout(() => {
             request(cdnUrl)
-            .get('/thumbnail/images/mock.png')
+            .get('/test-recipe/images/mock.png')
             .expect(200)
             .end((err, res) => {
               server.isDone().should.eql(true)
@@ -316,8 +301,6 @@ describe('Recipes', function () {
         .reply(404)
 
       help.getBearerToken((err, token) => {
-        sample.recipe = 'thumbnail'
-
         request(cdnUrl)
         .post('/api/recipes')
         .send(sample)
@@ -385,6 +368,142 @@ describe('Recipes', function () {
         .get('/wrong_test_recipe/test.jpg')
         .expect(404, done)
     })
+
+    it('should not return the same cached result for an image obtained with and without a recipe', function (done) {
+      // set some config values
+      let newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.caching.directory.enabled = true
+      newTestConfig.caching.redis.enabled = false
+      cache.reset()
+      newTestConfig.images.directory.enabled = true
+      newTestConfig.images.directory.path = './test/images'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+      config.loadFile(config.configPath())
+
+      help.getBearerToken((err, token) => {
+        request(cdnUrl)
+        .post('/api/recipes')
+        .send(Object.assign({}, sample, {path: undefined}))
+        .set('Authorization', 'Bearer ' + token)
+        .end(function (err, res) {
+          res.statusCode.should.eql(201)
+
+          setTimeout(() => {
+            request(cdnUrl)
+            .get('/test-recipe/original.jpg')
+            .end(function (err, res) {
+              res.statusCode.should.eql(200)
+              res.headers['content-type'].should.eql('image/jpeg')
+              res.headers['x-cache'].should.eql('MISS')
+
+              request(cdnUrl)
+              .get('/original.jpg')
+              .end(function (err, res) {
+                res.statusCode.should.eql(200)
+                res.headers['content-type'].should.eql('image/jpeg')
+                res.headers['x-cache'].should.eql('MISS')
+
+                request(cdnUrl)
+                .get('/test-recipe/original.jpg')
+                .end(function (err, res) {
+                  res.statusCode.should.eql(200)
+                  res.headers['content-type'].should.eql('image/jpeg')
+                  res.headers['x-cache'].should.eql('HIT')
+
+                  request(cdnUrl)
+                  .get('/original.jpg')
+                  .end(function (err, res) {
+                    res.statusCode.should.eql(200)
+                    res.headers['content-type'].should.eql('image/jpeg')
+                    res.headers['x-cache'].should.eql('HIT')
+
+                    done()
+                  })
+                })
+              })
+            })
+          }, 500)
+        })
+      })
+    })
+
+    it('should not return the same cached result for an image obtained via two recipes with different options', function (done) {
+      // set some config values
+      let newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.caching.directory.enabled = true
+      newTestConfig.caching.redis.enabled = false
+      cache.reset()
+      newTestConfig.images.directory.enabled = true
+      newTestConfig.images.directory.path = './test/images'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+      config.loadFile(config.configPath())
+
+      help.getBearerToken((err, token) => {
+        request(cdnUrl)
+        .post('/api/recipes')
+        .send(Object.assign({}, sample, {path: undefined}))
+        .set('Authorization', 'Bearer ' + token)
+        .end(function (err, res) {
+          res.statusCode.should.eql(201)
+
+          request(cdnUrl)
+          .post('/api/recipes')
+          .send(Object.assign({}, sample, {
+            recipe: 'test-recipe-two',
+            path: undefined,
+            settings: Object.assign({}, sample.settings, {
+              quality: 70
+            })
+          }))
+          .set('Authorization', 'Bearer ' + token)
+          .end(function (err, res) {
+            res.statusCode.should.eql(201)          
+
+            setTimeout(() => {
+              request(cdnUrl)
+              .get('/test-recipe/original.jpg')
+              .end(function (err, res) {
+                res.statusCode.should.eql(200)
+                res.headers['content-type'].should.eql('image/jpeg')
+                res.headers['x-cache'].should.eql('MISS')
+
+                setTimeout(() => {
+                  request(cdnUrl)
+                  .get('/test-recipe/original.jpg')
+                  .end(function (err, res) {
+                    res.statusCode.should.eql(200)
+                    res.headers['content-type'].should.eql('image/jpeg')
+                    res.headers['x-cache'].should.eql('HIT')
+
+                    request(cdnUrl)
+                    .get('/test-recipe-two/original.jpg')
+                    .end(function (err, res) {
+                      res.statusCode.should.eql(200)
+                      res.headers['content-type'].should.eql('image/jpeg')
+                      res.headers['x-cache'].should.eql('MISS')
+
+                      setTimeout(() => {
+                        request(cdnUrl)
+                        .get('/test-recipe-two/original.jpg')
+                        .end(function (err, res) {
+                          res.statusCode.should.eql(200)
+                          res.headers['content-type'].should.eql('image/jpeg')
+                          res.headers['x-cache'].should.eql('HIT')
+
+                          done()
+                        })
+                      }, 600)
+                    })                    
+                  })              
+                }, 600)
+              })
+            }, 600)
+          })
+        })
+      })
+    })
   })
 
   describe('File change monitor', function () {
@@ -401,8 +520,6 @@ describe('Recipes', function () {
       config.loadFile(config.configPath())
 
       help.getBearerToken((err, token) => {
-        sample.recipe = 'thumbnail'
-
         request(cdnUrl)
         .post('/api/recipes')
         .send(sample)
@@ -412,20 +529,20 @@ describe('Recipes', function () {
 
           setTimeout(() => {
             request(cdnUrl)
-            .get('/thumbnail/inside-test.jpg')
+            .get('/test-recipe/inside-test.jpg')
             .end(function (err, res) {
               res.headers['content-type'].should.eql('image/jpeg')
 
               // Change the format within the recipe
-              let recipeContent = fs.readFileSync(path.join(path.resolve(config.get('paths.recipes')), 'thumbnail.json'))
+              let recipeContent = fs.readFileSync(path.join(path.resolve(config.get('paths.recipes')), 'test-recipe.json'))
               let recipe = JSON.parse(recipeContent.toString())
               recipe.settings.format = 'png'
 
-              fs.writeFileSync(path.join(path.resolve(config.get('paths.recipes')), 'thumbnail.json'), JSON.stringify(recipe))
+              fs.writeFileSync(path.join(path.resolve(config.get('paths.recipes')), 'test-recipe.json'), JSON.stringify(recipe))
 
               setTimeout(function () {
                 request(cdnUrl)
-                .get('/thumbnail/inside-test.jpg')
+                .get('/test-recipe/inside-test.jpg')
                 .end(function (err, res) {
                   res.headers['content-type'].should.eql('image/png')
 
