@@ -8,6 +8,8 @@ const sha1 = require('sha1')
 const urljoin = require('url-join')
 const wget = require('@dadi/wget')
 
+const Missing = require(path.join(__dirname, '/missing'))
+
 const tmpDirectory = path.resolve(path.join(__dirname, '/../../../workspace/_tmp'))
 
 mkdirp(tmpDirectory, (err, made) => {
@@ -35,13 +37,18 @@ const HTTPStorage = function ({assetType = 'assets', domain, url}) {
 /**
  * Removes the temporary file downloaded from the remote server
  */
+/* eslint-disable handle-callback-err */
 HTTPStorage.prototype.cleanUp = function () {
   if (this.tmpFile) {
-    try {
-      fs.unlinkSync(this.tmpFile)
-    } catch (err) {
-      console.log(err)
-    }
+    fs.stat(this.tmpFile, (err, stats) => {
+      if (stats) {
+        try {
+          fs.unlinkSync(this.tmpFile)
+        } catch (err) {
+          console.log(err)
+        }
+      }
+    })
   }
 }
 
@@ -96,7 +103,17 @@ HTTPStorage.prototype.get = function () {
           break
       }
 
-      return reject(err)
+      if (err.statusCode === 404) {
+        return new Missing().get().then(stream => {
+          this.notFound = true
+          this.lastModified = new Date()
+          return resolve(stream)
+        }).catch(e => {
+          return reject(err)
+        })
+      } else {
+        return reject(err)
+      }
     })
 
     download.on('end', (output) => {

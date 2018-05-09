@@ -103,7 +103,7 @@ describe('Controller', function () {
           })
       })
     })
-    
+
     it('should extract options from querystring if one is present', function (done) {
       // spy on the sanitiseOptions method to access the provided arguments
       var method = sinon.spy(imageHandler.ImageHandler.prototype, 'sanitiseOptions')
@@ -423,7 +423,7 @@ describe('Controller', function () {
             res.statusCode.should.eql(200)
             done()
           })
-      }) 
+      })
 
       it('should return error if image uri is invalid', function (done) {
         var newTestConfig = JSON.parse(testConfigString)
@@ -462,6 +462,9 @@ describe('Controller', function () {
         client
           .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/testxxx.jpg')
           .end(function (err, res) {
+            let isBuffer = (res.body instanceof Buffer)
+            ;(isBuffer === true).should.eql(true)
+            res.headers['content-type'].should.eql('image/jpeg')
             res.statusCode.should.eql(404)
             done()
           })
@@ -556,7 +559,7 @@ describe('Controller', function () {
                 })
             }, 1000)
           })
-      })      
+      })
     })
 
     it('should handle deep nested test image', function (done) {
@@ -720,6 +723,7 @@ describe('Controller', function () {
           })
       })
 
+// JIM
       it('should return 403 when requesting a full remote URL and `image.remote.allowFullURL` is false', done => {
         config.set('images.remote.allowFullURL', false)
 
@@ -749,6 +753,54 @@ describe('Controller', function () {
             res.body.message.should.eql(
               'Not Found: https://one.somedomain.tech/images/mock/logo.png'
             )
+
+            done()
+          })
+      })
+
+      it('should return a placeholder image when the remote image returns 404', function (done) {
+        let server = nock('https://one.somedomain.tech')
+          .get('/images/mock/logo.png')
+          .reply(404)
+
+        config.set('images.remote.path', 'https://one.somedomain.tech')
+        config.set('notFound.images.enabled', true)
+        config.set('notFound.images.path', './test/images/missing.png')
+
+        let client = request(cdnUrl)
+          .get('/images/mock/logo.png')
+          .expect(404)
+          .end((err, res) => {
+            let isBuffer = (res.body instanceof Buffer)
+            ;(isBuffer === true).should.eql(true)
+            res.headers['content-type'].should.eql('image/png')
+            res.statusCode.should.eql(404)
+
+            done()
+          })
+      })
+
+      it('should return configured statusCode if image is not found', function (done) {
+        let server = nock('https://one.somedomain.tech')
+          .get('/images/mock/logo.png')
+          .reply(404)
+
+        config.set('images.remote.path', 'https://one.somedomain.tech')
+        config.set('notFound.images.enabled', true)
+        config.set('notFound.images.path', './test/images/missing.png')
+        config.set('notFound.statusCode', 410)
+
+        let client = request(cdnUrl)
+          .get('/images/mock/logo.png')
+          .expect(410)
+          .end((err, res) => {
+            let isBuffer = (res.body instanceof Buffer)
+            ;(isBuffer === true).should.eql(true)
+            res.headers['content-type'].should.eql('image/png')
+            res.statusCode.should.eql(410)
+
+            config.set('notFound.images.enabled', false)
+            config.set('notFound.statusCode', 410)
 
             done()
           })
