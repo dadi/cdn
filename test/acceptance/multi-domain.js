@@ -154,9 +154,7 @@ describe('Multi-domain', function () {
                 .expect(200)
                 .end((err, res) => {
                   res.headers['x-cache'].should.eql('HIT')
-                  cacheSet.getCall(0).args[1].should.eql([
-                    undefined, '/test.jpg', ''
-                  ])
+                  cacheSet.getCall(0).args[1].includes('testdomain.com').should.eql(false)
 
                   cacheSet.restore()
 
@@ -335,10 +333,7 @@ describe('Multi-domain', function () {
                 .expect(200)
                 .end((err, res) => {
                   res.headers['x-cache'].should.eql('HIT')
-                  cacheSet.getCall(0).args[1].should.eql([
-                    'testdomain.com', '/test.jpg', ''
-                  ])
-
+                  cacheSet.getCall(0).args[1].includes('testdomain.com').should.eql(true)
                   cacheSet.restore()
 
                   request(cdnUrl)
