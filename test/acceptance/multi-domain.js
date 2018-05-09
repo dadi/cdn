@@ -154,9 +154,7 @@ describe('Multi-domain', function () {
                 .expect(200)
                 .end((err, res) => {
                   res.headers['x-cache'].should.eql('HIT')
-                  cacheSet.getCall(0).args[1].should.eql([
-                    undefined, '/test.jpg', ''
-                  ])
+                  cacheSet.getCall(0).args[1].includes('testdomain.com').should.eql(false)
 
                   cacheSet.restore()
 
@@ -175,11 +173,16 @@ describe('Multi-domain', function () {
     }
 
     beforeEach(done => {
-      config.set('images.directory.enabled', false)
       config.set('images.s3.enabled', false)
-      config.set('images.remote.enabled', true)
-      config.set('images.remote.path', 'http://one.somedomain.tech')
+
       config.set('multiDomain.enabled', true)
+      config.loadDomainConfigs()
+
+      config.set('images.directory.enabled', false, 'localhost')
+      config.set('images.remote.enabled', true, 'localhost')
+
+      config.set('images.directory.enabled', false, 'testdomain.com')
+      config.set('images.remote.enabled', true, 'testdomain.com')
 
       app.start(err => {
         if (err) return done(err)
@@ -191,10 +194,12 @@ describe('Multi-domain', function () {
     })
 
     afterEach(done => {
-      config.set('images.directory.enabled', configBackup.images.directory.enabled)
       config.set('images.s3.enabled', configBackup.images.s3.enabled)
-      config.set('images.remote.enabled', configBackup.images.remote.enabled)
-      config.set('images.remote.path', configBackup.images.remote.path)
+
+      config.set('images.directory.enabled', configBackup.images.directory.enabled, 'localhost')
+      config.set('images.remote.enabled', configBackup.images.remote.enabled, 'localhost')
+      config.set('images.remote.path', configBackup.images.remote.path, 'localhost')
+
       config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
 
       proxyServer.close(() => {
@@ -328,10 +333,7 @@ describe('Multi-domain', function () {
                 .expect(200)
                 .end((err, res) => {
                   res.headers['x-cache'].should.eql('HIT')
-                  cacheSet.getCall(0).args[1].should.eql([
-                    'testdomain.com', '/test.jpg', ''
-                  ])
-
+                  cacheSet.getCall(0).args[1].includes('testdomain.com').should.eql(true)
                   cacheSet.restore()
 
                   request(cdnUrl)

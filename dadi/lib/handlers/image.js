@@ -291,7 +291,14 @@ ImageHandler.prototype.get = function () {
     {domain: this.req.__domain}
   )
 
+  // The cache key is formed by multiple parts which will be hashed
+  // separately, so that they can be used as search parameters for
+  // flushing, except for the first parameter, which contains the full
+  // set of options passed to the image engine. It's part of the cache
+  // key purely to make `/recipe1/a.jpg` and `/recipe1/b.jpg` map to
+  // different keys if the recipes contain different parameters.
   const cacheKey = [
+    sha1(JSON.stringify(this.options)),
     this.req.__domain,
     this.parsedUrl.cdn.pathname,
     this.parsedUrl.cdn.search.slice(1)
