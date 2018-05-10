@@ -50,11 +50,11 @@ DiskStorage.prototype.get = function () {
         message: 'File not found: ' + this.getFullUrl()
       }
 
-      return new Missing().get().then((stream) => {
+      return new Missing().get().then(stream => {
         this.notFound = true
         this.lastModified = new Date()
         return resolve(stream)
-      }).catch((e) => {
+      }).catch(e => {
         console.log(e)
         return reject(err)
       })

@@ -118,6 +118,7 @@ Server.prototype.onListening = function () {
   let address = this.address()
   let env = config.get('env')
 
+  /* istanbul ignore next */
   if (env !== 'test') {
     let startText = '\n  ----------------------------\n'
     startText += '  Started \'DADI CDN\'\n'
@@ -142,6 +143,7 @@ Server.prototype.onRedirectListening = function () {
   let address = this.address()
   let env = config.get('env')
 
+  /* istanbul ignore next */
   if (env !== 'test') {
     let startText = '\n  ----------------------------\n'
     startText += '  Started HTTP -> HTTPS Redirect\n'
@@ -161,6 +163,7 @@ Server.prototype.onStatusListening = function () {
   var address = this.address()
   let env = config.get('env')
 
+  /* istanbul ignore next */
   if (env !== 'test') {
     let startText = '\n  ----------------------------\n'
     startText += '  Started standalone status endpoint\n'
