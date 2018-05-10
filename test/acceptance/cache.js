@@ -358,9 +358,11 @@ describe('Frequency cache flush', () => {
 
   describe('with multi-domain enabled', () => {
     it('should flush the entire cache in the interval defined by the `expireAt` property', done => {
+      config.set('multiDomain.enabled', true)
+      config.loadDomainConfigs()
+
       // Every second.
       config.set('caching.expireAt', '* * * * * *', 'testdomain.com')
-      config.set('multiDomain.enabled', true)
 
       app.start(() => {
         let mockCacheDelete = sinon.spy(cache.Cache.prototype, 'delete')

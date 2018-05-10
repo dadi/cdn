@@ -108,6 +108,8 @@ describe('Authentication', function () {
     before(() => {
       config.set('multiDomain.enabled', true)
       config.set('multiDomain.directory', 'domains')
+
+      config.loadDomainConfigs()
     })
 
     after(() => {

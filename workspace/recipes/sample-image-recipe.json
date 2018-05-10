@@ -1,7 +1,7 @@
 {
-	"recipe": "sample-image-recipe",
-	"path": "/next-level",
-	"settings": {
-		"format": "png"
-	}
+  "recipe": "sample-image-recipe",
+  "path": "/next-level",
+  "settings": {
+    "format": "png"
+  }
 }

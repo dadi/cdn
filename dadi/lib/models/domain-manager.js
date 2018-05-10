@@ -39,18 +39,26 @@ DomainManager.prototype.getDomains = function () {
 DomainManager.prototype.scanDomains = function (domainsDirectory) {
   let domainsPath = path.resolve(domainsDirectory)
 
-  this.domains = fs.readdirSync(domainsPath).reduce((domains, domain) => {
-    let domainPath = path.join(domainsPath, domain)
+  try {
+    this.domains = fs.readdirSync(domainsPath).reduce((domains, domain) => {
+      let domainPath = path.join(domainsPath, domain)
 
-    if (fs.statSync(domainPath).isDirectory()) {
-      domains.push({
-        domain,
-        path: domainPath
-      })
+      if (fs.statSync(domainPath).isDirectory()) {
+        domains.push({
+          domain,
+          path: domainPath
+        })
+      }
+
+      return domains
+    }, [])
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      throw new Error(`Domains directory (${domainsPath}) does not exist`)
     }
 
-    return domains
-  }, [])
+    throw err
+  }
 
   return this
 }
