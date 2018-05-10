@@ -104,14 +104,13 @@ HTTPStorage.prototype.get = function () {
       }
 
       if (err.statusCode === 404) {
-        return resolve(
-          new Missing().get().then(stream => {
-            this.notFound = true
-            this.lastModified = new Date()
-
-            return stream
-          })
-        )
+        return new Missing().get().then(stream => {
+          this.notFound = true
+          this.lastModified = new Date()
+          return resolve(stream)
+        }).catch(e => {
+          return reject(err)
+        })
       } else {
         return reject(err)
       }
