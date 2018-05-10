@@ -1,3 +1,4 @@
+var AWS = require('aws-sdk-mock')
 const fs = require('fs')
 const nock = require('nock')
 const path = require('path')
@@ -5,17 +6,17 @@ const should = require('should')
 const sinon = require('sinon')
 const request = require('supertest')
 
-const cache = require(__dirname + '/../../dadi/lib/cache')
-const help = require(__dirname + '/help')
-const app = require(__dirname + '/../../dadi/lib/')
-const imageHandler = require(__dirname + '/../../dadi/lib/handlers/image')
+const cache = require(path.join(__dirname, '/../../dadi/lib/cache'))
+const help = require(path.join(__dirname, '/help'))
+const app = require(path.join(__dirname, '/../../dadi/lib/'))
+const imageHandler = require(path.join(__dirname, '/../../dadi/lib/handlers/image'))
 
-let config = require(__dirname + '/../../config')
+let config = require(path.join(__dirname, '/../../config'))
 let cdnUrl = 'http://' + config.get('server.host') + ':' + config.get('server.port')
 let testConfigString
 
 describe('Controller', function () {
-  this.timeout(10000)
+  this.timeout(6000)
   let tokenRoute = config.get('auth.tokenUrl')
 
   before(done => {
@@ -723,7 +724,6 @@ describe('Controller', function () {
           })
       })
 
-// JIM
       it('should return 403 when requesting a full remote URL and `image.remote.allowFullURL` is false', done => {
         config.set('images.remote.allowFullURL', false)
 
@@ -844,79 +844,189 @@ describe('Controller', function () {
           })
       })
     })
-  })
 
-  describe('Other', function () {
-    it('should respond to the root', function (done) {
-      var client = request(cdnUrl)
-      client
-        .get('/')
-        .end(function (err, res) {
+    describe('S3 images', () => {
+      let configBackup = config.get('images')
+
+      beforeEach(() => {
+        config.set('images.directory.enabled', false)
+        config.set('images.remote.enabled', false)
+        config.set('images.s3.enabled', true)
+      })
+
+      afterEach(() => {
+        config.set('images.directory.enabled', configBackup.directory.enabled)
+        config.set('images.remote.enabled', configBackup.remote.enabled)
+        config.set('images.remote.path', configBackup.remote.path)
+        config.set('images.remote.allowFullURL', configBackup.remote.allowFullURL)
+        config.set('images.s3.enabled', configBackup.s3.enabled)
+      })
+
+      it('should return 200 when image is returned', function (done) {
+        // return a buffer from the S3 request
+        let stream = fs.createReadStream('./test/images/missing.png')
+        let buffers = []
+        stream
+          .on('data', function (data) { buffers.push(data) })
+          .on('end', function () {
+            let buffer = Buffer.concat(buffers)
+
+            AWS.mock('S3', 'getObject', Promise.resolve({
+              LastModified: Date.now(),
+              Body: buffer
+            }))
+          })
+
+        config.set('images.s3.bucketName', 'test-bucket')
+        config.set('images.s3.accessKey', 'xxx')
+        config.set('images.s3.secretKey', 'xyz')
+        config.set('notFound.statusCode', 404)
+        config.set('notFound.images.enabled', true)
+        config.set('notFound.images.path', './test/images/missing.png')
+
+        let client = request(cdnUrl)
+        .get('/images/mock/logo.png')
+        .expect(200)
+        .end((err, res) => {
+          AWS.restore()
+
+          let isBuffer = (res.body instanceof Buffer)
+          ;(isBuffer === true).should.eql(true)
+          res.headers['content-type'].should.eql('image/png')
           res.statusCode.should.eql(200)
-          res.text.should.eql('Welcome to DADI CDN')
+
           done()
         })
-    })
+      })
 
-    it('should return 404 if there is no configured robots.txt file', function (done) {
-      var client = request(cdnUrl)
-      client
-        .get('/robots.txt')
-        .end(function (err, res) {
+      it('should return a placeholder image when the S3 image returns 404', function (done) {
+        // return 404 from the S3 request
+        AWS.mock('S3', 'getObject', Promise.reject({ statusCode: 404 }))
+
+        config.set('images.s3.bucketName', 'test-bucket')
+        config.set('images.s3.accessKey', 'xxx')
+        config.set('images.s3.secretKey', 'xyz')
+        config.set('notFound.statusCode', 404)
+        config.set('notFound.images.enabled', true)
+        config.set('notFound.images.path', './test/images/missing.png')
+
+        let client = request(cdnUrl)
+        .get('/images/mock/logo.png')
+        .expect(404)
+        .end((err, res) => {
+          AWS.restore()
+
+          let isBuffer = (res.body instanceof Buffer)
+          ;(isBuffer === true).should.eql(true)
+          res.headers['content-type'].should.eql('image/png')
           res.statusCode.should.eql(404)
-          res.text.should.eql('File not found')
+
           done()
         })
-    })
+      })
 
-    it('should return a configured robots.txt file', function (done) {
-      var newTestConfig = JSON.parse(testConfigString)
-      newTestConfig.robots = 'test/robots.txt'
-      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+      it('should return configured statusCode if image is not found', function (done) {
+        // return 404 from the S3 request
+        AWS.mock('S3', 'getObject', Promise.reject({ statusCode: 404 }))
 
-      config.loadFile(config.configPath())
+        config.set('images.s3.bucketName', 'test-bucket')
+        config.set('images.s3.accessKey', 'xxx')
+        config.set('images.s3.secretKey', 'xyz')
+        config.set('notFound.statusCode', 410)
+        config.set('notFound.images.enabled', true)
+        config.set('notFound.images.path', './test/images/missing.png')
 
-      var client = request(cdnUrl)
-      client
-        .get('/robots.txt')
-        .end(function (err, res) {
-          res.statusCode.should.eql(200)
-          res.text.should.eql('User-Agent: *\nDisallow: /')
+        let client = request(cdnUrl)
+        .get('/images/mock/logo.png')
+        .expect(410)
+        .end((err, res) => {
+          AWS.restore()
+
+          let isBuffer = (res.body instanceof Buffer)
+          ;(isBuffer === true).should.eql(true)
+          res.headers['content-type'].should.eql('image/png')
+          res.statusCode.should.eql(410)
+
+          config.set('notFound.images.enabled', false)
+          config.set('notFound.statusCode', 410)
+
           done()
         })
-    })
-
-    it('should return a 204 for favicons', function (done) {
-      var newTestConfig = JSON.parse(testConfigString)
-      newTestConfig.images.directory.enabled = true
-      newTestConfig.images.directory.path = './test/images'
-      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
-
-      config.loadFile(config.configPath())
-
-      var client = request(cdnUrl)
-      client
-      .get('/favicon.ico')
-      .end(function (err, res) {
-        res.statusCode.should.eql(204)
-        done()
       })
     })
 
-    it('should handle requests for unknown formats', function (done) {
-      var newTestConfig = JSON.parse(testConfigString)
-      newTestConfig.images.directory.enabled = true
-      newTestConfig.images.directory.path = './test/images'
-      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+    describe('Other', function () {
+      it('should respond to the root', function (done) {
+        var client = request(cdnUrl)
+        client
+          .get('/')
+          .end(function (err, res) {
+            res.statusCode.should.eql(200)
+            res.text.should.eql('Welcome to DADI CDN')
+            done()
+          })
+      })
 
-      config.loadFile(config.configPath())
+      it('should return 404 if there is no configured robots.txt file', function (done) {
+        var client = request(cdnUrl)
+        client
+          .get('/robots.txt')
+          .end(function (err, res) {
+            res.statusCode.should.eql(404)
+            res.text.should.eql('File not found')
+            done()
+          })
+      })
 
-      var client = request(cdnUrl)
-      client
-      .get('/something-else.zip')
-      .end(function (err, res) {
-        res.statusCode.should.eql(404)
-        done()
+      it('should return a configured robots.txt file', function (done) {
+        var newTestConfig = JSON.parse(testConfigString)
+        newTestConfig.robots = 'test/robots.txt'
+        fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+        config.loadFile(config.configPath())
+
+        var client = request(cdnUrl)
+        client
+          .get('/robots.txt')
+          .end(function (err, res) {
+            res.statusCode.should.eql(200)
+            res.text.should.eql('User-Agent: *\nDisallow: /')
+            done()
+          })
+      })
+
+      it('should return a 204 for favicons', function (done) {
+        var newTestConfig = JSON.parse(testConfigString)
+        newTestConfig.images.directory.enabled = true
+        newTestConfig.images.directory.path = './test/images'
+        fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+        config.loadFile(config.configPath())
+
+        var client = request(cdnUrl)
+        client
+        .get('/favicon.ico')
+        .end(function (err, res) {
+          res.statusCode.should.eql(204)
+          done()
+        })
+      })
+
+      it('should handle requests for unknown formats', function (done) {
+        var newTestConfig = JSON.parse(testConfigString)
+        newTestConfig.images.directory.enabled = true
+        newTestConfig.images.directory.path = './test/images'
+        fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+        config.loadFile(config.configPath())
+
+        var client = request(cdnUrl)
+        client
+        .get('/something-else.zip')
+        .end(function (err, res) {
+          res.statusCode.should.eql(404)
+          done()
+        })
       })
     })
   })

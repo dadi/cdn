@@ -29,7 +29,7 @@ const S3Storage = function ({assetType = 'assets', url}) {
 
 S3Storage.prototype.get = function () {
   return new Promise((resolve, reject) => {
-    var requestData = {
+    let requestData = {
       Bucket: this.getBucket(),
       Key: this.getKey()
     }
@@ -37,7 +37,7 @@ S3Storage.prototype.get = function () {
     logger.info('S3 Request (' + this.url + '):' + JSON.stringify(requestData))
 
     if (requestData.Bucket === '' || requestData.Key === '') {
-      var err = {
+      let err = {
         statusCode: 400,
         message: 'Either no Bucket or Key provided: ' + JSON.stringify(requestData)
       }
@@ -45,28 +45,28 @@ S3Storage.prototype.get = function () {
     }
 
     // create the AWS.Request object
-    var request = this.s3.getObject(requestData)
+    let request = this.s3.getObject(requestData)
 
-    var promise = request.promise()
+    let promise = request.promise()
 
-    promise.then((data) => {
+    promise.then(data => {
       if (data.LastModified) {
         this.lastModified = data.LastModified
       }
 
-      var bufferStream = new stream.PassThrough()
+      let bufferStream = new stream.PassThrough()
       bufferStream.push(data.Body)
       bufferStream.push(null)
       resolve(bufferStream)
     },
     (error) => {
       if (error.statusCode === 404) {
-        return new Missing().get().then((stream) => {
+        return new Missing().get().then(stream => {
           this.notFound = true
           this.lastModified = new Date()
           return resolve(stream)
-        }).catch((e) => {
-          return reject(e)
+        }).catch(err => {
+          return reject(err)
         })
       }
 
