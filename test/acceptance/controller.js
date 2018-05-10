@@ -875,28 +875,28 @@ describe('Controller', function () {
               LastModified: Date.now(),
               Body: buffer
             }))
+
+            config.set('images.s3.bucketName', 'test-bucket')
+            config.set('images.s3.accessKey', 'xxx')
+            config.set('images.s3.secretKey', 'xyz')
+            config.set('notFound.statusCode', 404)
+            config.set('notFound.images.enabled', true)
+            config.set('notFound.images.path', './test/images/missing.png')
+
+            let client = request(cdnUrl)
+            .get('/images/mock/logo.png')
+            .expect(200)
+            .end((err, res) => {
+              AWS.restore()
+
+              let isBuffer = (res.body instanceof Buffer)
+              ;(isBuffer === true).should.eql(true)
+              res.headers['content-type'].should.eql('image/png')
+              res.statusCode.should.eql(200)
+
+              done()
+            })
           })
-
-        config.set('images.s3.bucketName', 'test-bucket')
-        config.set('images.s3.accessKey', 'xxx')
-        config.set('images.s3.secretKey', 'xyz')
-        config.set('notFound.statusCode', 404)
-        config.set('notFound.images.enabled', true)
-        config.set('notFound.images.path', './test/images/missing.png')
-
-        let client = request(cdnUrl)
-        .get('/images/mock/logo.png')
-        .expect(200)
-        .end((err, res) => {
-          AWS.restore()
-
-          let isBuffer = (res.body instanceof Buffer)
-          ;(isBuffer === true).should.eql(true)
-          res.headers['content-type'].should.eql('image/png')
-          res.statusCode.should.eql(200)
-
-          done()
-        })
       })
 
       it('should return a placeholder image when the S3 image returns 404', function (done) {
