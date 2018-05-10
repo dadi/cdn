@@ -1,4 +1,4 @@
-var AWS = require('aws-sdk-mock')
+const AWS = require('aws-sdk-mock')
 const fs = require('fs')
 const nock = require('nock')
 const path = require('path')
@@ -463,8 +463,7 @@ describe('Controller', function () {
         client
           .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/testxxx.jpg')
           .end(function (err, res) {
-            let isBuffer = (res.body instanceof Buffer)
-            ;(isBuffer === true).should.eql(true)
+            res.body.should.be.instanceof(Buffer)
             res.headers['content-type'].should.eql('image/jpeg')
             res.statusCode.should.eql(404)
             done()
@@ -771,8 +770,7 @@ describe('Controller', function () {
           .get('/images/mock/logo.png')
           .expect(404)
           .end((err, res) => {
-            let isBuffer = (res.body instanceof Buffer)
-            ;(isBuffer === true).should.eql(true)
+            res.body.should.be.instanceof(Buffer)
             res.headers['content-type'].should.eql('image/png')
             res.statusCode.should.eql(404)
 
@@ -794,8 +792,7 @@ describe('Controller', function () {
           .get('/images/mock/logo.png')
           .expect(410)
           .end((err, res) => {
-            let isBuffer = (res.body instanceof Buffer)
-            ;(isBuffer === true).should.eql(true)
+            res.body.should.be.instanceof(Buffer)
             res.headers['content-type'].should.eql('image/png')
             res.statusCode.should.eql(410)
 
@@ -889,8 +886,7 @@ describe('Controller', function () {
             .end((err, res) => {
               AWS.restore()
 
-              let isBuffer = (res.body instanceof Buffer)
-              ;(isBuffer === true).should.eql(true)
+              res.body.should.be.instanceof(Buffer)
               res.headers['content-type'].should.eql('image/png')
               res.statusCode.should.eql(200)
 
@@ -916,8 +912,7 @@ describe('Controller', function () {
         .end((err, res) => {
           AWS.restore()
 
-          let isBuffer = (res.body instanceof Buffer)
-          ;(isBuffer === true).should.eql(true)
+          res.body.should.be.instanceof(Buffer)
           res.headers['content-type'].should.eql('image/png')
           res.statusCode.should.eql(404)
 
@@ -942,8 +937,7 @@ describe('Controller', function () {
         .end((err, res) => {
           AWS.restore()
 
-          let isBuffer = (res.body instanceof Buffer)
-          ;(isBuffer === true).should.eql(true)
+          res.body.should.be.instanceof(Buffer)
           res.headers['content-type'].should.eql('image/png')
           res.statusCode.should.eql(410)
 
