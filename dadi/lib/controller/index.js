@@ -46,7 +46,7 @@ const Controller = function (router) {
         this.addLastModifiedHeader(res, handler)
 
         if (handler.storageHandler && handler.storageHandler.notFound) {
-          res.statusCode = config.get('notFound.statusCode') || 404
+          res.statusCode = config.get('notFound.statusCode', req.__domain) || 404
         }
 
         if (handler.storageHandler && handler.storageHandler.cleanUp) {
