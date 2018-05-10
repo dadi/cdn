@@ -1,5 +1,4 @@
 const path = require('path')
-const config = require(path.resolve(path.join(__dirname, '/../../config')))
 const cache = require(path.join(__dirname, '/cache'))
 
 module.exports.clearCache = function (pathname, callback) {
@@ -20,7 +19,6 @@ module.exports.sendBackJSON = function (successCode, results, res) {
     res.statusCode = results.statusCode || res.statusCode
   }
 
-  res.setHeader('Server', config.get('server.name'))
   res.setHeader('Content-Type', 'application/json')
   res.setHeader('Content-Length', Buffer.byteLength(resBody))
   res.end(resBody)
@@ -35,7 +33,7 @@ module.exports.displayUnauthorizedError = function (res) {
   res.setHeader('Content-Type', 'application/json')
   res.setHeader('Expires', '-1')
 
-  var errorMsg = {
+  let errorMsg = {
     Error: 'HTTP 401 Unauthorized'
   }
 
