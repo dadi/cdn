@@ -157,33 +157,39 @@ const schema = {
     },
     s3: {
       enabled: {
-        doc: 'If true, image files will be requested from Amazon S3',
+        doc: 'If true, image files may be requested from Amazon S3 Buckets or Digital Ocean Spaces',
         format: Boolean,
         default: false
       },
       accessKey: {
-        doc: '',
+        doc: 'The access key used to connect to Amazon or Digital Ocean services for image files',
         format: String,
         default: '',
         env: 'AWS_S3_IMAGES_ACCESS_KEY'
       },
       secretKey: {
-        doc: '',
+        doc: 'The secret used to connect to Amazon or Digital Ocean services for image files',
         format: String,
         default: '',
         env: 'AWS_S3_IMAGES_SECRET_KEY'
       },
       bucketName: {
-        doc: '',
+        doc: 'The Amazon S3 Bucket or Digital Ocean Space that contains the image files',
         format: String,
         default: '',
         env: 'AWS_S3_IMAGES_BUCKET_NAME'
       },
       region: {
-        doc: '',
+        doc: 'The Amazon S3 or Digital Ocean region the Bucket/Space is served from',
         format: String,
         default: '',
         env: 'AWS_S3_IMAGES_REGION'
+      },
+      endpoint: {
+        doc: 'The endpoint used to access Digital Ocean Spaces. Not required for Amazon S3.',
+        format: String,
+        default: '',
+        env: 'AWS_S3_IMAGES_ENDPOINT'
       }
     },
     remote: {
@@ -222,33 +228,39 @@ const schema = {
     },
     s3: {
       enabled: {
-        doc: 'If true, asset files will be requested from Amazon S3',
+        doc: 'If true, asset files may be requested from Amazon S3 Buckets or Digital Ocean Spaces',
         format: Boolean,
         default: false
       },
       accessKey: {
-        doc: '',
+        doc: 'The access key used to connect to Amazon or Digital Ocean services for asset files',
         format: String,
         default: '',
         env: 'AWS_S3_ASSETS_ACCESS_KEY'
       },
       secretKey: {
-        doc: '',
+        doc: 'The secret used to connect to Amazon or Digital Ocean services for asset files',
         format: String,
         default: '',
         env: 'AWS_S3_ASSETS_SECRET_KEY'
       },
       bucketName: {
-        doc: '',
+        doc: 'The Amazon S3 Bucket or Digital Ocean Space that contains the asset files',
         format: String,
         default: '',
         env: 'AWS_S3_ASSETS_BUCKET_NAME'
       },
       region: {
-        doc: '',
+        doc: 'The Amazon S3 or Digital Ocean region the Bucket/Space is served from',
         format: String,
         default: '',
         env: 'AWS_S3_ASSETS_REGION'
+      },
+      endpoint: {
+        doc: 'The endpoint used to access Digital Ocean Spaces. Not required for Amazon S3.',
+        format: String,
+        default: '',
+        env: 'AWS_S3_ASSETS_ENDPOINT'
       }
     },
     remote: {
@@ -651,10 +663,10 @@ Config.prototype.createDomainSchema = function (schema, target, tail = []) {
         default: this.get(path)
       })
     )
-    
+
     return
   }
-  
+
   Object.keys(schema).forEach(key => {
     this.createDomainSchema(
       schema[key],
@@ -726,7 +738,7 @@ Config.prototype.loadDomainConfigs = function () {
           {module: 'config'},
           `'${this.get('env')}' config not found for domain ${domain}`
         )
-      }    
+      }
     })
 
   this.domainConfigs = configs
@@ -759,7 +771,7 @@ Config.prototype.set = function (path, value, domain) {
     return this._set(path, value)
   }
 
-  return this.domainConfigs[domain].set(path, value)  
+  return this.domainConfigs[domain].set(path, value)
 }
 
 module.exports = new Config()
