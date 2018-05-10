@@ -241,6 +241,13 @@
     },
     {
       "image": "measure1.png",
+      "params": {
+        "format": "gif"
+      },
+      "baselineFilename": "images/visual/baseline/measure1.gif"
+    },
+    {
+      "image": "measure1.png",
       "recipeRoute": "duotone",
       "params": {
         "highlight": "f00e2e",
