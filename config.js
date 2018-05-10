@@ -126,18 +126,21 @@ const schema = {
     statusCode: {
       doc: 'If set, overrides the status code in the case of a 404',
       format: Number,
-      default: 404
+      default: 404,
+      allowDomainOverride: true
     },
     images: {
       enabled: {
         doc: 'If true, returns a default image when request returns a 404',
         format: Boolean,
-        default: false
+        default: false,
+        allowDomainOverride: true
       },
       path: {
         doc: 'The path to the default image',
         format: String,
-        default: './images/missing.png'
+        default: './images/missing.png',
+        allowDomainOverride: true
       }
     }
   },

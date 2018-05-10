@@ -12,6 +12,7 @@ const app = require(__dirname + '/../../dadi/lib/')
 const imageHandler = require(__dirname + '/../../dadi/lib/handlers/image')
 
 let config = require(__dirname + '/../../config')
+let configBackup = config.get()
 let cdnUrl = `http://${config.get('server.host')}:${config.get('server.port')}`
 let testConfigString
 
@@ -300,6 +301,8 @@ describe('Recipes', function () {
         .get('/thumbxx/test.jpg')
         .reply(404)
 
+      config.set('notFound.images.enabled', false)
+
       help.getBearerToken((err, token) => {
         request(cdnUrl)
         .post('/api/recipes')
@@ -314,6 +317,9 @@ describe('Recipes', function () {
             .end(function (err, res) {
               res.statusCode.should.eql(404)
               res.body.statusCode.should.eql(404)
+
+              config.set('notFound.images.enabled', configBackup.notFound.images.enabled)
+
               done()
             })
           }, 500)
@@ -558,7 +564,6 @@ describe('Recipes', function () {
 })
 
 describe('Recipes (with multi-domain)', () => {
-  let configBackup = config.get()
   let sample = {
     recipe: 'test-domain-recipe',
     settings: {

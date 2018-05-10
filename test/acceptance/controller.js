@@ -12,6 +12,7 @@ const app = require(path.join(__dirname, '/../../dadi/lib/'))
 const imageHandler = require(path.join(__dirname, '/../../dadi/lib/handlers/image'))
 
 let config = require(path.join(__dirname, '/../../config'))
+let configBackup = config.get()
 let cdnUrl = 'http://' + config.get('server.host') + ':' + config.get('server.port')
 let testConfigString
 
@@ -426,23 +427,6 @@ describe('Controller', function () {
           })
       })
 
-      it('should return error if image uri is invalid', function (done) {
-        var newTestConfig = JSON.parse(testConfigString)
-        newTestConfig.images.directory.enabled = true
-        newTestConfig.images.directory.path = './test/images'
-        fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
-
-        config.loadFile(config.configPath())
-
-        var client = request(cdnUrl)
-        client
-          .get('/jpg/50/0/0/801/478/0/0/0/aspectfit/North/0/0/xxxtest.jpg')
-          .end(function (err, res) {
-            res.statusCode.should.eql(404)
-            done()
-          })
-      })
-
       it('should return a placeholder image if image is not found', function (done) {
         var newTestConfig = JSON.parse(testConfigString)
         newTestConfig.images.directory.enabled = true
@@ -464,7 +448,7 @@ describe('Controller', function () {
           .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/testxxx.jpg')
           .end(function (err, res) {
             res.body.should.be.instanceof(Buffer)
-            res.headers['content-type'].should.eql('image/jpeg')
+            res.headers['content-type'].should.eql('image/png')
             res.statusCode.should.eql(404)
             done()
           })
@@ -638,9 +622,137 @@ describe('Controller', function () {
         })
     })
 
-    describe('Remote images', () => {
-      let configBackup = config.get('images')
+    describe('placeholder image is disabled', () => {
+      it('should return "404 Not Found" when the remote image returns 404', done => {
+        config.set('notFound.images.enabled', false)
 
+        let client = request(cdnUrl)
+          .get('/images/not-found.jpg')
+          .expect(404)
+          .end((err, res) => {
+            res.body.message.includes('File not found:').should.eql(true)
+
+            done()
+          })
+      })
+    })
+
+    describe('placeholder image is enabled', () => {
+      it('should return a placeholder image when the remote image returns 404', () => {
+        config.set('notFound.images.enabled', true)
+        config.set('notFound.images.path', './test/images/missing.png')
+
+        return help.imagesEqual({
+          base: 'test/images/missing.png',
+          test: `${cdnUrl}/not-found.jpg`
+        }).then(match => {
+          match.should.eql(true)
+        })
+      })
+
+      it('should return configured statusCode if image is not found', function (done) {
+        config.set('notFound.images.enabled', true)
+        config.set('notFound.images.path', './test/images/missing.png')
+        config.set('notFound.statusCode', 410)
+
+        let client = request(cdnUrl)
+          .get('/not-found.jpg')
+          .expect(410)
+          .end((err, res) => {
+            res.body.should.be.instanceof(Buffer)
+            res.headers['content-type'].should.eql('image/png')
+            res.statusCode.should.eql(410)
+
+            config.set('notFound.images.enabled', configBackup.notFound.images.enabled)
+            config.set('notFound.statusCode', configBackup.notFound.statusCode)
+
+            done()
+          })
+      })
+
+      describe('when multi-domain is enabled', () => {
+        let fallbackImages = {
+          localhost: 'test/images/original.jpg',
+          'testdomain.com': 'test/images/dog-w600.jpeg'
+        }
+
+        before(() => {
+          config.set('multiDomain.enabled', true)
+          config.loadDomainConfigs()
+
+          config.set('notFound.images.enabled', false)
+
+          config.set('notFound.statusCode', 418, 'localhost')
+          config.set('notFound.images.enabled', true, 'localhost')
+          config.set('notFound.images.path', fallbackImages.localhost, 'localhost')
+
+          config.set('notFound.statusCode', 451, 'testdomain.com')
+          config.set('notFound.images.enabled', true, 'testdomain.com')
+          config.set('notFound.images.path', fallbackImages['testdomain.com'], 'testdomain.com')
+
+          return help.proxyStart()
+        })
+
+        after(() => {
+          config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
+
+          return help.proxyStop()
+        })
+
+        it('returns the fallback image and status code defined by each domain if the image is not found', done => {
+          help.imagesEqual({
+            base: fallbackImages.localhost,
+            test: `${help.proxyUrl}/not-found.jpg?mockdomain=localhost`
+          }).then(match => {
+            match.should.eql(true)
+
+            request(help.proxyUrl)
+              .get('/not-found.jpg?mockdomain=testdomain.com')
+              .expect(418)
+              .end((err, res) => {
+                help.imagesEqual({
+                  base: fallbackImages['testdomain.com'],
+                  test: `${help.proxyUrl}/not-found.jpg?mockdomain=testdomain.com`
+                }).then(match => {
+                  match.should.eql(true)
+
+                  request(help.proxyUrl)
+                    .get('/not-found.jpg?mockdomain=testdomain.com')
+                    .expect(451)
+                    .end(done)
+                })
+              })
+          })
+        })
+
+        it('returns an error message if the fallback image is disabled for the domain', done => {
+          config.set('notFound.images.enabled', false, 'testdomain.com')
+
+          help.imagesEqual({
+            base: fallbackImages.localhost,
+            test: `${help.proxyUrl}/not-found.jpg?mockdomain=localhost`
+          }).then(match => {
+            match.should.eql(true)
+
+            request(help.proxyUrl)
+              .get('/not-found.jpg?mockdomain=testdomain.com')
+              .expect(418)
+              .end((err, res) => {
+                request(help.proxyUrl)
+                  .get('/not-found.jpg?mockdomain=testdomain.com')
+                  .expect(451)
+                  .end((err, res) => {
+                    res.body.message.includes('File not found:').should.eql(true)
+
+                    done()
+                  })
+              })
+          })
+        })
+      })
+    })    
+
+    describe('Remote images', () => {
       beforeEach(() => {
         config.set('images.directory.enabled', false)
         config.set('images.remote.enabled', true)
@@ -648,11 +760,11 @@ describe('Controller', function () {
       })
 
       afterEach(() => {
-        config.set('images.directory.enabled', configBackup.directory.enabled)
-        config.set('images.remote.enabled', configBackup.remote.enabled)
-        config.set('images.remote.path', configBackup.remote.path)
-        config.set('images.remote.allowFullURL', configBackup.remote.allowFullURL)
-        config.set('images.s3.enabled', configBackup.s3.enabled)
+        config.set('images.directory.enabled', configBackup.images.directory.enabled)
+        config.set('images.remote.enabled', configBackup.images.remote.enabled)
+        config.set('images.remote.path', configBackup.images.remote.path)
+        config.set('images.remote.allowFullURL', configBackup.images.remote.allowFullURL)
+        config.set('images.s3.enabled', configBackup.images.s3.enabled)
       })
 
       it('should retrieve image from remote URL using `images.remote.path` as base URL', () => {
@@ -738,69 +850,165 @@ describe('Controller', function () {
           })
       })
 
-      it('should return "404 Not Found" when the remote image returns 404', done => {
-        let server = nock('https://one.somedomain.tech')
-          .get('/images/mock/logo.png')
-          .reply(404)
+      describe('placeholder image is disabled', () => {
+        it('should return "404 Not Found" when the remote image returns 404', done => {
+          let server = nock('https://one.somedomain.tech')
+            .get('/images/mock/logo.png')
+            .reply(404)
 
-        config.set('images.remote.path', 'https://one.somedomain.tech')
+          config.set('images.remote.path', 'https://one.somedomain.tech')
+          config.set('notFound.images.enabled', false)
 
-        let client = request(cdnUrl)
-          .get('/images/mock/logo.png')
-          .expect(404)
-          .end((err, res) => {
-            res.body.message.should.eql(
-              'Not Found: https://one.somedomain.tech/images/mock/logo.png'
-            )
+          let client = request(cdnUrl)
+            .get('/images/mock/logo.png')
+            .expect(404)
+            .end((err, res) => {
+              res.body.message.should.eql(
+                'Not Found: https://one.somedomain.tech/images/mock/logo.png'
+              )
 
-            done()
-          })
+              done()
+            })
+        })        
       })
 
-      it('should return a placeholder image when the remote image returns 404', function (done) {
-        let server = nock('https://one.somedomain.tech')
-          .get('/images/mock/logo.png')
-          .reply(404)
+      describe('placeholder image is enabled', () => {
+        it('should return a placeholder image when the remote image returns 404', () => {
+          let server = nock('https://one.somedomain.tech')
+            .get('/images/mock/logo.png')
+            .reply(404)
 
-        config.set('images.remote.path', 'https://one.somedomain.tech')
-        config.set('notFound.images.enabled', true)
-        config.set('notFound.images.path', './test/images/missing.png')
+          config.set('images.remote.path', 'https://one.somedomain.tech')
+          config.set('notFound.images.enabled', true)
+          config.set('notFound.images.path', './test/images/missing.png')
 
-        let client = request(cdnUrl)
-          .get('/images/mock/logo.png')
-          .expect(404)
-          .end((err, res) => {
-            res.body.should.be.instanceof(Buffer)
-            res.headers['content-type'].should.eql('image/png')
-            res.statusCode.should.eql(404)
+          return help.imagesEqual({
+            base: 'test/images/missing.png',
+            test: `${cdnUrl}/images/mock/logo.png`
+          }).then(match => {
+            match.should.eql(true)
 
-            done()
+            server.isDone().should.eql(true)
           })
-      })
+        })
 
-      it('should return configured statusCode if image is not found', function (done) {
-        let server = nock('https://one.somedomain.tech')
-          .get('/images/mock/logo.png')
-          .reply(404)
+        it('should return configured statusCode if image is not found', function (done) {
+          let server = nock('https://one.somedomain.tech')
+            .get('/images/mock/logo.png')
+            .reply(404)
 
-        config.set('images.remote.path', 'https://one.somedomain.tech')
-        config.set('notFound.images.enabled', true)
-        config.set('notFound.images.path', './test/images/missing.png')
-        config.set('notFound.statusCode', 410)
+          config.set('images.remote.path', 'https://one.somedomain.tech')
+          config.set('notFound.images.enabled', true)
+          config.set('notFound.images.path', './test/images/missing.png')
+          config.set('notFound.statusCode', 410)
 
-        let client = request(cdnUrl)
-          .get('/images/mock/logo.png')
-          .expect(410)
-          .end((err, res) => {
-            res.body.should.be.instanceof(Buffer)
-            res.headers['content-type'].should.eql('image/png')
-            res.statusCode.should.eql(410)
+          let client = request(cdnUrl)
+            .get('/images/mock/logo.png')
+            .expect(410)
+            .end((err, res) => {
+              res.body.should.be.instanceof(Buffer)
+              res.headers['content-type'].should.eql('image/png')
+              res.statusCode.should.eql(410)
+
+              config.set('notFound.images.enabled', configBackup.notFound.statusCode)
+              config.set('notFound.statusCode', configBackup.notFound.statusCode)
+
+              done()
+            })
+        })
+
+        describe('when multi-domain is enabled', () => {
+          let fallbackImages = {
+            localhost: 'test/images/original.jpg',
+            'testdomain.com': 'test/images/dog-w600.jpeg'
+          }
+
+          before(() => {
+            config.set('multiDomain.enabled', true)
+            config.loadDomainConfigs()
 
             config.set('notFound.images.enabled', false)
-            config.set('notFound.statusCode', 410)
 
-            done()
+            config.set('notFound.statusCode', 418, 'localhost')
+            config.set('notFound.images.enabled', true, 'localhost')
+            config.set('notFound.images.path', fallbackImages.localhost, 'localhost')
+
+            config.set('notFound.statusCode', 451, 'testdomain.com')
+            config.set('notFound.images.enabled', true, 'testdomain.com')
+            config.set('notFound.images.path', fallbackImages['testdomain.com'], 'testdomain.com')
+
+            return help.proxyStart()
           })
+
+          after(() => {
+            config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
+
+            return help.proxyStop()
+          })
+
+          it('returns the fallback image and status code defined by each domain if the image is not found', done => {
+            let server1 = nock('https://one.somedomain.tech')
+              .get('/not-found.jpg')
+              .reply(404)
+
+            let server2 = nock('https://two.somedomain.tech')
+              .get('/not-found.jpg')
+              .reply(404)
+
+            help.imagesEqual({
+              base: fallbackImages.localhost,
+              test: `${help.proxyUrl}/not-found.jpg?mockdomain=localhost`
+            }).then(match => {
+              match.should.eql(true)
+
+              request(help.proxyUrl)
+                .get('/not-found.jpg?mockdomain=testdomain.com')
+                .expect(418)
+                .end((err, res) => {
+                  help.imagesEqual({
+                    base: fallbackImages['testdomain.com'],
+                    test: `${help.proxyUrl}/not-found.jpg?mockdomain=testdomain.com`
+                  }).then(match => {
+                    match.should.eql(true)
+
+                    request(help.proxyUrl)
+                      .get('/not-found.jpg?mockdomain=testdomain.com')
+                      .expect(451)
+                      .end(done)
+                  })
+                })
+            })
+          })
+
+          it('returns an error message if the fallback image is disabled for the domain', done => {
+            config.set('notFound.images.enabled', false, 'testdomain.com')
+
+            let server1 = nock('https://one.somedomain.tech')
+              .get('/not-found.jpg')
+              .reply(404)
+
+            help.imagesEqual({
+              base: fallbackImages.localhost,
+              test: `${help.proxyUrl}/not-found.jpg?mockdomain=localhost`
+            }).then(match => {
+              match.should.eql(true)
+
+              request(help.proxyUrl)
+                .get('/not-found.jpg?mockdomain=testdomain.com')
+                .expect(418)
+                .end((err, res) => {
+                  request(help.proxyUrl)
+                    .get('/not-found.jpg?mockdomain=testdomain.com')
+                    .expect(451)
+                    .end((err, res) => {
+                      res.body.message.includes('File not found:').should.eql(true)
+
+                      done()
+                    })
+                })
+            })
+          })
+        })
       })
 
       it('should return "403 Forbidden" when the remote image returns 403', done => {
@@ -843,8 +1051,6 @@ describe('Controller', function () {
     })
 
     describe('S3 images', () => {
-      let configBackup = config.get('images')
-
       beforeEach(() => {
         config.set('images.directory.enabled', false)
         config.set('images.remote.enabled', false)
@@ -852,11 +1058,11 @@ describe('Controller', function () {
       })
 
       afterEach(() => {
-        config.set('images.directory.enabled', configBackup.directory.enabled)
-        config.set('images.remote.enabled', configBackup.remote.enabled)
-        config.set('images.remote.path', configBackup.remote.path)
-        config.set('images.remote.allowFullURL', configBackup.remote.allowFullURL)
-        config.set('images.s3.enabled', configBackup.s3.enabled)
+        config.set('images.directory.enabled', configBackup.images.directory.enabled)
+        config.set('images.remote.enabled', configBackup.images.remote.enabled)
+        config.set('images.remote.path', configBackup.images.remote.path)
+        config.set('images.remote.allowFullURL', configBackup.images.remote.allowFullURL)
+        config.set('images.s3.enabled', configBackup.images.s3.enabled)
       })
 
       it('should return 200 when image is returned', function (done) {
@@ -941,8 +1147,8 @@ describe('Controller', function () {
           res.headers['content-type'].should.eql('image/png')
           res.statusCode.should.eql(410)
 
-          config.set('notFound.images.enabled', false)
-          config.set('notFound.statusCode', 410)
+          config.set('notFound.images.enabled', configBackup.notFound.images.enabled)
+          config.set('notFound.statusCode', configBackup.notFound.statusCode)
 
           done()
         })
