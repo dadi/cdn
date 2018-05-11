@@ -44,7 +44,9 @@ DefaultHandler.prototype.contentType = function () {
  * @return {Promise} A stream with the file
  */
 DefaultHandler.prototype.get = function () {
-  return this.cache.getStream(this.cacheKey).then(stream => {
+  return this.cache.getStream(this.cacheKey, {
+    ttl: config.get('caching.ttl', this.req.__domain)
+  }).then(stream => {
     if (stream) {
       this.isCached = true
 
@@ -58,7 +60,9 @@ DefaultHandler.prototype.get = function () {
     )
 
     return this.storageHandler.get().then(stream => {
-      return this.cache.cacheFile(stream, this.cacheKey)
+      return this.cache.cacheFile(stream, this.cacheKey, {
+        ttl: config.get('caching.ttl', this.req.__domain)
+      })
     })
   })
 }

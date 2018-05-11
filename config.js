@@ -291,7 +291,8 @@ const schema = {
     ttl: {
       doc: '',
       format: Number,
-      default: 3600
+      default: 3600,
+      allowDomainOverride: true
     },
     directory: {
       enabled: {

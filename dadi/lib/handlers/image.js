@@ -319,7 +319,9 @@ ImageHandler.prototype.get = function () {
   ]
   const isJSONResponse = this.options.format === 'json'
 
-  return this.cache.getStream(cacheKey).then(cachedStream => {
+  return this.cache.getStream(cacheKey, {
+    ttl: config.get('caching.ttl', this.req.__domain)
+  }).then(cachedStream => {
     if (cachedStream) {
       this.isCached = true
 
@@ -404,7 +406,10 @@ ImageHandler.prototype.get = function () {
         if (!this.isCached && !this.storageHandler.notFound) {
           this.cache.cacheFile(
             this.options.format === 'json' ? responseStream : this.cacheStream,
-            cacheKey
+            cacheKey,
+            {
+              ttl: config.get('caching.ttl', this.req.__domain)
+            }
           )
         }
 
