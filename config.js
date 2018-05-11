@@ -387,24 +387,28 @@ const schema = {
       doc: '',
       format: String,
       default: '1235488',
-      env: 'AUTH_TOKEN_ID'
+      env: 'AUTH_TOKEN_ID',
+      allowDomainOverride: true
     },
     secret: {
       doc: '',
       format: String,
       default: 'asd544see68e52',
-      env: 'AUTH_TOKEN_SECRET'
+      env: 'AUTH_TOKEN_SECRET',
+      allowDomainOverride: true
     },
     tokenTtl: {
       doc: '',
       format: Number,
       default: 1800,
-      env: 'AUTH_TOKEN_TTL'
+      env: 'AUTH_TOKEN_TTL',
+      allowDomainOverride: true
     },
     privateKey: {
       doc: 'Private key for signing JSON Web Tokens',
       format: String,
-      default: 'YOU-MUST-CHANGE-ME-NOW!'
+      default: 'YOU-MUST-CHANGE-ME-NOW!',
+      allowDomainOverride: true
     }
   },
   cloudfront: {

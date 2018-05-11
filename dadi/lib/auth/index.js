@@ -39,7 +39,7 @@ module.exports = function (router) {
       return fail('NoToken', res)
     }
 
-    jwt.verify(token, config.get('auth.privateKey'), (err, decoded) => {
+    jwt.verify(token, config.get('auth.privateKey', req.__domain), (err, decoded) => {
       if (err || (decoded.domain !== req.__domain)) {
         return fail('InvalidToken', res)
       }
@@ -60,8 +60,8 @@ module.exports = function (router) {
     let secret = req.body.secret
 
     if (
-      clientId !== config.get('auth.clientId') ||
-      secret !== config.get('auth.secret')
+      clientId !== config.get('auth.clientId', req.__domain) ||
+      secret !== config.get('auth.secret', req.__domain)
     ) {
       return fail('NoAccess', res)
     }
@@ -71,8 +71,8 @@ module.exports = function (router) {
     }
 
     // Sign a JWT token.
-    jwt.sign(payload, config.get('auth.privateKey'), {
-      expiresIn: config.get('auth.tokenTtl')
+    jwt.sign(payload, config.get('auth.privateKey', req.__domain), {
+      expiresIn: config.get('auth.tokenTtl', req.__domain)
     }, (err, token) => {
       if (err) {
         logger.error({module: 'auth'}, err)

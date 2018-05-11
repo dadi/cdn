@@ -181,5 +181,137 @@ describe('Authentication', function () {
             })
         })
     })
+
+    it('should validate the clientId/secret as per the domain configuration', done => {
+      config.set('auth.clientId', 'testClient1', 'localhost')
+      config.set('auth.secret', 'superSecret1', 'localhost')
+      config.set('auth.privateKey', 'privateKey1', 'localhost')
+
+      config.set('auth.clientId', 'testClient2', 'testdomain.com')
+      config.set('auth.secret', 'superSecret2', 'testdomain.com')
+      config.set('auth.privateKey', 'privateKey2', 'testdomain.com')
+
+      request(cdnUrl)
+        .post(tokenRoute)
+        .send({
+          clientId: 'test',
+          secret: 'test'
+        })
+        .set('host', 'localhost:80')
+        .expect('content-type', 'application/json')
+        .expect('pragma', 'no-cache')
+        .expect('Cache-Control', 'no-store')
+        .expect(401)
+        .end((err, res) => {
+          request(cdnUrl)
+            .post(tokenRoute)
+            .send({
+              clientId: 'test',
+              secret: 'test'
+            })
+            .set('host', 'testdomain.com:80')
+            .expect('content-type', 'application/json')
+            .expect('pragma', 'no-cache')
+            .expect('Cache-Control', 'no-store')
+            .expect(401)
+            .end((err, res) => {
+              request(cdnUrl)
+                .post(tokenRoute)
+                .send({
+                  clientId: 'testClient1',
+                  secret: 'superSecret1'
+                })
+                .set('host', 'localhost:80')
+                .expect('content-type', 'application/json')
+                .expect('pragma', 'no-cache')
+                .expect('Cache-Control', 'no-store')
+                .expect(200)
+                .end((err, res) => {
+                  res.body.accessToken.should.be.String
+
+                  request(cdnUrl)
+                    .post(tokenRoute)
+                    .send({
+                      clientId: 'testClient2',
+                      secret: 'superSecret2'
+                    })
+                    .set('host', 'testdomain.com:80')
+                    .expect('content-type', 'application/json')
+                    .expect('pragma', 'no-cache')
+                    .expect('Cache-Control', 'no-store')
+                    .expect(200)
+                    .end((err, res) => {
+                      res.body.accessToken.should.be.String
+
+                      done()
+                    })
+                })
+            })
+        })
+    })
+
+    it('should encode JWTs with the private key and TTL defined for each domain', done => {
+      config.set('auth.clientId', 'testClient1', 'localhost')
+      config.set('auth.secret', 'superSecret1', 'localhost')
+      config.set('auth.privateKey', 'privateKey1', 'localhost')
+      config.set('auth.tokenTtl', 10000, 'localhost')
+
+      config.set('auth.clientId', 'testClient2', 'testdomain.com')
+      config.set('auth.secret', 'superSecret2', 'testdomain.com')
+      config.set('auth.privateKey', 'privateKey2', 'testdomain.com')
+      config.set('auth.tokenTtl', 20000, 'testdomain.com')
+
+      let startTime = Math.floor(Date.now() / 1000)
+
+      request(cdnUrl)
+        .post(tokenRoute)
+        .send({
+          clientId: 'testClient1',
+          secret: 'superSecret1'
+        })
+        .set('host', 'localhost:80')
+        .expect('content-type', 'application/json')
+        .expect('pragma', 'no-cache')
+        .expect('Cache-Control', 'no-store')
+        .expect(200)
+        .end((err, res) => {
+          jwt.verify(
+            res.body.accessToken,
+            'privateKey1',
+            (err, decoded) => {
+              if (err) return done(err)
+
+              (decoded.exp - startTime).should.eql(10000)
+              decoded.domain.should.eql('localhost')
+
+              request(cdnUrl)
+                .post(tokenRoute)
+                .send({
+                  clientId: 'testClient2',
+                  secret: 'superSecret2'
+                })
+                .set('host', 'testdomain.com:80')
+                .expect('content-type', 'application/json')
+                .expect('pragma', 'no-cache')
+                .expect('Cache-Control', 'no-store')
+                .expect(200)
+                .end((err, res) => {
+                  jwt.verify(
+                    res.body.accessToken,
+                    'privateKey2',
+                    (err, decoded) => {
+                      if (err) return done(err)
+
+                      (decoded.exp - startTime).should.eql(20000)
+                      decoded.domain.should.eql('testdomain.com')
+
+                      done()
+                    }
+                  )
+                })
+            }
+          )
+        })
+    })
   })
 })
