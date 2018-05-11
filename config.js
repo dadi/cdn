@@ -599,7 +599,8 @@ const schema = {
       doc: 'Whether to enable experimental support for on-demand JavaScript transpiling',
       format: Boolean,
       default: false,
-      env: 'JSTRANSPILING'
+      env: 'JSTRANSPILING',
+      allowDomainOverride: true
     }
   },
   multiDomain: {

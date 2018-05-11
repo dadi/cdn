@@ -31,6 +31,8 @@ const JSHandler = function (format, req, {
   this.cache = Cache()
   this.cacheKey = this.url.href
 
+  this.req = req
+
   this.storageFactory = Object.create(StorageFactory)
   this.storageHandler = null
 
@@ -209,7 +211,9 @@ JSHandler.prototype.getLegacyURLOverrides = function (url) {
  */
 JSHandler.prototype.isTransformEnabled = function () {
   // Currently behind a feature flag.
-  if (!config.get('experimental.jsTranspiling')) return false
+  if (!config.get('experimental.jsTranspiling', this.req.__domain)) {
+    return false
+  }
 
   return (this.url.query.transform || (this.options.transform === true))
 }

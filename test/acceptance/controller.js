@@ -395,6 +395,106 @@ describe('Controller', function () {
         .get('/test.js')
         .expect(200, done)
     })
+
+    describe('transpiling', () => {
+      let originalJs = fs.readFileSync(
+        path.join(__dirname, '/../assets/test-es6.js'),
+        'utf8'
+      )
+      let transpiledJs = '"use strict";\n\nvar makeFoo = function makeFoo(bar) {\n  return "I foo, you " + bar;\n};'
+
+      it('should deliver original JS file if experimental.jsTranspiling is disabled', done => {
+        config.set('experimental.jsTranspiling', false)
+
+        request(cdnUrl)
+          .get('/test-es6.js?transform=1')
+          .set('User-Agent', 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0; Trident/5.0)')
+          .expect(200, (err, res) => {
+            res.text.should.eql(originalJs)
+
+            config.set('experimental.jsTranspiling', configBackup.experimental.jsTranspiling)
+
+            done()
+          })
+      })
+
+      it('should deliver transpiled JS file if experimental.jsTranspiling is enabled', done => {
+        config.set('experimental.jsTranspiling', true)
+
+        request(cdnUrl)
+          .get('/test-es6.js?transform=1')
+          .set('User-Agent', 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0; Trident/5.0)')
+          .expect(200, (err, res) => {
+            res.text.should.eql(transpiledJs)  
+            config.set('experimental.jsTranspiling', configBackup.experimental.jsTranspiling)
+
+            done()
+          })
+      })
+
+      describe('when multi-domain is enabled', () => {
+        before(() => {
+          config.set('multiDomain.enabled', true)
+          config.loadDomainConfigs()
+        })
+
+        after(() => {
+          config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
+        })
+
+        it('should deliver original JS file if experimental.jsTranspiling is disabled at domain level', done => {
+          config.set('experimental.jsTranspiling', true)
+          config.set('experimental.jsTranspiling', false, 'localhost')
+          config.set('experimental.jsTranspiling', true, 'testdomain.com')
+
+          request(cdnUrl)
+            .get('/test-es6.js?transform=1')
+            .set('User-Agent', 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0; Trident/5.0)')
+            .set('Host', 'localhost:80')
+            .expect(200, (err, res) => {
+              res.text.should.eql(originalJs)
+
+              request(cdnUrl)
+                .get('/test-es6.js?transform=1')
+                .set('User-Agent', 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0; Trident/5.0)')
+                .set('Host', 'testdomain.com:80')
+                .expect(200, (err, res) => {
+                  res.text.should.eql(transpiledJs)
+
+                  config.set('experimental.jsTranspiling', configBackup.experimental.jsTranspiling)
+
+                  done()
+                })
+            })
+        })
+
+        it('should deliver transpiled JS file if experimental.jsTranspiling is enabled at domain level', done => {
+          config.set('experimental.jsTranspiling', false)
+          config.set('experimental.jsTranspiling', false, 'localhost')
+          config.set('experimental.jsTranspiling', true, 'testdomain.com')
+
+          request(cdnUrl)
+            .get('/test-es6.js?transform=1')
+            .set('User-Agent', 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0; Trident/5.0)')
+            .set('Host', 'localhost:80')
+            .expect(200, (err, res) => {
+              res.text.should.eql(originalJs)
+
+              request(cdnUrl)
+                .get('/test-es6.js?transform=1')
+                .set('User-Agent', 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0; Trident/5.0)')
+                .set('Host', 'testdomain.com:80')
+                .expect(200, (err, res) => {
+                  res.text.should.eql(transpiledJs)
+
+                  config.set('experimental.jsTranspiling', configBackup.experimental.jsTranspiling)
+
+                  done()
+                })
+            })
+        })
+      })
+    })
   })
 
   describe('Images', function () {
