@@ -61,7 +61,7 @@
     "streamifier": "^0.1.1",
     "ua-parser-js": "^0.7.10",
     "uglify-js": "^3.0.25",
-    "underscore": "~1.8.3",
+    "underscore": "~1.9.0",
     "url-join": "^3.0.0",
     "useragent": "2.3.0",
     "uuid": "latest",
