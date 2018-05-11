@@ -206,6 +206,31 @@ describe('Multi-domain', function () {
       })
     }).timeout(5000)
 
+    it('should use the allowFullURL setting defined at domain level to determine whether or not a request with a full remote URL will be served', done => {
+      config.set('images.remote.allowFullURL', true, 'localhost')
+      config.set('images.remote.allowFullURL', false, 'testdomain.com')
+
+      request(cdnUrl)
+        .get('/http://one.somedomain.tech/test.jpg')
+        .set('Host', 'localhost:80')
+        .expect(200)
+        .end((err, res) => {
+          res.headers['content-type'].should.eql('image/jpeg')
+
+          request(cdnUrl)
+            .get('/http://one.somedomain.tech/test.jpg')
+            .set('Host', 'testdomain.com:80')
+            .end((err, res) => {
+              res.statusCode.should.eql(403)
+              res.body.message.should.eql(
+                'Loading images from a full remote URL is not supported by this instance of DADI CDN'
+              )
+
+              done()
+            })
+        })
+    }).timeout(5000)
+
     describe('when the target domain is not configured', () => {
       let testDomain = 'unknowndomain.com'
 

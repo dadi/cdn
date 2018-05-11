@@ -211,7 +211,8 @@ const schema = {
       allowFullURL: {
         doc: 'If true, images can be loaded from any remote URL',
         format: Boolean,
-        default: true
+        default: true,
+        allowDomainOverride: true
       }
     }
   },

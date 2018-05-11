@@ -262,11 +262,11 @@ ImageHandler.prototype.get = function () {
   if (
     this.isExternalUrl &&
     (
-      !config.get('images.remote.enabled') ||
-      !config.get('images.remote.allowFullURL')
+      !config.get('images.remote.enabled', this.req.__domain) ||
+      !config.get('images.remote.allowFullURL', this.req.__domain)
     )
   ) {
-    const err = {
+    let err = {
       statusCode: 403,
       message: 'Loading images from a full remote URL is not supported by this instance of DADI CDN'
     }
