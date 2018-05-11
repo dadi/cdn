@@ -562,6 +562,9 @@ describe('Cache', function () {
 
   describe('TTL', () => {
     it('should keep cached items for the period of time defined in caching.ttl', done => {
+      let mockCacheGet = sinon.spy(cache.Cache.prototype, 'getStream')
+      let mockCacheSet = sinon.spy(cache.Cache.prototype, 'cacheFile')
+
       config.set('caching.ttl', 3)
 
       setTimeout(() => {
@@ -574,38 +577,21 @@ describe('Cache', function () {
             res.headers['content-type'].should.eql('application/pdf')
             res.headers['x-cache'].should.eql('MISS')
 
-            setTimeout(() => {
-              client
-              .get('/test.pdf')
-              .expect(200)
-              .end((err, res) => {
-                if (err) return done(err)
+            mockCacheGet.firstCall.args[1].ttl.should.eql(3)
+            mockCacheSet.firstCall.args[2].ttl.should.eql(3)
 
-                res.headers['content-type'].should.eql('application/pdf')
-                res.headers['x-cache'].should.eql('HIT')
+            mockCacheGet.restore()
+            mockCacheSet.restore()
 
-                setTimeout(() => {
-                  client
-                  .get('/test.pdf')
-                  .expect(200)
-                  .end((err, res) => {
-                    if (err) return done(err)
-
-                    res.headers['content-type'].should.eql('application/pdf')
-                    res.headers['x-cache'].should.eql('MISS')
-
-                    config.set('caching.ttl', configBackup.caching.ttl)
-
-                    done()
-                  })
-                }, 6000)
-              })
-            }, 600)
+            done()
           })
-      }, 500)
-    }).timeout(10000)
+      }, 1500)
+    })
 
     it('when multi-domain is enabled, cached itemd should be kept for the period of time defined in each domain config', done => {
+      let mockCacheGet = sinon.spy(cache.Cache.prototype, 'getStream')
+      let mockCacheSet = sinon.spy(cache.Cache.prototype, 'cacheFile')
+
       config.set('multiDomain.enabled', true)
       config.loadDomainConfigs()
 
@@ -634,75 +620,20 @@ describe('Cache', function () {
               res.headers['content-type'].should.eql('application/pdf')
               res.headers['x-cache'].should.eql('MISS')
 
-              setTimeout(() => {
-                client
-                .get('/test.pdf')
-                .set('Host', 'localhost:80')
-                .expect(200)
-                .end((err, res) => {
-                  if (err) return done(err)
+              mockCacheGet.firstCall.args[1].ttl.should.eql(3)
+              mockCacheSet.firstCall.args[2].ttl.should.eql(3)
 
-                  res.headers['content-type'].should.eql('application/pdf')
-                  res.headers['x-cache'].should.eql('HIT')
+              mockCacheGet.secondCall.args[1].ttl.should.eql(5)
+              mockCacheSet.secondCall.args[2].ttl.should.eql(5)
 
-                  client
-                  .get('/test.pdf')
-                  .set('Host', 'testdomain.com:80')
-                  .expect(200)
-                  .end((err, res) => {
-                    if (err) return done(err)
+              mockCacheGet.restore()
+              mockCacheSet.restore()
 
-                    res.headers['content-type'].should.eql('application/pdf')
-                    res.headers['x-cache'].should.eql('HIT')
-
-                    setTimeout(() => {
-                      client
-                      .get('/test.pdf')
-                      .set('Host', 'localhost:80')
-                      .expect(200)
-                      .end((err, res) => {
-                        if (err) return done(err)
-
-                        res.headers['content-type'].should.eql('application/pdf')
-                        res.headers['x-cache'].should.eql('MISS')
-
-                        client
-                        .get('/test.pdf')
-                        .set('Host', 'testdomain.com:80')
-                        .expect(200)
-                        .end((err, res) => {
-                          if (err) return done(err)
-
-                          res.headers['content-type'].should.eql('application/pdf')
-                          res.headers['x-cache'].should.eql('HIT')
-
-                          setTimeout(() => {
-                            client
-                            .get('/test.pdf')
-                            .set('Host', 'testdomain.com:80')
-                            .expect(200)
-                            .end((err, res) => {
-                              if (err) return done(err)
-
-                              res.headers['content-type'].should.eql('application/pdf')
-                              res.headers['x-cache'].should.eql('MISS')
-
-                              config.set('caching.ttl', configBackup.caching.ttl)
-                              config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
-
-                              done()
-                            })
-                          }, 1500)
-                        })
-                      })
-                    }, 3500)
-                  })
-                })
-              }, 600)
+              done()
             })
           })
       }, 500)
-    }).timeout(10000)
+    })
   })
 })
 
