@@ -6,23 +6,15 @@ const Recipe = require(path.join(__dirname, '/../models/recipe'))
 const workspace = require(path.join(__dirname, '/../models/workspace'))
 
 module.exports.post = (req, res) => {
+  let obj = typeof req.body === 'object'
+    ? req.body
+    : JSON.parse(req.body)
+
   // Don't accept an empty POST
-  if (Object.keys(req.body).length === 0) {
+  if (Object.keys(obj).length === 0) {
     return help.sendBackJSON(400, {
       success: false,
       errors: ['Bad Request']
-    }, res)
-  }
-
-  let obj
-
-  // Valid JSON?
-  try {
-    obj = typeof req.body === 'object' ? req.body : JSON.parse(req.body)
-  } catch (err) {
-    return help.sendBackJSON(400, {
-      success: false,
-      errors: ['Invalid JSON Syntax']
     }, res)
   }
 
