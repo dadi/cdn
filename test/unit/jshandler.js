@@ -86,7 +86,7 @@ describe('JS handler', function () {
       const jsHandler = new JSHandler('.js', mockRequest('/js/0/foo.js'))
 
       return jsHandler.get().then(readStream).then(out => {
-        mockCacheGet.getCall(0).args[0].should.eql('/foo.js')
+        mockCacheGet.getCall(0).args[0].includes('/foo.js').should.eql(true)
 
         out.should.eql(mockJsFile)
       })
@@ -104,7 +104,7 @@ describe('JS handler', function () {
       const jsHandler = new JSHandler('.js', mockRequest('/js/1/foo.js'))
 
       return jsHandler.get().then(readStream).then(out => {
-        mockCacheGet.getCall(0).args[0].should.eql('/foo.js')
+        mockCacheGet.getCall(0).args[0].includes('/foo.js').should.eql(true)
 
         out.should.eql('const greeter=(a)=>`Hello, ${a}`;')
       })
@@ -123,7 +123,7 @@ describe('JS handler', function () {
     const jsHandler = new JSHandler('.js', mockRequest('/foo.js'))
 
     return jsHandler.get().then(readStream).then(out => {
-      mockCacheGet.getCall(0).args[0].should.eql('/foo.js')
+      mockCacheGet.getCall(0).args[0].includes('/foo.js').should.eql(true)
 
       out.should.eql(mockJsFile)
     })
@@ -141,7 +141,7 @@ describe('JS handler', function () {
     const jsHandler = new JSHandler('.js', mockRequest('/foo.js?compress=1'))
 
     return jsHandler.get().then(readStream).then(out => {
-      mockCacheGet.getCall(0).args[0].should.eql('/foo.js?compress=1')
+      mockCacheGet.getCall(0).args[0].includes('/foo.js?compress=1').should.eql(true)
 
       out.should.eql('const greeter=(a)=>`Hello, ${a}`;')
     })

@@ -29,7 +29,7 @@ const JSHandler = function (format, req, {
   )
 
   this.cache = Cache()
-  this.cacheKey = this.url.href
+  this.cacheKey = [req.__domain, this.url.href]
 
   this.req = req
 

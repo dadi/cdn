@@ -5,7 +5,7 @@ const path = require('path')
 const url = require('url')
 
 const Cache = require(path.join(__dirname, '/../cache'))
-// const config = require(path.join(__dirname, '/../../../config'))
+const config = require(path.join(__dirname, '/../../../config'))
 const StorageFactory = require(path.join(__dirname, '/../storage/factory'))
 
 /**
@@ -31,9 +31,15 @@ const CSSHandler = function (format, req, {
   )
 
   this.cache = Cache()
-  this.cacheKey = this.url.href + JSON.stringify({
-    compress: this.isCompressed
-  })
+  this.cacheKey = [
+    req.__domain,
+    this.url.href,
+    JSON.stringify({
+      compress: this.isCompressed
+    })
+  ]
+
+  this.req = req
 
   this.storageFactory = Object.create(StorageFactory)
   this.storageHandler = null
