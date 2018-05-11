@@ -150,7 +150,8 @@ describe('ImageHandler', function (done) {
     })
   })
 
-  it('should use HTTP Storage storage adapter when configured', () => {
+  it.skip('should use HTTP Storage storage adapter when configured', () => {
+    this.timeout(5000)
     var newTestConfig = JSON.parse(testConfigString)
     newTestConfig.caching.directory.enabled = false
     newTestConfig.caching.redis.enabled = false
