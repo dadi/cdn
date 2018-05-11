@@ -23,19 +23,17 @@ const USER_AGENTS = {
 describe('Cache', function () {
   this.timeout(10000)
 
+  before(() => {
+    config.set('caching.directory.enabled', true)
+    config.set('caching.redis.enabled', false)
+  })
+
+  after(() => {
+    config.set('caching.directory.enabled', configBackup.caching.directory.enabled)
+    config.set('caching.redis.enabled', configBackup.caching.redis.enabled)
+  })
+
   beforeEach(done => {
-    let newTestConfig = JSON.parse(fs.readFileSync(config.configPath()))
-
-    newTestConfig.caching.directory.enabled = true
-    newTestConfig.caching.redis.enabled = false
-
-    cache.reset()
-    help.clearCache()
-
-    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
-
-    config.loadFile(config.configPath())
-
     app.start(function () {
       help.getBearerToken((err, token) => {
         if (err) return done(err)
