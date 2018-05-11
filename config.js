@@ -462,16 +462,12 @@ const schema = {
       allowDomainOverride: true
     }
   },
-  gzip: {
-    doc: "If true, uses gzip compression and adds a 'Content-Encoding:gzip' header to the response",
-    format: Boolean,
-    default: true
-  },
   headers: {
     useGzipCompression: {
       doc: "If true, uses gzip compression and adds a 'Content-Encoding:gzip' header to the response.",
       format: Boolean,
-      default: true
+      default: true,
+      allowDomainOverride: true
     },
     cacheControl: {
       doc: 'A set of cache control headers based on specified mimetypes or paths',
@@ -484,7 +480,8 @@ const schema = {
           {'text/javascript': 'public, max-age=86400'},
           {'application/javascript': 'public, max-age=86400'}
         ]
-      }
+      },
+      allowDomainOverride: true
     }
   },
   feedback: {
