@@ -12,11 +12,18 @@ module.exports.clearCache = function (pathname, callback) {
 module.exports.sendBackJSON = function (successCode, results, res) {
   res.statusCode = successCode
 
-  let resBody = JSON.stringify(results)
+  let resBody
 
-  if (results instanceof Error && resBody === '{}') {
-    resBody = JSON.stringify({ message: results.message || 'unknown error' })
-    res.statusCode = results.statusCode || res.statusCode
+  if (results instanceof Error) {
+    res.statusCode = results.statusCode || successCode || 500
+
+    resBody = JSON.stringify({
+      message: results.message || 'unknown error',
+      statusCode: res.statusCode,
+      success: false
+    })
+  } else {
+    resBody = JSON.stringify(results)
   }
 
   res.setHeader('Content-Type', 'application/json')
