@@ -12,6 +12,7 @@ const app = require(__dirname + '/../../dadi/lib/')
 const imageHandler = require(__dirname + '/../../dadi/lib/handlers/image')
 
 let config = require(__dirname + '/../../config')
+let configBackup = config.get()
 let cdnUrl = `http://${config.get('server.host')}:${config.get('server.port')}`
 let testConfigString
 
@@ -91,7 +92,26 @@ describe('Recipes', function () {
           .post('/api/recipes')
           .send({})
           .set('Authorization', 'Bearer ' + token)
-          .expect(400, done)
+          .expect(400, (err, res) => {
+            res.body.errors[0].should.eql('Bad Request')
+
+            done()
+          })
+      })
+    })
+
+    it('should return error if recipe body is not valid JSON', function (done) {
+      help.getBearerToken((err, token) => {
+        request(cdnUrl)
+          .post('/api/recipes')
+          .set('Content-Type', 'application/json')
+          .send('{"recipe":"foobar"')
+          .set('Authorization', 'Bearer ' + token)
+          .expect(400, (err, res) => {
+            res.body.errors[0].should.eql('Invalid JSON Syntax')
+
+            done()
+          })
       })
     })
 
@@ -106,6 +126,7 @@ describe('Recipes', function () {
           res.body.success.should.eql(false)
           res.body.errors.should.be.Array
           res.body.errors[0].error.should.eql('Property "recipe" not found in recipe')
+
           done()
         })
       })
@@ -142,6 +163,52 @@ describe('Recipes', function () {
         })
       })
     })
+
+    it('should return error if recipe already exists', function (done) {
+      help.getBearerToken((err, token) => {
+        request(cdnUrl)
+        .post('/api/recipes')
+        .send(sample)
+        .set('Authorization', 'Bearer ' + token)
+        .end(function (err, res) {
+          res.statusCode.should.eql(201)
+
+          setTimeout(() => {
+            request(cdnUrl)
+            .post('/api/recipes')
+            .send(sample)
+            .set('Authorization', 'Bearer ' + token)
+            .end(function (err, res) {
+              res.statusCode.should.eql(400)
+              res.body.errors[0].should.eql(`Route ${sample.recipe} already exists`)
+
+              done()
+            })            
+          }, 300)
+        })
+      })
+    })
+
+    it('should return error if recipe save fails', function (done) {
+      let mockWriteJson = sinon.stub(fs, 'writeJson').rejects(
+        new Error()
+      )
+
+      help.getBearerToken((err, token) => {
+        request(cdnUrl)
+        .post('/api/recipes')
+        .send(sample)
+        .set('Authorization', 'Bearer ' + token)
+        .end(function (err, res) {
+          res.statusCode.should.eql(400)
+          res.body.errors[0].should.eql('Error when saving recipe')
+
+          mockWriteJson.restore()
+
+          done()
+        })
+      })
+    })    
 
     it('should set the correct recipe filepath', function (done) {
       help.getBearerToken((err, token) => {
@@ -300,6 +367,8 @@ describe('Recipes', function () {
         .get('/thumbxx/test.jpg')
         .reply(404)
 
+      config.set('notFound.images.enabled', false)
+
       help.getBearerToken((err, token) => {
         request(cdnUrl)
         .post('/api/recipes')
@@ -314,6 +383,9 @@ describe('Recipes', function () {
             .end(function (err, res) {
               res.statusCode.should.eql(404)
               res.body.statusCode.should.eql(404)
+
+              config.set('notFound.images.enabled', configBackup.notFound.images.enabled)
+
               done()
             })
           }, 500)
@@ -558,7 +630,6 @@ describe('Recipes', function () {
 })
 
 describe('Recipes (with multi-domain)', () => {
-  let configBackup = config.get()
   let sample = {
     recipe: 'test-domain-recipe',
     settings: {

@@ -6,7 +6,7 @@ const stream = require('stream')
 const logger = require('@dadi/logger')
 const Missing = require(path.join(__dirname, '/missing'))
 
-const S3Storage = function ({assetType = 'assets', url}) {
+const S3Storage = function ({assetType = 'assets', domain, url}) {
   this.providerType = 'Amazon S3'
 
   AWS.config.update({
@@ -29,6 +29,7 @@ const S3Storage = function ({assetType = 'assets', url}) {
   }
 
   this.bucketName = config.get(`${assetType}.s3.bucketName`)
+  this.domain = domain
   this.url = url
   this.urlParts = this.getUrlParts(url)
   this.s3 = new AWS.S3()
@@ -68,7 +69,9 @@ S3Storage.prototype.get = function () {
     },
     (error) => {
       if (error.statusCode === 404) {
-        return new Missing().get().then(stream => {
+        return new Missing().get({
+          domain: this.domain
+        }).then(stream => {
           this.notFound = true
           this.lastModified = new Date()
           return resolve(stream)

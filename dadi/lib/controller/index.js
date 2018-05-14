@@ -42,11 +42,11 @@ const Controller = function (router) {
     factory.create(req).then(handler => {
       return handler.get().then(stream => {
         this.addContentTypeHeader(res, handler)
-        this.addCacheControlHeader(res, handler)
+        this.addCacheControlHeader(res, handler, req.__domain)
         this.addLastModifiedHeader(res, handler)
 
         if (handler.storageHandler && handler.storageHandler.notFound) {
-          res.statusCode = config.get('notFound.statusCode') || 404
+          res.statusCode = config.get('notFound.statusCode', req.__domain) || 404
         }
 
         if (handler.storageHandler && handler.storageHandler.cleanUp) {
@@ -79,7 +79,10 @@ const Controller = function (router) {
 
         var concatStream = concat(sendBuffer)
 
-        if (config.get('headers.useGzipCompression') && handler.contentType() !== 'application/json') {
+        if (
+          config.get('headers.useGzipCompression', req.__domain) &&
+          handler.contentType() !== 'application/json'
+        ) {
           res.setHeader('Content-Encoding', 'gzip')
 
           var gzipStream = stream.pipe(zlib.createGzip())
@@ -171,13 +174,13 @@ Controller.prototype.addLastModifiedHeader = function (res, handler) {
   }
 }
 
-Controller.prototype.addCacheControlHeader = function (res, handler) {
-  var configHeaderSets = config.get('headers.cacheControl')
+Controller.prototype.addCacheControlHeader = function (res, handler, domain) {
+  let configHeaderSets = config.get('headers.cacheControl', domain)
 
   // If it matches, sets Cache-Control header using the file path
   configHeaderSets.paths.forEach(obj => {
-    var key = Object.keys(obj)[0]
-    var value = obj[key]
+    let key = Object.keys(obj)[0]
+    let value = obj[key]
 
     if (handler.storageHandler.getFullUrl().indexOf(key) > -1) {
       setHeader(value)
@@ -186,8 +189,8 @@ Controller.prototype.addCacheControlHeader = function (res, handler) {
 
   // If not already set, sets Cache-Control header using the file mimetype
   configHeaderSets.mimetypes.forEach(obj => {
-    var key = Object.keys(obj)[0]
-    var value = obj[key]
+    let key = Object.keys(obj)[0]
+    let value = obj[key]
 
     if (handler.getFilename && (mime.lookup(handler.getFilename()) === key)) {
       setHeader(value)

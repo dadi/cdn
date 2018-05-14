@@ -117,7 +117,21 @@ ImageHandler.prototype.contentType = function () {
     return 'application/json'
   }
 
-  switch (this.format.toLowerCase()) {
+  let outputFormat = this.format
+
+  // If the fallback image is to be delivered, the content type
+  // will need to match its format, not the format of the original
+  // file.
+  if (
+    this.storageHandler.notFound &&
+    config.get('notFound.images.enabled', this.req.__domain)
+  ) {
+    outputFormat = path.extname(
+      config.get('notFound.images.path')
+    ).slice(1)
+  }
+
+  switch (outputFormat.toLowerCase()) {
     case 'png':
       return 'image/png'
     case 'jpg':
@@ -251,11 +265,11 @@ ImageHandler.prototype.get = function () {
   if (
     this.isExternalUrl &&
     (
-      !config.get('images.remote.enabled') ||
-      !config.get('images.remote.allowFullURL')
+      !config.get('images.remote.enabled', this.req.__domain) ||
+      !config.get('images.remote.allowFullURL', this.req.__domain)
     )
   ) {
-    const err = {
+    let err = {
       statusCode: 403,
       message: 'Loading images from a full remote URL is not supported by this instance of DADI CDN'
     }
@@ -308,7 +322,9 @@ ImageHandler.prototype.get = function () {
   ]
   const isJSONResponse = this.options.format === 'json'
 
-  return this.cache.getStream(cacheKey).then(cachedStream => {
+  return this.cache.getStream(cacheKey, {
+    ttl: config.get('caching.ttl', this.req.__domain)
+  }).then(cachedStream => {
     if (cachedStream) {
       this.isCached = true
 
@@ -393,7 +409,10 @@ ImageHandler.prototype.get = function () {
         if (!this.isCached && !this.storageHandler.notFound) {
           this.cache.cacheFile(
             this.options.format === 'json' ? responseStream : this.cacheStream,
-            cacheKey
+            cacheKey,
+            {
+              ttl: config.get('caching.ttl', this.req.__domain)
+            }
           )
         }
 
@@ -1116,32 +1135,28 @@ function getColours (buffer, options) {
  * @returns {object}
  */
 function getImageOptionsFromLegacyURL (optionsArray) {
-  var legacyURLFormat = optionsArray.length < 17
+  let superLegacyFormatOffset = optionsArray.length === 13
+    ? 0
+    : 4
 
-  var gravity = optionsArray[optionsArray.length - 6].substring(0, 1).toUpperCase() + optionsArray[optionsArray.length - 6].substring(1)
-  var filter = optionsArray[optionsArray.length - 5].substring(0, 1).toUpperCase() + optionsArray[optionsArray.length - 5].substring(1)
-
-  var options = {
+  let options = {
     format: optionsArray[0],
     quality: optionsArray[1],
     trim: optionsArray[2],
     trimFuzz: optionsArray[3],
     width: optionsArray[4],
     height: optionsArray[5],
-
-    /* legacy client applications don't send the next 4 */
-    cropX: legacyURLFormat ? '0' : optionsArray[6],
-    cropY: legacyURLFormat ? '0' : optionsArray[7],
-    ratio: legacyURLFormat ? '0' : optionsArray[8],
-    devicePixelRatio: legacyURLFormat ? 1 : optionsArray[9],
-
-    resizeStyle: optionsArray[optionsArray.length - 7],
-    gravity: gravity,
-    filter: filter,
-    blur: optionsArray[optionsArray.length - 4],
-    strip: optionsArray[optionsArray.length - 3],
-    rotate: optionsArray[optionsArray.length - 2],
-    flip: optionsArray[optionsArray.length - 1]
+    cropX: (superLegacyFormatOffset === 0) ? '0' : optionsArray[6],
+    cropY: (superLegacyFormatOffset === 0) ? '0' : optionsArray[7],
+    ratio: (superLegacyFormatOffset === 0) ? '0' : optionsArray[8],
+    devicePixelRatio: (superLegacyFormatOffset === 0) ? '0' : optionsArray[9],
+    resizeStyle: optionsArray[6 + superLegacyFormatOffset],
+    gravity: optionsArray[7 + superLegacyFormatOffset],
+    filter: optionsArray[8 + superLegacyFormatOffset],
+    blur: optionsArray[9 + superLegacyFormatOffset],
+    strip: optionsArray[10 + superLegacyFormatOffset],
+    rotate: optionsArray[11 + superLegacyFormatOffset],
+    flip: optionsArray[12 + superLegacyFormatOffset]
   }
 
   return options
