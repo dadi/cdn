@@ -20,7 +20,7 @@ const Cache = function () {}
  * @param  {Boolean} wait     Whether to wait for the write operation
  * @return {Promise}
  */
-Cache.prototype.cacheFile = function (stream, key, wait) {
+Cache.prototype.cacheFile = function ({stream, key, wait, options}) {
   if (!this.isEnabled()) return Promise.resolve(stream)
 
   let encryptedKey = this.getNormalisedKey(key)
@@ -30,7 +30,7 @@ Cache.prototype.cacheFile = function (stream, key, wait) {
   stream.pipe(cacheStream)
   stream.pipe(responseStream)
 
-  let write = cache.set(encryptedKey, cacheStream)
+  let write = cache.set(encryptedKey, cacheStream, options)
 
   if (wait) {
     return write.then(() => responseStream)
@@ -95,8 +95,18 @@ Cache.prototype.getStream = function (key) {
 
   let encryptedKey = this.getNormalisedKey(key)
 
-  return cache.get(encryptedKey).catch(err => { // eslint-disable-line handle-callback-err
-    return null
+  return cache.get(encryptedKey).then(stream => {
+    return cache.getMetadata(encryptedKey).then(metadata => {
+      return {
+        cachedStream: stream,
+        metadata: metadata
+      }
+    })
+  }).catch(err => { // eslint-disable-line handle-callback-err
+    return {
+      cachedStream: null,
+      metadata: null
+    }
   })
 }
 

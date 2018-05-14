@@ -10,7 +10,7 @@
     "posttest": "./scripts/coverage.js"
   },
   "dependencies": {
-    "@dadi/cache": "^1.5.5",
+    "@dadi/cache": "~2.0.0",
     "@dadi/logger": "latest",
     "@dadi/status": "latest",
     "@dadi/wget": "^1.4.2",
@@ -58,6 +58,7 @@
     "smartcrop-sharp": "^2.0.2",
     "sqwish": "^0.2.2",
     "stream-length": "^1.0.2",
+    "stream-to-string": "^1.1.0",
     "streamifier": "^0.1.1",
     "ua-parser-js": "^0.7.10",
     "uglify-js": "^3.0.25",

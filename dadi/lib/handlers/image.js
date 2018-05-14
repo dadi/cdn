@@ -13,9 +13,10 @@ const mkdirp = require('mkdirp')
 const PassThrough = require('stream').PassThrough
 const path = require('path')
 const Readable = require('stream').Readable
-const smartcrop = require('smartcrop-sharp')
 const sha1 = require('sha1')
 const sharp = require('sharp')
+const smartcrop = require('smartcrop-sharp')
+const toString = require('stream-to-string')
 const urlParser = require('url')
 const Vibrant = require('node-vibrant')
 
@@ -308,16 +309,23 @@ ImageHandler.prototype.get = function () {
   ]
   const isJSONResponse = this.options.format === 'json'
 
-  return this.cache.getStream(cacheKey).then(cachedStream => {
+  return this.cache.getStream(cacheKey).then(({cachedStream, metadata}) => {
     if (cachedStream) {
       this.isCached = true
 
-      return cachedStream
-    }
+      if (metadata && metadata.statusCode && metadata.statusCode === 404) {
+        this.storageHandler.notFound = true
 
+        return toString(cachedStream).then(result => {
+          return Promise.reject(JSON.parse(result))
+        })
+      } else {
+        return cachedStream
+      }
+    }
     let stream = this.storageHandler.get()
 
-    return Promise.resolve(stream).then(stream => {
+    return stream.then(stream => {
       this.cacheStream = new PassThrough()
       this.convertStream = new PassThrough()
       this.exifStream = new PassThrough()
@@ -391,14 +399,30 @@ ImageHandler.prototype.get = function () {
       }).then(responseStream => {
         // Cache the file if it's not already cached and it's not a placeholder.
         if (!this.isCached && !this.storageHandler.notFound) {
-          this.cache.cacheFile(
-            this.options.format === 'json' ? responseStream : this.cacheStream,
-            cacheKey
-          )
+          this.cache.cacheFile({
+            stream: this.options.format === 'json' ? responseStream : this.cacheStream,
+            key: cacheKey
+          })
         }
 
         return responseStream
       })
+    }).catch(err => {
+      if (err.statusCode) {
+        let returnStream = new Readable()
+        returnStream.push(JSON.stringify(err))
+        returnStream.push(null)
+
+        this.cache.cacheFile({
+          stream: returnStream,
+          key: cacheKey,
+          options: {
+            metadata: err
+          }
+        })
+      }
+
+      return Promise.reject(err)
     })
   })
 }
