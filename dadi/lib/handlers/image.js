@@ -646,7 +646,7 @@ ImageHandler.prototype.getLastModified = function () {
 
 ImageHandler.prototype.parseUrl = function (url) {
   let parsedUrl = urlParser.parse(url, true)
-  let searchNodes = parsedUrl.search.split('?')
+  let searchNodes = (parsedUrl.search && parsedUrl.search.split('?')) || []
   let cdnUrl = `${parsedUrl.pathname}?${searchNodes.slice(-1)}`
   let assetUrl = parsedUrl.pathname
 
