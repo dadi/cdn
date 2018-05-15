@@ -1,13 +1,10 @@
 const fs = require('fs')
-const http = require('http')
-const httpProxy = require('http-proxy')
 const nock = require('nock')
 const path = require('path')
 const sha1 = require('sha1')
 const should = require('should')
 const sinon = require('sinon')
 const request = require('supertest')
-const url = require('url')
 
 const app = require(__dirname + '/../../dadi/lib/')
 const Cache = require(__dirname + '/../../dadi/lib/cache')
@@ -15,14 +12,12 @@ const config = require(__dirname + '/../../config')
 const help = require(__dirname + '/help')
 
 const cdnUrl = `http://${config.get('server.host')}:${config.get('server.port')}`
-const proxyPort = config.get('server.port') + 1
-const proxyUrl = `http://localhost:${proxyPort}`
-
 const images = {
   'localhost': 'test/images/test.jpg',
   'testdomain.com': 'test/images/dog-w600.jpeg'
 }
 
+let configBackup = config.get()
 let server1 = nock('http://one.somedomain.tech')
   .get('/test.jpg')
   .times(Infinity)
@@ -41,45 +36,24 @@ let server2 = nock('http://two.somedomain.tech')
     )
   })
 
-let proxy = httpProxy.createProxyServer({})
-
-proxy.on('proxyReq', (proxyReq, req, res, options) => {
-  let parsedUrl = url.parse(req.url, true)
-  let mockDomain = parsedUrl.query.mockdomain
-
-  parsedUrl.search = null
-  delete parsedUrl.query.mockdomain
-
-  proxyReq.path = url.format(parsedUrl)
-  proxyReq.setHeader('Host', mockDomain)
-})
-
-let proxyServer = http.createServer((req, res) => {
-  proxy.web(req, res, {
-    target: cdnUrl
-  })
-})
-
 describe('Multi-domain', function () {
   describe('if multi-domain is disabled', () => {
-    let configBackup = {
-      multiDomain: config.get('multiDomain')
-    }
-
     before(done => {
       config.set('multiDomain.enabled', false)
 
-      app.start(err => {
-        if (err) return done(err)
+      help.proxyStart().then(() => {
+        app.start(err => {
+          if (err) return done(err)
 
-        setTimeout(done, 500)
+          setTimeout(done, 500)
+        })  
       })
     })
 
     after(done => {
       config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
 
-      proxyServer.close(() => {
+      help.proxyStop().then(() => {
         app.stop(done)  
       })
     })
@@ -93,7 +67,7 @@ describe('Multi-domain', function () {
 
         return help.imagesEqual({
           base: images['localhost'],
-          test: `${cdnUrl}/sample-image-recipe/test.jpg?mockdomain=unknowndomain.com`
+          test: `${help.proxyUrl}/sample-image-recipe/test.jpg?mockdomain=unknowndomain.com`
         }).then(match => {
           match.should.eql(true)
         })
@@ -109,7 +83,7 @@ describe('Multi-domain', function () {
 
         return help.imagesEqual({
           base: images['localhost'],
-          test: `${cdnUrl}/test.jpg?mockdomain=unknowndomain.com`
+          test: `${help.proxyUrl}/test.jpg?mockdomain=unknowndomain.com`
         }).then(match => {
           match.should.eql(true)
         })
@@ -117,8 +91,6 @@ describe('Multi-domain', function () {
     }).timeout(5000)
 
     describe('Caching', () => {
-      let configBackup = config.get('caching')
-
       beforeEach(() => {
         help.clearCache()
 
@@ -130,8 +102,8 @@ describe('Multi-domain', function () {
         help.clearCache()
         Cache.reset()
 
-        config.set('caching.redis.enabled', configBackup.redis.enabled)
-        config.set('caching.directory.enabled', configBackup.directory.enabled)
+        config.set('caching.redis.enabled', configBackup.caching.redis.enabled)
+        config.set('caching.directory.enabled', configBackup.caching.directory.enabled)
       })
 
       it('should not include domain name as part of cache key', done => {
@@ -167,11 +139,6 @@ describe('Multi-domain', function () {
   })
 
   describe('if multi-domain is enabled', () => {
-    let configBackup = {
-      images: config.get('images'),
-      multiDomain: config.get('multiDomain')
-    }
-
     beforeEach(done => {
       config.set('images.s3.enabled', false)
 
@@ -187,8 +154,8 @@ describe('Multi-domain', function () {
       app.start(err => {
         if (err) return done(err)
 
-        proxyServer.listen(proxyPort, () => {
-          setTimeout(done, 500)  
+        help.proxyStart().then(() => {
+          setTimeout(done, 500)
         })
       })
     })
@@ -202,21 +169,21 @@ describe('Multi-domain', function () {
 
       config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
 
-      proxyServer.close(() => {
-        app.stop(done)  
+      help.proxyStop().then(() => {
+        app.stop(done)
       })
     })
 
     it('should retrieve a remote image from the path specified by a recipe at domain level', () => {
       return help.imagesEqual({
         base: images['localhost'],
-        test: `${proxyUrl}/test-recipe/test.jpg?mockdomain=localhost`
+        test: `${help.proxyUrl}/test-recipe/test.jpg?mockdomain=localhost`
       }).then(match => {
         match.should.eql(true)
 
         return help.imagesEqual({
           base: images['testdomain.com'],
-          test: `${proxyUrl}/test-recipe/test.jpg?mockdomain=testdomain.com`
+          test: `${help.proxyUrl}/test-recipe/test.jpg?mockdomain=testdomain.com`
         }).then(match => {
           match.should.eql(true)
         })
@@ -226,17 +193,42 @@ describe('Multi-domain', function () {
     it('should retrieve a remote image from the path specified by the domain config', () => {
       return help.imagesEqual({
         base: images['localhost'],
-        test: `${proxyUrl}/test.jpg?mockdomain=localhost`
+        test: `${help.proxyUrl}/test.jpg?mockdomain=localhost`
       }).then(match => {
         match.should.eql(true)
 
         return help.imagesEqual({
           base: images['testdomain.com'],
-          test: `${proxyUrl}/test.jpg?mockdomain=testdomain.com`
+          test: `${help.proxyUrl}/test.jpg?mockdomain=testdomain.com`
         }).then(match => {
           match.should.eql(true)
         })
       })
+    }).timeout(5000)
+
+    it('should use the allowFullURL setting defined at domain level to determine whether or not a request with a full remote URL will be served', done => {
+      config.set('images.remote.allowFullURL', true, 'localhost')
+      config.set('images.remote.allowFullURL', false, 'testdomain.com')
+
+      request(cdnUrl)
+        .get('/http://one.somedomain.tech/test.jpg')
+        .set('Host', 'localhost:80')
+        .expect(200)
+        .end((err, res) => {
+          res.headers['content-type'].should.eql('image/jpeg')
+
+          request(cdnUrl)
+            .get('/http://one.somedomain.tech/test.jpg')
+            .set('Host', 'testdomain.com:80')
+            .end((err, res) => {
+              res.statusCode.should.eql(403)
+              res.body.message.should.eql(
+                'Loading images from a full remote URL is not supported by this instance of DADI CDN'
+              )
+
+              done()
+            })
+        })
     }).timeout(5000)
 
     describe('when the target domain is not configured', () => {
@@ -296,8 +288,6 @@ describe('Multi-domain', function () {
     })
 
     describe('Caching', () => {
-      let configBackup = config.get('caching')
-
       beforeEach(() => {
         help.clearCache()
 
@@ -309,8 +299,8 @@ describe('Multi-domain', function () {
         help.clearCache()
         Cache.reset()
 
-        config.set('caching.redis.enabled', configBackup.redis.enabled)
-        config.set('caching.directory.enabled', configBackup.directory.enabled)
+        config.set('caching.redis.enabled', configBackup.caching.redis.enabled)
+        config.set('caching.directory.enabled', configBackup.caching.directory.enabled)
       })
 
       it('should include domain name as part of cache key', done => {

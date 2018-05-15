@@ -126,18 +126,21 @@ const schema = {
     statusCode: {
       doc: 'If set, overrides the status code in the case of a 404',
       format: Number,
-      default: 404
+      default: 404,
+      allowDomainOverride: true
     },
     images: {
       enabled: {
         doc: 'If true, returns a default image when request returns a 404',
         format: Boolean,
-        default: false
+        default: false,
+        allowDomainOverride: true
       },
       path: {
         doc: 'The path to the default image',
         format: String,
-        default: './images/missing.png'
+        default: './images/missing.png',
+        allowDomainOverride: true
       }
     }
   },
@@ -208,7 +211,8 @@ const schema = {
       allowFullURL: {
         doc: 'If true, images can be loaded from any remote URL',
         format: Boolean,
-        default: true
+        default: true,
+        allowDomainOverride: true
       }
     }
   },
@@ -287,7 +291,8 @@ const schema = {
     ttl: {
       doc: '',
       format: Number,
-      default: 3600
+      default: 3600,
+      allowDomainOverride: true
     },
     directory: {
       enabled: {
@@ -384,24 +389,28 @@ const schema = {
       doc: '',
       format: String,
       default: '1235488',
-      env: 'AUTH_TOKEN_ID'
+      env: 'AUTH_TOKEN_ID',
+      allowDomainOverride: true
     },
     secret: {
       doc: '',
       format: String,
       default: 'asd544see68e52',
-      env: 'AUTH_TOKEN_SECRET'
+      env: 'AUTH_TOKEN_SECRET',
+      allowDomainOverride: true
     },
     tokenTtl: {
       doc: '',
       format: Number,
       default: 1800,
-      env: 'AUTH_TOKEN_TTL'
+      env: 'AUTH_TOKEN_TTL',
+      allowDomainOverride: true
     },
     privateKey: {
       doc: 'Private key for signing JSON Web Tokens',
       format: String,
-      default: 'YOU-MUST-CHANGE-ME-NOW!'
+      default: 'YOU-MUST-CHANGE-ME-NOW!',
+      allowDomainOverride: true
     }
   },
   cloudfront: {
@@ -454,16 +463,12 @@ const schema = {
       allowDomainOverride: true
     }
   },
-  gzip: {
-    doc: "If true, uses gzip compression and adds a 'Content-Encoding:gzip' header to the response",
-    format: Boolean,
-    default: true
-  },
   headers: {
     useGzipCompression: {
       doc: "If true, uses gzip compression and adds a 'Content-Encoding:gzip' header to the response.",
       format: Boolean,
-      default: true
+      default: true,
+      allowDomainOverride: true
     },
     cacheControl: {
       doc: 'A set of cache control headers based on specified mimetypes or paths',
@@ -476,7 +481,8 @@ const schema = {
           {'text/javascript': 'public, max-age=86400'},
           {'application/javascript': 'public, max-age=86400'}
         ]
-      }
+      },
+      allowDomainOverride: true
     }
   },
   feedback: {
@@ -594,7 +600,8 @@ const schema = {
       doc: 'Whether to enable experimental support for on-demand JavaScript transpiling',
       format: Boolean,
       default: false,
-      env: 'JSTRANSPILING'
+      env: 'JSTRANSPILING',
+      allowDomainOverride: true
     }
   },
   multiDomain: {

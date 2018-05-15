@@ -1,3 +1,4 @@
+--bail
 --ui bdd
 --recursive
 --require=env-test

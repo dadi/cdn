@@ -17,10 +17,11 @@ const Cache = function () {}
  * Adds a stream to the cache
  * @param  {Stream}  stream   The stream to be cached
  * @param  {String}  key      The cache key
+ * @param  {Object}  options  Optional options object
  * @param  {Boolean} wait     Whether to wait for the write operation
  * @return {Promise}
  */
-Cache.prototype.cacheFile = function (stream, key, wait, options = {}) {
+Cache.prototype.cacheFile = function (stream, key, options, wait) {
   if (!this.isEnabled()) return Promise.resolve(stream)
 
   let encryptedKey = this.getNormalisedKey(key)
@@ -87,15 +88,16 @@ Cache.prototype.getNormalisedKey = function (key) {
  * Will return a Promise that is resolved with the Stream
  * if the cache key exists, or resolved with null otherwise.
  *
- * @param  {String} key The cache key
+ * @param  {String} key     The cache key
+ * @param  {Object} options Optional options object
  * @return {Promise}
  */
-Cache.prototype.getStream = function (key) {
+Cache.prototype.getStream = function (key, options) {
   if (!this.isEnabled()) return Promise.resolve(null)
 
   let encryptedKey = this.getNormalisedKey(key)
 
-  return cache.get(encryptedKey).catch(err => { // eslint-disable-line handle-callback-err
+  return cache.get(encryptedKey, options).catch(err => { // eslint-disable-line handle-callback-err
     return null
   })
 }

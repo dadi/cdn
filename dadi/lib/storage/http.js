@@ -31,6 +31,7 @@ const HTTPStorage = function ({assetType = 'assets', domain, url}) {
     this.baseUrl = remoteAddress
   }
 
+  this.domain = domain
   this.url = url
 }
 
@@ -104,7 +105,9 @@ HTTPStorage.prototype.get = function () {
       }
 
       if (err.statusCode === 404) {
-        return new Missing().get().then(stream => {
+        return new Missing().get({
+          domain: this.domain
+        }).then(stream => {
           this.notFound = true
           this.lastModified = new Date()
           return resolve(stream)
