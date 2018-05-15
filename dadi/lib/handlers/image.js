@@ -33,6 +33,12 @@ mkdirp(exifDirectory, (err, made) => {
   }
 })
 
+mkdirp(tmpDirectory, (err, made) => {
+  if (err) {
+    console.log(err)
+  }
+})
+
 const GRAVITY_TYPES = {
   NW: 'northwest',
   N: 'north',
