@@ -15,7 +15,7 @@ let app
 require('it-each')({ testPerIteration: true })
 
 describe('Visual Regression', function (done) {
-  this.timeout(10000)
+  this.timeout(15000)
 
   before(function (done) {
     delete require.cache[require.resolve(__dirname + '/../../dadi/lib/')]
@@ -43,43 +43,39 @@ describe('Visual Regression', function (done) {
       next()
     })
     .catch(err => {
+      console.log(err)
+
       next(err)
     })
   })
 })
 
 function requestTestImage (test) {
-  return new Promise((resolve, reject) => {
-    const testFilePath = path.join(test.recipeRoute || '', testManifest.path, test.image || '')
-    const outputPath = path.join(__dirname, '../', test.baselineFilename.replace('baseline', 'failed'))
-    const requestPath = test.url || ('/' + testFilePath + '?' + querystring.encode(test.params))
-    const baselineImagePath = path.join(__dirname, '../', test.baselineFilename)
+  let testFilePath = path.join(test.recipeRoute || '', testManifest.path, test.image || '')
+  let outputPath = path.join(__dirname, '../', test.baselineFilename.replace('baseline', 'failed'))
+  let requestPath = test.url || ('/' + testFilePath + '?' + querystring.encode(test.params))
+  let baselineImagePath = path.join(__dirname, '../', test.baselineFilename)
 
-    Jimp
-      .read(baselineImagePath)
-      .then(baselineImage => {
-        Jimp
-          .read(cdnUrl + requestPath)
-          .then(testImage => {
-            const diff = Jimp.diff(baselineImage, testImage, 0.1) // threshold ranges 0-1 (default: 0.1)
-            // console.log(diff) // the proportion of different pixels (0-1), where 0 means the images are pixel identical
+  return Jimp
+    .read(baselineImagePath)
+    .then(baselineImage => {
+      return Jimp
+        .read(cdnUrl + requestPath)
+        .then(testImage => {
+          let diff = Jimp.diff(baselineImage, testImage, 0.1) // threshold ranges 0-1 (default: 0.1)
+          let distance = Jimp.distance(baselineImage, testImage) // perceived distance
 
-            const distance = Jimp.distance(baselineImage, testImage) // perceived distance
+          if (distance < 0.15 || diff.percent < 0.15) {
+            return
+          }
 
-            if (distance < 0.15 || diff.percent < 0.15) {
-              return resolve()
-            } else {
-              let error = new Error(`Image mismatch percentage: ${diff.percent * 100}. Saving diff image to ${outputPath}.`)
+          let error = new Error(
+            `Image mismatch percentage: ${diff.percent * 100}. Saving diff image to ${outputPath}.`
+          )
 
-              diff.image.write(outputPath)
+          diff.image.write(outputPath)
 
-              return reject(error)
-            }
-          }).catch(err => {
-            console.error(err)
-          })
-      }).catch(err => {
-        console.error(err)
-      })
-  })
+          return Promise.reject(error)            
+        })
+    })
 }
