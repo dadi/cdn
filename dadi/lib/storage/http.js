@@ -67,11 +67,17 @@ HTTPStorage.prototype.get = function ({
         [301, 302, 307].includes(res.statusCode) &&
         typeof res.headers.location === 'string'
       ) {
+        let parsedRedirectUrl = url.parse(res.headers.location)
+
+        parsedRedirectUrl.host = parsedRedirectUrl.host || parsedUrl.host
+        parsedRedirectUrl.port = parsedRedirectUrl.port || parsedUrl.port
+        parsedRedirectUrl.protocol = parsedRedirectUrl.protocol || parsedUrl.protocol
+
         if (redirects < config.get('http.followRedirects', this.domain)) {
           return resolve(
             this.get({
               redirects: redirects + 1,
-              requestUrl: res.headers.location
+              requestUrl: url.format(parsedRedirectUrl)
             })
           )
         }

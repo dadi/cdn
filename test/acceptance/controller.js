@@ -1047,6 +1047,35 @@ describe('Controller', function () {
           })
       })
 
+      it('should retrieve image from remote URL and follow redirects with relative paths', done => {
+        let server = nock('https://one.somedomain.tech')
+          .get('/images/mock/logo.png')
+          .reply(301, undefined, {
+            Location: '/images/mock/logo2.png'
+          })
+          .get('/images/mock/logo2.png')
+          .reply(302, undefined, {
+            Location: '/images/mock/logo3.png'
+          })
+          .get('/images/mock/logo3.png')
+          .replyWithFile(200, 'test/images/visual/measure1.png', {
+            'Content-Type': 'image/png'
+          })
+
+        config.set('images.remote.path', 'https://one.somedomain.tech')
+
+        request(cdnUrl)
+          .get('/images/mock/logo.png')
+          .expect(200)
+          .end((err, res) => {
+            res.headers['content-type'].should.eql('image/png')
+
+            server.isDone().should.eql(true)
+
+            done()
+          })
+      })
+
       it('should return a 404 when retrieving a remote asset that includes more redirects than the ones allowed in `http.followRedirects`', done => {
         let server = nock('https://one.somedomain.tech')
           .get('/images/mock/logo.png')
