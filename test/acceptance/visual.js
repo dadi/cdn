@@ -43,6 +43,7 @@ describe('Visual Regression', function (done) {
       next()
     })
     .catch(err => {
+      console.log('----> ERR 1:', err)
       next(err)
     })
   })
@@ -76,9 +77,11 @@ function requestTestImage (test) {
               return reject(error)
             }
           }).catch(err => {
+            console.log('----> ERR 2:', err)
             console.error(err)
           })
       }).catch(err => {
+        console.log('----> ERR 3:', err)
         console.error(err)
       })
   })
