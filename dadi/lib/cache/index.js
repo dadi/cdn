@@ -20,7 +20,7 @@ const Cache = function () {}
  * @param  {Boolean} wait     Whether to wait for the write operation
  * @return {Promise}
  */
-Cache.prototype.cacheFile = function ({stream, key, wait, options}) {
+Cache.prototype.cacheFile = function (stream, key, wait, options = {}) {
   if (!this.isEnabled()) return Promise.resolve(stream)
 
   let encryptedKey = this.getNormalisedKey(key)
@@ -95,19 +95,24 @@ Cache.prototype.getStream = function (key) {
 
   let encryptedKey = this.getNormalisedKey(key)
 
-  return cache.get(encryptedKey).then(stream => {
-    return cache.getMetadata(encryptedKey).then(metadata => {
-      return {
-        cachedStream: stream,
-        metadata: metadata
-      }
-    })
-  }).catch(err => { // eslint-disable-line handle-callback-err
-    return {
-      cachedStream: null,
-      metadata: null
-    }
+  return cache.get(encryptedKey).catch(err => { // eslint-disable-line handle-callback-err
+    return null
   })
+}
+
+/**
+ * Gets metadata associated with the given cache key, if it exists.
+ *
+ * Will return a Promise that is resolved with the metadata
+ * if the cache key exists, or resolved with null otherwise.
+ *
+ * @param  {String} key The cache key
+ * @return {Promise}
+ */
+Cache.prototype.getMetadata = function (key) {
+  let encryptedKey = this.getNormalisedKey(key)
+
+  return cache.getMetadata(encryptedKey)
 }
 
 /**

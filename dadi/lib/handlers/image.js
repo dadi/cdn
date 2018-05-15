@@ -309,20 +309,23 @@ ImageHandler.prototype.get = function () {
   ]
   const isJSONResponse = this.options.format === 'json'
 
-  return this.cache.getStream(cacheKey).then(({cachedStream, metadata}) => {
+  return this.cache.getStream(cacheKey).then(cachedStream => {
     if (cachedStream) {
       this.isCached = true
 
-      if (metadata && metadata.statusCode && metadata.statusCode === 404) {
-        this.storageHandler.notFound = true
+      return this.cache.getMetadata(cacheKey).then(metadata => {
+        if (metadata && metadata.statusCode && metadata.statusCode === 404) {
+          this.storageHandler.notFound = true
 
-        return toString(cachedStream).then(result => {
-          return Promise.reject(JSON.parse(result))
-        })
-      } else {
-        return cachedStream
-      }
+          return toString(cachedStream).then(result => {
+            return Promise.reject(JSON.parse(result))
+          })
+        } else {
+          return cachedStream
+        }
+      })
     }
+
     let stream = this.storageHandler.get()
 
     return stream.then(stream => {
@@ -399,10 +402,10 @@ ImageHandler.prototype.get = function () {
       }).then(responseStream => {
         // Cache the file if it's not already cached and it's not a placeholder.
         if (!this.isCached && !this.storageHandler.notFound) {
-          this.cache.cacheFile({
-            stream: this.options.format === 'json' ? responseStream : this.cacheStream,
-            key: cacheKey
-          })
+          this.cache.cacheFile(
+            this.options.format === 'json' ? responseStream : this.cacheStream,
+            cacheKey
+          )
         }
 
         return responseStream
@@ -413,13 +416,13 @@ ImageHandler.prototype.get = function () {
         returnStream.push(JSON.stringify(err))
         returnStream.push(null)
 
-        this.cache.cacheFile({
-          stream: returnStream,
-          key: cacheKey,
-          options: {
+        this.cache.cacheFile(returnStream,
+          cacheKey,
+          false,
+          {
             metadata: err
           }
-        })
+        )
       }
 
       return Promise.reject(err)
