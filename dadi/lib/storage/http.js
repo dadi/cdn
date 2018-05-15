@@ -3,21 +3,11 @@
 const config = require('./../../../config')
 const http = require('http')
 const https = require('https')
-const mkdirp = require('mkdirp')
 const PassThrough = require('stream').PassThrough
 const path = require('path')
 const url = require('url')
 const urljoin = require('url-join')
-
 const Missing = require(path.join(__dirname, '/missing'))
-
-const tmpDirectory = path.resolve(path.join(__dirname, '/../../../workspace/_tmp'))
-
-mkdirp(tmpDirectory, (err, made) => {
-  if (err) {
-    console.log(err)
-  }
-})
 
 const HTTPStorage = function ({assetType = 'assets', domain, url}) {
   let isExternalURL = url.indexOf('http:') === 0 ||
@@ -44,11 +34,14 @@ HTTPStorage.prototype.getFullUrl = function () {
   }
 }
 
-HTTPStorage.prototype.get = function () {
+HTTPStorage.prototype.get = function ({
+  redirects = 0,
+  requestUrl = this.getFullUrl()
+} = {}) {
   let outputStream = PassThrough()
 
   return new Promise((resolve, reject) => {
-    let parsedUrl = url.parse(this.getFullUrl())
+    let parsedUrl = url.parse(requestUrl)
     let requestFn = parsedUrl.protocol === 'https:'
       ? https
       : http
@@ -68,9 +61,29 @@ HTTPStorage.prototype.get = function () {
         return resolve(outputStream)
       }
 
+      let statusCode = res.statusCode
+
+      if (
+        [301, 302, 307].includes(res.statusCode) &&
+        typeof res.headers.location === 'string'
+      ) {
+        if (redirects < config.get('http.followRedirects', this.domain)) {
+          return resolve(
+            this.get({
+              redirects: redirects + 1,
+              requestUrl: res.headers.location
+            })
+          )
+        }
+
+        // We've hit the maximum number of redirects allowed, so we'll
+        // treat this as a 404.
+        statusCode = 404
+      }
+
       let httpError
 
-      switch (res.statusCode) {
+      switch (statusCode) {
         case 404:
           httpError = new Error(`Not Found: ${this.getFullUrl()}`)
 
@@ -82,14 +95,14 @@ HTTPStorage.prototype.get = function () {
           break
 
         default:
-          httpError = new Error(`Remote server responded with error code ${res.statusCode} for URL: ${this.getFullUrl()}`)
+          httpError = new Error(`Remote server responded with error code ${statusCode} for URL: ${this.getFullUrl()}`)
 
           break
       }
 
-      httpError.statusCode = res.statusCode
+      httpError.statusCode = statusCode
 
-      if (res.statusCode === 404) {
+      if (statusCode === 404) {
         new Missing().get({
           domain: this.domain
         }).then(stream => {

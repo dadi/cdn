@@ -615,6 +615,14 @@ const schema = {
       format: Boolean,
       default: false
     }
+  },
+  http: {
+    followRedirects: {
+      doc: 'The number of redirects to follow when retrieving assets via HTTP requests',
+      format: Number,
+      default: 10,
+      allowDomainOverride: true
+    }
   }
 }
 
