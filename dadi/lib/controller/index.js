@@ -93,6 +93,9 @@ const Controller = function (router) {
         }
       }).catch(err => {
         logger.error({err: err})
+
+        res.setHeader('X-Cache', handler.isCached ? 'HIT' : 'MISS')
+
         help.sendBackJSON(err.statusCode || 400, err, res)
       })
     }).catch(err => {

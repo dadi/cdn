@@ -294,6 +294,12 @@ const schema = {
       default: 3600,
       allowDomainOverride: true
     },
+    cache404: {
+      doc: 'Whether to cache responses for requests that returned 404',
+      format: Boolean,
+      default: true,
+      allowDomainOverride: true
+    },
     directory: {
       enabled: {
         doc: 'If true, cache files will be saved to the filesystem',

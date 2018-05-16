@@ -390,20 +390,34 @@ ImageHandler.prototype.get = function () {
             }
           }
 
-          this.cache.cacheFile(
-            this.options.format === 'json' ? responseStream : this.cacheStream,
-            cacheKey,
-            {
-              metadata,
-              ttl: config.get('caching.ttl', this.req.__domain)
-            }
-          )
+          // The only situation where we don't want to write the stream to
+          // cache is when the response is a 404 and the config specifies
+          // that 404s should not be cached.
+          if (
+            !this.storageHandler.notFound ||
+            config.get('caching.cache404', this.req.__domain)
+          ) {
+            this.cache.cacheFile(
+              this.options.format === 'json' ? responseStream : this.cacheStream,
+              cacheKey,
+              {
+                metadata,
+                ttl: config.get('caching.ttl', this.req.__domain)
+              }
+            )
+          }
         }
 
         return responseStream
       })
     }).catch(err => {
-      if ((err.statusCode === 404) && !this.isCached) {
+      // If the response is a 404 and we want to cache 404s, we
+      // write the error to cache.
+      if (
+        (err.statusCode === 404) &&
+        config.get('caching.cache404', this.req.__domain) &&
+        !this.isCached
+      ) {
         let errorStream = new Readable()
 
         errorStream.push(JSON.stringify(err))

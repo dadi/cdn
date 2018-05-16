@@ -102,6 +102,144 @@ describe('Cache', function () {
       })
     })
 
+    describe('caching 404 responses', () => {
+      it('should not cache a 404 if caching.cache404 is false and the image fallback is disabled', done => {
+        config.set('caching.cache404', false)
+        config.set('notFound.images.enabled', false)
+
+        client
+        .get('/not-a-valid-image.jpg')
+        .expect(404)
+        .end((err, res) => {
+          if (err) return done(err)
+
+          res.headers['content-type'].should.eql('application/json')
+          res.headers['x-cache'].should.eql('MISS')
+
+          setTimeout(() => {
+            client
+            .get('/not-a-valid-image.jpg')
+            .expect(404)
+            .end((err, res) => {
+              if (err) return done(err)
+
+              res.headers['content-type'].should.eql('application/json')
+              res.headers['x-cache'].should.eql('MISS')
+
+              config.set('caching.cache404', configBackup.caching.cache404)
+              config.set('notFound.images.enabled', configBackup.notFound.images.enabled)
+
+              done()
+            })
+          }, 500)
+        })
+      })
+
+      it('should not cache a 404 if caching.cache404 is false and the image fallback is enabled', done => {
+        config.set('caching.cache404', false)
+        config.set('notFound.images.enabled', true)
+        config.set('notFound.images.path', 'test/images/missing.png')
+
+        client
+        .get('/not-a-valid-image.jpg')
+        .expect(404)
+        .end((err, res) => {
+          if (err) return done(err)
+
+          res.headers['content-type'].should.eql('image/png')
+          res.headers['x-cache'].should.eql('MISS')
+
+          setTimeout(() => {
+            client
+            .get('/not-a-valid-image.jpg')
+            .expect(404)
+            .end((err, res) => {
+              if (err) return done(err)
+
+              res.headers['content-type'].should.eql('image/png')
+              res.headers['x-cache'].should.eql('MISS')
+
+              config.set('caching.cache404', configBackup.caching.cache404)
+              config.set('notFound.images.enabled', configBackup.notFound.images.enabled)
+              config.set('notFound.images.path', configBackup.notFound.images.path)
+
+              done()
+            })
+          }, 500)
+        })
+      })
+
+      it('should cache a 404 if caching.cache404 is true and the image fallback is disabled', done => {
+        config.set('caching.cache404', true)
+        config.set('notFound.images.enabled', false)
+
+        client
+        .get('/not-a-valid-image.jpg')
+        .expect(404)
+        .end((err, res) => {
+          if (err) return done(err)
+
+          res.headers['content-type'].should.eql('application/json')
+          res.headers['x-cache'].should.eql('MISS')
+
+          setTimeout(() => {
+            client
+            .get('/not-a-valid-image.jpg')
+            .expect(404)
+            .end((err, res) => {
+              if (err) return done(err)
+
+              res.headers['content-type'].should.eql('application/json')
+              res.headers['x-cache'].should.eql('HIT')
+
+              config.set('caching.cache404', configBackup.caching.cache404)
+              config.set('notFound.images.enabled', configBackup.notFound.images.enabled)
+
+              done()
+            })
+          }, 500)
+        })
+      })
+
+      it('should cache a 404 if caching.cache404 is true and the image fallback is enabled', done => {
+        config.set('caching.cache404', true)
+        config.set('notFound.images.enabled', true)
+        config.set('notFound.images.path', 'test/images/missing.png')
+
+        client
+        .get('/not-a-valid-image.jpg')
+        .expect(404)
+        .end((err, res) => {
+          if (err) return done(err)
+
+          res.headers['content-type'].should.eql('image/png')
+          res.headers['x-cache'].should.eql('MISS')
+
+          // Setting a new fallback image to ensure that the content-type returned matches the
+          // content-type of the image that was cached, not the one that is currently set.
+          config.set('notFound.images.path', 'test/images/original.jpg')
+
+          setTimeout(() => {
+            client
+            .get('/not-a-valid-image.jpg')
+            .expect(404)
+            .end((err, res) => {
+              if (err) return done(err)
+
+              res.headers['content-type'].should.eql('image/png')
+              res.headers['x-cache'].should.eql('HIT')
+
+              config.set('caching.cache404', configBackup.caching.cache404)
+              config.set('notFound.images.enabled', configBackup.notFound.images.enabled)
+              config.set('notFound.images.path', configBackup.notFound.images.path)
+
+              done()
+            })
+          }, 500)
+        })
+      })
+    })
+
     describe('when multi-domain is enabled', () => {
       before(() => {
         config.set('multiDomain.enabled', true)
