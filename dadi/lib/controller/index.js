@@ -53,7 +53,7 @@ const Controller = function (router) {
           handler.storageHandler.cleanUp()
         }
 
-        var contentLength = 0
+        let contentLength = 0
 
         // receive the concatenated buffer and send the response
         // unless the etag hasn't changed, then send 304 and end the response
@@ -61,7 +61,7 @@ const Controller = function (router) {
           res.setHeader('Content-Length', contentLength)
           res.setHeader('ETag', etag(buffer))
 
-          if (req.headers['if-none-match'] === etag(buffer) && handler.contentType() !== 'application/json') {
+          if (req.headers['if-none-match'] === etag(buffer) && handler.getContentType() !== 'application/json') {
             res.statusCode = 304
             res.end()
           } else {
@@ -77,25 +77,28 @@ const Controller = function (router) {
           contentLength = length
         }
 
-        var concatStream = concat(sendBuffer)
+        let concatStream = concat(sendBuffer)
 
         if (
           config.get('headers.useGzipCompression', req.__domain) &&
-          handler.contentType() !== 'application/json'
+          handler.getContentType() !== 'application/json'
         ) {
           res.setHeader('Content-Encoding', 'gzip')
 
-          var gzipStream = stream.pipe(zlib.createGzip())
+          let gzipStream = stream.pipe(zlib.createGzip())
           gzipStream = gzipStream.pipe(lengthStream(lengthListener))
           gzipStream.pipe(concatStream)
         } else {
           stream.pipe(lengthStream(lengthListener)).pipe(concatStream)
         }
-      }).catch(function (err) {
+      }).catch(err => {
         logger.error({err: err})
+
+        res.setHeader('X-Cache', handler.isCached ? 'HIT' : 'MISS')
+
         help.sendBackJSON(err.statusCode || 400, err, res)
       })
-    }).catch(function (err) {
+    }).catch(err => {
       help.sendBackJSON(err.statusCode || 400, err, res)
     })
   })
@@ -160,8 +163,8 @@ const Controller = function (router) {
 }
 
 Controller.prototype.addContentTypeHeader = function (res, handler) {
-  if (handler.contentType()) {
-    res.setHeader('Content-Type', handler.contentType())
+  if (handler.getContentType()) {
+    res.setHeader('Content-Type', handler.getContentType())
   }
 }
 

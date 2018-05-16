@@ -40,15 +40,6 @@ const JSHandler = function (format, req, {
 }
 
 /**
- * Returns the content type for the files handled.
- *
- * @return {String} The content type
- */
-JSHandler.prototype.contentType = function () {
-  return 'application/javascript'
-}
-
-/**
  * Retrieves a file for a given URL path.
  *
  * @return {Promise} A stream with the file
@@ -163,6 +154,15 @@ JSHandler.prototype.getBabelPluginsHash = function () {
   const hash = farmhash.fingerprint64(hashSource)
 
   return hash
+}
+
+/**
+ * Returns the content type for the files handled.
+ *
+ * @return {String} The content type
+ */
+JSHandler.prototype.getContentType = function () {
+  return 'application/javascript'
 }
 
 /**

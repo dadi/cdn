@@ -218,7 +218,6 @@ Server.prototype.start = function (done) {
     statusRouter.use('/api/status', this.status)
 
     let statusApp = http.createServer(function (req, res) {
-      res.setHeader('Server', config.get('server.name'))
       res.setHeader('Access-Control-Allow-Origin', '*')
       res.setHeader('Cache-Control', 'no-cache')
 
@@ -277,7 +276,6 @@ Server.prototype.start = function (done) {
       req.__domain = domain
     }
 
-    res.setHeader('Server', config.get('server.name'))
     res.setHeader('Access-Control-Allow-Origin', '*')
 
     if (req.url === '/api/status') {

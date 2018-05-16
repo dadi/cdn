@@ -103,6 +103,21 @@ Cache.prototype.getStream = function (key, options) {
 }
 
 /**
+ * Gets metadata associated with the given cache key, if it exists.
+ *
+ * Will return a Promise that is resolved with the metadata
+ * if the cache key exists, or resolved with null otherwise.
+ *
+ * @param  {String} key The cache key
+ * @return {Promise}
+ */
+Cache.prototype.getMetadata = function (key) {
+  let encryptedKey = this.getNormalisedKey(key)
+
+  return cache.getMetadata(encryptedKey)
+}
+
+/**
  * Checks whether caching is enabled.
  *
  * @return {Boolean}

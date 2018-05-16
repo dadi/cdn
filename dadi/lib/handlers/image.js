@@ -13,9 +13,9 @@ const mkdirp = require('mkdirp')
 const PassThrough = require('stream').PassThrough
 const path = require('path')
 const Readable = require('stream').Readable
-const smartcrop = require('smartcrop-sharp')
 const sha1 = require('sha1')
 const sharp = require('sharp')
+const smartcrop = require('smartcrop-sharp')
 const urlParser = require('url')
 const Vibrant = require('node-vibrant')
 
@@ -116,40 +116,6 @@ const ImageHandler = function (format, req, {
 
     return activePlugins
   }, [])
-}
-
-ImageHandler.prototype.contentType = function () {
-  if (this.options.format === 'json') {
-    return 'application/json'
-  }
-
-  let outputFormat = this.format
-
-  // If the fallback image is to be delivered, the content type
-  // will need to match its format, not the format of the original
-  // file.
-  if (
-    this.storageHandler.notFound &&
-    config.get('notFound.images.enabled', this.req.__domain)
-  ) {
-    outputFormat = path.extname(
-      config.get('notFound.images.path')
-    ).slice(1)
-  }
-
-  switch (outputFormat.toLowerCase()) {
-    case 'png':
-      return 'image/png'
-    case 'jpg':
-    case 'jpeg':
-      return 'image/jpeg'
-    case 'gif':
-      return 'image/gif'
-    case 'webp':
-      return 'image/webp'
-    default:
-      return 'image/jpeg'
-  }
 }
 
 /**
@@ -334,12 +300,19 @@ ImageHandler.prototype.get = function () {
     if (cachedStream) {
       this.isCached = true
 
-      return cachedStream
+      return this.cache.getMetadata(cacheKey).then(metadata => {
+        if (metadata && metadata.errorCode) {
+          this.storageHandler.notFound = true
+          this.contentType = metadata.contentType || 'application/json'
+        }
+
+        return cachedStream
+      })
     }
 
     let stream = this.storageHandler.get()
 
-    return Promise.resolve(stream).then(stream => {
+    return stream.then(stream => {
       this.cacheStream = new PassThrough()
       this.convertStream = new PassThrough()
       this.exifStream = new PassThrough()
@@ -399,7 +372,8 @@ ImageHandler.prototype.get = function () {
               // Adding data from `convert()` to response
               Object.assign(data, result.data)
 
-              const returnStream = new Readable()
+              let returnStream = new Readable()
+
               returnStream.push(JSON.stringify(data))
               returnStream.push(null)
 
@@ -411,19 +385,62 @@ ImageHandler.prototype.get = function () {
           }
         })
       }).then(responseStream => {
-        // Cache the file if it's not already cached and it's not a placeholder.
-        if (!this.isCached && !this.storageHandler.notFound) {
-          this.cache.cacheFile(
-            this.options.format === 'json' ? responseStream : this.cacheStream,
-            cacheKey,
-            {
-              ttl: config.get('caching.ttl', this.req.__domain)
+        // Cache the file if it's not already cached.
+        if (!this.isCached) {
+          let metadata
+
+          if (this.storageHandler.notFound) {
+            metadata = {
+              contentType: this.getContentType(),
+              errorCode: 404
             }
-          )
+          }
+
+          // The only situation where we don't want to write the stream to
+          // cache is when the response is a 404 and the config specifies
+          // that 404s should not be cached.
+          if (
+            !this.storageHandler.notFound ||
+            config.get('caching.cache404', this.req.__domain)
+          ) {
+            this.cache.cacheFile(
+              this.options.format === 'json' ? responseStream : this.cacheStream,
+              cacheKey,
+              {
+                metadata,
+                ttl: config.get('caching.ttl', this.req.__domain)
+              }
+            )
+          }
         }
 
         return responseStream
       })
+    }).catch(err => {
+      // If the response is a 404 and we want to cache 404s, we
+      // write the error to cache.
+      if (
+        (err.statusCode === 404) &&
+        config.get('caching.cache404', this.req.__domain) &&
+        !this.isCached
+      ) {
+        let errorStream = new Readable()
+
+        errorStream.push(JSON.stringify(err))
+        errorStream.push(null)
+
+        this.cache.cacheFile(
+          errorStream,
+          cacheKey,
+          {
+            metadata: {
+              errorCode: err.statusCode
+            }
+          }
+        )
+      }
+
+      return Promise.reject(err)
     })
   })
 }
@@ -442,6 +459,44 @@ ImageHandler.prototype.getAvailablePlugins = function (files) {
 
     return plugins
   }, [])
+}
+
+ImageHandler.prototype.getContentType = function () {
+  if (this.contentType) {
+    return this.contentType
+  }
+
+  if (this.options.format === 'json') {
+    return 'application/json'
+  }
+
+  let outputFormat = this.format
+
+  // If the fallback image is to be delivered, the content type
+  // will need to match its format, not the format of the original
+  // file.
+  if (
+    this.storageHandler.notFound &&
+    config.get('notFound.images.enabled', this.req.__domain)
+  ) {
+    outputFormat = path.extname(
+      config.get('notFound.images.path')
+    ).slice(1)
+  }
+
+  switch (outputFormat.toLowerCase()) {
+    case 'png':
+      return 'image/png'
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg'
+    case 'gif':
+      return 'image/gif'
+    case 'webp':
+      return 'image/webp'
+    default:
+      return 'image/jpeg'
+  }
 }
 
 /**

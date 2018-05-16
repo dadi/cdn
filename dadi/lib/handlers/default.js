@@ -32,15 +32,6 @@ const DefaultHandler = function (format, req, {
 }
 
 /**
- * Returns the content type for the files handled.
- *
- * @return {String} The content type
- */
-DefaultHandler.prototype.contentType = function () {
-  return mime.lookup(this.url.pathname)
-}
-
-/**
  * Retrieves a file for a given URL path.
  *
  * @return {Promise} A stream with the file
@@ -67,6 +58,15 @@ DefaultHandler.prototype.get = function () {
       })
     })
   })
+}
+
+/**
+ * Returns the content type for the files handled.
+ *
+ * @return {String} The content type
+ */
+DefaultHandler.prototype.getContentType = function () {
+  return mime.lookup(this.url.pathname)
 }
 
 /**
