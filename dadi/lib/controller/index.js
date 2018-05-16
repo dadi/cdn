@@ -61,7 +61,7 @@ const Controller = function (router) {
           res.setHeader('Content-Length', contentLength)
           res.setHeader('ETag', etag(buffer))
 
-          if (req.headers['if-none-match'] === etag(buffer) && handler.contentType() !== 'application/json') {
+          if (req.headers['if-none-match'] === etag(buffer) && handler.getContentType() !== 'application/json') {
             res.statusCode = 304
             res.end()
           } else {
@@ -81,7 +81,7 @@ const Controller = function (router) {
 
         if (
           config.get('headers.useGzipCompression', req.__domain) &&
-          handler.contentType() !== 'application/json'
+          handler.getContentType() !== 'application/json'
         ) {
           res.setHeader('Content-Encoding', 'gzip')
 
@@ -160,8 +160,8 @@ const Controller = function (router) {
 }
 
 Controller.prototype.addContentTypeHeader = function (res, handler) {
-  if (handler.contentType()) {
-    res.setHeader('Content-Type', handler.contentType())
+  if (handler.getContentType()) {
+    res.setHeader('Content-Type', handler.getContentType())
   }
 }
 
