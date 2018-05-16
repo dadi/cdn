@@ -16,7 +16,7 @@ const RecipeController = require(path.join(__dirname, '/recipe'))
 const RouteController = require(path.join(__dirname, '/route'))
 const workspace = require(path.join(__dirname, '/../models/workspace'))
 
-logger.init(config.get('logging'), config.get('aws'), config.get('env'))
+logger.init(config.get('logging'), config.get('logging.aws'), config.get('env'))
 
 const Controller = function (router) {
   router.use(logger.requestLogger)
