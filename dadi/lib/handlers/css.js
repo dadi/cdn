@@ -46,15 +46,6 @@ const CSSHandler = function (format, req, {
 }
 
 /**
- * Returns the content type for the files handled.
- *
- * @return {String} The content type
- */
-CSSHandler.prototype.contentType = function () {
-  return 'text/css'
-}
-
-/**
  * Retrieves a file for a given URL path.
  *
  * @return {Promise} A stream with the file
@@ -83,6 +74,15 @@ CSSHandler.prototype.get = function () {
       })
     })
   })
+}
+
+/**
+ * Returns the content type for the files handled.
+ *
+ * @return {String} The content type
+ */
+CSSHandler.prototype.getContentType = function () {
+  return 'text/css'
 }
 
 /**

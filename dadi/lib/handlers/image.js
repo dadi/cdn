@@ -113,40 +113,6 @@ const ImageHandler = function (format, req, {
   }, [])
 }
 
-ImageHandler.prototype.contentType = function () {
-  if (this.options.format === 'json') {
-    return 'application/json'
-  }
-
-  let outputFormat = this.format
-
-  // If the fallback image is to be delivered, the content type
-  // will need to match its format, not the format of the original
-  // file.
-  if (
-    this.storageHandler.notFound &&
-    config.get('notFound.images.enabled', this.req.__domain)
-  ) {
-    outputFormat = path.extname(
-      config.get('notFound.images.path')
-    ).slice(1)
-  }
-
-  switch (outputFormat.toLowerCase()) {
-    case 'png':
-      return 'image/png'
-    case 'jpg':
-    case 'jpeg':
-      return 'image/jpeg'
-    case 'gif':
-      return 'image/gif'
-    case 'webp':
-      return 'image/webp'
-    default:
-      return 'image/jpeg'
-  }
-}
-
 /**
  * Convert image according to options specified
  * @param {stream} stream - read stream from S3, local disk or url
@@ -463,6 +429,44 @@ ImageHandler.prototype.getAvailablePlugins = function (files) {
 
     return plugins
   }, [])
+}
+
+ImageHandler.prototype.getContentType = function () {
+  if (this.contentType) {
+    return this.contentType
+  }
+
+  if (this.options.format === 'json') {
+    return 'application/json'
+  }
+
+  let outputFormat = this.format
+
+  // If the fallback image is to be delivered, the content type
+  // will need to match its format, not the format of the original
+  // file.
+  if (
+    this.storageHandler.notFound &&
+    config.get('notFound.images.enabled', this.req.__domain)
+  ) {
+    outputFormat = path.extname(
+      config.get('notFound.images.path')
+    ).slice(1)
+  }
+
+  switch (outputFormat.toLowerCase()) {
+    case 'png':
+      return 'image/png'
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg'
+    case 'gif':
+      return 'image/gif'
+    case 'webp':
+      return 'image/webp'
+    default:
+      return 'image/jpeg'
+  }
 }
 
 /**
