@@ -78,7 +78,7 @@ ImageLayoutProcessor.prototype.get = function () {
     this.format = this.fileExt
 
     // Set content type
-    this.setHeader('content-type', this.contentType())
+    this.setHeader('content-type', this.getContentType())
 
     const assetsQueue = this.inputs.map(input => {
       if (input.fileName) {
