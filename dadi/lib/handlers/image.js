@@ -403,7 +403,7 @@ ImageHandler.prototype.get = function () {
         return responseStream
       })
     }).catch(err => {
-      if (err.statusCode && !this.isCached) {
+      if ((err.statusCode === 404) && !this.isCached) {
         let errorStream = new Readable()
 
         errorStream.push(JSON.stringify(err))
