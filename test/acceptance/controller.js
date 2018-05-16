@@ -1018,6 +1018,161 @@ describe('Controller', function () {
         })
       })
 
+      it('should retrieve image from remote URL and follow redirects', done => {
+        let server = nock('https://one.somedomain.tech')
+          .get('/images/mock/logo.png')
+          .reply(301, undefined, {
+            Location: 'https://one.somedomain.tech/images/mock/logo2.png'
+          })
+          .get('/images/mock/logo2.png')
+          .reply(302, undefined, {
+            Location: 'https://one.somedomain.tech/images/mock/logo3.png'
+          })
+          .get('/images/mock/logo3.png')
+          .replyWithFile(200, 'test/images/visual/measure1.png', {
+            'Content-Type': 'image/png'
+          })
+
+        config.set('images.remote.path', 'https://one.somedomain.tech')
+
+        request(cdnUrl)
+          .get('/images/mock/logo.png')
+          .expect(200)
+          .end((err, res) => {
+            res.headers['content-type'].should.eql('image/png')
+
+            server.isDone().should.eql(true)
+
+            done()
+          })
+      })
+
+      it('should retrieve image from remote URL and follow redirects with relative paths', done => {
+        let server = nock('https://one.somedomain.tech')
+          .get('/images/mock/logo.png')
+          .reply(301, undefined, {
+            Location: '/images/mock/logo2.png'
+          })
+          .get('/images/mock/logo2.png')
+          .reply(302, undefined, {
+            Location: '/images/mock/logo3.png'
+          })
+          .get('/images/mock/logo3.png')
+          .replyWithFile(200, 'test/images/visual/measure1.png', {
+            'Content-Type': 'image/png'
+          })
+
+        config.set('images.remote.path', 'https://one.somedomain.tech')
+
+        request(cdnUrl)
+          .get('/images/mock/logo.png')
+          .expect(200)
+          .end((err, res) => {
+            res.headers['content-type'].should.eql('image/png')
+
+            server.isDone().should.eql(true)
+
+            done()
+          })
+      })
+
+      it('should return a 404 when retrieving a remote asset that includes more redirects than the ones allowed in `http.followRedirects`', done => {
+        let server = nock('https://one.somedomain.tech')
+          .get('/images/mock/logo.png')
+          .reply(301, undefined, {
+            Location: 'https://one.somedomain.tech/images/mock/logo2.png'
+          })
+          .get('/images/mock/logo2.png')
+          .reply(302, undefined, {
+            Location: 'https://one.somedomain.tech/images/mock/logo3.png'
+          })
+          .get('/images/mock/logo3.png')
+          .replyWithFile(200, 'test/images/visual/measure1.png', {
+            'Content-Type': 'image/png'
+          })
+
+        config.set('images.remote.path', 'https://one.somedomain.tech')
+        config.set('http.followRedirects', 1)
+
+        request(cdnUrl)
+          .get('/images/mock/logo.png')
+          .expect(404)
+          .end((err, res) => {
+            server.pendingMocks().length.should.eql(1)
+
+            config.set('http.followRedirects', configBackup.http.followRedirects)
+
+            done()
+          })
+      })
+
+      it('should return a 404 when retrieving a remote asset that includes more redirects than the ones allowed in `http.followRedirects` at domain level', done => {
+        let server1 = nock('https://one.somedomain.tech')
+          .get('/images/mock/logo.png')
+          .reply(301, undefined, {
+            Location: 'https://one.somedomain.tech/images/mock/logo2.png'
+          })
+          .get('/images/mock/logo2.png')
+          .reply(302, undefined, {
+            Location: 'https://one.somedomain.tech/images/mock/logo3.png'
+          })
+          .get('/images/mock/logo3.png')
+          .replyWithFile(200, 'test/images/visual/measure1.png', {
+            'Content-Type': 'image/png'
+          })
+
+        let server2 = nock('https://two.somedomain.tech')
+          .get('/images/mock/logo.png')
+          .reply(301, undefined, {
+            Location: 'https://two.somedomain.tech/images/mock/logo2.png'
+          })
+          .get('/images/mock/logo2.png')
+          .reply(302, undefined, {
+            Location: 'https://two.somedomain.tech/images/mock/logo3.png'
+          })
+          .get('/images/mock/logo3.png')
+          .replyWithFile(200, 'test/images/visual/measure1.png', {
+            'Content-Type': 'image/png'
+          })
+
+        config.set('multiDomain.enabled', true)
+        config.loadDomainConfigs()
+
+        config.set('images.directory.enabled', false, 'localhost')
+        config.set('images.remote.enabled', true, 'localhost')
+        config.set('images.remote.path', 'https://one.somedomain.tech', 'localhost')
+        config.set('http.followRedirects', 1, 'localhost')
+
+        config.set('images.directory.enabled', false, 'testdomain.com')
+        config.set('images.remote.enabled', true, 'testdomain.com')
+        config.set('images.remote.path', 'https://two.somedomain.tech', 'testdomain.com')
+        config.set('http.followRedirects', 10, 'testdomain.com')
+
+        request(cdnUrl)
+          .get('/images/mock/logo.png')
+          .set('Host', 'localhost:80')
+          .expect(404)
+          .end((err, res) => {
+            res.body.statusCode.should.eql(404)
+
+            server1.pendingMocks().length.should.eql(1)
+
+            request(cdnUrl)
+              .get('/images/mock/logo.png')
+              .set('Host', 'testdomain.com:80')
+              .expect(200)
+              .end((err, res) => {
+                res.headers['content-type'].should.eql('image/png')
+
+                server2.isDone().should.eql(true)
+
+                config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
+
+                done()
+              })
+          })
+      })
+
       it('should return 400 when requesting a relative remote URL and `image.remote.path` is not set', done => {
         config.set('images.remote.path', null)
 

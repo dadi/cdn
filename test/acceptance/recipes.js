@@ -641,6 +641,8 @@ describe('Recipes (with multi-domain)', () => {
     config.set('multiDomain.enabled', true)
     config.set('multiDomain.directory', 'domains')
 
+    config.loadDomainConfigs()
+
     app.start(err => {
       if (err) return done(err)
 

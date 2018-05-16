@@ -100,27 +100,27 @@ const schema = {
         format: Boolean,
         default: true
       }
-    }
-  },
-  aws: {
-    accessKeyId: {
-      doc: '',
-      format: String,
-      default: '',
-      env: 'AWS_ACCESS_KEY'
     },
-    secretAccessKey: {
-      doc: '',
-      format: String,
-      default: '',
-      env: 'AWS_SECRET_KEY'
-    },
-    region: {
-      doc: '',
-      format: String,
-      default: '',
-      env: 'AWS_REGION'
-    }
+    aws: {
+      accessKeyId: {
+        doc: 'Access key ID for AWS logging',
+        format: String,
+        default: '',
+        env: 'AWS_ACCESS_KEY'
+      },
+      secretAccessKey: {
+        doc: 'Secret access key for AWS logging',
+        format: String,
+        default: '',
+        env: 'AWS_SECRET_KEY'
+      },
+      region: {
+        doc: 'Region for AWS logging',
+        format: String,
+        default: '',
+        env: 'AWS_REGION'
+      }
+    }    
   },
   notFound: {
     statusCode: {
@@ -225,7 +225,7 @@ const schema = {
         allowDomainOverride: true
       },
       path: {
-        doc: '',
+        doc: 'The remote host to request images from, for example http://media.example.com',
         format: String,
         default: './public'
       }
@@ -289,7 +289,7 @@ const schema = {
       allowDomainOverride: true
     },
     ttl: {
-      doc: '',
+      doc: 'Amount of time, in seconds, after which cached items should expire',
       format: Number,
       default: 3600,
       allowDomainOverride: true
@@ -369,38 +369,38 @@ const schema = {
   },
   security: {
     maxWidth: {
-      doc: '',
+      doc: 'The maximum width, in pixels, for an output image',
       format: Number,
       default: 2048
     },
     maxHeight: {
-      doc: '',
+      doc: 'The maximum height, in pixels, for an output image',
       format: Number,
       default: 1024
     }
   },
   auth: {
     tokenUrl: {
-      doc: '',
+      doc: 'Endpoint for requesting bearer tokens',
       format: String,
       default: '/token'
     },
     clientId: {
-      doc: '',
+      doc: 'Client ID used to access protected endpoints',
       format: String,
       default: '1235488',
       env: 'AUTH_TOKEN_ID',
       allowDomainOverride: true
     },
     secret: {
-      doc: '',
+      doc: 'Client secret used to access protected endpoints',
       format: String,
       default: 'asd544see68e52',
       env: 'AUTH_TOKEN_SECRET',
       allowDomainOverride: true
     },
     tokenTtl: {
-      doc: '',
+      doc: 'Lifetime of bearer tokens (in seconds)',
       format: Number,
       default: 1800,
       env: 'AUTH_TOKEN_TTL',
@@ -409,30 +409,31 @@ const schema = {
     privateKey: {
       doc: 'Private key for signing JSON Web Tokens',
       format: String,
+      env: 'AUTH_KEY',
       default: 'YOU-MUST-CHANGE-ME-NOW!',
       allowDomainOverride: true
     }
   },
   cloudfront: {
     enabled: {
-      doc: '',
+      doc: 'Enable Amazon CloudFront',
       format: Boolean,
       default: false
     },
     accessKey: {
-      doc: '',
+      doc: 'CloudFront access key',
       format: String,
       default: '',
       env: 'CLOUDFRONT_ACCESS_KEY'
     },
     secretKey: {
-      doc: '',
+      doc: 'CloudFront secret key',
       format: String,
       default: '',
       env: 'CLOUDFRONT_SECRET_KEY'
     },
     distribution: {
-      doc: '',
+      doc: 'Name of the CloudFront distribution to use',
       format: String,
       default: '',
       env: 'CLOUDFRONT_DISTRIBUTION'
@@ -465,7 +466,7 @@ const schema = {
   },
   headers: {
     useGzipCompression: {
-      doc: "If true, uses gzip compression and adds a 'Content-Encoding:gzip' header to the response.",
+      doc: 'If true, uses gzip compression and adds a \'Content-Encoding:gzip\' header to the response.',
       format: Boolean,
       default: true,
       allowDomainOverride: true
@@ -484,11 +485,6 @@ const schema = {
       },
       allowDomainOverride: true
     }
-  },
-  feedback: {
-    doc: '',
-    format: Boolean,
-    default: false
   },
   robots: {
     doc: 'The path to a robots.txt file',
@@ -614,6 +610,14 @@ const schema = {
       doc: 'Enable multi-domain configuration for this CDN instance',
       format: Boolean,
       default: false
+    }
+  },
+  http: {
+    followRedirects: {
+      doc: 'The number of redirects to follow when retrieving assets via HTTP requests',
+      format: Number,
+      default: 10,
+      allowDomainOverride: true
     }
   }
 }
