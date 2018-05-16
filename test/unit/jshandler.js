@@ -106,7 +106,7 @@ describe('JS handler', function () {
       return jsHandler.get().then(readStream).then(out => {
         mockCacheGet.getCall(0).args[0].includes('/foo.js').should.eql(true)
 
-        out.should.eql('const greeter=(a)=>`Hello, ${a}`;')
+        out.should.eql('const greeter=a=>`Hello, ${a}`;')
       })
     })
   })
@@ -143,7 +143,7 @@ describe('JS handler', function () {
     return jsHandler.get().then(readStream).then(out => {
       mockCacheGet.getCall(0).args[0].includes('/foo.js?compress=1').should.eql(true)
 
-      out.should.eql('const greeter=(a)=>`Hello, ${a}`;')
+      out.should.eql('const greeter=a=>`Hello, ${a}`;')
     })
   })
 
