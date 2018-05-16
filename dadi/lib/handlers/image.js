@@ -16,7 +16,6 @@ const Readable = require('stream').Readable
 const sha1 = require('sha1')
 const sharp = require('sharp')
 const smartcrop = require('smartcrop-sharp')
-const toString = require('stream-to-string')
 const urlParser = require('url')
 const Vibrant = require('node-vibrant')
 
