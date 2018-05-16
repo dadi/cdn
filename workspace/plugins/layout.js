@@ -53,20 +53,6 @@ const ImageLayoutProcessor = function ({assetStore, cache, req, setHeader}) {
   this.setHeader = setHeader
 }
 
-ImageLayoutProcessor.prototype.contentType = function () {
-  switch (this.format.toLowerCase()) {
-    case 'png':
-      return 'image/png'
-    case 'jpg':
-    case 'jpeg':
-      return 'image/jpeg'
-    case 'gif':
-      return 'image/gif'
-    default:
-      return 'image/jpeg'
-  }
-}
-
 ImageLayoutProcessor.prototype.get = function () {
   const cacheKey = this.req.url
 
@@ -166,6 +152,20 @@ ImageLayoutProcessor.prototype.get = function () {
       })
     })
   })
+}
+
+ImageLayoutProcessor.prototype.getContentType = function () {
+  switch (this.format.toLowerCase()) {
+    case 'png':
+      return 'image/png'
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg'
+    case 'gif':
+      return 'image/gif'
+    default:
+      return 'image/jpeg'
+  }
 }
 
 ImageLayoutProcessor.prototype.getImageSize = function (stream) {
