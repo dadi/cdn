@@ -5,9 +5,10 @@ const path = require('path')
 
 const Missing = require(path.join(__dirname, '/missing'))
 
-const DiskStorage = function ({assetType = 'assets', url}) {
+const DiskStorage = function ({assetType = 'assets', domain, url}) {
   let assetPath = config.get(`${assetType}.directory.path`)
 
+  this.domain = domain
   this.url = nodeUrl.parse(url, true).pathname
   this.path = path.resolve(assetPath)
 }
@@ -50,11 +51,13 @@ DiskStorage.prototype.get = function () {
         message: 'File not found: ' + this.getFullUrl()
       }
 
-      return new Missing().get().then((stream) => {
+      return new Missing().get({
+        domain: this.domain
+      }).then(stream => {
         this.notFound = true
         this.lastModified = new Date()
         return resolve(stream)
-      }).catch((e) => {
+      }).catch(e => {
         console.log(e)
         return reject(err)
       })

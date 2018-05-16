@@ -25,20 +25,9 @@ module.exports.create = function create (type, assetPath, {domain} = {}) {
     assetPath = assetPath.slice(1)
   }
 
-  let configBlock = {}
-
-  switch (type) {
-    case 'asset':
-      configBlock = config.get('assets')
-
-      break
-
-    case 'image':
-      configBlock = config.get('images')
-
-      break
-  }
-
+  let assetType = type === 'image'
+    ? 'images'
+    : 'assets'
   let adapterFromPath = module.exports.extractAdapterFromPath(assetPath)
   let adapter
 
@@ -52,7 +41,9 @@ module.exports.create = function create (type, assetPath, {domain} = {}) {
     ) {
       adapter = 'http'
     } else {
-      let enabledStorage = Object.keys(configBlock).find(key => configBlock[key].enabled)
+      let enabledStorage = Object.keys(config.get(assetType)).find(key => {
+        return config.get(`${assetType}.${key}.enabled`, domain)
+      })
 
       adapter = Object.keys(ADAPTERS).find(key => {
         return ADAPTERS[key].configBlock === enabledStorage
@@ -63,7 +54,7 @@ module.exports.create = function create (type, assetPath, {domain} = {}) {
   let Adapter = ADAPTERS[adapter].handler
 
   return new Adapter({
-    assetType: (type === 'image') ? 'images' : 'assets',
+    assetType,
     domain,
     url: assetPath
   })

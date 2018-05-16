@@ -118,6 +118,7 @@ Server.prototype.onListening = function () {
   let address = this.address()
   let env = config.get('env')
 
+  /* istanbul ignore next */
   if (env !== 'test') {
     let startText = '\n  ----------------------------\n'
     startText += '  Started \'DADI CDN\'\n'
@@ -142,6 +143,7 @@ Server.prototype.onRedirectListening = function () {
   let address = this.address()
   let env = config.get('env')
 
+  /* istanbul ignore next */
   if (env !== 'test') {
     let startText = '\n  ----------------------------\n'
     startText += '  Started HTTP -> HTTPS Redirect\n'
@@ -161,6 +163,7 @@ Server.prototype.onStatusListening = function () {
   var address = this.address()
   let env = config.get('env')
 
+  /* istanbul ignore next */
   if (env !== 'test') {
     let startText = '\n  ----------------------------\n'
     startText += '  Started standalone status endpoint\n'
@@ -191,6 +194,16 @@ Server.prototype.start = function (done) {
   })
 
   router.use(bodyParser.json({limit: '50mb'}))
+  router.use((err, req, res, next) => {
+    if (err) {
+      return help.sendBackJSON(400, {
+        success: false,
+        errors: ['Invalid JSON Syntax']
+      }, res)
+    }
+
+    next()
+  })
 
   router.get('/', function (req, res, next) {
     res.end('Welcome to DADI CDN')
@@ -205,7 +218,6 @@ Server.prototype.start = function (done) {
     statusRouter.use('/api/status', this.status)
 
     let statusApp = http.createServer(function (req, res) {
-      res.setHeader('Server', config.get('server.name'))
       res.setHeader('Access-Control-Allow-Origin', '*')
       res.setHeader('Cache-Control', 'no-cache')
 
@@ -264,7 +276,6 @@ Server.prototype.start = function (done) {
       req.__domain = domain
     }
 
-    res.setHeader('Server', config.get('server.name'))
     res.setHeader('Access-Control-Allow-Origin', '*')
 
     if (req.url === '/api/status') {

@@ -10,10 +10,6 @@ const Plugin = function (req, plugin) {
   this.storageFactory = Object.create(StorageFactory)
 }
 
-Plugin.prototype.contentType = function () {
-  return this.headers['content-type']
-}
-
 Plugin.prototype.get = function () {
   try {
     return Promise.resolve(
@@ -35,6 +31,10 @@ Plugin.prototype.get = function () {
 
     return Promise.reject(error)
   }
+}
+
+Plugin.prototype.getContentType = function () {
+  return this.headers['content-type']
 }
 
 Plugin.prototype.getHeader = function (header) {

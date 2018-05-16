@@ -100,44 +100,47 @@ const schema = {
         format: Boolean,
         default: true
       }
-    }
-  },
-  aws: {
-    accessKeyId: {
-      doc: '',
-      format: String,
-      default: '',
-      env: 'AWS_ACCESS_KEY'
     },
-    secretAccessKey: {
-      doc: '',
-      format: String,
-      default: '',
-      env: 'AWS_SECRET_KEY'
-    },
-    region: {
-      doc: '',
-      format: String,
-      default: '',
-      env: 'AWS_REGION'
-    }
+    aws: {
+      accessKeyId: {
+        doc: 'Access key ID for AWS logging',
+        format: String,
+        default: '',
+        env: 'AWS_ACCESS_KEY'
+      },
+      secretAccessKey: {
+        doc: 'Secret access key for AWS logging',
+        format: String,
+        default: '',
+        env: 'AWS_SECRET_KEY'
+      },
+      region: {
+        doc: 'Region for AWS logging',
+        format: String,
+        default: '',
+        env: 'AWS_REGION'
+      }
+    }    
   },
   notFound: {
     statusCode: {
       doc: 'If set, overrides the status code in the case of a 404',
       format: Number,
-      default: 404
+      default: 404,
+      allowDomainOverride: true
     },
     images: {
       enabled: {
         doc: 'If true, returns a default image when request returns a 404',
         format: Boolean,
-        default: false
+        default: false,
+        allowDomainOverride: true
       },
       path: {
         doc: 'The path to the default image',
         format: String,
-        default: './images/missing.png'
+        default: './images/missing.png',
+        allowDomainOverride: true
       }
     }
   },
@@ -146,7 +149,8 @@ const schema = {
       enabled: {
         doc: 'If true, image files will be loaded from the filesystem',
         format: Boolean,
-        default: false
+        default: false,
+        allowDomainOverride: true
       },
       path: {
         doc: 'The path to the image directory',
@@ -156,40 +160,47 @@ const schema = {
     },
     s3: {
       enabled: {
-        doc: 'If true, image files will be requested from Amazon S3',
+        doc: 'If true, image files may be requested from Amazon S3 Buckets or Digital Ocean Spaces',
         format: Boolean,
         default: false
       },
       accessKey: {
-        doc: '',
+        doc: 'The access key used to connect to Amazon or Digital Ocean services for image files',
         format: String,
         default: '',
         env: 'AWS_S3_IMAGES_ACCESS_KEY'
       },
       secretKey: {
-        doc: '',
+        doc: 'The secret used to connect to Amazon or Digital Ocean services for image files',
         format: String,
         default: '',
         env: 'AWS_S3_IMAGES_SECRET_KEY'
       },
       bucketName: {
-        doc: '',
+        doc: 'The Amazon S3 Bucket or Digital Ocean Space that contains the image files',
         format: String,
         default: '',
         env: 'AWS_S3_IMAGES_BUCKET_NAME'
       },
       region: {
-        doc: '',
+        doc: 'The Amazon S3 or Digital Ocean region the Bucket/Space is served from',
         format: String,
         default: '',
         env: 'AWS_S3_IMAGES_REGION'
+      },
+      endpoint: {
+        doc: 'The endpoint used to access Digital Ocean Spaces. Not required for Amazon S3.',
+        format: String,
+        default: '',
+        env: 'AWS_S3_IMAGES_ENDPOINT'
       }
     },
     remote: {
       enabled: {
         doc: 'If true, image files will be requested from a remote host',
         format: Boolean,
-        default: false
+        default: false,
+        allowDomainOverride: true
       },
       path: {
         doc: 'The remote host to request images from, for example http://media.example.com',
@@ -200,7 +211,8 @@ const schema = {
       allowFullURL: {
         doc: 'If true, images can be loaded from any remote URL',
         format: Boolean,
-        default: true
+        default: true,
+        allowDomainOverride: true
       }
     }
   },
@@ -209,50 +221,58 @@ const schema = {
       enabled: {
         doc: 'If true, asset files will be loaded from the filesystem',
         format: Boolean,
-        default: false
+        default: false,
+        allowDomainOverride: true
       },
       path: {
-        doc: '',
+        doc: 'The remote host to request images from, for example http://media.example.com',
         format: String,
         default: './public'
       }
     },
     s3: {
       enabled: {
-        doc: 'If true, asset files will be requested from Amazon S3',
+        doc: 'If true, asset files may be requested from Amazon S3 Buckets or Digital Ocean Spaces',
         format: Boolean,
         default: false
       },
       accessKey: {
-        doc: '',
+        doc: 'The access key used to connect to Amazon or Digital Ocean services for asset files',
         format: String,
         default: '',
         env: 'AWS_S3_ASSETS_ACCESS_KEY'
       },
       secretKey: {
-        doc: '',
+        doc: 'The secret used to connect to Amazon or Digital Ocean services for asset files',
         format: String,
         default: '',
         env: 'AWS_S3_ASSETS_SECRET_KEY'
       },
       bucketName: {
-        doc: '',
+        doc: 'The Amazon S3 Bucket or Digital Ocean Space that contains the asset files',
         format: String,
         default: '',
         env: 'AWS_S3_ASSETS_BUCKET_NAME'
       },
       region: {
-        doc: '',
+        doc: 'The Amazon S3 or Digital Ocean region the Bucket/Space is served from',
         format: String,
         default: '',
         env: 'AWS_S3_ASSETS_REGION'
+      },
+      endpoint: {
+        doc: 'The endpoint used to access Digital Ocean Spaces. Not required for Amazon S3.',
+        format: String,
+        default: '',
+        env: 'AWS_S3_ASSETS_ENDPOINT'
       }
     },
     remote: {
       enabled: {
         doc: 'If true, asset files will be requested from a remote host',
         format: Boolean,
-        default: false
+        default: false,
+        allowDomainOverride: true
       },
       path: {
         doc: 'The remote host to request assets from, for example http://media.example.com',
@@ -269,9 +289,16 @@ const schema = {
       allowDomainOverride: true
     },
     ttl: {
-      doc: '',
+      doc: 'Amount of time, in seconds, after which cached items should expire',
       format: Number,
-      default: 3600
+      default: 3600,
+      allowDomainOverride: true
+    },
+    cache404: {
+      doc: 'Whether to cache responses for requests that returned 404',
+      format: Boolean,
+      default: true,
+      allowDomainOverride: true
     },
     directory: {
       enabled: {
@@ -348,66 +375,71 @@ const schema = {
   },
   security: {
     maxWidth: {
-      doc: '',
+      doc: 'The maximum width, in pixels, for an output image',
       format: Number,
       default: 2048
     },
     maxHeight: {
-      doc: '',
+      doc: 'The maximum height, in pixels, for an output image',
       format: Number,
       default: 1024
     }
   },
   auth: {
     tokenUrl: {
-      doc: '',
+      doc: 'Endpoint for requesting bearer tokens',
       format: String,
       default: '/token'
     },
     clientId: {
-      doc: '',
+      doc: 'Client ID used to access protected endpoints',
       format: String,
       default: '1235488',
-      env: 'AUTH_TOKEN_ID'
+      env: 'AUTH_TOKEN_ID',
+      allowDomainOverride: true
     },
     secret: {
-      doc: '',
+      doc: 'Client secret used to access protected endpoints',
       format: String,
       default: 'asd544see68e52',
-      env: 'AUTH_TOKEN_SECRET'
+      env: 'AUTH_TOKEN_SECRET',
+      allowDomainOverride: true
     },
     tokenTtl: {
-      doc: '',
+      doc: 'Lifetime of bearer tokens (in seconds)',
       format: Number,
       default: 1800,
-      env: 'AUTH_TOKEN_TTL'
+      env: 'AUTH_TOKEN_TTL',
+      allowDomainOverride: true
     },
     privateKey: {
       doc: 'Private key for signing JSON Web Tokens',
       format: String,
-      default: 'YOU-MUST-CHANGE-ME-NOW!'
+      env: 'AUTH_KEY',
+      default: 'YOU-MUST-CHANGE-ME-NOW!',
+      allowDomainOverride: true
     }
   },
   cloudfront: {
     enabled: {
-      doc: '',
+      doc: 'Enable Amazon CloudFront',
       format: Boolean,
       default: false
     },
     accessKey: {
-      doc: '',
+      doc: 'CloudFront access key',
       format: String,
       default: '',
       env: 'CLOUDFRONT_ACCESS_KEY'
     },
     secretKey: {
-      doc: '',
+      doc: 'CloudFront secret key',
       format: String,
       default: '',
       env: 'CLOUDFRONT_SECRET_KEY'
     },
     distribution: {
-      doc: '',
+      doc: 'Name of the CloudFront distribution to use',
       format: String,
       default: '',
       env: 'CLOUDFRONT_DISTRIBUTION'
@@ -438,16 +470,12 @@ const schema = {
       allowDomainOverride: true
     }
   },
-  gzip: {
-    doc: "If true, uses gzip compression and adds a 'Content-Encoding:gzip' header to the response",
-    format: Boolean,
-    default: true
-  },
   headers: {
     useGzipCompression: {
-      doc: "If true, uses gzip compression and adds a 'Content-Encoding:gzip' header to the response.",
+      doc: 'If true, uses gzip compression and adds a \'Content-Encoding:gzip\' header to the response.',
       format: Boolean,
-      default: true
+      default: true,
+      allowDomainOverride: true
     },
     cacheControl: {
       doc: 'A set of cache control headers based on specified mimetypes or paths',
@@ -460,13 +488,9 @@ const schema = {
           {'text/javascript': 'public, max-age=86400'},
           {'application/javascript': 'public, max-age=86400'}
         ]
-      }
+      },
+      allowDomainOverride: true
     }
-  },
-  feedback: {
-    doc: '',
-    format: Boolean,
-    default: false
   },
   robots: {
     doc: 'The path to a robots.txt file',
@@ -578,7 +602,8 @@ const schema = {
       doc: 'Whether to enable experimental support for on-demand JavaScript transpiling',
       format: Boolean,
       default: false,
-      env: 'JSTRANSPILING'
+      env: 'JSTRANSPILING',
+      allowDomainOverride: true
     }
   },
   multiDomain: {
@@ -591,6 +616,14 @@ const schema = {
       doc: 'Enable multi-domain configuration for this CDN instance',
       format: Boolean,
       default: false
+    }
+  },
+  http: {
+    followRedirects: {
+      doc: 'The number of redirects to follow when retrieving assets via HTTP requests',
+      format: Number,
+      default: 10,
+      allowDomainOverride: true
     }
   }
 }
@@ -608,7 +641,7 @@ const Config = function () {
   this.domainSchema = {}
   this.createDomainSchema(schema, this.domainSchema)
 
-  this.domainConfigs = this.loadDomainConfigs()
+  this.loadDomainConfigs()
 }
 
 Config.prototype = convict(schema)
@@ -647,10 +680,10 @@ Config.prototype.createDomainSchema = function (schema, target, tail = []) {
         default: this.get(path)
       })
     )
-    
+
     return
   }
-  
+
   Object.keys(schema).forEach(key => {
     this.createDomainSchema(
       schema[key],
@@ -695,6 +728,10 @@ Config.prototype.get = function (path, domain) {
  * @return {Object}
  */
 Config.prototype.loadDomainConfigs = function () {
+  if (!this.get('multiDomain.enabled')) {
+    return {}
+  }
+
   let configs = {}
   let domainsDirectory = this.get('multiDomain.directory')
 
@@ -718,8 +755,10 @@ Config.prototype.loadDomainConfigs = function () {
           {module: 'config'},
           `'${this.get('env')}' config not found for domain ${domain}`
         )
-      }    
+      }
     })
+
+  this.domainConfigs = configs
 
   return configs
 }
@@ -749,7 +788,7 @@ Config.prototype.set = function (path, value, domain) {
     return this._set(path, value)
   }
 
-  return this.domainConfigs[domain].set(path, value)  
+  return this.domainConfigs[domain].set(path, value)
 }
 
 module.exports = new Config()

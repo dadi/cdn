@@ -1,19 +1,21 @@
 'use strict'
 
 const _ = require('underscore')
-const fs = require('fs')
+const fs = require('fs-extra')
 const concat = require('concat-stream')
 const ExifImage = require('exif').ExifImage
 const fit = require('aspect-fit')
+const { BitmapImage, GifFrame, GifUtil } = require('gifwrap')
 const imagesize = require('image-size-stream')
+const Jimp = require('jimp')
 const lengthStream = require('length-stream')
 const mkdirp = require('mkdirp')
 const PassThrough = require('stream').PassThrough
 const path = require('path')
 const Readable = require('stream').Readable
-const smartcrop = require('smartcrop-sharp')
 const sha1 = require('sha1')
 const sharp = require('sharp')
+const smartcrop = require('smartcrop-sharp')
 const urlParser = require('url')
 const Vibrant = require('node-vibrant')
 
@@ -23,8 +25,15 @@ const config = require(path.join(__dirname, '/../../../config'))
 const workspace = require(path.join(__dirname, '/../models/workspace'))
 
 const exifDirectory = path.resolve(path.join(__dirname, '/../../../workspace/_exif'))
+const tmpDirectory = path.resolve(path.join(__dirname, '/../../../workspace/_tmp'))
 
 mkdirp(exifDirectory, (err, made) => {
+  if (err) {
+    console.log(err)
+  }
+})
+
+mkdirp(tmpDirectory, (err, made) => {
   if (err) {
     console.log(err)
   }
@@ -107,26 +116,6 @@ const ImageHandler = function (format, req, {
 
     return activePlugins
   }, [])
-}
-
-ImageHandler.prototype.contentType = function () {
-  if (this.options.format === 'json') {
-    return 'application/json'
-  }
-
-  switch (this.format.toLowerCase()) {
-    case 'png':
-      return 'image/png'
-    case 'jpg':
-    case 'jpeg':
-      return 'image/jpeg'
-    case 'gif':
-      return 'image/gif'
-    case 'webp':
-      return 'image/webp'
-    default:
-      return 'image/jpeg'
-  }
 }
 
 /**
@@ -248,11 +237,11 @@ ImageHandler.prototype.get = function () {
   if (
     this.isExternalUrl &&
     (
-      !config.get('images.remote.enabled') ||
-      !config.get('images.remote.allowFullURL')
+      !config.get('images.remote.enabled', this.req.__domain) ||
+      !config.get('images.remote.allowFullURL', this.req.__domain)
     )
   ) {
-    const err = {
+    let err = {
       statusCode: 403,
       message: 'Loading images from a full remote URL is not supported by this instance of DADI CDN'
     }
@@ -291,23 +280,39 @@ ImageHandler.prototype.get = function () {
     {domain: this.req.__domain}
   )
 
+  // The cache key is formed by multiple parts which will be hashed
+  // separately, so that they can be used as search parameters for
+  // flushing, except for the first parameter, which contains the full
+  // set of options passed to the image engine. It's part of the cache
+  // key purely to make `/recipe1/a.jpg` and `/recipe1/b.jpg` map to
+  // different keys if the recipes contain different parameters.
   const cacheKey = [
+    sha1(JSON.stringify(this.options)),
     this.req.__domain,
     this.parsedUrl.cdn.pathname,
     this.parsedUrl.cdn.search.slice(1)
   ]
   const isJSONResponse = this.options.format === 'json'
 
-  return this.cache.getStream(cacheKey).then(cachedStream => {
+  return this.cache.getStream(cacheKey, {
+    ttl: config.get('caching.ttl', this.req.__domain)
+  }).then(cachedStream => {
     if (cachedStream) {
       this.isCached = true
 
-      return cachedStream
+      return this.cache.getMetadata(cacheKey).then(metadata => {
+        if (metadata && metadata.errorCode) {
+          this.storageHandler.notFound = true
+          this.contentType = metadata.contentType || 'application/json'
+        }
+
+        return cachedStream
+      })
     }
 
     let stream = this.storageHandler.get()
 
-    return Promise.resolve(stream).then(stream => {
+    return stream.then(stream => {
       this.cacheStream = new PassThrough()
       this.convertStream = new PassThrough()
       this.exifStream = new PassThrough()
@@ -367,7 +372,8 @@ ImageHandler.prototype.get = function () {
               // Adding data from `convert()` to response
               Object.assign(data, result.data)
 
-              const returnStream = new Readable()
+              let returnStream = new Readable()
+
               returnStream.push(JSON.stringify(data))
               returnStream.push(null)
 
@@ -379,16 +385,62 @@ ImageHandler.prototype.get = function () {
           }
         })
       }).then(responseStream => {
-        // Cache the file if it's not already cached and it's not a placeholder.
-        if (!this.isCached && !this.storageHandler.notFound) {
-          this.cache.cacheFile(
-            this.options.format === 'json' ? responseStream : this.cacheStream,
-            cacheKey
-          )
+        // Cache the file if it's not already cached.
+        if (!this.isCached) {
+          let metadata
+
+          if (this.storageHandler.notFound) {
+            metadata = {
+              contentType: this.getContentType(),
+              errorCode: 404
+            }
+          }
+
+          // The only situation where we don't want to write the stream to
+          // cache is when the response is a 404 and the config specifies
+          // that 404s should not be cached.
+          if (
+            !this.storageHandler.notFound ||
+            config.get('caching.cache404', this.req.__domain)
+          ) {
+            this.cache.cacheFile(
+              this.options.format === 'json' ? responseStream : this.cacheStream,
+              cacheKey,
+              {
+                metadata,
+                ttl: config.get('caching.ttl', this.req.__domain)
+              }
+            )
+          }
         }
 
         return responseStream
       })
+    }).catch(err => {
+      // If the response is a 404 and we want to cache 404s, we
+      // write the error to cache.
+      if (
+        (err.statusCode === 404) &&
+        config.get('caching.cache404', this.req.__domain) &&
+        !this.isCached
+      ) {
+        let errorStream = new Readable()
+
+        errorStream.push(JSON.stringify(err))
+        errorStream.push(null)
+
+        this.cache.cacheFile(
+          errorStream,
+          cacheKey,
+          {
+            metadata: {
+              errorCode: err.statusCode
+            }
+          }
+        )
+      }
+
+      return Promise.reject(err)
     })
   })
 }
@@ -407,6 +459,44 @@ ImageHandler.prototype.getAvailablePlugins = function (files) {
 
     return plugins
   }, [])
+}
+
+ImageHandler.prototype.getContentType = function () {
+  if (this.contentType) {
+    return this.contentType
+  }
+
+  if (this.options.format === 'json') {
+    return 'application/json'
+  }
+
+  let outputFormat = this.format
+
+  // If the fallback image is to be delivered, the content type
+  // will need to match its format, not the format of the original
+  // file.
+  if (
+    this.storageHandler.notFound &&
+    config.get('notFound.images.enabled', this.req.__domain)
+  ) {
+    outputFormat = path.extname(
+      config.get('notFound.images.path')
+    ).slice(1)
+  }
+
+  switch (outputFormat.toLowerCase()) {
+    case 'png':
+      return 'image/png'
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg'
+    case 'gif':
+      return 'image/gif'
+    case 'webp':
+      return 'image/webp'
+    default:
+      return 'image/jpeg'
+  }
 }
 
 /**
@@ -636,7 +726,7 @@ ImageHandler.prototype.getLastModified = function () {
 
 ImageHandler.prototype.parseUrl = function (url) {
   let parsedUrl = urlParser.parse(url, true)
-  let searchNodes = parsedUrl.search.split('?')
+  let searchNodes = (parsedUrl.search && parsedUrl.search.split('?')) || []
   let cdnUrl = `${parsedUrl.pathname}?${searchNodes.slice(-1)}`
   let assetUrl = parsedUrl.pathname
 
@@ -883,6 +973,7 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
       let outputOptions = {}
 
       switch (format) {
+        case 'gif':
         case 'jpg':
         case 'jpeg':
           outputFn = 'jpeg'
@@ -950,18 +1041,55 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
           sharpImage.toBuffer({}, (err, buffer, info) => {
             if (err) return reject(err)
 
-            let bufferStream = new PassThrough()
-            bufferStream.end(buffer)
+            let processBuffer = Promise.resolve(buffer)
 
-            return resolve({
-              stream: bufferStream,
-              data: jsonData
+            if (format === 'gif') {
+              processBuffer = this.processGif(buffer)
+            }
+
+            processBuffer.then(buffer => {
+              let bufferStream = new PassThrough()
+              bufferStream.end(buffer)
+
+              return resolve({
+                stream: bufferStream,
+                data: jsonData
+              })
             })
           })
         })
       } catch (err) {
         return reject(err)
       }
+    })
+  })
+}
+
+/**
+ * Transcodes an input buffer to a GIF, ensures colours are appropriate
+ * for GIF encoding via a "quantize" method.
+ *
+ * Saves the encoded GIF to a temporary file and removes to before returning
+ * the buffer.
+ *
+ * @param {Buffer} buffer - a Buffer extracted from the main image
+ * processor after applying image manipulations
+ * @returns {Buffer} a GIF encoded buffer
+ */
+ImageHandler.prototype.processGif = function (buffer) {
+  return Jimp.read(buffer).then(image => {
+    let bitmap = new BitmapImage(image.bitmap)
+
+    GifUtil.quantizeDekker(bitmap)
+
+    let frame = new GifFrame(bitmap)
+
+    let tmpGifFile = `${path.join(tmpDirectory, sha1(this.parsedUrl.original.path))}.gif`
+
+    return GifUtil.write(tmpGifFile, [frame]).then(gif => {
+      return fs.unlink(tmpGifFile).then(() => {
+        return gif.buffer
+      })
     })
   })
 }
@@ -1068,32 +1196,28 @@ function getColours (buffer, options) {
  * @returns {object}
  */
 function getImageOptionsFromLegacyURL (optionsArray) {
-  var legacyURLFormat = optionsArray.length < 17
+  let superLegacyFormatOffset = optionsArray.length === 13
+    ? 0
+    : 4
 
-  var gravity = optionsArray[optionsArray.length - 6].substring(0, 1).toUpperCase() + optionsArray[optionsArray.length - 6].substring(1)
-  var filter = optionsArray[optionsArray.length - 5].substring(0, 1).toUpperCase() + optionsArray[optionsArray.length - 5].substring(1)
-
-  var options = {
+  let options = {
     format: optionsArray[0],
     quality: optionsArray[1],
     trim: optionsArray[2],
     trimFuzz: optionsArray[3],
     width: optionsArray[4],
     height: optionsArray[5],
-
-    /* legacy client applications don't send the next 4 */
-    cropX: legacyURLFormat ? '0' : optionsArray[6],
-    cropY: legacyURLFormat ? '0' : optionsArray[7],
-    ratio: legacyURLFormat ? '0' : optionsArray[8],
-    devicePixelRatio: legacyURLFormat ? 1 : optionsArray[9],
-
-    resizeStyle: optionsArray[optionsArray.length - 7],
-    gravity: gravity,
-    filter: filter,
-    blur: optionsArray[optionsArray.length - 4],
-    strip: optionsArray[optionsArray.length - 3],
-    rotate: optionsArray[optionsArray.length - 2],
-    flip: optionsArray[optionsArray.length - 1]
+    cropX: (superLegacyFormatOffset === 0) ? '0' : optionsArray[6],
+    cropY: (superLegacyFormatOffset === 0) ? '0' : optionsArray[7],
+    ratio: (superLegacyFormatOffset === 0) ? '0' : optionsArray[8],
+    devicePixelRatio: (superLegacyFormatOffset === 0) ? '0' : optionsArray[9],
+    resizeStyle: optionsArray[6 + superLegacyFormatOffset],
+    gravity: optionsArray[7 + superLegacyFormatOffset],
+    filter: optionsArray[8 + superLegacyFormatOffset],
+    blur: optionsArray[9 + superLegacyFormatOffset],
+    strip: optionsArray[10 + superLegacyFormatOffset],
+    rotate: optionsArray[11 + superLegacyFormatOffset],
+    flip: optionsArray[12 + superLegacyFormatOffset]
   }
 
   return options

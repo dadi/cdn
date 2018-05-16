@@ -29,21 +29,14 @@ const JSHandler = function (format, req, {
   )
 
   this.cache = Cache()
-  this.cacheKey = this.url.href
+  this.cacheKey = [req.__domain, this.url.href]
+
+  this.req = req
 
   this.storageFactory = Object.create(StorageFactory)
   this.storageHandler = null
 
   this.userAgent = req.headers['user-agent']
-}
-
-/**
- * Returns the content type for the files handled.
- *
- * @return {String} The content type
- */
-JSHandler.prototype.contentType = function () {
-  return 'application/javascript'
 }
 
 /**
@@ -56,7 +49,9 @@ JSHandler.prototype.get = function () {
     this.cacheKey += this.getBabelPluginsHash()
   }
 
-  return this.cache.getStream(this.cacheKey).then(stream => {
+  return this.cache.getStream(this.cacheKey, {
+    ttl: config.get('caching.ttl', this.req.__domain)
+  }).then(stream => {
     if (stream) {
       this.isCached = true
 
@@ -72,7 +67,9 @@ JSHandler.prototype.get = function () {
     return this.storageHandler.get().then(stream => {
       return this.transform(stream)
     }).then(stream => {
-      return this.cache.cacheFile(stream, this.cacheKey)
+      return this.cache.cacheFile(stream, this.cacheKey, {
+        ttl: config.get('caching.ttl', this.req.__domain)
+      })
     })
   })
 }
@@ -160,6 +157,15 @@ JSHandler.prototype.getBabelPluginsHash = function () {
 }
 
 /**
+ * Returns the content type for the files handled.
+ *
+ * @return {String} The content type
+ */
+JSHandler.prototype.getContentType = function () {
+  return 'application/javascript'
+}
+
+/**
  * Returns the filename for the given request.
  *
  * @return {String} The filename
@@ -209,7 +215,9 @@ JSHandler.prototype.getLegacyURLOverrides = function (url) {
  */
 JSHandler.prototype.isTransformEnabled = function () {
   // Currently behind a feature flag.
-  if (!config.get('experimental.jsTranspiling')) return false
+  if (!config.get('experimental.jsTranspiling', this.req.__domain)) {
+    return false
+  }
 
   return (this.url.query.transform || (this.options.transform === true))
 }

@@ -1,10 +1,17 @@
 const fs = require('fs-extra')
+const http = require('http')
+const httpProxy = require('http-proxy')
 const Jimp = require('jimp')
 const path = require('path')
 const should = require('should')
 const config = require(__dirname + '/../../config')
 const request = require('supertest')
 const req = require('request')
+const url = require('url')
+
+let cdnUrl = `http://${config.get('server.host')}:${config.get('server.port')}`
+
+module.exports.cdnUrl = cdnUrl
 
 module.exports.createTempFile = function (filePath, content, options, callback) {
   return fs.ensureDir(
@@ -109,3 +116,43 @@ module.exports.clearCache = function () {
     }
   })
 }
+
+// Proxy server, useful for testing multi-domain. It forwards
+// requests to the main CDN URL, modifying the `Host` header to
+// contain whatever value is sent in the `mockdomain` URL parameter.
+//
+// Example: http://{proxyUrl}/test.jpg?mockdomain=testdomain.com will
+// be forwarded to http://{cdnUrl}/test.jpg with `Host: testdomain.com`.
+let proxyPort = config.get('server.port') + 1
+let proxyUrl = `http://localhost:${proxyPort}`
+let proxy = httpProxy.createProxyServer({})
+
+proxy.on('proxyReq', (proxyReq, req, res, options) => {
+  let parsedUrl = url.parse(req.url, true)
+  let mockDomain = parsedUrl.query.mockdomain
+
+  parsedUrl.search = null
+  delete parsedUrl.query.mockdomain
+
+  proxyReq.path = url.format(parsedUrl)
+  proxyReq.setHeader('Host', mockDomain)
+})
+
+let proxyServer = http.createServer((req, res) => {
+  proxy.web(req, res, {
+    target: cdnUrl
+  })
+})
+
+module.exports.proxyStart = () => {
+  return new Promise((resolve, reject) => {
+    proxyServer.listen(proxyPort, resolve)  
+  })
+}
+
+module.exports.proxyStop = () => {
+  return new Promise((resolve, reject) => {
+    proxyServer.close(resolve)
+  })
+}
+module.exports.proxyUrl = proxyUrl

@@ -16,7 +16,7 @@ const RecipeController = require(path.join(__dirname, '/recipe'))
 const RouteController = require(path.join(__dirname, '/route'))
 const workspace = require(path.join(__dirname, '/../models/workspace'))
 
-logger.init(config.get('logging'), config.get('aws'), config.get('env'))
+logger.init(config.get('logging'), config.get('logging.aws'), config.get('env'))
 
 const Controller = function (router) {
   router.use(logger.requestLogger)
@@ -42,18 +42,18 @@ const Controller = function (router) {
     factory.create(req).then(handler => {
       return handler.get().then(stream => {
         this.addContentTypeHeader(res, handler)
-        this.addCacheControlHeader(res, handler)
+        this.addCacheControlHeader(res, handler, req.__domain)
         this.addLastModifiedHeader(res, handler)
 
         if (handler.storageHandler && handler.storageHandler.notFound) {
-          res.statusCode = config.get('notFound.statusCode') || 404
+          res.statusCode = config.get('notFound.statusCode', req.__domain) || 404
         }
 
         if (handler.storageHandler && handler.storageHandler.cleanUp) {
           handler.storageHandler.cleanUp()
         }
 
-        var contentLength = 0
+        let contentLength = 0
 
         // receive the concatenated buffer and send the response
         // unless the etag hasn't changed, then send 304 and end the response
@@ -61,7 +61,7 @@ const Controller = function (router) {
           res.setHeader('Content-Length', contentLength)
           res.setHeader('ETag', etag(buffer))
 
-          if (req.headers['if-none-match'] === etag(buffer) && handler.contentType() !== 'application/json') {
+          if (req.headers['if-none-match'] === etag(buffer) && handler.getContentType() !== 'application/json') {
             res.statusCode = 304
             res.end()
           } else {
@@ -77,22 +77,28 @@ const Controller = function (router) {
           contentLength = length
         }
 
-        var concatStream = concat(sendBuffer)
+        let concatStream = concat(sendBuffer)
 
-        if (config.get('headers.useGzipCompression') && handler.contentType() !== 'application/json') {
+        if (
+          config.get('headers.useGzipCompression', req.__domain) &&
+          handler.getContentType() !== 'application/json'
+        ) {
           res.setHeader('Content-Encoding', 'gzip')
 
-          var gzipStream = stream.pipe(zlib.createGzip())
+          let gzipStream = stream.pipe(zlib.createGzip())
           gzipStream = gzipStream.pipe(lengthStream(lengthListener))
           gzipStream.pipe(concatStream)
         } else {
           stream.pipe(lengthStream(lengthListener)).pipe(concatStream)
         }
-      }).catch(function (err) {
+      }).catch(err => {
         logger.error({err: err})
+
+        res.setHeader('X-Cache', handler.isCached ? 'HIT' : 'MISS')
+
         help.sendBackJSON(err.statusCode || 400, err, res)
       })
-    }).catch(function (err) {
+    }).catch(err => {
       help.sendBackJSON(err.statusCode || 400, err, res)
     })
   })
@@ -157,8 +163,8 @@ const Controller = function (router) {
 }
 
 Controller.prototype.addContentTypeHeader = function (res, handler) {
-  if (handler.contentType()) {
-    res.setHeader('Content-Type', handler.contentType())
+  if (handler.getContentType()) {
+    res.setHeader('Content-Type', handler.getContentType())
   }
 }
 
@@ -171,13 +177,13 @@ Controller.prototype.addLastModifiedHeader = function (res, handler) {
   }
 }
 
-Controller.prototype.addCacheControlHeader = function (res, handler) {
-  var configHeaderSets = config.get('headers.cacheControl')
+Controller.prototype.addCacheControlHeader = function (res, handler, domain) {
+  let configHeaderSets = config.get('headers.cacheControl', domain)
 
   // If it matches, sets Cache-Control header using the file path
   configHeaderSets.paths.forEach(obj => {
-    var key = Object.keys(obj)[0]
-    var value = obj[key]
+    let key = Object.keys(obj)[0]
+    let value = obj[key]
 
     if (handler.storageHandler.getFullUrl().indexOf(key) > -1) {
       setHeader(value)
@@ -186,8 +192,8 @@ Controller.prototype.addCacheControlHeader = function (res, handler) {
 
   // If not already set, sets Cache-Control header using the file mimetype
   configHeaderSets.mimetypes.forEach(obj => {
-    var key = Object.keys(obj)[0]
-    var value = obj[key]
+    let key = Object.keys(obj)[0]
+    let value = obj[key]
 
     if (handler.getFilename && (mime.lookup(handler.getFilename()) === key)) {
       setHeader(value)

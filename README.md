@@ -1,15 +1,13 @@
 <img src="https://dadi.tech/assets/products/dadi-cdn-full.png" alt="DADI CDN" height="65"/>
 
 [![npm (scoped)](https://img.shields.io/npm/v/@dadi/cdn.svg?maxAge=10800&style=flat-square)](https://www.npmjs.com/package/@dadi/cdn)
-[![coverage](https://img.shields.io/badge/coverage-86%25-yellow.svg?style=flat)](https://github.com/dadi/cdn)
+[![coverage](https://img.shields.io/badge/coverage-88%25-yellow.svg?style=flat)](https://github.com/dadi/cdn)
 [![Build Status](https://travis-ci.org/dadi/cdn.svg?branch=master)](https://travis-ci.org/dadi/cdn)
 [![JavaScript Style Guide](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat-square)](http://standardjs.com/)
 [![Greenkeeper badge](https://badges.greenkeeper.io/dadi/cdn.svg)](https://greenkeeper.io/)
 
 
 ## DADI CDN
-
-
 
 * [Overview](#overview)
 * [Requirements](#requirements)
@@ -28,13 +26,13 @@ CDN is part of DADI, a suite of components covering the full development stack, 
 
 ## Requirements
 
-* **[Node.js](https://www.nodejs.org/)** (supported versions: 4.7.0, 5.12.0, 6.9.2, 6.11.x)
+* **[Node.js](https://www.nodejs.org/)** (supported versions: 6.9.2, 6.11.1, 8.9.4)
 
 ## Your first CDN project
 
 ### Install dependencies
 
-Ensure you have the required dependencies installed. See the first sections in the CDN  [installation](https://docs.dadi.tech/#cdn) documentation.
+Ensure you have the required dependencies installed. See the first sections in the CDN [installation](https://docs.dadi.tech/cdn) documentation.
 
 ### Install CDN
 
@@ -53,7 +51,7 @@ You'll need an entry point for your project. We'll create a file called `index.j
 /**
  *  index.js
  */
-var app = require('@dadi/cdn')
+const app = require('@dadi/cdn')
 ```
 
 ### Start the server
@@ -70,7 +68,7 @@ With the default configuration, our CDN server is available at http://localhost:
 
 CDN requires a configuration file specific to the application environment. For example in the production environment it will look for a file named `config.production.json`.
 
-When CDN was installed, a development configuration file was created for you in a `config` folder at your application root. Full configuration documentation can be found at https://docs.dadi.tech/#cdn.
+When CDN was installed, a development configuration file was created for you in a `config` folder at your application root. Full configuration documentation can be found at https://docs.dadi.tech/cdn.
 
 
 ### Run CDN as a service
@@ -86,7 +84,7 @@ $ forever-service install -s index.js -e NODE_ENV=production cdn --start
 
 ### Configuring an image source
 
-Before you can serve assets or images you need to tell CDN where your files are located. Currently, CDN can serve your files from three types of source: [Amazon S3](https://docs.dadi.tech/#cdn/amazon-s3), [a remote server](https://docs.dadi.tech/#cdn/remote-server), and the [the local filesystem](https://docs.dadi.tech/#cdn/local-filesystem). We'll start using the local filesystem, but see the [full documentation](https://docs.dadi.tech/#cdn/defining-sources) for details on using the other source types.
+Before you can serve assets or images you need to tell CDN where your files are located. Currently, CDN can serve your files from three types of source: [Amazon S3](https://docs.dadi.tech/cdn/#amazon-s3), [a remote server](https://docs.dadi.tech/cdn/#remote-server), and the [the local filesystem](https://docs.dadi.tech/cdn/#local-filesystem). We'll start using the local filesystem, but see the [full documentation](https://docs.dadi.tech/cdn/#defining-sources) for details on using the other source types.
 
 The sample configuration file defines a local filesystem source. The `path` property is set to use an directory called `images` at the root of your application. CDN will look for your files at the location defined in this `path` property every time it handles a request.
 
@@ -125,14 +123,14 @@ drwxr-xr-x  4 root  wheel      136 13 Mar 13:01 ..
 http://127.0.0.1:8001/92875.jpg
 
 ## Links
-* [CDN Documentation](https://docs.dadi.tech/#cdn)
+* [CDN Documentation](https://docs.dadi.tech/cdn)
 
 ## Licence
 
 DADI is a data centric development and delivery stack, built specifically in support of the principles of API first and COPE.
 
 Copyright notice<br />
-(C) 2017 DADI+ Limited <support@dadi.tech><br />
+(C) 2018 DADI+ Limited <support@dadi.tech><br />
 All rights reserved
 
 This product is part of DADI.<br />
