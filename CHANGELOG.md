@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.0.0-RC4] - 2018-05-16
+
+### Added
+
+* [#346](https://github.com/dadi/cdn/pull/346): add basic GIF support
+* [#356](https://github.com/dadi/cdn/pull/356): add Digital Ocean Spaces support
+* [#360](https://github.com/dadi/cdn/pull/360) and [#363](https://github.com/dadi/cdn/pull/363): cache 404 responses using the `caching.cache404` config property
+
+### Changed
+
+* [#347](https://github.com/dadi/cdn/pull/347): gracefully handle case where domains directory does not exist
+* [#354](https://github.com/dadi/cdn/pull/354): include all image options in cache key
+* [#355](https://github.com/dadi/cdn/pull/355): return fallback image when remote server returns 404
+* [#357](https://github.com/dadi/cdn/pull/357): make config properties overridable at domain level
+* [#358](https://github.com/dadi/cdn/pull/358): update `@dadi/cache` to version 2.0.0
+* [#359](https://github.com/dadi/cdn/pull/359): update `supertest` to version 3.1.0
+* [#365](https://github.com/dadi/cdn/pull/365): update `babel-preset-minify` to version 0.4.3 
+
 ## [3.0.0-RC3] - 2018-05-08
 
 ### Changed
