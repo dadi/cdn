@@ -55,7 +55,7 @@ describe('Cache', function (done) {
 
     var im = new imageHandler('jpg', req)
 
-    im.cache.enabled.should.eql(true)
+    im.cache.isEnabled().should.eql(true)
 
     done()
   })
@@ -77,7 +77,7 @@ describe('Cache', function (done) {
     var imageHandler = proxyquire('../../dadi/lib/handlers/image', {'Cache': cache})
     var im = new imageHandler('jpg', req)
 
-    im.cache.enabled.should.eql(false)
+    im.cache.isEnabled().should.eql(false)
 
     done()
   })
@@ -106,7 +106,7 @@ describe('Cache', function (done) {
       getStream.restore()
 
       var args = getStream.firstCall.args
-      args[0].should.eql(req.url)
+      args[0].includes(req.url).should.eql(true)
 
       var returnValue = getStream.firstCall.returnValue
       returnValue.then(err => {

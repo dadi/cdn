@@ -1,4 +1,5 @@
-const fs = require('fs')
+const domainManager = require('./domain-manager')
+const fs = require('fs-extra')
 const languageParser = require('accept-language-parser')
 const logger = require('@dadi/logger')
 const Maxmind = require('maxmind')
@@ -28,7 +29,10 @@ Route.prototype._arrayIntersect = function (object, array) {
 }
 
 Route.prototype._getCacheKey = function () {
-  return this.ip + this.config.route
+  return [
+    this.domain,
+    this.ip + this.config.route
+  ]
 }
 
 Route.prototype._getPathInObject = function (path, object, breadcrumbs) {
@@ -218,15 +222,16 @@ Route.prototype.getNetwork = function () {
 }
 
 Route.prototype.getRecipe = function () {
-  return cache.get(this._getCacheKey()).then((cachedRecipe) => {
-    if (cachedRecipe) return Promise.resolve(cachedRecipe)
+  return cache.getStream(this._getCacheKey()).then(cachedRecipe => {
+    if (cachedRecipe) return cachedRecipe
 
-    return this.processRoute().then((recipe) => {
+    return this.processRoute().then(recipe => {
       if (recipe) {
         return cache.set(this._getCacheKey(), recipe).then(() => {
           return recipe
-        }).catch((err) => {
-          console.log(err)
+        }).catch(err => {
+          logger.error({module: 'routes'}, err)
+
           return recipe
         })
       }
@@ -262,18 +267,23 @@ Route.prototype.processRoute = function () {
   })
 }
 
-Route.prototype.save = function () {
-  const filePath = path.join(path.resolve(config.get('paths.routes')), this.config.route + '.json')
+Route.prototype.save = function (domainName) {
+  let domain = domainManager.getDomain(domainName)
+  let routePath = path.resolve(
+    path.join(
+      domain ? domain.path : '',
+      config.get('paths.routes', domainName),
+      `${this.config.route}.json`
+    )
+  )
 
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(this.config, null, 2))
+  return fs.writeJson(routePath, this.config, {
+    spaces: 2
+  })
+}
 
-    return true
-  } catch (err) {
-    logger.error({module: 'routes'}, err)
-
-    return false
-  }
+Route.prototype.setDomain = function (domain) {
+  this.domain = domain
 }
 
 Route.prototype.setIP = function (ip) {

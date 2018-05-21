@@ -48,7 +48,10 @@ describe('Storage', function (done) {
         url: '/https://www.google.co.uk/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png'
       }
 
-      var httpStorage = new HTTPStorage(null, req.url.substring(1))
+      var httpStorage = new HTTPStorage({
+        assetType: 'images',
+        url: req.url.substring(1)
+      })
 
       httpStorage.getFullUrl().should.eql('https://www.google.co.uk/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png')
     })
@@ -66,7 +69,10 @@ describe('Storage', function (done) {
         url: '/https://www.google.co.uk/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png?h=32'
       }
 
-      var httpStorage = new HTTPStorage(null, req.url.substring(1))
+      var httpStorage = new HTTPStorage({
+        assetType: 'images',
+        url: req.url.substring(1)
+      })
 
       httpStorage.getFullUrl().should.eql('https://www.google.co.uk/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png?h=32')
     })

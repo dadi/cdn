@@ -1,22 +1,35 @@
 const AWS = require('aws-sdk')
-const concat = require('concat-stream')
-const lengthStream = require('length-stream')
+const config = require('./../../../config')
 const path = require('path')
 const stream = require('stream')
 
 const logger = require('@dadi/logger')
 const Missing = require(path.join(__dirname, '/missing'))
 
-const S3Storage = function (settings, url) {
-  this.settings = settings
+const S3Storage = function ({assetType = 'assets', domain, url}) {
+  this.providerType = 'Amazon S3'
 
-  AWS.config.setPromisesDependency(require('bluebird'))
-  AWS.config.update({ accessKeyId: settings.accessKey, secretAccessKey: settings.secretKey })
+  AWS.config.update({
+    accessKeyId: config.get(`${assetType}.s3.accessKey`),
+    secretAccessKey: config.get(`${assetType}.s3.secretKey`)
+  })
 
-  if (settings.region && settings.region !== '') {
-    AWS.config.update({ region: settings.region })
+  let region = config.get(`${assetType}.s3.region`)
+  let endpoint = config.get(`${assetType}.s3.endpoint`)
+
+  if (region !== '') {
+    AWS.config.update({region})
   }
 
+  // Allow configuration of endpoint for Digital Ocean Spaces
+  if (endpoint !== '') {
+    AWS.config.update({endpoint})
+
+    this.providerType = 'DigitalOcean'
+  }
+
+  this.bucketName = config.get(`${assetType}.s3.bucketName`)
+  this.domain = domain
   this.url = url
   this.urlParts = this.getUrlParts(url)
   this.s3 = new AWS.S3()
@@ -24,15 +37,15 @@ const S3Storage = function (settings, url) {
 
 S3Storage.prototype.get = function () {
   return new Promise((resolve, reject) => {
-    var requestData = {
+    let requestData = {
       Bucket: this.getBucket(),
       Key: this.getKey()
     }
 
-    logger.info('S3 Request (' + this.url + '):' + JSON.stringify(requestData))
+    logger.info(`${this.providerType} Request (${this.url}):${JSON.stringify(requestData)}`)
 
     if (requestData.Bucket === '' || requestData.Key === '') {
-      var err = {
+      let err = {
         statusCode: 400,
         message: 'Either no Bucket or Key provided: ' + JSON.stringify(requestData)
       }
@@ -40,28 +53,30 @@ S3Storage.prototype.get = function () {
     }
 
     // create the AWS.Request object
-    var request = this.s3.getObject(requestData)
+    let request = this.s3.getObject(requestData)
 
-    var promise = request.promise()
+    let promise = request.promise()
 
-    promise.then((data) => {
+    promise.then(data => {
       if (data.LastModified) {
         this.lastModified = data.LastModified
       }
 
-      var bufferStream = new stream.PassThrough()
+      let bufferStream = new stream.PassThrough()
       bufferStream.push(data.Body)
       bufferStream.push(null)
       resolve(bufferStream)
     },
     (error) => {
       if (error.statusCode === 404) {
-        return new Missing().get().then((stream) => {
+        return new Missing().get({
+          domain: this.domain
+        }).then(stream => {
           this.notFound = true
           this.lastModified = new Date()
           return resolve(stream)
-        }).catch((e) => {
-          return reject(e)
+        }).catch(err => {
+          return reject(err)
         })
       }
 
@@ -71,13 +86,13 @@ S3Storage.prototype.get = function () {
 }
 
 S3Storage.prototype.getBucket = function () {
-  // If the URL start with /s3, it means the second parameter
+  // If the URL starts with /s3, it means the second parameter
   // is the name of the bucket.
   if (this.url.indexOf('/s3') === 0) {
     return this.urlParts[0]
   }
 
-  return this.settings.bucketName
+  return this.bucketName
 }
 
 S3Storage.prototype.getFullUrl = function () {
@@ -116,73 +131,5 @@ S3Storage.prototype.getUrlParts = function (url) {
   return canonicalUrl.split('/').filter(Boolean)
 }
 
-/**
- *
- */
-S3Storage.prototype.put = function (stream, folderPath) {
-  return new Promise((resolve, reject) => {
-    var fullPath = this.getKey().replace(path.basename(this.getKey()), path.join(folderPath, path.basename(this.getKey())))
-
-    var requestData = {
-      Bucket: this.getBucket(),
-      Key: fullPath
-    }
-
-    if (requestData.Bucket === '' || requestData.Key === '') {
-      var err = {
-        statusCode: 400,
-        statusText: 'Bad Request',
-        message: 'Either no Bucket or Key provided: ' + JSON.stringify(requestData)
-      }
-      return reject(err)
-    }
-
-    var contentLength = 0
-
-    function lengthListener (length) {
-      contentLength = length
-    }
-
-    // receive the concatenated buffer and send the response
-    // unless the etag hasn't changed, then send 304 and end the response
-    var sendBuffer = (buffer) => {
-      requestData.Body = buffer
-      requestData.ContentLength = contentLength
-
-      logger.info('S3 PUT Request:' + JSON.stringify({
-        Bucket: requestData.Bucket,
-        Key: requestData.Key,
-        // fileName: fileName,
-        ContentLength: requestData.ContentLength
-      }))
-
-      // create the AWS.Request object
-      var putObjectPromise = this.s3.putObject(requestData).promise()
-
-      putObjectPromise.then((data) => {
-        data.message = 'File uploaded'
-        data.path = requestData.Key
-        data.awsUrl = `https://${requestData.Bucket}.s3.amazonaws.com/${requestData.Key}`
-
-        return resolve(data)
-      }).catch((error) => {
-        console.log(error)
-        return reject(error)
-      })
-    }
-
-    var concatStream = concat(sendBuffer)
-
-    // send the file stream through:
-    // 1) lengthStream to obtain contentLength
-    // 2) concatStream to get a buffer, which then passes the buffer to sendBuffer
-    // for sending to AWS
-    stream.pipe(lengthStream(lengthListener)).pipe(concatStream)
-  })
-}
-
-module.exports = function (settings, url) {
-  return new S3Storage(settings, url)
-}
-
+module.exports = S3Storage
 module.exports.S3Storage = S3Storage

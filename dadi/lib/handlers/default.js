@@ -3,7 +3,7 @@ const path = require('path')
 const url = require('url')
 
 const Cache = require(path.join(__dirname, '/../cache'))
-// const config = require(path.join(__dirname, '/../../../config'))
+const config = require(path.join(__dirname, '/../../../config'))
 const StorageFactory = require(path.join(__dirname, '/../storage/factory'))
 
 /**
@@ -23,19 +23,12 @@ const DefaultHandler = function (format, req, {
   )
 
   this.cache = Cache()
-  this.cacheKey = this.url.href
+  this.cacheKey = [req.__domain, this.url.href]
+
+  this.req = req
 
   this.storageFactory = Object.create(StorageFactory)
   this.storageHandler = null
-}
-
-/**
- * Returns the content type for the files handled.
- *
- * @return {String} The content type
- */
-DefaultHandler.prototype.contentType = function () {
-  return mime.lookup(this.url.pathname)
 }
 
 /**
@@ -44,7 +37,9 @@ DefaultHandler.prototype.contentType = function () {
  * @return {Promise} A stream with the file
  */
 DefaultHandler.prototype.get = function () {
-  return this.cache.getStream(this.cacheKey).then(stream => {
+  return this.cache.getStream(this.cacheKey, {
+    ttl: config.get('caching.ttl', this.req.__domain)
+  }).then(stream => {
     if (stream) {
       this.isCached = true
 
@@ -58,9 +53,20 @@ DefaultHandler.prototype.get = function () {
     )
 
     return this.storageHandler.get().then(stream => {
-      return this.cache.cacheFile(stream, this.cacheKey)
+      return this.cache.cacheFile(stream, this.cacheKey, {
+        ttl: config.get('caching.ttl', this.req.__domain)
+      })
     })
   })
+}
+
+/**
+ * Returns the content type for the files handled.
+ *
+ * @return {String} The content type
+ */
+DefaultHandler.prototype.getContentType = function () {
+  return mime.lookup(this.url.pathname)
 }
 
 /**

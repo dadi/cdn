@@ -1,26 +1,35 @@
+const CronJob = require('cron').CronJob
 const site = require('../../package.json').name
 const version = require('../../package.json').version
 const nodeVersion = Number(process.version.match(/^v(\d+\.\d+)/)[1])
-const chokidar = require('chokidar')
+const cache = require('./cache')
 const colors = require('colors') // eslint-disable-line
 const bodyParser = require('body-parser')
 const finalhandler = require('finalhandler')
 const fs = require('fs')
+const help = require('./help')
 const http = require('http')
 const https = require('https')
-const mkdirp = require('mkdirp')
+const logger = require('@dadi/logger')
 const path = require('path')
 const Router = require('router')
 const router = Router()
 const dadiStatus = require('@dadi/status')
+const domainManager = require('./models/domain-manager')
 const workspace = require('./models/workspace')
 
-// let's ensure there's at least a dev config file here
-const devConfigPath = path.join(__dirname, '/../../config/config.development.json')
+// Let's ensure there's at least a dev config file here.
+const devConfigPath = path.join(
+  __dirname,
+  '/../../config/config.development.json'
+)
 
 fs.stat(devConfigPath, (err, stats) => {
   if (err && err.code === 'ENOENT') {
-    fs.writeFileSync(devConfigPath, fs.readFileSync(devConfigPath + '.sample'))
+    fs.writeFileSync(
+      devConfigPath,
+      fs.readFileSync(devConfigPath + '.sample')
+    )
   }
 })
 
@@ -29,13 +38,24 @@ const Controller = require(path.join(__dirname, '/controller'))
 const configPath = path.resolve(path.join(__dirname, '/../../config'))
 const config = require(configPath)
 
-function createServer (listener) {
-  var protocol = config.get('server.protocol')
+const Server = function () {
+  this.crons = {}
+}
+
+/**
+ * Creates an HTTP or HTTPS server and calls `listener`
+ * once the server is listening for requests.
+ *
+ * @param  {Function} listener
+ * @return {http.Server}
+ */
+Server.prototype.create = function (listener) {
+  let protocol = config.get('server.protocol')
 
   if (protocol === 'http') {
     return http.createServer(listener)
   } else if (protocol === 'https') {
-    var readFileSyncSafe = (path) => {
+    let readFileSyncSafe = (path) => {
       try {
         return fs.readFileSync(path)
       } catch (ex) {
@@ -45,10 +65,10 @@ function createServer (listener) {
       return null
     }
 
-    var passphrase = config.get('server.sslPassphrase')
-    var caPath = config.get('server.sslIntermediateCertificatePath')
-    var caPaths = config.get('server.sslIntermediateCertificatePaths')
-    var serverOptions = {
+    let passphrase = config.get('server.sslPassphrase')
+    let caPath = config.get('server.sslIntermediateCertificatePath')
+    let caPaths = config.get('server.sslIntermediateCertificatePaths')
+    let serverOptions = {
       key: readFileSyncSafe(config.get('server.sslPrivateKeyPath')),
       cert: readFileSyncSafe(config.get('server.sslCertificatePath'))
     }
@@ -59,25 +79,31 @@ function createServer (listener) {
 
     if (caPaths && caPaths.length > 0) {
       serverOptions.ca = []
-      caPaths.forEach((path) => {
-        var data = readFileSyncSafe(path)
-        data && serverOptions.ca.push(data)
+      caPaths.forEach(path => {
+        let data = readFileSyncSafe(path)
+
+        if (data) {
+          serverOptions.ca.push(data)
+        }
       })
     } else if (caPath && caPath.length > 0) {
       serverOptions.ca = readFileSyncSafe(caPath)
     }
 
-    // we need to catch any errors resulting from bad parameters
-    // such as incorrect passphrase or no passphrase provided
+    // We need to catch any errors resulting from bad parameters,
+    // such as incorrect passphrase or no passphrase provided.
     try {
       return https.createServer(serverOptions, listener)
     } catch (ex) {
-      var exPrefix = 'error starting https server: '
+      let exPrefix = 'error starting https server: '
+
       switch (ex.message) {
         case 'error:06065064:digital envelope routines:EVP_DecryptFinal_ex:bad decrypt':
           throw new Error(exPrefix + 'incorrect ssl passphrase')
+
         case 'error:0906A068:PEM routines:PEM_do_header:bad password read':
           throw new Error(exPrefix + 'required ssl passphrase not provided')
+
         default:
           throw new Error(exPrefix + ex.message)
       }
@@ -85,12 +111,16 @@ function createServer (listener) {
   }
 }
 
-function onListening (server) {
-  var env = config.get('env')
-  var address = server.address()
+/**
+ * Handler function for when the server is listening for requests.
+ */
+Server.prototype.onListening = function () {
+  let address = this.address()
+  let env = config.get('env')
 
+  /* istanbul ignore next */
   if (env !== 'test') {
-    var startText = '\n  ----------------------------\n'
+    let startText = '\n  ----------------------------\n'
     startText += '  Started \'DADI CDN\'\n'
     startText += '  ----------------------------\n'
     startText += '  Server:      '.green + address.address + ':' + address.port + '\n'
@@ -105,12 +135,17 @@ function onListening (server) {
   }
 }
 
-function onRedirectListening (server) {
-  var env = config.get('env')
-  var address = server.address()
+/**
+ * Handler function for when the HTTP->HTTPS redirect server
+ * is listening for requests.
+ */
+Server.prototype.onRedirectListening = function () {
+  let address = this.address()
+  let env = config.get('env')
 
+  /* istanbul ignore next */
   if (env !== 'test') {
-    var startText = '\n  ----------------------------\n'
+    let startText = '\n  ----------------------------\n'
     startText += '  Started HTTP -> HTTPS Redirect\n'
     startText += '  ----------------------------\n'
     startText += '  Server:      '.green + address.address + ':' + address.port + '\n'
@@ -120,12 +155,17 @@ function onRedirectListening (server) {
   }
 }
 
-function onStatusListening (server) {
-  var env = config.get('env')
-  var address = server.address()
+/**
+ * Handler function for when the status endpoint server is
+ * listening for requests.
+ */
+Server.prototype.onStatusListening = function () {
+  var address = this.address()
+  let env = config.get('env')
 
+  /* istanbul ignore next */
   if (env !== 'test') {
-    var startText = '\n  ----------------------------\n'
+    let startText = '\n  ----------------------------\n'
     startText += '  Started standalone status endpoint\n'
     startText += '  ----------------------------\n'
     startText += '  Server:      '.green + address.address + ':' + address.port + '\n'
@@ -135,28 +175,12 @@ function onStatusListening (server) {
   }
 }
 
-var Server = function () {}
-
-Server.prototype.ensureDirectories = function () {
-  const directories = Object.keys(config.get('paths')).map(k => config.get(`paths.${k}`))
-
-  let directoriesCreated = 0
-
-  return new Promise((resolve, reject) => {
-    directories.forEach(directory => {
-      mkdirp(path.resolve(directory), err => {
-        if (err) return reject(err)
-
-        directoriesCreated++
-
-        if (directoriesCreated === directories.length) {
-          resolve()
-        }
-      })
-    })
-  })
-}
-
+/**
+ * Bootstraps the application, initialising the web server and
+ * attaching all the necessary middleware and routing logic.
+ *
+ * @param  {Function} done - callback function
+ */
 Server.prototype.start = function (done) {
   router.use((req, res, next) => {
     const FAVICON_REGEX = /\/(favicon|(apple-)?touch-icon(-i(phone|pad))?(-\d{2,}x\d{2,})?(-precomposed)?)\.(jpe?g|png|ico|gif)$/i
@@ -170,187 +194,249 @@ Server.prototype.start = function (done) {
   })
 
   router.use(bodyParser.json({limit: '50mb'}))
+  router.use((err, req, res, next) => {
+    if (err) {
+      return help.sendBackJSON(400, {
+        success: false,
+        errors: ['Invalid JSON Syntax']
+      }, res)
+    }
+
+    next()
+  })
 
   router.get('/', function (req, res, next) {
     res.end('Welcome to DADI CDN')
   })
 
-  var statusHandler = function (req, res, next) {
-    var method = req.method && req.method.toLowerCase()
-    var authorization = req.headers.authorization
-
-    if (method !== 'post' || config.get('status.enabled') === false) {
-      return next()
-    } else {
-      var params = {
-        site: site,
-        package: '@dadi/cdn',
-        version: version,
-        healthCheck: {
-          authorization: authorization,
-          baseUrl: 'http://' + config.get('server.host') + ':' + config.get('server.port'),
-          routes: config.get('status.routes')
-        }
-      }
-
-      dadiStatus(params, function (err, data) {
-        if (err) return next(err)
-
-        var responseMessages = {
-          Green: 'Service is responding within specified parameters',
-          Amber: 'Service is responding, but outside of specified parameters'
-        }
-
-        data.status = {
-          status: data.routes[0].status,
-          healthStatus: data.routes[0].healthStatus,
-          message: responseMessages[data.routes[0].healthStatus] || 'Service is not responding correctly'
-        }
-
-        var resBody = JSON.stringify(data, null, 2)
-
-        res.statusCode = 200
-        res.setHeader('Content-Type', 'application/json')
-        res.setHeader('Content-Length', Buffer.byteLength(resBody))
-        return res.end(resBody)
-      })
-    }
-  }
-
-  // ensure that middleware runs in the correct order,
-  // especially when running an integrated status page
+  // Ensure that middleware runs in the correct order,
+  // especially when running an integrated status page.
   if (config.get('status.standalone')) {
-    var statusRouter = Router()
-    config.get('status.requireAuthentication') && auth(statusRouter)
-    statusRouter.use('/api/status', statusHandler)
+    let statusRouter = Router()
 
-    var statusApp = http.createServer(function (req, res) {
-      res.setHeader('Server', config.get('server.name'))
+    config.get('status.requireAuthentication') && auth(statusRouter)
+    statusRouter.use('/api/status', this.status)
+
+    let statusApp = http.createServer(function (req, res) {
       res.setHeader('Access-Control-Allow-Origin', '*')
       res.setHeader('Cache-Control', 'no-cache')
+
       statusRouter(req, res, finalhandler(req, res))
     })
 
-    var statusServer = this.statusServer = statusApp.listen(config.get('status.port'))
-    statusServer.on('listening', function () { onStatusListening(this) })
+    let statusServer = statusApp.listen(config.get('status.port'))
+
+    statusServer.on('listening', this.onStatusListening)
+
+    this.statusServer = statusServer
 
     auth(router)
   } else {
     if (config.get('status.requireAuthentication')) {
       auth(router)
-      router.use('/api/status', statusHandler)
+      router.use('/api/status', this.status)
     } else {
-      router.use('/api/status', statusHandler)
+      router.use('/api/status', this.status)
       auth(router)
     }
   }
 
   this.controller = new Controller(router)
 
-  var redirectInstance
-  var redirectServer
-  var redirectPort = config.get('server.redirectPort')
+  let redirectInstance
+  let redirectServer
+  let redirectPort = config.get('server.redirectPort')
+
   if (redirectPort > 0) {
     redirectInstance = http.createServer((req, res) => {
-      var port = config.get('server.port')
-      var hostname = req.headers.host.split(':')[0]
-      var location = 'https://' + hostname + ':' + port + req.url
+      let port = config.get('server.port')
+      let hostname = req.headers.host.split(':')[0]
+      let location = `https://${hostname}:${port}${req.url}`
 
       res.setHeader('Location', location)
       res.statusCode = 301
       res.end()
     })
-    redirectServer = this.redirectServer = redirectInstance.listen(redirectPort)
-    redirectServer.on('listening', function () { onRedirectListening(this) })
+
+    redirectServer = redirectInstance.listen(redirectPort)
+    redirectServer.on('listening', this.onRedirectListening)
   }
 
-  var app = createServer((req, res) => {
-    config.updateConfigDataForDomain(req.headers.host)
+  let app = this.create((req, res) => {
+    if (config.get('multiDomain.enabled')) {
+      let domain = req.headers.host.split(':')[0]
 
-    res.setHeader('Server', config.get('server.name'))
+      if (!domainManager.getDomain(domain)) {
+        return help.sendBackJSON(404, {
+          success: false,
+          message: `Domain not configured: ${domain}`
+        }, res)
+      }
+
+      req.__domain = domain
+    }
+
     res.setHeader('Access-Control-Allow-Origin', '*')
 
-    if (req.url === '/api/status') res.setHeader('Cache-Control', 'no-cache')
+    if (req.url === '/api/status') {
+      res.setHeader('Cache-Control', 'no-cache')
+    }
 
     router(req, res, finalhandler(req, res))
   })
 
-  var server = this.server = app.listen(config.get('server.port'))
-  server.on('listening', function () { onListening(this) })
+  let server = app.listen(config.get('server.port'))
+  server.on('listening', this.onListening)
 
   this.readyState = 1
+  this.server = server
 
-  this.startWatchingFiles()
+  workspace.createDirectories()
+  workspace.startWatchingFiles()
 
-  this.ensureDirectories().then(() => {
-    if (typeof done === 'function') {
-      done()
+  this.startFrequencyCache()
+
+  if (typeof done === 'function') {
+    done()
+  }
+}
+
+/**
+ * Starts the frequency cache flushing process.
+ */
+Server.prototype.startFrequencyCache = function () {
+  let crons = {}
+
+  // If multi-domain is enabled, we'll set up a cron for each domain.
+  if (config.get('multiDomain.enabled')) {
+    domainManager.getDomains().forEach(({domain, path: domainPath}) => {
+      let cronString = config.get('caching.expireAt', domain)
+
+      if (typeof cronString !== 'string') return
+
+      crons[domain] = new CronJob(cronString, () => {
+        try {
+          // Flush cache for this domain.
+          cache().delete([domain])
+        } catch (err) {
+          logger.error({module: 'expireAt-flush'}, err)
+        }
+      }, null, true)
+    })
+  } else {
+    let cronString = config.get('caching.expireAt')
+
+    if (typeof cronString !== 'string') return
+
+    // Otherwise, we'll set a single cron to flush the cache globally.
+    crons.__global = new CronJob(cronString, () => {
+      try {
+        // Flush cache globally.
+        cache().delete()
+      } catch (err) {
+        logger.error({module: 'expireAt-flush'}, err)
+      }
+    }, null, true)
+  }
+
+  this.crons = crons
+}
+
+/**
+ * Responds to requests to the status endpoint.
+ *
+ * @param  {http.ClientRequest}   req
+ * @param  {http.ServerResponse}  res
+ * @param  {Function}             next
+ */
+Server.prototype.status = function (req, res, next) {
+  let method = req.method && req.method.toLowerCase()
+  let authorization = req.headers.authorization
+
+  if (method !== 'post' || config.get('status.enabled') === false) {
+    return next()
+  }
+
+  let params = {
+    site: site,
+    package: '@dadi/cdn',
+    version: version,
+    healthCheck: {
+      authorization: authorization,
+      baseUrl: `http://${config.get('server.host')}:${config.get('server.port')}`,
+      routes: config.get('status.routes')
     }
+  }
+
+  dadiStatus(params, (err, data) => {
+    if (err) return next(err)
+
+    let responseMessages = {
+      Green: 'Service is responding within specified parameters',
+      Amber: 'Service is responding, but outside of specified parameters'
+    }
+
+    data.status = {
+      status: data.routes[0].status,
+      healthStatus: data.routes[0].healthStatus,
+      message: responseMessages[data.routes[0].healthStatus] ||
+        'Service is not responding correctly'
+    }
+
+    let resBody = JSON.stringify(data, null, 2)
+
+    res.statusCode = 200
+    res.setHeader('Content-Type', 'application/json')
+    res.setHeader('Content-Length', Buffer.byteLength(resBody))
+
+    return res.end(resBody)
   })
 }
 
-Server.prototype.startWatchingFiles = function () {
-  this.watchers = {}
-
-  // Watch config files.
-  this.watchers.config = chokidar.watch(config.configPath(), {
-    depth: 0,
-    ignored: /[\\]\./,
-    ignoreInitial: true,
-    useFsEvents: false
-  }).on('change', function (filePath) {
-    config.loadFile(filePath)
-  })
-
-  // Watch plugins.
-  const pluginDir = path.resolve(config.get('paths.plugins'))
-
-  this.watchers.plugins = chokidar.watch(pluginDir + '/*.js', {
-    usePolling: true
-  }).on('all', (event, filePath) => workspace.build())
-
-  // Watch recipes.
-  const recipeDir = path.resolve(config.get('paths.recipes'))
-
-  this.watchers.recipes = chokidar.watch(recipeDir + '/*.json', {
-    usePolling: true
-  }).on('all', (event, filePath) => workspace.build())
-
-  // Watch routes.
-  const routeDir = path.resolve(config.get('paths.routes'))
-
-  this.watchers.routes = chokidar.watch(routeDir + '/*.json', {
-    usePolling: true
-  }).on('all', (event, filePath) => workspace.build())
-}
-
-// this is mostly needed for tests
+/**
+ * Stops all the server instances and terminates the file watcher.
+ * Used mostly for unit tests.
+ *
+ * @param  {Function} done
+ */
 Server.prototype.stop = function (done) {
   this.readyState = 3
 
-  this.stopWatchingFiles()
+  this.stopFrequencyCache()
+
+  workspace.stopWatchingFiles()
 
   this.server.close(err => {
-    // if statusServer is running in standalone, close that too
+    // If statusServer is running in standalone, close that too.
     if (this.statusServer) {
       this.statusServer.close(err => {
         this.readyState = 0
 
-        done && done(err)
+        if (typeof done === 'function') {
+          done(err)
+        }
       })
     } else {
       this.readyState = 0
 
-      done && done(err)
+      if (typeof done === 'function') {
+        done(err)
+      }
     }
   })
 }
 
-Server.prototype.stopWatchingFiles = function () {
-  Object.keys(this.watchers).forEach(name => {
-    this.watchers[name].close()
+/**
+ * Starts the frequency cache flushing process.
+ */
+Server.prototype.stopFrequencyCache = function () {
+  Object.keys(this.crons).forEach(id => {
+    this.crons[id].stop()
   })
+
+  this.crons = {}
 }
 
 module.exports = new Server()
+module.exports.config = config
 module.exports.Server = Server

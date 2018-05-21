@@ -1,13 +1,79 @@
-var fs = require('fs')
-var path = require('path')
-var should = require('should')
-var config = require(__dirname + '/../../config')
-var request = require('supertest')
-var _ = require('underscore')
+const fs = require('fs-extra')
+const http = require('http')
+const httpProxy = require('http-proxy')
+const Jimp = require('jimp')
+const path = require('path')
+const should = require('should')
+const config = require(__dirname + '/../../config')
+const request = require('supertest')
+const req = require('request')
+const url = require('url')
 
-module.exports.getBearerToken = function (done) {
+let cdnUrl = `http://${config.get('server.host')}:${config.get('server.port')}`
+
+module.exports.cdnUrl = cdnUrl
+
+module.exports.createTempFile = function (filePath, content, options, callback) {
+  return fs.ensureDir(
+    path.dirname(path.resolve(filePath))
+  ).then(() => {
+    if (typeof options === 'function') {
+      callback = options
+      options = {}
+    }
+
+    let serialisedContent = typeof content === 'string'
+      ? content
+      : JSON.stringify(content, null, 2)
+
+    return fs.writeFile(filePath, serialisedContent)
+  }).then(() => {
+    let removeFn = () => fs.removeSync(filePath)
+
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        callback(removeFn, content)
+
+        resolve()
+      }, (options.interval || 0))
+    })
+  })
+}
+
+module.exports.imagesEqual = function ({base, headers, test}) {
+  let fullBasePath = path.resolve(base)
+
+  if (test.indexOf('/') === 0) {
+    test = `http://${config.get('server.host')}:${config.get('server.port')}${test}`
+  }
+
+  return Jimp
+    .read(fullBasePath)
+    .then(baselineImage => {
+      return Jimp.read(test).then(testImage => {
+        let diff = Jimp.diff(baselineImage, testImage, 0.1)
+        let distance = Jimp.distance(baselineImage, testImage)
+
+        if (distance < 0.15 || diff.percent < 0.15) {
+          return true
+        }
+
+        return false
+      })
+    }).catch(err => {
+      console.error(err)
+    })
+}
+
+module.exports.getBearerToken = function (domain, done) {
+  if (typeof domain === 'function') {
+    done = domain
+    domain = 'localhost'
+  }
+
   request('http://' + config.get('server.host') + ':' + config.get('server.port'))
     .post(config.get('auth.tokenUrl'))
+    .set('host', `${domain}:80`)
     .send({
       clientId: 'test',
       secret: 'test'
@@ -50,3 +116,43 @@ module.exports.clearCache = function () {
     }
   })
 }
+
+// Proxy server, useful for testing multi-domain. It forwards
+// requests to the main CDN URL, modifying the `Host` header to
+// contain whatever value is sent in the `mockdomain` URL parameter.
+//
+// Example: http://{proxyUrl}/test.jpg?mockdomain=testdomain.com will
+// be forwarded to http://{cdnUrl}/test.jpg with `Host: testdomain.com`.
+let proxyPort = config.get('server.port') + 1
+let proxyUrl = `http://localhost:${proxyPort}`
+let proxy = httpProxy.createProxyServer({})
+
+proxy.on('proxyReq', (proxyReq, req, res, options) => {
+  let parsedUrl = url.parse(req.url, true)
+  let mockDomain = parsedUrl.query.mockdomain
+
+  parsedUrl.search = null
+  delete parsedUrl.query.mockdomain
+
+  proxyReq.path = url.format(parsedUrl)
+  proxyReq.setHeader('Host', mockDomain)
+})
+
+let proxyServer = http.createServer((req, res) => {
+  proxy.web(req, res, {
+    target: cdnUrl
+  })
+})
+
+module.exports.proxyStart = () => {
+  return new Promise((resolve, reject) => {
+    proxyServer.listen(proxyPort, resolve)  
+  })
+}
+
+module.exports.proxyStop = () => {
+  return new Promise((resolve, reject) => {
+    proxyServer.close(resolve)
+  })
+}
+module.exports.proxyUrl = proxyUrl

@@ -1,41 +1,41 @@
-var fs = require('fs')
-var path = require('path')
-var should = require('should')
-var sinon = require('sinon')
-var request = require('supertest')
+const fs = require('fs-extra')
+const path = require('path')
+const should = require('should')
+const sinon = require('sinon')
+const request = require('supertest')
 
-var cache = require(__dirname + '/../../dadi/lib/cache')
-var config = require(__dirname + '/../../config')
-var help = require(__dirname + '/help')
-var app = require(__dirname + '/../../dadi/lib/')
-var Route = require(__dirname + '/../../dadi/lib/models/route')
+const cache = require(__dirname + '/../../dadi/lib/cache')
+const domainManager = require(__dirname + '/../../dadi/lib/models/domain-manager')
+const help = require(__dirname + '/help')
+const app = require(__dirname + '/../../dadi/lib/')
+const Route = require(__dirname + '/../../dadi/lib/models/route')
+
+let config = require(__dirname + '/../../config')
+let cdnUrl = `http://${config.get('server.host')}:${config.get('server.port')}`
 
 describe('Routes', function () {
   this.timeout(8000)
-  var tokenRoute = config.get('auth.tokenUrl')
+  let tokenRoute = config.get('auth.tokenUrl')
 
-  beforeEach(function (done) {
+  beforeEach(done => {
     delete require.cache[__dirname + '/../../config']
     config = require(__dirname + '/../../config')
 
-    app.start(function (err) {
+    app.start(err => {
       if (err) return done(err)
 
-      // give it a moment for http.Server to finish starting
-      setTimeout(function () {
-        done()
-      }, 500)
+      setTimeout(done, 500)
     })
   })
 
-  afterEach(function (done) {
+  afterEach(done => {
     app.stop(done)
   })  
 
   describe('Create', function () {
-    var sample = {}
+    let sample = {}
 
-    beforeEach(function () {
+    beforeEach(() => {
       sample = {
         'route': 'sample-route',
         'branches': [
@@ -55,17 +55,20 @@ describe('Routes', function () {
       }
     })
 
-    afterEach(function () {
+    afterEach(() => {
       try {
-        fs.unlinkSync(path.join(path.resolve(config.get('paths.routes')), sample.route + '.json'))
+        fs.unlinkSync(
+          path.join(
+            path.resolve(config.get('paths.routes')),
+            sample.route + '.json'
+          )
+        )
       } catch (err) {}
     })
 
-    it('should not allow route create request without a valid token', function (done) {
+    it('should not allow route create request without a valid token', done => {
       help.getBearerToken(function (err, token) {
-        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-
-        client
+        request(cdnUrl)
           .post('/api/routes/new')
           .set('Authorization', 'Bearer ' + token.toString() + '1')
           .expect('content-type', 'application/json')
@@ -73,11 +76,10 @@ describe('Routes', function () {
       })
     })
 
-    it('should return error if no data was sent', function (done) {
+    it('should return error if no data was sent', done => {
       help.getBearerToken(function (err, token) {
-        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-
-        client
+        
+        request(cdnUrl)
           .post('/api/routes')
           .send({})
           .set('Authorization', 'Bearer ' + token)
@@ -85,14 +87,13 @@ describe('Routes', function () {
       })
     })
 
-    it('should return error if route name is missing', function (done) {
+    it('should return error if route name is missing', done => {
       help.getBearerToken(function (err, token) {
-        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
         var routeName = sample.route
 
         delete sample.route
 
-        client
+        request(cdnUrl)
         .post('/api/routes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
@@ -110,14 +111,13 @@ describe('Routes', function () {
       })
     })
 
-    it('should return error if route name is too short', function (done) {
+    it('should return error if route name is too short', done => {
       help.getBearerToken(function (err, token) {
-        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
         var routeName = sample.route
 
         sample.route = 'xxxx'
 
-        client
+        request(cdnUrl)
         .post('/api/routes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
@@ -135,11 +135,10 @@ describe('Routes', function () {
       })
     })
 
-    it('should save route to filesystem', function (done) {
-      return help.getBearerToken((err, token) => {
-        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-
-        return client
+    it('should save route to filesystem', done => {
+      help.getBearerToken((err, token) => {
+        
+        request(cdnUrl)
         .post('/api/routes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
@@ -147,8 +146,7 @@ describe('Routes', function () {
           setTimeout(function () {
             var expectedPath = path.join(path.resolve(config.get('paths.routes')), sample.route + '.json')
             fs.stat(expectedPath, (err, stats) => {
-              (err === null).should.eql(true)
-
+              should.not.exist(err)
               res.statusCode.should.eql(200)
               res.body.success.should.eql(true)
 
@@ -159,21 +157,24 @@ describe('Routes', function () {
       })
     })
 
-    it('should return error when trying to create route with existing name', function (done) {
+    it('should return error when trying to create route with existing name', done => {
       help.getBearerToken((err, token) => {
-        var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-
-        sinon.stub(Route.prototype, 'save').returns(false)
-
-        client
+        
+        request(cdnUrl)
         .post('/api/routes')
         .send(sample)
         .set('Authorization', 'Bearer ' + token)
         .end(function (err, res) {
-          Route.prototype.save.restore()
-
-          res.body.success.should.eql(false)
-          done()
+          setTimeout(function () {
+            request(cdnUrl)
+            .post('/api/routes')
+            .send(sample)
+            .set('Authorization', 'Bearer ' + token)
+            .end(function (err, res) {
+              res.body.success.should.eql(false)
+              done()
+            })
+          }, 1000)
         })
       })
     })
@@ -221,7 +222,7 @@ describe('Routes', function () {
       } catch (err) {}
     })
 
-    afterEach(function (done) {
+    afterEach(done => {
       try {
         fs.unlinkSync(testRoutePath)
       } catch (err) {}
@@ -229,9 +230,8 @@ describe('Routes', function () {
       setTimeout(done, 500)
     })    
 
-    it('should choose a route branch if the "device" condition matches', function (done) {
-      const client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-      const userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 10_1 like Mac OS X) AppleWebKit/602.2.14 (KHTML, like Gecko) Version/10.0 Mobile/14B72 Safari/602.1'
+    it('should choose a route branch if the "device" condition matches', done => {
+      let userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 10_1 like Mac OS X) AppleWebKit/602.2.14 (KHTML, like Gecko) Version/10.0 Mobile/14B72 Safari/602.1'
 
       testRoute.branches = [
         {
@@ -246,13 +246,13 @@ describe('Routes', function () {
       ]
 
       help.getBearerToken(function (err, token) {
-        client
+        request(cdnUrl)
         .post('/api/routes')
         .send(testRoute)
         .set('Authorization', 'Bearer ' + token)
         .end(function (err, res) {
           setTimeout(() => {
-            client
+            request(cdnUrl)
             .get('/' + testRoute.route + '/test.jpg')
             .set('user-agent', userAgent)
             .end(function (err, res) {
@@ -265,9 +265,8 @@ describe('Routes', function () {
       })
     })
 
-    it('should skip a route branch if the "device" condition does not match the device type', function (done) {
-      const client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-      const userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/603.3.8 (KHTML, like Gecko) Version/10.1.2 Safari/603.3.8'
+    it('should skip a route branch if the "device" condition does not match the device type', done => {
+      let userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/603.3.8 (KHTML, like Gecko) Version/10.1.2 Safari/603.3.8'
 
       testRoute.branches = [
         {
@@ -282,13 +281,13 @@ describe('Routes', function () {
       ]
 
       help.getBearerToken(function (err, token) {
-        client
+        request(cdnUrl)
         .post('/api/routes')
         .send(testRoute)
         .set('Authorization', 'Bearer ' + token)
         .end(function (err, res) {
           setTimeout(() => {
-            client
+            request(cdnUrl)
             .get('/' + testRoute.route + '/test.jpg')
             .set('user-agent', userAgent)
             .end(function (err, res) {
@@ -301,9 +300,8 @@ describe('Routes', function () {
       })
     })
 
-    it('should choose a route branch if the "language" condition matches', function (done) {
-      const client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-      const userLanguage = 'en-GB,en;q=0.8'
+    it('should choose a route branch if the "language" condition matches', done => {
+      let userLanguage = 'en-GB,en;q=0.8'
 
       testRoute.branches = [
         {
@@ -319,13 +317,13 @@ describe('Routes', function () {
       ]
 
       help.getBearerToken(function (err, token) {
-        client
+        request(cdnUrl)
         .post('/api/routes')
         .send(testRoute)
         .set('Authorization', 'Bearer ' + token)
         .end(function (err, res) {
           setTimeout(() => {
-            client
+            request(cdnUrl)
             .get('/' + testRoute.route + '/test.jpg')
             .set('accept-language', userLanguage)
             .end(function (err, res) {
@@ -338,9 +336,8 @@ describe('Routes', function () {
       })
     })
 
-    it('should skip a route branch if the "language" condition does not match the client\'s language', function (done) {
-      const client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-      const userLanguage = 'en-GB,en;q=0.8'
+    it('should skip a route branch if the "language" condition does not match the client\'s language', done => {
+      let userLanguage = 'en-GB,en;q=0.8'
 
       testRoute.branches = [
         {
@@ -356,13 +353,13 @@ describe('Routes', function () {
       ]
 
       help.getBearerToken(function (err, token) {
-        client
+        request(cdnUrl)
         .post('/api/routes')
         .send(testRoute)
         .set('Authorization', 'Bearer ' + token)
         .end(function (err, res) {
           setTimeout(() => {
-            client
+            request(cdnUrl)
             .get('/' + testRoute.route + '/test.jpg')
             .set('accept-language', userLanguage)
             .end(function (err, res) {
@@ -375,9 +372,8 @@ describe('Routes', function () {
       })
     })
 
-    it('should skip a route branch if the "language" condition matches the client\'s language but with a non-sufficient quality parameter', function (done) {
-      const client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
-      const userLanguage = 'pt,en;q=0.3'
+    it('should skip a route branch if the "language" condition matches the client\'s language but with a non-sufficient quality parameter', done => {
+      let userLanguage = 'pt,en;q=0.3'
 
       testRoute.branches = [
         {
@@ -393,13 +389,13 @@ describe('Routes', function () {
       ]
 
       help.getBearerToken(function (err, token) {
-        client
+        request(cdnUrl)
         .post('/api/routes')
         .send(testRoute)
         .set('Authorization', 'Bearer ' + token)
         .end(function (err, res) {
           setTimeout(() => {
-            client
+            request(cdnUrl)
             .get('/' + testRoute.route + '/test.jpg')
             .set('accept-language', userLanguage)
             .end(function (err, res) {
@@ -409,6 +405,82 @@ describe('Routes', function () {
             })
           }, 500)
         })
+      })
+    })
+  })
+})
+
+describe('Routes (with multi-domain)', () => {
+  let configBackup = config.get()
+  let sample = {
+    route: 'test-domain-route',
+    branches: [
+      {
+        condition: {
+          device: 'desktop'
+        },
+        recipe: 'test-recipe'
+      },
+      {
+        recipe: 'test-recipe'
+      }
+    ]
+  }
+
+  beforeEach(done => {
+    config.set('multiDomain.enabled', true)
+    config.set('multiDomain.directory', 'domains')
+
+    app.start(err => {
+      if (err) return done(err)
+
+      setTimeout(done, 500)
+    })
+  })
+
+  afterEach(done => {
+    config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
+    config.set('multiDomain.directory', configBackup.multiDomain.directory)
+
+    app.stop(err => {
+      done()
+    })
+  })
+
+  it('should create a route for the given domain only', done => {
+    help.getBearerToken('localhost', (err, token) => {
+      request(cdnUrl)
+      .post('/api/routes')
+      .send(sample)
+      .set('Authorization', 'Bearer ' + token)
+      .set('host', 'localhost:80')
+      .expect(201)
+      .end((err, res) => {
+        setTimeout(() => {
+          request(cdnUrl)
+          .get('/test-domain-route/test.jpg')
+          .set('host', 'localhost:80')
+          .expect(200)
+          .end((err, res) => {
+            res.headers['content-type'].should.eql('image/png')
+
+            request(cdnUrl)
+            .get('/test-domain-recipe/test.jpg')
+            .set('host', 'testdomain.com:80')
+            .expect(404)
+            .end((err, res) => {
+              let routePath = path.resolve(
+                path.join(
+                  domainManager.getDomain('localhost').path,
+                  config.get('paths.routes', 'localhost'),
+                  'test-domain-route.json'
+                )
+              )
+
+              fs.remove(routePath).then(done)
+            })
+          })
+        }, 500)
       })
     })
   })

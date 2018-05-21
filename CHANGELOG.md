@@ -4,9 +4,65 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.0.0] - 2018-05-21
+
+Full public release of Release Candidate 4.
+
+### Breaking changes
+
+* The file upload function in CDN was recently removed. We came to the conclusion that CDN should remain a delivery tool - how a user gets their assets to their storage location for CDN to serve should be up to them. There are a great number of ways to do that, including via DADI API (see https://docs.dadi.tech/api/latest).
+
+## [3.0.0-RC4] - 2018-05-16
+
+### Added
+
+* [#346](https://github.com/dadi/cdn/pull/346): add basic GIF support
+* [#356](https://github.com/dadi/cdn/pull/356): add Digital Ocean Spaces support
+* [#360](https://github.com/dadi/cdn/pull/360) and [#363](https://github.com/dadi/cdn/pull/363): cache 404 responses using the `caching.cache404` config property
+
+### Changed
+
+* [#347](https://github.com/dadi/cdn/pull/347): gracefully handle case where domains directory does not exist
+* [#354](https://github.com/dadi/cdn/pull/354): include all image options in cache key
+* [#355](https://github.com/dadi/cdn/pull/355): return fallback image when remote server returns 404
+* [#357](https://github.com/dadi/cdn/pull/357): make config properties overridable at domain level
+* [#358](https://github.com/dadi/cdn/pull/358): update `@dadi/cache` to version 2.0.0
+* [#359](https://github.com/dadi/cdn/pull/359): update `supertest` to version 3.1.0
+* [#365](https://github.com/dadi/cdn/pull/365): update `babel-preset-minify` to version 0.4.3 
+
+## [3.0.0-RC3] - 2018-05-08
+
+### Changed
+
+* Allow `remote.enabled` to be overridden at domain level.
+
+## [3.0.0-RC2] - 2018-05-02
+
+### Changed
+
+* [#345](https://github.com/dadi/cdn/issues/345): stop requiring the existence of the domains directory if multi-domain is not enabled and handle it gracefully with an informative error message if it is enabled and the directory doesn't exist
+
+## [3.0.0-RC1] - 2018-04-24
+
+### Added
+
+* [#254](https://github.com/dadi/cdn/issues/313): ability to define full remote URLs at recipe level
+* [#313](https://github.com/dadi/cdn/issues/313): add config export
+* [#314](https://github.com/dadi/cdn/issues/314): allow controller plugins to set X-Cache header
+* [#326](https://github.com/dadi/cdn/pull/326): use domain as part of cache key
+* [#327](https://github.com/dadi/cdn/pull/327): return 404 if multi-domain is enabled and a request is made for a domain that is not configured
+* [#330](https://github.com/dadi/cdn/issues/331): add file monitors to domain-specific workspace directories
+* [#331](https://github.com/dadi/cdn/issues/331): make `/api/recipes` and `/api/routes` endpoints work with multiple domains
+* [#336](https://github.com/dadi/cdn/pull/336): flush cache by domain
+
+### Changed
+
+* [#324](https://github.com/dadi/cdn/issues/324): modify cache flush endpoint to match other products
+* [#329](https://github.com/dadi/cdn/pull/329): remove upload support
+
 ## [2.0.0] - 2018-03-13
 
-## Added
+### Added
 
 [Full release notes](https://github.com/dadi/cdn/releases/tag/v2.0.0)
 
@@ -16,7 +72,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 * [#259](https://github.com/dadi/cdn/issues/259) WebP image support
 * Simplified paths for non-image assets
 
-## Changed
+### Changed
 
 * [#255](https://github.com/dadi/cdn/issues/255): default value for the `resizeStyle` property is now `aspectfit`, except when an explicit ratio is defined (i.e. `width` and `height` or `ratio` are defined)
 * [#282](https://github.com/dadi/cdn/issues/282): deliver the fallback image even when crop is present
@@ -29,19 +85,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [1.13.3] - 2017-11-02
 
-## Changed
+### Changed
 
 * [#276](https://github.com/dadi/cdn/issues/276): ensure images can be processed with no sharpening
 
 ## [1.13.2] - 2017-10-25
 
-## Changed
+### Changed
 
 * fix an issue where the aspect ratio was not respected when maxWidth/maxHeight resizes were being made
 
 ## [1.13.1] - 2017-10-21
 
-## Changed
+### Changed
 
 * [#260](https://github.com/dadi/cdn/pulls/260): update [finalhandler](https://www.npmjs.com/package/finalhandler) to version 1.1.0
 * [#264](https://github.com/dadi/cdn/pulls/264): update [request](https://www.npmjs.com/package/request) to version 2.83.0
@@ -50,7 +106,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [1.13.0] - 2017-10-20
 
-## Changed
+### Changed
 
 * [#270](https://github.com/dadi/cdn/issues/270): cropping modifications to make it behave more intuitively. DevicePixelRatio is now respected, along with distorting images by providing both width & height. These changes only affect resize style `crop`. See the [documentation](https://docs.dadi.tech/#cdn) for more information.
 

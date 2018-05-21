@@ -150,7 +150,8 @@ describe('ImageHandler', function (done) {
     })
   })
 
-  it('should use HTTP Storage storage adapter when configured', function (done) {
+  it.skip('should use HTTP Storage storage adapter when configured', () => {
+    this.timeout(5000)
     var newTestConfig = JSON.parse(testConfigString)
     newTestConfig.caching.directory.enabled = false
     newTestConfig.caching.redis.enabled = false
@@ -200,7 +201,7 @@ describe('ImageHandler', function (done) {
 
     // this is the test
     var im = new imageHandler('jpg', req)
-    im.get().then(function (stream) {
+    return im.get().then(function (stream) {
       factory.create.restore()
       HTTPStorage.HTTPStorage.prototype.get.restore()
       imageHandler.ImageHandler.prototype.convert.restore()
@@ -210,8 +211,6 @@ describe('ImageHandler', function (done) {
 
       var returnValue = spy.firstCall.returnValue
       returnValue.getFullUrl().should.eql(expected)
-
-      done()
     })
   })
 

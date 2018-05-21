@@ -5,19 +5,18 @@ const fs = require('fs')
 const lengthStream = require('length-stream')
 const mime = require('mime')
 const path = require('path')
-const sha1 = require('sha1')
+const urlParser = require('url')
 const zlib = require('zlib')
 
 const config = require(path.join(__dirname, '/../../../config'))
 const help = require(path.join(__dirname, '/../help'))
 const logger = require('@dadi/logger')
 const HandlerFactory = require(path.join(__dirname, '/../handlers/factory'))
-const PostController = require(path.join(__dirname, '/post'))
 const RecipeController = require(path.join(__dirname, '/recipe'))
 const RouteController = require(path.join(__dirname, '/route'))
 const workspace = require(path.join(__dirname, '/../models/workspace'))
 
-logger.init(config.get('logging'), config.get('aws'), config.get('env'))
+logger.init(config.get('logging'), config.get('logging.aws'), config.get('env'))
 
 const Controller = function (router) {
   router.use(logger.requestLogger)
@@ -43,18 +42,18 @@ const Controller = function (router) {
     factory.create(req).then(handler => {
       return handler.get().then(stream => {
         this.addContentTypeHeader(res, handler)
-        this.addCacheControlHeader(res, handler)
+        this.addCacheControlHeader(res, handler, req.__domain)
         this.addLastModifiedHeader(res, handler)
 
         if (handler.storageHandler && handler.storageHandler.notFound) {
-          res.statusCode = config.get('notFound.statusCode') || 404
+          res.statusCode = config.get('notFound.statusCode', req.__domain) || 404
         }
 
         if (handler.storageHandler && handler.storageHandler.cleanUp) {
           handler.storageHandler.cleanUp()
         }
 
-        var contentLength = 0
+        let contentLength = 0
 
         // receive the concatenated buffer and send the response
         // unless the etag hasn't changed, then send 304 and end the response
@@ -62,11 +61,14 @@ const Controller = function (router) {
           res.setHeader('Content-Length', contentLength)
           res.setHeader('ETag', etag(buffer))
 
-          if (req.headers['if-none-match'] === etag(buffer) && handler.contentType() !== 'application/json') {
+          if (req.headers['if-none-match'] === etag(buffer) && handler.getContentType() !== 'application/json') {
             res.statusCode = 304
             res.end()
           } else {
-            res.setHeader('X-Cache', handler.isCached ? 'HIT' : 'MISS')
+            let cacheHeader = (handler.getHeader && handler.getHeader('x-cache')) ||
+              (handler.isCached ? 'HIT' : 'MISS')
+
+            res.setHeader('X-Cache', cacheHeader)
             res.end(buffer)
           }
         }
@@ -75,67 +77,80 @@ const Controller = function (router) {
           contentLength = length
         }
 
-        var concatStream = concat(sendBuffer)
+        let concatStream = concat(sendBuffer)
 
-        if (config.get('headers.useGzipCompression') && handler.contentType() !== 'application/json') {
+        if (
+          config.get('headers.useGzipCompression', req.__domain) &&
+          handler.getContentType() !== 'application/json'
+        ) {
           res.setHeader('Content-Encoding', 'gzip')
 
-          var gzipStream = stream.pipe(zlib.createGzip())
+          let gzipStream = stream.pipe(zlib.createGzip())
           gzipStream = gzipStream.pipe(lengthStream(lengthListener))
           gzipStream.pipe(concatStream)
         } else {
           stream.pipe(lengthStream(lengthListener)).pipe(concatStream)
         }
-      }).catch(function (err) {
+      }).catch(err => {
         logger.error({err: err})
+
+        res.setHeader('X-Cache', handler.isCached ? 'HIT' : 'MISS')
+
         help.sendBackJSON(err.statusCode || 400, err, res)
       })
-    }).catch(function (err) {
+    }).catch(err => {
       help.sendBackJSON(err.statusCode || 400, err, res)
     })
   })
 
   // Invalidation request
-  router.post('/api', function (req, res) {
-    if (req.body.invalidate) {
-      var invalidate = ''
-      if (req.body.invalidate && req.body.invalidate !== '*') {
-        invalidate = sha1(req.body.invalidate)
-      }
-
-      help.clearCache(invalidate, function (err) {
-        if (err) console.log(err)
-
-        if (config.get('cloudfront.enabled')) {
-          var cf = cloudfront.createClient(config.get('cloudfront.accessKey'), config.get('cloudfront.secretKey'))
-
-          cf.getDistribution(config.get('cloudfront.distribution'), function (err, distribution) {
-            if (err) console.log(err)
-
-            var callerReference = (new Date()).toString()
-
-            distribution.invalidate(callerReference, ['/' + req.body.invalidate], function (err, invalidation) {
-              if (err) console.log(err)
-
-              help.sendBackJSON(200, {
-                result: 'success',
-                message: 'Succeed to clear'
-              }, res)
-            })
-          })
-        } else {
-          help.sendBackJSON(200, {
-            result: 'success',
-            message: 'Succeed to clear'
-          }, res)
-        }
-      })
-    } else {
-      help.sendBackJSON(400, {
-        result: 'Failed',
-        message: "Please pass 'invalidate' path"
+  router.post('/api/flush', function (req, res) {
+    if (!req.body.pattern) {
+      return help.sendBackJSON(400, {
+        success: false,
+        message: "A 'pattern' must be specified"
       }, res)
     }
+
+    let pattern = [req.__domain]
+
+    if (req.body.pattern !== '*') {
+      let parsedUrl = urlParser.parse(req.body.pattern, true)
+
+      pattern = pattern.concat([
+        parsedUrl.pathname,
+        parsedUrl.search.slice(1)
+      ])
+    }
+
+    help.clearCache(pattern, (err) => {
+      if (err) console.log(err)
+
+      if (!config.get('cloudfront.enabled')) {
+        return help.sendBackJSON(200, {
+          success: true,
+          message: `Cache flushed for pattern "${req.body.pattern}"`
+        }, res)
+      }
+
+      // Invalidate the Cloudfront cache
+      let cf = cloudfront.createClient(config.get('cloudfront.accessKey'), config.get('cloudfront.secretKey'))
+
+      cf.getDistribution(config.get('cloudfront.distribution'), function (err, distribution) {
+        if (err) console.log(err)
+
+        let callerReference = (new Date()).toString()
+
+        distribution.invalidate(callerReference, ['/' + req.body.pattern], function (err, invalidation) {
+          if (err) console.log(err)
+
+          return help.sendBackJSON(200, {
+            success: true,
+            message: 'Cache and cloudfront flushed for pattern ' + req.body.pattern
+          }, res)
+        })
+      })
+    })
   })
 
   router.post('/api/recipes', function (req, res) {
@@ -145,19 +160,11 @@ const Controller = function (router) {
   router.post('/api/routes', function (req, res) {
     return RouteController.post(req, res)
   })
-
-  router.post('/api/upload', function (req, res, next) {
-    if (!config.get('upload.enabled')) {
-      return next()
-    }
-
-    return new PostController().post(req, res)
-  })
 }
 
 Controller.prototype.addContentTypeHeader = function (res, handler) {
-  if (handler.contentType()) {
-    res.setHeader('Content-Type', handler.contentType())
+  if (handler.getContentType()) {
+    res.setHeader('Content-Type', handler.getContentType())
   }
 }
 
@@ -170,13 +177,13 @@ Controller.prototype.addLastModifiedHeader = function (res, handler) {
   }
 }
 
-Controller.prototype.addCacheControlHeader = function (res, handler) {
-  var configHeaderSets = config.get('headers.cacheControl')
+Controller.prototype.addCacheControlHeader = function (res, handler, domain) {
+  let configHeaderSets = config.get('headers.cacheControl', domain)
 
   // If it matches, sets Cache-Control header using the file path
   configHeaderSets.paths.forEach(obj => {
-    var key = Object.keys(obj)[0]
-    var value = obj[key]
+    let key = Object.keys(obj)[0]
+    let value = obj[key]
 
     if (handler.storageHandler.getFullUrl().indexOf(key) > -1) {
       setHeader(value)
@@ -185,8 +192,8 @@ Controller.prototype.addCacheControlHeader = function (res, handler) {
 
   // If not already set, sets Cache-Control header using the file mimetype
   configHeaderSets.mimetypes.forEach(obj => {
-    var key = Object.keys(obj)[0]
-    var value = obj[key]
+    let key = Object.keys(obj)[0]
+    let value = obj[key]
 
     if (handler.getFilename && (mime.lookup(handler.getFilename()) === key)) {
       setHeader(value)

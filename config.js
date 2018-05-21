@@ -1,5 +1,9 @@
+const chokidar = require('chokidar')
 const convict = require('convict')
+const domainManager = require('./dadi/lib/models/domain-manager')
 const fs = require('fs')
+const logger = require('@dadi/logger')
+const objectPath = require('object-path')
 const path = require('path')
 
 // Define a schema
@@ -96,44 +100,47 @@ const schema = {
         format: Boolean,
         default: true
       }
-    }
-  },
-  aws: {
-    accessKeyId: {
-      doc: '',
-      format: String,
-      default: '',
-      env: 'AWS_ACCESS_KEY'
     },
-    secretAccessKey: {
-      doc: '',
-      format: String,
-      default: '',
-      env: 'AWS_SECRET_KEY'
-    },
-    region: {
-      doc: '',
-      format: String,
-      default: '',
-      env: 'AWS_REGION'
-    }
+    aws: {
+      accessKeyId: {
+        doc: 'Access key ID for AWS logging',
+        format: String,
+        default: '',
+        env: 'AWS_ACCESS_KEY'
+      },
+      secretAccessKey: {
+        doc: 'Secret access key for AWS logging',
+        format: String,
+        default: '',
+        env: 'AWS_SECRET_KEY'
+      },
+      region: {
+        doc: 'Region for AWS logging',
+        format: String,
+        default: '',
+        env: 'AWS_REGION'
+      }
+    }    
   },
   notFound: {
     statusCode: {
       doc: 'If set, overrides the status code in the case of a 404',
       format: Number,
-      default: 404
+      default: 404,
+      allowDomainOverride: true
     },
     images: {
       enabled: {
         doc: 'If true, returns a default image when request returns a 404',
         format: Boolean,
-        default: false
+        default: false,
+        allowDomainOverride: true
       },
       path: {
         doc: 'The path to the default image',
         format: String,
-        default: './images/missing.png'
+        default: './images/missing.png',
+        allowDomainOverride: true
       }
     }
   },
@@ -142,7 +149,8 @@ const schema = {
       enabled: {
         doc: 'If true, image files will be loaded from the filesystem',
         format: Boolean,
-        default: false
+        default: false,
+        allowDomainOverride: true
       },
       path: {
         doc: 'The path to the image directory',
@@ -152,50 +160,59 @@ const schema = {
     },
     s3: {
       enabled: {
-        doc: 'If true, image files will be requested from Amazon S3',
+        doc: 'If true, image files may be requested from Amazon S3 Buckets or Digital Ocean Spaces',
         format: Boolean,
         default: false
       },
       accessKey: {
-        doc: '',
+        doc: 'The access key used to connect to Amazon or Digital Ocean services for image files',
         format: String,
         default: '',
         env: 'AWS_S3_IMAGES_ACCESS_KEY'
       },
       secretKey: {
-        doc: '',
+        doc: 'The secret used to connect to Amazon or Digital Ocean services for image files',
         format: String,
         default: '',
         env: 'AWS_S3_IMAGES_SECRET_KEY'
       },
       bucketName: {
-        doc: '',
+        doc: 'The Amazon S3 Bucket or Digital Ocean Space that contains the image files',
         format: String,
         default: '',
         env: 'AWS_S3_IMAGES_BUCKET_NAME'
       },
       region: {
-        doc: '',
+        doc: 'The Amazon S3 or Digital Ocean region the Bucket/Space is served from',
         format: String,
         default: '',
         env: 'AWS_S3_IMAGES_REGION'
+      },
+      endpoint: {
+        doc: 'The endpoint used to access Digital Ocean Spaces. Not required for Amazon S3.',
+        format: String,
+        default: '',
+        env: 'AWS_S3_IMAGES_ENDPOINT'
       }
     },
     remote: {
       enabled: {
         doc: 'If true, image files will be requested from a remote host',
         format: Boolean,
-        default: false
+        default: false,
+        allowDomainOverride: true
       },
       path: {
         doc: 'The remote host to request images from, for example http://media.example.com',
         format: String,
-        default: ''
+        default: '',
+        allowDomainOverride: true
       },
       allowFullURL: {
         doc: 'If true, images can be loaded from any remote URL',
         format: Boolean,
-        default: true
+        default: true,
+        allowDomainOverride: true
       }
     }
   },
@@ -204,50 +221,58 @@ const schema = {
       enabled: {
         doc: 'If true, asset files will be loaded from the filesystem',
         format: Boolean,
-        default: false
+        default: false,
+        allowDomainOverride: true
       },
       path: {
-        doc: '',
+        doc: 'The remote host to request images from, for example http://media.example.com',
         format: String,
         default: './public'
       }
     },
     s3: {
       enabled: {
-        doc: 'If true, asset files will be requested from Amazon S3',
+        doc: 'If true, asset files may be requested from Amazon S3 Buckets or Digital Ocean Spaces',
         format: Boolean,
         default: false
       },
       accessKey: {
-        doc: '',
+        doc: 'The access key used to connect to Amazon or Digital Ocean services for asset files',
         format: String,
         default: '',
         env: 'AWS_S3_ASSETS_ACCESS_KEY'
       },
       secretKey: {
-        doc: '',
+        doc: 'The secret used to connect to Amazon or Digital Ocean services for asset files',
         format: String,
         default: '',
         env: 'AWS_S3_ASSETS_SECRET_KEY'
       },
       bucketName: {
-        doc: '',
+        doc: 'The Amazon S3 Bucket or Digital Ocean Space that contains the asset files',
         format: String,
         default: '',
         env: 'AWS_S3_ASSETS_BUCKET_NAME'
       },
       region: {
-        doc: '',
+        doc: 'The Amazon S3 or Digital Ocean region the Bucket/Space is served from',
         format: String,
         default: '',
         env: 'AWS_S3_ASSETS_REGION'
+      },
+      endpoint: {
+        doc: 'The endpoint used to access Digital Ocean Spaces. Not required for Amazon S3.',
+        format: String,
+        default: '',
+        env: 'AWS_S3_ASSETS_ENDPOINT'
       }
     },
     remote: {
       enabled: {
         doc: 'If true, asset files will be requested from a remote host',
         format: Boolean,
-        default: false
+        default: false,
+        allowDomainOverride: true
       },
       path: {
         doc: 'The remote host to request assets from, for example http://media.example.com',
@@ -257,10 +282,23 @@ const schema = {
     }
   },
   caching: {
+    expireAt: {
+      doc: 'Cron-style pattern specifying when the cache should be expired',
+      format: String,
+      default: null,
+      allowDomainOverride: true
+    },
     ttl: {
-      doc: '',
+      doc: 'Amount of time, in seconds, after which cached items should expire',
       format: Number,
-      default: 3600
+      default: 3600,
+      allowDomainOverride: true
+    },
+    cache404: {
+      doc: 'Whether to cache responses for requests that returned 404',
+      format: Boolean,
+      default: true,
+      allowDomainOverride: true
     },
     directory: {
       enabled: {
@@ -337,61 +375,71 @@ const schema = {
   },
   security: {
     maxWidth: {
-      doc: '',
+      doc: 'The maximum width, in pixels, for an output image',
       format: Number,
       default: 2048
     },
     maxHeight: {
-      doc: '',
+      doc: 'The maximum height, in pixels, for an output image',
       format: Number,
       default: 1024
     }
   },
   auth: {
     tokenUrl: {
-      doc: '',
+      doc: 'Endpoint for requesting bearer tokens',
       format: String,
       default: '/token'
     },
     clientId: {
-      doc: '',
+      doc: 'Client ID used to access protected endpoints',
       format: String,
       default: '1235488',
-      env: 'AUTH_TOKEN_ID'
+      env: 'AUTH_TOKEN_ID',
+      allowDomainOverride: true
     },
     secret: {
-      doc: '',
+      doc: 'Client secret used to access protected endpoints',
       format: String,
       default: 'asd544see68e52',
-      env: 'AUTH_TOKEN_SECRET'
+      env: 'AUTH_TOKEN_SECRET',
+      allowDomainOverride: true
     },
     tokenTtl: {
-      doc: '',
+      doc: 'Lifetime of bearer tokens (in seconds)',
       format: Number,
       default: 1800,
-      env: 'AUTH_TOKEN_TTL'
+      env: 'AUTH_TOKEN_TTL',
+      allowDomainOverride: true
+    },
+    privateKey: {
+      doc: 'Private key for signing JSON Web Tokens',
+      format: String,
+      env: 'AUTH_KEY',
+      default: 'YOU-MUST-CHANGE-ME-NOW!',
+      allowDomainOverride: true
     }
   },
   cloudfront: {
     enabled: {
-      doc: '',
+      doc: 'Enable Amazon CloudFront',
       format: Boolean,
       default: false
     },
     accessKey: {
-      doc: '',
+      doc: 'CloudFront access key',
       format: String,
       default: '',
       env: 'CLOUDFRONT_ACCESS_KEY'
     },
     secretKey: {
-      doc: '',
+      doc: 'CloudFront secret key',
       format: String,
       default: '',
       env: 'CLOUDFRONT_SECRET_KEY'
     },
     distribution: {
-      doc: '',
+      doc: 'Name of the CloudFront distribution to use',
       format: String,
       default: '',
       env: 'CLOUDFRONT_DISTRIBUTION'
@@ -403,25 +451,31 @@ const schema = {
     default: true
   },
   paths: {
-    doc: '',
-    format: Object,
-    default: {
-      plugins: __dirname + '/workspace/plugins',
-      processors: __dirname + '/workspace/processors',
-      recipes: __dirname + '/workspace/recipes',
-      routes: __dirname + '/workspace/routes'
+    plugins: {
+      doc: 'Path to plugins directory',
+      format: String,
+      default: 'workspace/plugins',
+      allowDomainOverride: true
+    },
+    recipes: {
+      doc: 'Path to recipes directory',
+      format: String,
+      default: 'workspace/recipes',
+      allowDomainOverride: true
+    },
+    routes: {
+      doc: 'Path to routes directory',
+      format: String,
+      default: 'workspace/routes',
+      allowDomainOverride: true
     }
-  },
-  gzip: {
-    doc: "If true, uses gzip compression and adds a 'Content-Encoding:gzip' header to the response",
-    format: Boolean,
-    default: true
   },
   headers: {
     useGzipCompression: {
-      doc: "If true, uses gzip compression and adds a 'Content-Encoding:gzip' header to the response.",
+      doc: 'If true, uses gzip compression and adds a \'Content-Encoding:gzip\' header to the response.',
       format: Boolean,
-      default: true
+      default: true,
+      allowDomainOverride: true
     },
     cacheControl: {
       doc: 'A set of cache control headers based on specified mimetypes or paths',
@@ -434,35 +488,9 @@ const schema = {
           {'text/javascript': 'public, max-age=86400'},
           {'application/javascript': 'public, max-age=86400'}
         ]
-      }
+      },
+      allowDomainOverride: true
     }
-  },
-  upload: {
-    enabled: {
-      doc: 'If true, files can be uploaded to CDN with a POST request',
-      format: Boolean,
-      default: false
-    },
-    requireAuthentication: {
-      doc: 'If true, POST requests must include the authentication credentials specified in the `auth` property of the configuration file',
-      format: Boolean,
-      default: true
-    },
-    extractColours: {
-      doc: 'If true, extracts colour information from the uploaded image and returns as JSON along with the file upload result',
-      format: Boolean,
-      default: true
-    },
-    pathFormat: {
-      doc: 'Determines the format for subdirectories that are created to store uploads',
-      format: ['none', 'date', 'datetime', 'sha1/4', 'sha1/5', 'sha1/8'],
-      default: 'date'
-    }
-  },
-  feedback: {
-    doc: '',
-    format: Boolean,
-    default: false
   },
   robots: {
     doc: 'The path to a robots.txt file',
@@ -574,27 +602,195 @@ const schema = {
       doc: 'Whether to enable experimental support for on-demand JavaScript transpiling',
       format: Boolean,
       default: false,
-      env: 'JSTRANSPILING'
+      env: 'JSTRANSPILING',
+      allowDomainOverride: true
+    }
+  },
+  multiDomain: {
+    directory: {
+      doc: 'Path to domains directory',
+      format: 'String',
+      default: 'domains'
+    },
+    enabled: {
+      doc: 'Enable multi-domain configuration for this CDN instance',
+      format: Boolean,
+      default: false
+    }
+  },
+  http: {
+    followRedirects: {
+      doc: 'The number of redirects to follow when retrieving assets via HTTP requests',
+      format: Number,
+      default: 10,
+      allowDomainOverride: true
     }
   }
 }
-const conf = convict(schema)
 
-// Load environment dependent configuration
-const env = conf.get('env')
-conf.loadFile('./config/config.' + env + '.json')
+const Config = function () {
+  this.loadFile(this.configPath())
 
-// Update Config JSON file by domain name
-conf.updateConfigDataForDomain = function (domain) {
-  if (fs.existsSync(path.resolve(__dirname + '/workspace/domain-loader/' + domain + '.config.' + env + '.json'))) {
-    conf.loadFile(__dirname + '/workspace/domain-loader/' + domain + '.config.' + env + '.json')
+  this.watcher = chokidar.watch(
+    this.configPath(),
+    {usePolling: true}
+  ).on('all', (event, filePath) => {
+    this.loadFile(this.configPath())
+  })
+
+  this.domainSchema = {}
+  this.createDomainSchema(schema, this.domainSchema)
+
+  this.loadDomainConfigs()
+}
+
+Config.prototype = convict(schema)
+
+/**
+ * Retrieves the full path for the configuration file associated
+ * with the current environment,
+ *
+ * @return {String}
+ */
+Config.prototype.configPath = function () {
+  let environment = this.get('env')
+
+  return `./config/config.${environment}.json`
+}
+
+/**
+ * Creates a Convict schema for domains, including only the properties
+ * that can be overridden at domain level, as well as the default values
+ * obtained from the main config.
+ *
+ * @param  {Object} schema - main schema
+ * @param  {Object} target - variable to write the schema to
+ * @param  {Array}  tail   - helper variable for recursion
+ */
+Config.prototype.createDomainSchema = function (schema, target, tail = []) {
+  if (!schema || typeof schema !== 'object') return
+
+  if (schema.allowDomainOverride) {
+    let path = tail.join('.')
+
+    objectPath.set(
+      target,
+      path,
+      Object.assign({}, schema, {
+        default: this.get(path)
+      })
+    )
+
+    return
   }
+
+  Object.keys(schema).forEach(key => {
+    this.createDomainSchema(
+      schema[key],
+      target,
+      tail.concat(key)
+    )
+  })
 }
 
-module.exports = conf
+/**
+ * A reference to the original `get` method from convict.
+ *
+ * @type {Function}
+ */
+Config.prototype._get = Config.prototype.get
 
-module.exports.configPath = function () {
-  return './config/config.' + conf.get('env') + '.json'
+/**
+ * Gets a configuration value for a domain if the property can
+ * be defined at domain level *and* a domain name is supplied.
+ * Otherwise, behaves as the native `get` method from Convict.
+ *
+ * @param  {String} path   - config property
+ * @param  {String} domain - domain name
+ * @return {Object}
+ */
+Config.prototype.get = function (path, domain) {
+  if (
+    domain === undefined ||
+    this.domainConfigs[domain] === undefined ||
+    !objectPath.get(schema, `${path}.allowDomainOverride`)
+  ) {
+    return this._get(path)
+  }
+
+  return this.domainConfigs[domain].get(path)
 }
 
+/**
+ * Builds a hash map with a Convict instance for each configured
+ * domain.
+ *
+ * @return {Object}
+ */
+Config.prototype.loadDomainConfigs = function () {
+  if (!this.get('multiDomain.enabled')) {
+    return {}
+  }
+
+  let configs = {}
+  let domainsDirectory = this.get('multiDomain.directory')
+
+  domainManager
+    .scanDomains(domainsDirectory)
+    .getDomains().forEach(({domain, path: domainPath}) => {
+      let configPath = path.join(
+        domainPath,
+        `config/config.${this.get('env')}.json`
+      )
+
+      try {
+        let file = fs.statSync(configPath)
+
+        if (file.isFile()) {
+          configs[domain] = convict(this.domainSchema)
+          configs[domain].loadFile(configPath)
+        }
+      } catch (err) {
+        logger.info(
+          {module: 'config'},
+          `'${this.get('env')}' config not found for domain ${domain}`
+        )
+      }
+    })
+
+  this.domainConfigs = configs
+
+  return configs
+}
+
+/**
+ * A reference to the original `set` method from convict.
+ *
+ * @type {Function}
+ */
+Config.prototype._set = Config.prototype.set
+
+/**
+ * Sets a configuration value for a given domain name, if one
+ * is specified. If not, the method behaves like the original
+ * `set` method from Convict.
+ *
+ * @param {String} path
+ * @param {Object} value
+ * @param {String} domain
+ */
+Config.prototype.set = function (path, value, domain) {
+  if (
+    domain === undefined ||
+    this.domainConfigs[domain] === undefined ||
+    !objectPath.get(schema, `${path}.allowDomainOverride`)
+  ) {
+    return this._set(path, value)
+  }
+
+  return this.domainConfigs[domain].set(path, value)
+}
+
+module.exports = new Config()
+module.exports.Config = Config
 module.exports.schema = schema

@@ -1,27 +1,10 @@
-var path = require('path')
-var streamLength = require('stream-length')
-
-var config = require(path.resolve(path.join(__dirname, '/../../config')))
-var cache = require(path.join(__dirname, '/cache'))
+const path = require('path')
+const cache = require(path.join(__dirname, '/cache'))
 
 module.exports.clearCache = function (pathname, callback) {
-  cache.delete(pathname, function (err) {
+  cache().delete(pathname, (err) => {
     if (err) console.log(err)
     return callback(null)
-  })
-}
-
-module.exports.contentLength = function (stream) {
-  return new Promise(function (resolve, reject) {
-    Promise.try(function () {
-      return streamLength(stream)
-    })
-      .then(function (result) {
-        resolve(result)
-      })
-      .catch(function (err) {
-        reject(err)
-      })
   })
 }
 
@@ -29,28 +12,21 @@ module.exports.contentLength = function (stream) {
 module.exports.sendBackJSON = function (successCode, results, res) {
   res.statusCode = successCode
 
-  var resBody = JSON.stringify(results)
-  if (results instanceof Error && resBody === '{}') {
-    resBody = JSON.stringify({ message: results.message || 'unknown error' })
+  let resBody
+
+  if (results instanceof Error) {
+    res.statusCode = results.statusCode || successCode || 500
+
+    resBody = JSON.stringify({
+      message: results.message || 'unknown error',
+      statusCode: res.statusCode,
+      success: false
+    })
+  } else {
+    resBody = JSON.stringify(results)
   }
 
-  res.setHeader('Server', config.get('server.name'))
   res.setHeader('Content-Type', 'application/json')
-  res.setHeader('Content-Length', Buffer.byteLength(resBody))
-  res.end(resBody)
-}
-
-module.exports.sendBackJSONP = function (callbackName, results, res) {
-  // callback MUST be made up of letters only
-  if (!callbackName.match(/^[a-zA-Z]+$/)) return res.send(400)
-
-  res.statusCode = 200
-
-  var resBody = JSON.stringify(results)
-  resBody = callbackName + '(' + resBody + ');'
-
-  res.setHeader('Server', config.get('server.name'))
-  res.setHeader('Content-Type', 'text/javascript')
   res.setHeader('Content-Length', Buffer.byteLength(resBody))
   res.end(resBody)
 }
@@ -64,7 +40,7 @@ module.exports.displayUnauthorizedError = function (res) {
   res.setHeader('Content-Type', 'application/json')
   res.setHeader('Expires', '-1')
 
-  var errorMsg = {
+  let errorMsg = {
     Error: 'HTTP 401 Unauthorized'
   }
 

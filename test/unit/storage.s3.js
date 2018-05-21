@@ -51,7 +51,10 @@ describe('Storage', function (done) {
       }
 
       var settings = config.get('images')
-      var s3Storage = new S3Storage(settings.s3, req.url)
+      var s3Storage = new S3Storage({
+        assetType: 'images',
+        url: req.url
+      })
 
       s3Storage.getBucket().should.eql(settings.s3.bucketName)
     })
@@ -132,7 +135,10 @@ describe('Storage', function (done) {
       }
 
       var settings = config.get('images')
-      var s3Storage = new S3Storage(settings.s3, req.url)
+      var s3Storage = new S3Storage({
+        assetType: 'images',
+        url: req.url
+      })
 
       s3Storage.getBucket().should.eql('testBucket')
     })
@@ -151,7 +157,10 @@ describe('Storage', function (done) {
       }
 
       var settings = config.get('images')
-      var s3Storage = new S3Storage(settings.s3, req.url)
+      var s3Storage = new S3Storage({
+        assetType: 'images',
+        url: req.url
+      })
 
       s3Storage.getKey().should.eql('test.jpg')
     })

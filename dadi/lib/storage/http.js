@@ -1,46 +1,29 @@
 'use strict'
 
-const fs = require('fs')
-const mkdirp = require('mkdirp')
+const config = require('./../../../config')
+const http = require('http')
+const https = require('https')
+const PassThrough = require('stream').PassThrough
 const path = require('path')
-const sha1 = require('sha1')
+const url = require('url')
 const urljoin = require('url-join')
-const wget = require('wget-improved')
+const Missing = require(path.join(__dirname, '/missing'))
 
-const tmpDirectory = path.resolve(path.join(__dirname, '/../../../workspace/_tmp'))
-
-mkdirp(tmpDirectory, (err, made) => {
-  if (err) {
-    console.log(err)
-  }
-})
-
-const HTTPStorage = function (settings, url) {
-  const isExternalURL = url.indexOf('http:') === 0 ||
+const HTTPStorage = function ({assetType = 'assets', domain, url}) {
+  let isExternalURL = url.indexOf('http:') === 0 ||
     url.indexOf('https:') === 0
+  let remoteAddress = config.get(`${assetType}.remote.path`, domain)
 
-  if (!isExternalURL && settings && !settings.path) {
-    throw new Error('Remote address not specified')
-  }
-
-  this.url = url
-
-  if (settings && !isExternalURL) {
-    this.baseUrl = settings.path
-  }
-}
-
-/**
- * Removes the temporary file downloaded from the remote server
- */
-HTTPStorage.prototype.cleanUp = function () {
-  if (this.tmpFile) {
-    try {
-      fs.unlinkSync(this.tmpFile)
-    } catch (err) {
-      console.log(err)
+  if (!isExternalURL) {
+    if (!remoteAddress) {
+      throw new Error('Remote address not specified')
     }
+
+    this.baseUrl = remoteAddress
   }
+
+  this.domain = domain
+  this.url = url
 }
 
 HTTPStorage.prototype.getFullUrl = function () {
@@ -51,38 +34,94 @@ HTTPStorage.prototype.getFullUrl = function () {
   }
 }
 
-HTTPStorage.prototype.get = function () {
-  return new Promise((resolve, reject) => {
-    this.tmpFile = path.join(tmpDirectory, sha1(this.url) + '-' + Date.now() + path.extname(this.url))
+HTTPStorage.prototype.get = function ({
+  redirects = 0,
+  requestUrl = this.getFullUrl()
+} = {}) {
+  let outputStream = PassThrough()
 
-    const options = {
+  return new Promise((resolve, reject) => {
+    let parsedUrl = url.parse(requestUrl)
+    let requestFn = parsedUrl.protocol === 'https:'
+      ? https
+      : http
+
+    requestFn.get({
+      protocol: parsedUrl.protocol,
+      hostname: parsedUrl.hostname,
+      path: parsedUrl.path,
+      port: parsedUrl.port,
       headers: {
         'User-Agent': 'DADI CDN'
       }
-    }
+    }, res => {
+      if (res.statusCode === 200) {
+        res.pipe(outputStream)
 
-    const download = wget.download(this.getFullUrl(), this.tmpFile, options)
+        return resolve(outputStream)
+      }
 
-    download.on('error', (error) => {
-      let err = {}
+      let statusCode = res.statusCode
 
-      if (typeof error === 'string') {
-        if (error.indexOf('404') > -1) {
-          err.statusCode = '404'
-          err.message = 'Not Found: ' + this.getFullUrl()
-        } else if (error.indexOf('403') > -1) {
-          err.statusCode = '403'
-          err.message = 'Forbidden: ' + this.getFullUrl()
+      if (
+        [301, 302, 307].includes(res.statusCode) &&
+        typeof res.headers.location === 'string'
+      ) {
+        let parsedRedirectUrl = url.parse(res.headers.location)
+
+        parsedRedirectUrl.host = parsedRedirectUrl.host || parsedUrl.host
+        parsedRedirectUrl.port = parsedRedirectUrl.port || parsedUrl.port
+        parsedRedirectUrl.protocol = parsedRedirectUrl.protocol || parsedUrl.protocol
+
+        if (redirects < config.get('http.followRedirects', this.domain)) {
+          return resolve(
+            this.get({
+              redirects: redirects + 1,
+              requestUrl: url.format(parsedRedirectUrl)
+            })
+          )
         }
 
-        return reject(err)
-      } else {
-        return reject(error)
+        // We've hit the maximum number of redirects allowed, so we'll
+        // treat this as a 404.
+        statusCode = 404
       }
-    })
 
-    download.on('end', (output) => {
-      return resolve(fs.createReadStream(this.tmpFile))
+      let httpError
+
+      switch (statusCode) {
+        case 404:
+          httpError = new Error(`Not Found: ${this.getFullUrl()}`)
+
+          break
+
+        case 403:
+          httpError = new Error(`Forbidden: ${this.getFullUrl()}`)
+
+          break
+
+        default:
+          httpError = new Error(`Remote server responded with error code ${statusCode} for URL: ${this.getFullUrl()}`)
+
+          break
+      }
+
+      httpError.statusCode = statusCode
+
+      if (statusCode === 404) {
+        new Missing().get({
+          domain: this.domain
+        }).then(stream => {
+          this.notFound = true
+          this.lastModified = new Date()
+
+          resolve(stream)
+        }).catch(() => {
+          reject(httpError)
+        })
+      } else {
+        reject(httpError)
+      }
     })
   })
 }
