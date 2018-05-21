@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.0.0] - 2018-05-21
+
+Full public release of Release Candidate 4.
+
+### Breaking changes
+
+* The file upload function in CDN was recently removed. We came to the conclusion that CDN should remain a delivery tool - how a user gets their assets to their storage location for CDN to serve should be up to them. There are a great number of ways to do that, including via DADI API (see https://docs.dadi.tech/api/latest).
+
 ## [3.0.0-RC4] - 2018-05-16
 
 ### Added
