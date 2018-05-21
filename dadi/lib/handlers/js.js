@@ -46,7 +46,7 @@ const JSHandler = function (format, req, {
  */
 JSHandler.prototype.get = function () {
   if (this.isTransformEnabled()) {
-    this.cacheKey += this.getBabelPluginsHash()
+    this.cacheKey.push(this.getBabelPluginsHash())
   }
 
   return this.cache.getStream(this.cacheKey, {
