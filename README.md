@@ -130,7 +130,7 @@ http://127.0.0.1:8001/92875.jpg
 DADI is a data centric development and delivery stack, built specifically in support of the principles of API first and COPE.
 
 Copyright notice<br />
-(C) 2018 DADI+ Limited <support@dadi.tech><br />
+(C) 2018 DADI+ Limited <support@dadi.cloud><br />
 All rights reserved
 
 This product is part of DADI.<br />
