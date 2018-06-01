@@ -242,6 +242,14 @@
     {
       "image": "measure1.png",
       "params": {
+        "width": 250,
+        "dpr": 3
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?width=250&dpr=3.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
         "format": "gif"
       },
       "baselineFilename": "images/visual/baseline/measure1.gif"
