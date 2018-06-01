@@ -762,7 +762,9 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
   // Default values fot resize style
   if (!options.resizeStyle) {
     if (options.width && options.height) {
-      options.resizeStyle = 'entropy'
+      options.resizeStyle = options.gravity
+        ? 'aspectfill'
+        : 'entropy'
     } else {
       options.resizeStyle = 'aspectfit'
     }
