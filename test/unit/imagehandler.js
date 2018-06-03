@@ -34,7 +34,7 @@ describe('ImageHandler', function (done) {
     }, 1000)
   })
 
-  it('should use Disk Storage storage adapter when nothing else is configured', function (done) {
+  it('should use Disk Storage adapter when nothing else is configured', function (done) {
     var newTestConfig = JSON.parse(testConfigString)
     newTestConfig.caching.directory.enabled = false
     newTestConfig.caching.redis.enabled = false
@@ -92,7 +92,7 @@ describe('ImageHandler', function (done) {
     })
   })
 
-  it('should use Disk Storage storage adapter when configured', function (done) {
+  it('should use Disk Storage adapter when configured', function (done) {
     var newTestConfig = JSON.parse(testConfigString)
     newTestConfig.caching.directory.enabled = false
     newTestConfig.caching.redis.enabled = false
@@ -150,7 +150,7 @@ describe('ImageHandler', function (done) {
     })
   })
 
-  it.skip('should use HTTP Storage storage adapter when configured', () => {
+  it('should use HTTP Storage adapter when configured', () => {
     this.timeout(5000)
     var newTestConfig = JSON.parse(testConfigString)
     newTestConfig.caching.directory.enabled = false
@@ -168,9 +168,9 @@ describe('ImageHandler', function (done) {
     var spy = sinon.spy(factory, 'create')
 
     var req = {
-      __cdnLegacyURLSyntax: true,
+      __cdnLegacyURLSyntax: false,
       headers: {},
-      url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/static/images/logos/nodejs-new-white-pantone.png'
+      url: 'static/images/logos/nodejs-new-white-pantone.png'
     }
 
     // set some expected values
@@ -182,10 +182,10 @@ describe('ImageHandler', function (done) {
         var s = new stream.PassThrough()
 
         request
-        .get(expected)
-        .on('response', response => {})
-        .on('error', err => {})
-        .pipe(s)
+          .get(expected)
+          .on('response', response => {})
+          .on('error', err => {})
+          .pipe(s)
         resolve(s)
       })
     })
@@ -214,7 +214,7 @@ describe('ImageHandler', function (done) {
     })
   })
 
-  it('should use S3 Storage storage adapter when configured', function (done) {
+  it('should use S3 Storage adapter when configured', function (done) {
     var newTestConfig = JSON.parse(testConfigString)
     newTestConfig.caching.directory.enabled = false
     newTestConfig.caching.redis.enabled = false

@@ -1,10 +1,12 @@
 const cloudfront = require('cloudfront')
+const compressible = require('compressible')
 const concat = require('concat-stream')
 const etag = require('etag')
 const fs = require('fs')
 const lengthStream = require('length-stream')
 const mime = require('mime')
 const path = require('path')
+const seek = require('./seek')
 const urlParser = require('url')
 const zlib = require('zlib')
 
@@ -20,6 +22,8 @@ logger.init(config.get('logging'), config.get('logging.aws'), config.get('env'))
 
 const Controller = function (router) {
   router.use(logger.requestLogger)
+
+  router.use(seek)
 
   router.get('/robots.txt', (req, res) => {
     const robotsFile = config.get('robots')
@@ -61,7 +65,9 @@ const Controller = function (router) {
           res.setHeader('Content-Length', contentLength)
           res.setHeader('ETag', etag(buffer))
 
-          if (req.headers['if-none-match'] === etag(buffer) && handler.getContentType() !== 'application/json') {
+          if (req.headers.range) {
+            res.sendSeekable(buffer)
+          } else if (req.headers['if-none-match'] === etag(buffer) && handler.getContentType() !== 'application/json') {
             res.statusCode = 304
             res.end()
           } else {
@@ -79,7 +85,12 @@ const Controller = function (router) {
 
         let concatStream = concat(sendBuffer)
 
+        let shouldCompress =
+          req.headers['accept-encoding'] === 'gzip' &&
+          compressible(handler.getContentType())
+
         if (
+          shouldCompress &&
           config.get('headers.useGzipCompression', req.__domain) &&
           handler.getContentType() !== 'application/json'
         ) {
