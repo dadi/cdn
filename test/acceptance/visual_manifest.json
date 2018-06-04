@@ -242,6 +242,23 @@
     {
       "image": "measure1.png",
       "params": {
+        "width": 250,
+        "height": 150,
+        "gravity": "southwest"
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?width=250&height=150&gravity=southwest.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
+        "width": 250,
+        "dpr": 3
+      },
+      "baselineFilename": "images/visual/baseline/measure.png?width=250&dpr=3.png"
+    },
+    {
+      "image": "measure1.png",
+      "params": {
         "format": "gif"
       },
       "baselineFilename": "images/visual/baseline/measure1.gif"

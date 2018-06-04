@@ -576,8 +576,7 @@ ImageHandler.prototype.getDimensions = function (options, imageInfo) {
     height: imageInfo.naturalHeight
   }
   let ratio = imageInfo.naturalHeight / imageInfo.naturalWidth
-
-  const ratioOverride = Boolean(options.ratio) && options.ratio.match(/^(\d+)-(\d+)$/)
+  let ratioOverride = Boolean(options.ratio) && options.ratio.match(/^(\d+)-(\d+)$/)
 
   // Is there an explicit ratio defined?
   if (ratioOverride) {
@@ -612,6 +611,11 @@ ImageHandler.prototype.getDimensions = function (options, imageInfo) {
   // Ensuring dimensions are within security bounds.
   dimensions.width = Math.min(dimensions.width, config.get('security.maxWidth'))
   dimensions.height = Math.min(dimensions.height, config.get('security.maxHeight'))
+
+  if (options.devicePixelRatio && options.devicePixelRatio < 4) {
+    dimensions.width = dimensions.width * options.devicePixelRatio
+    dimensions.height = dimensions.height * options.devicePixelRatio
+  }
 
   return dimensions
 }
@@ -758,7 +762,9 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
   // Default values fot resize style
   if (!options.resizeStyle) {
     if (options.width && options.height) {
-      options.resizeStyle = 'entropy'
+      options.resizeStyle = options.gravity
+        ? 'aspectfill'
+        : 'entropy'
     } else {
       options.resizeStyle = 'aspectfit'
     }
