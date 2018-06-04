@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.0.1] - 2018-06-04
+
+### Changed
+
+* [#369](https://github.com/dadi/cdn/pull/369): fix issue where `devicePixelRatio` was ignored when a resize style other than `crop` was used; change default resize style to `aspectfill` when `width`, `height` and `gravity` are supplied.
+
 ## [3.0.0] - 2018-05-21
 
 Full public release of Release Candidate 4.
