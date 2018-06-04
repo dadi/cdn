@@ -1,3 +1,6 @@
+coverage/*
 domains/
+images/*
 public/
 test/
+workspace/_tmp/*
