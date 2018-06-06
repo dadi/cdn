@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.0.3] - 2018-06-06
+
+### Changed
+
+* [#372](https://github.com/dadi/cdn/pull/372): add proper support for range requests, enabling seekable content such as audio and video to be served correctly.
+
 ## [3.0.2] - 2018-06-04
 
 ### Changed
