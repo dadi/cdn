@@ -1,6 +1,8 @@
-coverage/*
+coverage/
 domains/
-images/*
+images/
 public/
 test/
-workspace/_tmp/*
+workspace/_tmp/
+log/
+cache/

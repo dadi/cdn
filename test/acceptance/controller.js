@@ -425,7 +425,7 @@ describe('Controller', function () {
           .get('/test-es6.js?transform=1')
           .set('User-Agent', 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0; Trident/5.0)')
           .expect(200, (err, res) => {
-            res.text.should.eql(transpiledJs)  
+            res.text.should.eql(transpiledJs)
             config.set('experimental.jsTranspiling', configBackup.experimental.jsTranspiling)
 
             done()
@@ -494,6 +494,62 @@ describe('Controller', function () {
             })
         })
       })
+    })
+  })
+
+  describe('Video', function () {
+    it('should respond with 206 Partial Content if uri is valid', function (done) {
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.images.directory.enabled = true
+      newTestConfig.images.directory.path = './test/images'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+      config.loadFile(config.configPath())
+
+      var client = request(cdnUrl)
+      client
+        .get('/video.mp4')
+        .set('Range', 'bytes=0-')
+        .end((err, res) => {
+          res.statusCode.should.eql(206)
+          done()
+        })
+    })
+
+    it('should respond with 416 if range header is invalid', function (done) {
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.images.directory.enabled = true
+      newTestConfig.images.directory.path = './test/images'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+      config.loadFile(config.configPath())
+
+      var client = request(cdnUrl)
+      client
+        .get('/video.mp4')
+        .set('Range', 'bytes=a')
+        .end((err, res) => {
+          res.statusCode.should.eql(416)
+          done()
+        })
+    })
+
+    it('should respond with 400 if range header is malformed', function (done) {
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.images.directory.enabled = true
+      newTestConfig.images.directory.path = './test/images'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+      config.loadFile(config.configPath())
+
+      var client = request(cdnUrl)
+      client
+        .get('/video.mp4')
+        .set('Range', 'bytes')
+        .end((err, res) => {
+          res.statusCode.should.eql(400)
+          done()
+        })
     })
   })
 
@@ -796,7 +852,7 @@ describe('Controller', function () {
         })
     })
 
-    describe('gzip encoding', () => {
+    describe.skip('gzip encoding', () => {
       it('should return gzipped content when headers.useGzipCompression is true', done => {
         config.set('headers.useGzipCompression', false)
 
@@ -982,7 +1038,7 @@ describe('Controller', function () {
           })
         })
       })
-    })    
+    })
 
     describe('Remote images', () => {
       beforeEach(() => {
@@ -1256,7 +1312,7 @@ describe('Controller', function () {
 
               done()
             })
-        })        
+        })
       })
 
       describe('placeholder image is enabled', () => {
