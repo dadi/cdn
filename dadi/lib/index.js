@@ -116,11 +116,8 @@ Server.prototype.create = function (listener) {
  * Handler function for when the server is listening for requests.
  */
 Server.prototype.onListening = function () {
-  let address = this.address()
-  let env = config.get('env')
-
   /* istanbul ignore next */
-  if (env !== 'test') {
+  if (config.get('env') !== 'test') {
     dadiBoot.started({
       server: `${config.get('server.protocol')}://${config.get(
         'server.host'
@@ -136,7 +133,7 @@ Server.prototype.onListening = function () {
       },
       footer: {}
     })
-   }
+  }
 }
 
 /**
