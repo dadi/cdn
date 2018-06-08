@@ -7,7 +7,55 @@ var clientHost = 'http://' + config.get('server.host') + ':' + config.get('serve
 var secureClientHost = 'https://' + config.get('server.host') + ':' + config.get('server.port')
 
 var client = request(clientHost)
-var secureClient = request(secureClientHost)
+var secureClient = allowHTTP1(secureClientHost)
+
+describe('http2', () => {
+  before((done) => {
+    // avoid [Error: self signed certificate] code: 'DEPTH_ZERO_SELF_SIGNED_CERT'
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+    done()
+  })
+
+  beforeEach((done) => {
+    delete require.cache[require.resolve(__dirname + '/../../dadi/lib/')]
+    app = require(__dirname + '/../../dadi/lib/')
+
+    done()
+  })
+
+  afterEach((done) => {
+    config.set('server.protocol', 'http')
+    config.set('server.redirectPort', '')
+    config.set('server.sslPassphrase', '')
+    config.set('server.sslPrivateKeyPath', '')
+    config.set('server.sslCertificatePath', '')
+
+    // try and close the server, unless it's crashed (as with SSL errors)
+    try {
+      app.stop(done)
+    } catch (ex) {
+      done()
+    }
+  })
+
+  it('should respond to a http1 request even if http2 is enabled', (done) => {
+    config.set('server.protocol', 'http2')
+    config.set('server.sslPrivateKeyPath', 'test/ssl/unprotected/key.pem')
+    config.set('server.sslCertificatePath', 'test/ssl/unprotected/cert.pem')
+
+    app.start(function (err) {
+      if (err) return done(err)
+
+      secureClient
+        .get('/')
+        .end((err, res) => {
+          if (err) throw err
+          res.statusCode.should.eql(200)
+          done()
+        })
+    })
+  })
+})
 
 describe('SSL', () => {
   before((done) => {
@@ -67,24 +115,6 @@ describe('SSL', () => {
         .expect(301)
         .end((err, res) => {
           if (err) return done(err)
-          done()
-        })
-    })
-  })
-
-  it('should respond to a https request when using unprotected ssl key without a passphrase', (done) => {
-    config.set('server.protocol', 'https')
-    config.set('server.sslPrivateKeyPath', 'test/ssl/unprotected/key.pem')
-    config.set('server.sslCertificatePath', 'test/ssl/unprotected/cert.pem')
-
-    app.start(function (err) {
-      if (err) return done(err)
-
-      secureClient
-        .get('/')
-        .end((err, res) => {
-          if (err) throw err
-          res.statusCode.should.eql(200)
           done()
         })
     })
