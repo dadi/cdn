@@ -96,6 +96,7 @@ Server.prototype.create = function (listener) {
     // such as incorrect passphrase or no passphrase provided.
     try {
       if (protocol === 'http2') {
+        serverOptions['allowHTTP1'] = true // fallback to http1
         return http2.createSecureServer(serverOptions, listener)
       } else {
         return https.createServer(serverOptions, listener)
