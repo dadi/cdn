@@ -218,12 +218,7 @@ Controller.prototype.addCacheControlHeader = function (res, handler, domain) {
     if (!value || (value.length === 0)) return
 
     // already set
-    if (
-      (res._headers && res._headers['cache-control']) ||
-      (res.headers && res.headers['cache-control'])
-    ) {
-      return
-    }
+    if (res.getHeader('cache-control')) return
 
     // set the header
     res.setHeader('Cache-Control', value)
