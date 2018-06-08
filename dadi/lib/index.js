@@ -95,7 +95,7 @@ Server.prototype.create = function (listener) {
     // We need to catch any errors resulting from bad parameters,
     // such as incorrect passphrase or no passphrase provided.
     try {
-      if (config.get('server.enableHttp2')) {
+      if (config.get('server.enableHTTP2')) {
         serverOptions['allowHTTP1'] = true // fallback to http1
         return http2.createSecureServer(serverOptions, listener)
       } else {

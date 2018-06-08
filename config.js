@@ -67,7 +67,7 @@ const schema = {
       default: [],
       env: 'SSL_INTERMEDIATE_CERTIFICATE_PATHS'
     },
-    enableHttp2: {
+    enableHTTP2: {
       doc: 'When `server.protocol = https` use http2 as the primary response method. Fallback to http1 for unsupported clients.',
       format: Boolean,
       default: true
