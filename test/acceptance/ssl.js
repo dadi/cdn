@@ -39,7 +39,7 @@ describe('http2', () => {
   })
 
   it('should respond to a http1 request even if http2 is enabled', (done) => {
-    config.set('server.protocol', 'http2')
+    config.set('server.protocol', 'https')
     config.set('server.sslPrivateKeyPath', 'test/ssl/unprotected/key.pem')
     config.set('server.sslCertificatePath', 'test/ssl/unprotected/cert.pem')
 
@@ -50,7 +50,14 @@ describe('http2', () => {
         .get('/')
         .end((err, res) => {
           if (err) throw err
+
           res.statusCode.should.eql(200)
+
+          // We're assuming here that the 'supertest' module doesn't support http2
+          // If they ever add it this test might need to be changed!
+
+          res.httpVersion.should.eql(1)  
+          
           done()
         })
     })
