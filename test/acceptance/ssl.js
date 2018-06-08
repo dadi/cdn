@@ -7,7 +7,7 @@ var clientHost = 'http://' + config.get('server.host') + ':' + config.get('serve
 var secureClientHost = 'https://' + config.get('server.host') + ':' + config.get('server.port')
 
 var client = request(clientHost)
-var secureClient = allowHTTP1(secureClientHost)
+var secureClient = request(secureClientHost)
 
 describe('http2', () => {
   before((done) => {
