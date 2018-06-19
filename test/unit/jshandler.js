@@ -56,6 +56,7 @@ const readStream = stream => {
 
 describe('JS handler', function () {
   let mockCacheGet
+  let mockDiskStorageGet
 
   beforeEach(() => {
     mockCacheGet = sinon.spy(Cache.Cache.prototype, 'getStream')

@@ -12,6 +12,7 @@ const Missing = require(path.join(__dirname, '/missing'))
 const HTTPStorage = function ({assetType = 'assets', domain, url}) {
   let isExternalURL = url.indexOf('http:') === 0 ||
     url.indexOf('https:') === 0
+
   let remoteAddress = config.get(`${assetType}.remote.path`, domain)
 
   if (!isExternalURL) {

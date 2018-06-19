@@ -1599,7 +1599,7 @@ describe('Controller', function () {
     })
 
     describe('Other', function () {
-      it('should respond to the root', function (done) {
+      it('should respond to the root endpoint', function (done) {
         var client = request(cdnUrl)
         client
           .get('/')
