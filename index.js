@@ -4,6 +4,10 @@ var config = require('./config')
 var fs = require('fs')
 var path = require('path')
 
+// Console start message
+const dadiBoot = require('@dadi/boot')
+dadiBoot.start(require('./package.json'))
+
 require('console-stamp')(console, 'yyyy-mm-dd HH:MM:ss.l')
 
 if (config.get('cluster')) {
