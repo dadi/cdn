@@ -1,74 +1,65 @@
-var fs = require('fs')
-var path = require('path')
-var should = require('should')
-var sinon = require('sinon')
-var Promise = require('bluebird')
-var request = require('request')
-var stream = require('stream')
-var imageHandler = require(__dirname + '/../../dadi/lib/handlers/image')
-var factory = require(__dirname + '/../../dadi/lib/storage/factory')
-var DiskStorage = require(__dirname + '/../../dadi/lib/storage/disk')
-var HTTPStorage = require(__dirname + '/../../dadi/lib/storage/http')
-var S3Storage = require(__dirname + '/../../dadi/lib/storage/s3')
-var cache = require(__dirname + '/../../dadi/lib/cache')
+const fs = require('fs')
+const path = require('path')
+const should = require('should')
+const sinon = require('sinon')
+const request = require('request')
+const stream = require('stream')
+const imageHandler = require('./../../dadi/lib/handlers/image')
+const factory = require('./../../dadi/lib/storage/factory')
+const DiskStorage = require('./../../dadi/lib/storage/disk')
+const HTTPStorage = require('./../../dadi/lib/storage/http')
+const S3Storage = require('./../../dadi/lib/storage/s3')
+const config = require('./../../config')
 
-var config
-var stub
-var testConfigString
+let configBackup = config.get()
 
 describe('ImageHandler', function (done) {
   beforeEach(function (done) {
-    delete require.cache[__dirname + '/../../config']
-    config = require(__dirname + '/../../config')
-
-    testConfigString = fs.readFileSync(config.configPath())
-    testConfigString = testConfigString.toString()
 
     done()
   })
 
   afterEach(function (done) {
-    setTimeout(function () {
-      fs.writeFileSync(config.configPath(), testConfigString)
-      done()
-    }, 1000)
+    config.set('caching.directory.enabled', configBackup.caching.directory.enabled)
+    config.set('caching.redis.enabled', configBackup.caching.redis.enabled)
+    
+    config.set('images.directory.enabled', configBackup.images.directory.enabled)
+    config.set('images.s3.enabled', configBackup.images.s3.enabled)
+    config.set('images.remote.enabled', configBackup.images.remote.enabled)
+    config.set('images.directory.path', configBackup.images.directory.path)
+    done()
   })
 
   it('should use Disk Storage adapter when nothing else is configured', function (done) {
-    var newTestConfig = JSON.parse(testConfigString)
-    newTestConfig.caching.directory.enabled = false
-    newTestConfig.caching.redis.enabled = false
-    cache.reset()
-    newTestConfig.images.directory.enabled = false
-    newTestConfig.images.s3.enabled = false
-    newTestConfig.images.remote.enabled = false
-    newTestConfig.images.directory.path = './test/images'
-    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+    config.set('caching.directory.enabled', false)
+    config.set('caching.redis.enabled', false)
+    
+    config.set('images.directory.enabled', false)
+    config.set('images.s3.enabled', false)
+    config.set('images.remote.enabled', false)
+    config.set('images.directory.path', './test/images')
 
-    // console.log(newTestConfig)
-    config.loadFile(config.configPath())
+    let spy = sinon.spy(factory, 'create')
 
-    var spy = sinon.spy(factory, 'create')
-
-    var req = {
+    let req = {
       __cdnLegacyURLSyntax: true,
       url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
     }
 
     // set some expected values
-    var expected = path.join(path.resolve(config.get('images.directory.path')), '/test.jpg')
+    let expected = path.join(path.resolve(config.get('images.directory.path')), '/test.jpg')
 
     // stub the get method so it doesn't do anything
-    var get = sinon.stub(DiskStorage.DiskStorage.prototype, 'get').callsFake(function () {
+    let get = sinon.stub(DiskStorage.DiskStorage.prototype, 'get').callsFake(function () {
       return new Promise(function (resolve, reject) {
-        var readable = new fs.createReadStream(expected)
+        let readable = new fs.createReadStream(expected)
         return resolve(readable)
       })
     })
 
-    var convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert').callsFake(function (aStream, imageInfo) {
+    let convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert').callsFake(function (aStream, imageInfo) {
       return new Promise(function (resolve, reject) {
-        var readable = new stream.Readable()
+        let readable = new stream.Readable()
         readable.push('')
         readable.push(null)
         resolve({stream: readable})
@@ -76,7 +67,7 @@ describe('ImageHandler', function (done) {
     })
 
     // this is the test
-    var im = new imageHandler('jpg', req)
+    let im = new imageHandler('jpg', req)
     im.get().then(function (stream) {
       factory.create.restore()
       DiskStorage.DiskStorage.prototype.get.restore()
@@ -85,7 +76,7 @@ describe('ImageHandler', function (done) {
       spy.called.should.eql(true)
       get.called.should.eql(true)
 
-      var returnValue = spy.firstCall.returnValue
+      let returnValue = spy.firstCall.returnValue
       returnValue.getFullUrl().should.eql(expected)
 
       done()
@@ -93,40 +84,36 @@ describe('ImageHandler', function (done) {
   })
 
   it('should use Disk Storage adapter when configured', function (done) {
-    var newTestConfig = JSON.parse(testConfigString)
-    newTestConfig.caching.directory.enabled = false
-    newTestConfig.caching.redis.enabled = false
-    cache.reset()
-    newTestConfig.images.directory.enabled = true
-    newTestConfig.images.s3.enabled = false
-    newTestConfig.images.remote.enabled = false
-    newTestConfig.images.directory.path = './test/images'
-    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+    config.set('caching.directory.enabled', false)
+    config.set('caching.redis.enabled', false)
+    
+    config.set('images.directory.enabled', true)
+    config.set('images.s3.enabled', false)
+    config.set('images.remote.enabled', false)
+    config.set('images.directory.path', './test/images')
 
-    config.loadFile(config.configPath())
+    let spy = sinon.spy(factory, 'create')
 
-    var spy = sinon.spy(factory, 'create')
-
-    var req = {
+    let req = {
       __cdnLegacyURLSyntax: true,
       headers: {},
       url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
     }
 
     // set some expected values
-    var expected = path.join(path.resolve(config.get('images.directory.path')), '/test.jpg')
+    let expected = path.join(path.resolve(config.get('images.directory.path')), '/test.jpg')
 
     // stub the get method so it doesn't do anything
-    var get = sinon.stub(DiskStorage.DiskStorage.prototype, 'get').callsFake(function () {
+    let get = sinon.stub(DiskStorage.DiskStorage.prototype, 'get').callsFake(function () {
       return new Promise(function (resolve, reject) {
-        var readable = new fs.createReadStream(expected)
+        let readable = new fs.createReadStream(expected)
         resolve(readable)
       })
     })
 
-    var convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert').callsFake(function (aStream, imageInfo) {
+    let convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert').callsFake(function (aStream, imageInfo) {
       return new Promise(function (resolve, reject) {
-        var readable = new stream.Readable()
+        let readable = new stream.Readable()
         readable.push('')
         readable.push(null)
         resolve({stream: readable})
@@ -134,7 +121,7 @@ describe('ImageHandler', function (done) {
     })
 
     // this is the test
-    var im = new imageHandler('jpg', req)
+    let im = new imageHandler('jpg', req)
     im.get().then(function (stream) {
       factory.create.restore()
       DiskStorage.DiskStorage.prototype.get.restore()
@@ -143,7 +130,7 @@ describe('ImageHandler', function (done) {
       spy.called.should.eql(true)
       get.called.should.eql(true)
 
-      var returnValue = spy.firstCall.returnValue
+      let returnValue = spy.firstCall.returnValue
       returnValue.getFullUrl().should.eql(expected)
 
       done()
@@ -152,34 +139,30 @@ describe('ImageHandler', function (done) {
 
   it('should use HTTP Storage adapter when configured', () => {
     this.timeout(5000)
-    var newTestConfig = JSON.parse(testConfigString)
-    newTestConfig.caching.directory.enabled = false
-    newTestConfig.caching.redis.enabled = false
-    cache.reset()
-    newTestConfig.images.directory.enabled = false
-    newTestConfig.images.s3.enabled = false
-    newTestConfig.images.remote.enabled = true
-    newTestConfig.images.remote.path = 'https://nodejs.org'
-    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
 
-    // console.log(newTestConfig)
-    config.loadFile(config.configPath())
+    config.set('caching.directory.enabled', false)
+    config.set('caching.redis.enabled', false)
+    
+    config.set('images.directory.enabled', false)
+    config.set('images.s3.enabled', false)
+    config.set('images.remote.enabled', true)
+    config.set('images.remote.path', 'https://nodejs.org')
 
-    var spy = sinon.spy(factory, 'create')
+    let spy = sinon.spy(factory, 'create')
 
-    var req = {
+    let req = {
       __cdnLegacyURLSyntax: false,
       headers: {},
       url: 'static/images/logos/nodejs-new-white-pantone.png'
     }
 
     // set some expected values
-    var expected = 'https://nodejs.org/static/images/logos/nodejs-new-white-pantone.png'
+    let expected = 'https://nodejs.org/static/images/logos/nodejs-new-white-pantone.png'
 
     // stub the get method so it doesn't do anything
-    var get = sinon.stub(HTTPStorage.HTTPStorage.prototype, 'get').callsFake(function () {
+    let get = sinon.stub(HTTPStorage.HTTPStorage.prototype, 'get').callsFake(function () {
       return new Promise(function (resolve, reject) {
-        var s = new stream.PassThrough()
+        let s = new stream.PassThrough()
 
         request
           .get(expected)
@@ -190,9 +173,9 @@ describe('ImageHandler', function (done) {
       })
     })
 
-    var convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert').callsFake(function (aStream, imageInfo) {
+    let convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert').callsFake(function (aStream, imageInfo) {
       return new Promise(function (resolve, reject) {
-        var readable = new stream.Readable()
+        let readable = new stream.Readable()
         readable.push('')
         readable.push(null)
         resolve({stream: readable})
@@ -200,7 +183,7 @@ describe('ImageHandler', function (done) {
     })
 
     // this is the test
-    var im = new imageHandler('jpg', req)
+    let im = new imageHandler('jpg', req)
     return im.get().then(function (stream) {
       factory.create.restore()
       HTTPStorage.HTTPStorage.prototype.get.restore()
@@ -209,47 +192,42 @@ describe('ImageHandler', function (done) {
       spy.called.should.eql(true)
       get.called.should.eql(true)
 
-      var returnValue = spy.firstCall.returnValue
+      let returnValue = spy.firstCall.returnValue
       returnValue.getFullUrl().should.eql(expected)
     })
   })
 
   it('should use S3 Storage adapter when configured', function (done) {
-    var newTestConfig = JSON.parse(testConfigString)
-    newTestConfig.caching.directory.enabled = false
-    newTestConfig.caching.redis.enabled = false
-    cache.reset()
-    newTestConfig.images.directory.enabled = false
-    newTestConfig.images.s3.enabled = true
-    newTestConfig.images.remote.enabled = false
-    // newTestConfig.images.remote.path = 'https://nodejs.org'
-    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+    config.set('caching.directory.enabled', false)
+    config.set('caching.redis.enabled', false)
+    
+    config.set('images.directory.enabled', false)
+    config.set('images.s3.enabled', true)
+    config.set('images.remote.enabled', false)
 
-    config.loadFile(config.configPath())
+    let spy = sinon.spy(factory, 'create')
 
-    var spy = sinon.spy(factory, 'create')
-
-    var req = {
+    let req = {
       __cdnLegacyURLSyntax: true,
       url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
     }
 
     // set some expected values
-    var expected = ['test.jpg']
+    let expected = ['test.jpg']
 
-    var testImage = path.join(path.resolve(config.get('images.directory.path')), '/test.jpg')
+    let testImage = path.join(path.resolve(config.get('images.directory.path')), '/test.jpg')
 
     // stub the get method so it doesn't do anything
-    var get = sinon.stub(S3Storage.S3Storage.prototype, 'get').callsFake(function () {
+    let get = sinon.stub(S3Storage.S3Storage.prototype, 'get').callsFake(function () {
       return new Promise(function (resolve, reject) {
-        var readable = new fs.createReadStream(testImage)
+        let readable = new fs.createReadStream(testImage)
         resolve(readable)
       })
     })
 
-    var convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert').callsFake(function (aStream, imageInfo) {
+    let convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert').callsFake(function (aStream, imageInfo) {
       return new Promise(function (resolve, reject) {
-        var readable = new stream.Readable()
+        let readable = new stream.Readable()
         readable.push('')
         readable.push(null)
         resolve({stream: readable})
@@ -257,7 +235,7 @@ describe('ImageHandler', function (done) {
     })
 
     // this is the test
-    var im = new imageHandler('jpg', req)
+    let im = new imageHandler('jpg', req)
     im.get().then(function (stream) {
       factory.create.restore()
       S3Storage.S3Storage.prototype.get.restore()
@@ -266,7 +244,7 @@ describe('ImageHandler', function (done) {
       spy.called.should.eql(true)
       get.called.should.eql(true)
 
-      var returnValue = spy.firstCall.returnValue
+      let returnValue = spy.firstCall.returnValue
       returnValue.urlParts.should.eql(expected)
 
       done()
@@ -274,26 +252,22 @@ describe('ImageHandler', function (done) {
   })
 
   it('should return filename with jpg extension when a URL has no extension', function (done) {
-    var newTestConfig = JSON.parse(testConfigString)
-    newTestConfig.caching.directory.enabled = false
-    newTestConfig.caching.redis.enabled = false
-    cache.reset()
-    newTestConfig.images.directory.enabled = false
-    newTestConfig.images.s3.enabled = false
-    newTestConfig.images.remote.enabled = true
-    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+    config.set('caching.directory.enabled', false)
+    config.set('caching.redis.enabled', false)
+    
+    config.set('images.directory.enabled', false)
+    config.set('images.s3.enabled', false)
+    config.set('images.remote.enabled', true)
 
-    config.loadFile(config.configPath())
-
-    var req = {
+    let req = {
       headers: {},
       url: '/test'
     }
 
     // set some expected values
-    var expected = 'test.jpg'
+    let expected = 'test.jpg'
 
-    var im = new imageHandler('jpg', req)
+    let im = new imageHandler('jpg', req)
     im.getFilename().should.eql(expected)
 
     done()

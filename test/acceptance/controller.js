@@ -1599,10 +1599,10 @@ describe('Controller', function () {
     })
 
     describe('Other', function () {
-      it('should respond to the root', function (done) {
+      it('should respond to the hello endpoint', function (done) {
         var client = request(cdnUrl)
         client
-          .get('/')
+          .get('/hello')
           .end(function (err, res) {
             res.statusCode.should.eql(200)
             res.text.should.eql('Welcome to DADI CDN')

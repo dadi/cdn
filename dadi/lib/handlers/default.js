@@ -49,7 +49,7 @@ DefaultHandler.prototype.get = function () {
     this.storageHandler = this.storageFactory.create(
       'asset',
       this.url.pathname.slice(1),
-      false
+      {domain: this.req.__domain}
     )
 
     return this.storageHandler.get().then(stream => {
@@ -66,6 +66,10 @@ DefaultHandler.prototype.get = function () {
  * @return {String} The content type
  */
 DefaultHandler.prototype.getContentType = function () {
+  if (path.extname(this.url.pathname) === '') {
+    return 'text/html'
+  }
+
   return mime.lookup(this.url.pathname)
 }
 
