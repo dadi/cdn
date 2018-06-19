@@ -217,7 +217,7 @@ Server.prototype.start = function (done) {
     next()
   })
 
-  router.get('/hello', function (req, res, next) {
+  router.get('/', function (req, res, next) {
     res.end('Welcome to DADI CDN')
   })
 
