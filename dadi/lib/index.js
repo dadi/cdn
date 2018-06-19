@@ -19,6 +19,17 @@ const dadiStatus = require('@dadi/status')
 const domainManager = require('./models/domain-manager')
 const workspace = require('./models/workspace')
 
+process
+  .on('unhandledRejection', (reason, p) => {
+    console.error(reason, 'Unhandled Rejection at Promise', p)
+    console.trace()
+  })
+  .on('uncaughtException', err => {
+    console.error(err, 'Uncaught Exception thrown')
+    console.trace()
+    process.exit(1)
+  })
+
 // Let's ensure there's at least a dev config file here.
 const devConfigPath = path.join(
   __dirname,
@@ -206,7 +217,7 @@ Server.prototype.start = function (done) {
     next()
   })
 
-  router.get('/', function (req, res, next) {
+  router.get('/hello', function (req, res, next) {
     res.end('Welcome to DADI CDN')
   })
 
