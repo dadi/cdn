@@ -62,12 +62,14 @@ const Controller = function (router) {
         // receive the concatenated buffer and send the response
         // unless the etag hasn't changed, then send 304 and end the response
         function sendBuffer (buffer) {
+          let etagResult = etag(buffer)
+
           res.setHeader('Content-Length', contentLength)
-          res.setHeader('ETag', etag(buffer))
+          res.setHeader('ETag', etagResult)
 
           if (req.headers.range) {
             res.sendSeekable(buffer)
-          } else if (req.headers['if-none-match'] === etag(buffer) && handler.getContentType() !== 'application/json') {
+          } else if (req.headers['if-none-match'] === etagResult && handler.getContentType() !== 'application/json') {
             res.statusCode = 304
             res.end()
           } else {
