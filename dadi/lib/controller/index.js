@@ -7,6 +7,8 @@ const lengthStream = require('length-stream')
 const mime = require('mime')
 const path = require('path')
 const seek = require('./seek')
+const sha1 = require('sha1')
+const stream = require('stream')
 const urlParser = require('url')
 const zlib = require('zlib')
 
@@ -16,9 +18,17 @@ const logger = require('@dadi/logger')
 const HandlerFactory = require(path.join(__dirname, '/../handlers/factory'))
 const RecipeController = require(path.join(__dirname, '/recipe'))
 const RouteController = require(path.join(__dirname, '/route'))
+const WorkQueue = require('./../workQueue')
 const workspace = require(path.join(__dirname, '/../models/workspace'))
 
 logger.init(config.get('logging'), config.get('logging.aws'), config.get('env'))
+
+let workQueue = new WorkQueue(({handler, stream: resultStream}) => {
+  return {
+    handler,
+    stream: resultStream.pipe(new stream.PassThrough())
+  }
+})
 
 const Controller = function (router) {
   router.use(logger.requestLogger)
@@ -41,77 +51,78 @@ const Controller = function (router) {
   })
 
   router.get(/(.+)/, (req, res) => {
-    const factory = new HandlerFactory(workspace.get())
+    let factory = new HandlerFactory(workspace.get())
+    let queueKey = sha1(req.__domain + req.url)
 
-    factory.create(req).then(handler => {
-      return handler.get().then(stream => {
-        this.addContentTypeHeader(res, handler)
-        this.addCacheControlHeader(res, handler, req.__domain)
-        this.addLastModifiedHeader(res, handler)
-
-        if (handler.storageHandler && handler.storageHandler.notFound) {
-          res.statusCode = config.get('notFound.statusCode', req.__domain) || 404
-        }
-
-        if (handler.storageHandler && handler.storageHandler.cleanUp) {
-          handler.storageHandler.cleanUp()
-        }
-
-        let contentLength = 0
-
-        // receive the concatenated buffer and send the response
-        // unless the etag hasn't changed, then send 304 and end the response
-        function sendBuffer (buffer) {
-          let etagResult = etag(buffer)
-
-          res.setHeader('Content-Length', contentLength)
-          res.setHeader('ETag', etagResult)
-
-          if (req.headers.range) {
-            res.sendSeekable(buffer)
-          } else if (req.headers['if-none-match'] === etagResult && handler.getContentType() !== 'application/json') {
-            res.statusCode = 304
-            res.end()
-          } else {
-            let cacheHeader = (handler.getHeader && handler.getHeader('x-cache')) ||
-              (handler.isCached ? 'HIT' : 'MISS')
-
-            res.setHeader('X-Cache', cacheHeader)
-            res.end(buffer)
-          }
-        }
-
-        function lengthListener (length) {
-          contentLength = length
-        }
-
-        let concatStream = concat(sendBuffer)
-
-        let shouldCompress =
-          req.headers['accept-encoding'] === 'gzip' &&
-          compressible(handler.getContentType())
-
-        if (
-          shouldCompress &&
-          config.get('headers.useGzipCompression', req.__domain) &&
-          handler.getContentType() !== 'application/json'
-        ) {
-          res.setHeader('Content-Encoding', 'gzip')
-
-          let gzipStream = stream.pipe(zlib.createGzip())
-          gzipStream = gzipStream.pipe(lengthStream(lengthListener))
-          gzipStream.pipe(concatStream)
-        } else {
-          stream.pipe(lengthStream(lengthListener)).pipe(concatStream)
-        }
-      }).catch(err => {
-        logger.error({err: err})
-
-        res.setHeader('X-Cache', handler.isCached ? 'HIT' : 'MISS')
-
-        help.sendBackJSON(err.statusCode || 400, err, res)
+    return workQueue.run(queueKey, () => {
+      return factory.create(req).then(handler => {
+        return handler.get().then(stream => {
+          return { handler, stream }
+        })
       })
+    }).then(({handler, stream}) => {
+      this.addContentTypeHeader(res, handler)
+      this.addCacheControlHeader(res, handler, req.__domain)
+      this.addLastModifiedHeader(res, handler)
+
+      if (handler.storageHandler && handler.storageHandler.notFound) {
+        res.statusCode = config.get('notFound.statusCode', req.__domain) || 404
+      }
+
+      if (handler.storageHandler && handler.storageHandler.cleanUp) {
+        handler.storageHandler.cleanUp()
+      }
+
+      let contentLength = 0
+
+      // receive the concatenated buffer and send the response
+      // unless the etag hasn't changed, then send 304 and end the response
+      function sendBuffer (buffer) {
+        let etagResult = etag(buffer)
+
+        res.setHeader('Content-Length', contentLength)
+        res.setHeader('ETag', etagResult)
+
+        if (req.headers.range) {
+          res.sendSeekable(buffer)
+        } else if (req.headers['if-none-match'] === etagResult && handler.getContentType() !== 'application/json') {
+          res.statusCode = 304
+          res.end()
+        } else {
+          let cacheHeader = (handler.getHeader && handler.getHeader('x-cache')) ||
+            (handler.isCached ? 'HIT' : 'MISS')
+
+          res.setHeader('X-Cache', cacheHeader)
+          res.end(buffer)
+        }
+      }
+
+      function lengthListener (length) {
+        contentLength = length
+      }
+
+      let concatStream = concat(sendBuffer)
+
+      let shouldCompress =
+        req.headers['accept-encoding'] === 'gzip' &&
+        compressible(handler.getContentType())
+
+      if (
+        shouldCompress &&
+        config.get('headers.useGzipCompression', req.__domain) &&
+        handler.getContentType() !== 'application/json'
+      ) {
+        res.setHeader('Content-Encoding', 'gzip')
+
+        let gzipStream = stream.pipe(zlib.createGzip())
+        gzipStream = gzipStream.pipe(lengthStream(lengthListener))
+        gzipStream.pipe(concatStream)
+      } else {
+        stream.pipe(lengthStream(lengthListener)).pipe(concatStream)
+      }
     }).catch(err => {
+      logger.error({err: err})
+
       help.sendBackJSON(err.statusCode || 400, err, res)
     })
   })
