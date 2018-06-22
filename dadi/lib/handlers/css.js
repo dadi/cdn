@@ -63,7 +63,7 @@ CSSHandler.prototype.get = function () {
     this.storageHandler = this.storageFactory.create(
       'asset',
       this.url.pathname.slice(1),
-      false
+      {domain: this.req.__domain}
     )
 
     return this.storageHandler.get().then(stream => {

@@ -14,9 +14,21 @@ const logger = require('@dadi/logger')
 const path = require('path')
 const Router = require('router')
 const router = Router()
+const dadiBoot = require('@dadi/boot')
 const dadiStatus = require('@dadi/status')
 const domainManager = require('./models/domain-manager')
 const workspace = require('./models/workspace')
+
+process
+  .on('unhandledRejection', (reason, p) => {
+    console.error(reason, 'Unhandled Rejection at Promise', p)
+    console.trace()
+  })
+  .on('uncaughtException', err => {
+    console.error(err, 'Uncaught Exception thrown')
+    console.trace()
+    process.exit(1)
+  })
 
 // Let's ensure there's at least a dev config file here.
 const devConfigPath = path.join(
@@ -115,23 +127,23 @@ Server.prototype.create = function (listener) {
  * Handler function for when the server is listening for requests.
  */
 Server.prototype.onListening = function () {
-  let address = this.address()
-  let env = config.get('env')
-
   /* istanbul ignore next */
-  if (env !== 'test') {
-    let startText = '\n  ----------------------------\n'
-    startText += '  Started \'DADI CDN\'\n'
-    startText += '  ----------------------------\n'
-    startText += '  Server:      '.green + address.address + ':' + address.port + '\n'
-    startText += '  Version:     '.green + version + '\n'
-    startText += '  Node.JS:     '.green + nodeVersion + '\n'
-    startText += '  Environment: '.green + env + '\n'
-    startText += '  ----------------------------\n'
-
-    startText += '\n\n  Copyright ' + String.fromCharCode(169) + ' 2015-' + new Date().getFullYear() + ' DADI+ Limited (https://dadi.tech)'.white + '\n'
-
-    console.log(startText)
+  if (config.get('env') !== 'test') {
+    dadiBoot.started({
+      server: `${config.get('server.protocol')}://${config.get(
+        'server.host'
+      )}:${config.get('server.port')}`,
+      header: {
+        app: config.get('server.name')
+      },
+      body: {
+        Protocol: config.get('server.protocol'),
+        Version: version,
+        'Node.js': nodeVersion,
+        Environment: config.get('env')
+      },
+      footer: {}
+    })
   }
 }
 
