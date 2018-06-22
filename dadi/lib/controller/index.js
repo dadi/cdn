@@ -58,6 +58,10 @@ const Controller = function (router) {
       return factory.create(req).then(handler => {
         return handler.get().then(stream => {
           return { handler, stream }
+        }).catch(err => {
+          err.__handler = handler
+
+          return Promise.reject(err)
         })
       })
     }).then(({handler, stream}) => {
@@ -122,6 +126,12 @@ const Controller = function (router) {
       }
     }).catch(err => {
       logger.error({err: err})
+
+      if (err.__handler) {
+        res.setHeader('X-Cache', err.__handler.isCached ? 'HIT' : 'MISS')
+
+        delete err.__handler
+      }
 
       help.sendBackJSON(err.statusCode || 400, err, res)
     })
