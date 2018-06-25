@@ -62,9 +62,9 @@ describe('Work queue', function () {
     })
   })
 
-  it('should process the image just once on subsequent requests (200 requests)', () => {
+  it('should process the image just once on subsequent requests (50 requests)', () => {
     let processorSpy = sinon.spy(ImageHandler.prototype, 'process')
-    let numberOfRequests = 200
+    let numberOfRequests = 50
     let ops = Array.apply(null, {
       length: numberOfRequests
     }).map(() => {
