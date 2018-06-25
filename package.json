@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@dadi/boot": "^1.1.4",
-    "@dadi/cache": "dadi/cache#feature/in-memory-cache",
+    "@dadi/cache": "^3.0.0",
     "@dadi/logger": "latest",
     "@dadi/status": "latest",
     "accept-language-parser": "^1.2.0",
