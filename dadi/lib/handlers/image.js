@@ -287,7 +287,7 @@ ImageHandler.prototype.get = function () {
   // key purely to make `/recipe1/a.jpg` and `/recipe1/b.jpg` map to
   // different keys if the recipes contain different parameters.
   const cacheKey = [
-    sha1(JSON.stringify(this.options)),
+    sha1(JSON.stringify(this.options) + this.req.url),
     this.req.__domain,
     this.parsedUrl.cdn.pathname,
     this.parsedUrl.cdn.search.slice(1)
