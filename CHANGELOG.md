@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.0.5] - 2018-06-27
+
+### Changed
+
+* work queue added, ensures if multiple requests are made for the same resource _before_ the first one has finished processing, remaining requests wait for the result of the first one _instead of requesting a new computation each time_. When the processing for the first request finishes, all waiting requests are served and the request is removed from the work queue.
+
+## [3.0.4] - 2018-06-22
+
+### Fixed
+
+* [#388](https://github.com/dadi/cdn/pull/388): fix issue where not all chunks from a remote HTTP call were passed to the calling function.
+
 ## [3.0.3] - 2018-06-06
 
 ### Changed

@@ -65,6 +65,46 @@ module.exports.imagesEqual = function ({base, headers, test}) {
     })
 }
 
+module.exports.filesEqual = function ({base, headers, test}) {
+  let fullBasePath = path.resolve(base)
+
+  if (test.indexOf('/') === 0) {
+    test = `http://${config.get('server.host')}:${config.get('server.port')}${test}`
+  }
+
+  let getFileContents = fileName => {
+    return new Promise((resolve, reject) => {
+      fs.readFile(fileName, (err, data) => {
+        return err ? reject(err) : resolve(data.toString())
+      })
+    })
+  }
+
+  let getRemoteFileContents = url => {
+    return new Promise((resolve, reject) => {
+      require('http').get(url, (res) => {
+        let string = ''
+        res.on('data', (chunk) => {
+          string += chunk.toString()
+        })
+
+        res.on('end', () => {
+          return resolve(string)
+        })
+      })
+    })
+  }
+
+  return getFileContents(fullBasePath)
+    .then(baselineFile => {
+      return getRemoteFileContents(test).then(testFile => {
+        return testFile === baselineFile
+      })
+    }).catch(err => {
+      console.error(err)
+    })
+}
+
 module.exports.getBearerToken = function (domain, done) {
   if (typeof domain === 'function') {
     done = domain

@@ -1,6 +1,6 @@
 {
   "name": "@dadi/cdn",
-  "version": "3.0.3",
+  "version": "3.0.5",
   "product": "DADI CDN",
   "description": "A high performance, just-in-time asset manipulation and delivery layer designed as a modern content distribution solution.",
   "scripts": {
@@ -10,7 +10,8 @@
     "posttest": "./scripts/coverage.js"
   },
   "dependencies": {
-    "@dadi/cache": "~2.0.0",
+    "@dadi/boot": "^1.1.4",
+    "@dadi/cache": "^3.0.0",
     "@dadi/logger": "latest",
     "@dadi/status": "latest",
     "accept-language-parser": "^1.2.0",
@@ -72,12 +73,12 @@
   },
   "devDependencies": {
     "aws-sdk-mock": "^1.5.0",
+    "coveralls": "^3.0.1",
     "env-test": "^1.0.0",
     "fakeredis": "^2.0.0",
     "greenkeeper-postpublish": "^1.0.1",
     "http-proxy": "^1.16.2",
     "istanbul": "^1.1.0-alpha.1",
-    "istanbul-cobertura-badger": "^1.2.1",
     "it-each": "^0.3.1",
     "mocha": "^5.2.0",
     "nock": "^9.0.2",
