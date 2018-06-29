@@ -2,8 +2,7 @@
 
 const _ = require('underscore')
 const fs = require('fs-extra')
-const concat = require('concat-stream')
-const ExifImage = require('exif').ExifImage
+const exifReader = require('exif-reader')
 const fit = require('aspect-fit')
 const { BitmapImage, GifFrame, GifUtil } = require('gifwrap')
 const help = require('./../help')
@@ -21,14 +20,7 @@ const Cache = require(path.join(__dirname, '/../cache'))
 const config = require(path.join(__dirname, '/../../../config'))
 const workspace = require(path.join(__dirname, '/../models/workspace'))
 
-const exifDirectory = path.resolve(path.join(__dirname, '/../../../workspace/_exif'))
 const tmpDirectory = path.resolve(path.join(__dirname, '/../../../workspace/_tmp'))
-
-mkdirp(exifDirectory, (err, made) => {
-  if (err) {
-    console.log(err)
-  }
-})
 
 mkdirp(tmpDirectory, (err, made) => {
   if (err) {
@@ -168,27 +160,6 @@ ImageHandler.prototype.extractEntropy = function (image, width, height) {
   })
 }
 
-/**
- * Extract EXIF data from the specified image
- * @param {stream} stream - read stream from S3, local disk or url
- */
-ImageHandler.prototype.extractExifData = function (file) {
-  return new Promise(function (resolve, reject) {
-    const concatStream = concat(buffer => {
-      ExifImage({ image: buffer }, (err, data) => {
-        return resolve(err ? {} : data)
-      })
-    })
-
-    try {
-      fs.createReadStream(file).pipe(concatStream)
-    } catch (err) {
-      console.log(err)
-      console.log(err.stack)
-    }
-  })
-}
-
 ImageHandler.prototype.get = function () {
   let assetPath = this.parsedUrl.asset.href
 
@@ -311,6 +282,10 @@ ImageHandler.prototype.get = function () {
 
         if (this.imageData.format === 'jpeg') {
           this.imageData.format = 'jpg'
+        }
+
+        if (Buffer.isBuffer(this.imageData.exif)) {
+          this.exifData = exifReader(this.imageData.exif)
         }
 
         this.calculatedDimensions = this.getCalculatedDimensions({
