@@ -178,7 +178,7 @@ describe('Multi-domain', function () {
       it('should not include domain name as part of cache key', done => {
         let cacheSet = sinon.spy(
           Cache.Cache.prototype,
-          'cacheFile'
+          'set'
         )
 
         request(cdnUrl)
@@ -195,7 +195,7 @@ describe('Multi-domain', function () {
                 .expect(200)
                 .end((err, res) => {
                   res.headers['x-cache'].should.eql('HIT')
-                  cacheSet.getCall(0).args[1].includes('testdomain.com').should.eql(false)
+                  cacheSet.getCall(0).args[0].includes('testdomain.com').should.eql(false)
 
                   cacheSet.restore()
 
@@ -433,7 +433,7 @@ describe('Multi-domain', function () {
       it('should include domain name as part of cache key', done => {
         let cacheSet = sinon.spy(
           Cache.Cache.prototype,
-          'cacheFile'
+          'set'
         )
 
         request(cdnUrl)
@@ -450,7 +450,7 @@ describe('Multi-domain', function () {
                 .expect(200)
                 .end((err, res) => {
                   res.headers['x-cache'].should.eql('HIT')
-                  cacheSet.getCall(0).args[1].includes('testdomain.com').should.eql(true)
+                  cacheSet.getCall(0).args[0].includes('testdomain.com').should.eql(true)
                   cacheSet.restore()
 
                   request(cdnUrl)

@@ -113,15 +113,6 @@ describe('Storage', function (done) {
         url: '/https://www.google.co.uk/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png'
       }
 
-      var convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert').callsFake(function (aStream, imageInfo) {
-        return new Promise(function (resolve, reject) {
-          var readable = new stream.Readable()
-          readable.push('')
-          readable.push(null)
-          resolve({stream: readable})
-        })
-      })
-
       // this is the test
       var im = new imageHandler('png', req)
 
@@ -144,9 +135,6 @@ describe('Storage', function (done) {
         })
 
       return im.get().then(function (stream) {
-        imageHandler.ImageHandler.prototype.convert.restore()
-        convert.called.should.eql(true)
-
         // was our faked http request called?
         scope.isDone().should.eql(true)
       })
