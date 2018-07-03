@@ -726,7 +726,7 @@ describe('Controller', function () {
 
         var client = request(cdnUrl)
         client
-          .get('/json/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
+          .get('/test.jpg?format=json')
           .end(function (err, res) {
             res.statusCode.should.eql(200)
             var info = res.body
@@ -736,6 +736,28 @@ describe('Controller', function () {
             done()
           })
       })
+
+      it('should include EXIF data when format = JSON', function (done) {
+        var newTestConfig = JSON.parse(testConfigString)
+        newTestConfig.images.directory.enabled = true
+        newTestConfig.images.directory.path = './test/images'
+        fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+        config.loadFile(config.configPath())
+
+        var client = request(cdnUrl)
+        client
+          .get('/dm.jpg?format=json')
+          .end(function (err, res) {
+            res.statusCode.should.eql(200)
+            
+            res.body.density.should.be.Object
+            res.body.density.width.should.be.Number
+            res.body.density.height.should.be.Number
+            res.body.density.unit.should.be.String
+            done()
+          })
+      })      
 
       it('should get image from cache if cache is enabled and cached item exists', function (done) {
         this.timeout(4000)
