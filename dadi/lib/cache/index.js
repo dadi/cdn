@@ -133,10 +133,12 @@ Cache.prototype.isEnabled = function () {
  * @param {String} key   cache key
  * @param {[type]} value
  */
-Cache.prototype.set = function (key, value) {
+Cache.prototype.set = function (key, value, options) {
   if (!this.isEnabled()) return Promise.resolve(null)
 
-  return cache.set(key, value)
+  let encryptedKey = this.getNormalisedKey(key)
+
+  return cache.set(encryptedKey, value, options)
 }
 
 let instance

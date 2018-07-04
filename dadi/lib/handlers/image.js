@@ -2,17 +2,13 @@
 
 const _ = require('underscore')
 const fs = require('fs-extra')
-const concat = require('concat-stream')
-const ExifImage = require('exif').ExifImage
+const exifReader = require('exif-reader')
 const fit = require('aspect-fit')
 const { BitmapImage, GifFrame, GifUtil } = require('gifwrap')
-const imagesize = require('image-size-stream')
+const help = require('./../help')
 const Jimp = require('jimp')
-const lengthStream = require('length-stream')
 const mkdirp = require('mkdirp')
-const PassThrough = require('stream').PassThrough
 const path = require('path')
-const Readable = require('stream').Readable
 const sha1 = require('sha1')
 const sharp = require('sharp')
 const smartcrop = require('smartcrop-sharp')
@@ -24,14 +20,7 @@ const Cache = require(path.join(__dirname, '/../cache'))
 const config = require(path.join(__dirname, '/../../../config'))
 const workspace = require(path.join(__dirname, '/../models/workspace'))
 
-const exifDirectory = path.resolve(path.join(__dirname, '/../../../workspace/_exif'))
 const tmpDirectory = path.resolve(path.join(__dirname, '/../../../workspace/_tmp'))
-
-mkdirp(exifDirectory, (err, made) => {
-  if (err) {
-    console.log(err)
-  }
-})
 
 mkdirp(tmpDirectory, (err, made) => {
   if (err) {
@@ -119,40 +108,32 @@ const ImageHandler = function (format, req, {
 }
 
 /**
- * Convert image according to options specified
- * @param {stream} stream - read stream from S3, local disk or url
+ * Checks that a crop rectangle is valid given the dimensions of the image.
+ * Returns a Promise that rejects with an error or resolves with `undefined`.
+ *
+ * @return {Promise}
  */
-ImageHandler.prototype.convert = function (stream, imageInfo) {
-  const options = this.options
-  const calculatedDimensions = this.getDimensions(options, imageInfo)
+ImageHandler.prototype.checkCropRectangle = function () {
+  let options = this.options
 
-  imageInfo.width = parseInt(calculatedDimensions.width)
-  imageInfo.height = parseInt(calculatedDimensions.height)
+  // sanity check on crop requests
+  if (options.cropX !== undefined && options.cropY !== undefined) {
+    if (
+      this.calculatedDimensions.width + parseInt(options.cropX) >= this.imageData.width ||
+      this.calculatedDimensions.height + parseInt(options.cropY) >= this.imageData.height
+    ) {
+      let rectangle = (this.calculatedDimensions.width + parseInt(options.cropX)).toString() + 'x' + (this.calculatedDimensions.height + parseInt(options.cropY)).toString()
+      let original = this.imageData.width.toString() + 'x' + this.imageData.height.toString()
+      let message = 'The calculated crop rectangle is larger than (or one dimension is equal to) the original image size. Crop rectangle: ' + rectangle + ', Image size: ' + original
 
-  return new Promise((resolve, reject) => {
-    // sanity check on crop requests
-    if (options.cropX !== undefined && options.cropY !== undefined) {
-      if (
-        imageInfo.width + parseInt(options.cropX) >= imageInfo.naturalWidth ||
-        imageInfo.height + parseInt(options.cropY) >= imageInfo.naturalHeight
-      ) {
-        const rectangle = (imageInfo.width + parseInt(options.cropX)).toString() + 'x' + (imageInfo.height + parseInt(options.cropY)).toString()
-        const original = imageInfo.naturalWidth.toString() + 'x' + imageInfo.naturalHeight.toString()
-        const message = 'The calculated crop rectangle is larger than (or one dimension is equal to) the original image size. Crop rectangle: ' + rectangle + ', Image size: ' + original
-
-        return reject({
-          statusCode: 400,
-          message: message
-        })
-      }
+      return Promise.reject({
+        statusCode: 400,
+        message: message
+      })
     }
+  }
 
-    const concatStream = concat(buffer => {
-      return resolve(this.process(buffer, options, imageInfo))
-    })
-
-    stream.pipe(concatStream)
-  })
+  return Promise.resolve()
 }
 
 /**
@@ -176,27 +157,6 @@ ImageHandler.prototype.extractEntropy = function (image, width, height) {
     }).catch(err => {
       reject(err)
     })
-  })
-}
-
-/**
- * Extract EXIF data from the specified image
- * @param {stream} stream - read stream from S3, local disk or url
- */
-ImageHandler.prototype.extractExifData = function (file) {
-  return new Promise(function (resolve, reject) {
-    const concatStream = concat(buffer => {
-      ExifImage({ image: buffer }, (err, data) => {
-        return resolve(err ? {} : data)
-      })
-    })
-
-    try {
-      fs.createReadStream(file).pipe(concatStream)
-    } catch (err) {
-      console.log(err)
-      console.log(err.stack)
-    }
   })
 }
 
@@ -296,8 +256,8 @@ ImageHandler.prototype.get = function () {
 
   return this.cache.getStream(cacheKey, {
     ttl: config.get('caching.ttl', this.req.__domain)
-  }).then(cachedStream => {
-    if (cachedStream) {
+  }).then(cacheStream => {
+    if (cacheStream) {
       this.isCached = true
 
       return this.cache.getMetadata(cacheKey).then(metadata => {
@@ -306,85 +266,50 @@ ImageHandler.prototype.get = function () {
           this.contentType = metadata.contentType || 'application/json'
         }
 
-        return cachedStream
+        return help.streamToBuffer(cacheStream)
       })
     }
 
     let stream = this.storageHandler.get()
 
     return stream.then(stream => {
-      this.cacheStream = new PassThrough()
-      this.convertStream = new PassThrough()
-      this.exifStream = new PassThrough()
-      this.imageSizeStream = new PassThrough()
-      this.responseStream = new PassThrough()
+      return help.streamToBuffer(stream)
+    }).then(imageBuffer => {
+      let sharpImage = sharp(imageBuffer)
 
-      // duplicate the stream so we can use it for the imagesize() request and the
-      // response. this saves requesting the same data a second time.
-      stream.pipe(this.imageSizeStream)
-      stream.pipe(this.convertStream)
+      return sharpImage.metadata().then(imageData => {
+        this.imageData = imageData
 
-      // pipe the stream to a temporary file to avoid back pressure buildup
-      // while we wait for the exif data to be processed
-      let tmpExifFile
-
-      if (isJSONResponse) {
-        tmpExifFile = path.join(exifDirectory, sha1(this.parsedUrl.original.path))
-        stream.pipe(this.exifStream).pipe(fs.createWriteStream(tmpExifFile))
-      }
-
-      return this.getImageSize(this.imageSizeStream).then(imageInfo => {
-        return {
-          imageInfo,
-          tmpExifFile
+        if (this.imageData.format === 'jpeg') {
+          this.imageData.format = 'jpg'
         }
-      }).then(({imageInfo, tmpExifFile}) => {
-        let queue
 
-        // extract exif data if available
-        if (imageInfo && /jpe?g/.exec(imageInfo.format) && isJSONResponse) {
-          queue = this.extractExifData(tmpExifFile).then(exifData => {
-            this.exifData = exifData
+        if (Buffer.isBuffer(this.imageData.exif)) {
+          this.exifData = exifReader(this.imageData.exif)
+        }
+
+        this.calculatedDimensions = this.getCalculatedDimensions({
+          width: imageData.width,
+          height: imageData.height
+        })
+
+        return this.process(sharpImage, imageBuffer)
+      }).then(result => {
+        return this.checkCropRectangle().then(() => {
+          return result
+        })
+      }).then(result => {
+        // Return image info only, as JSON.
+        if (isJSONResponse) {
+          return this.getImageInfo(imageBuffer).then(data => {
+            return JSON.stringify(
+              Object.assign({}, data, result.data)
+            )
           })
         }
 
-        return Promise.resolve(queue).then(() => imageInfo)
-      }).then(imageInfo => {
-        flushExifFiles()
-
-        // connvert image using specified options
-        return this.convert(this.convertStream, imageInfo).then(result => {
-          return {
-            imageInfo,
-            result
-          }
-        })
-      }).then(({imageInfo, result}) => {
-        const convertedStream = result.stream
-
-        convertedStream.pipe(this.cacheStream)
-        convertedStream.pipe(this.responseStream)
-
-        return new Promise((resolve, reject) => {
-          // Return image info only, as JSON.
-          if (isJSONResponse) {
-            this.getImageInfo(this.responseStream, imageInfo, data => {
-              // Adding data from `convert()` to response
-              Object.assign(data, result.data)
-
-              let returnStream = new Readable()
-
-              returnStream.push(JSON.stringify(data))
-              returnStream.push(null)
-
-              return resolve(returnStream)
-            })
-          } else {
-            // return image
-            return resolve(this.responseStream)
-          }
-        })
-      }).then(responseStream => {
+        return result
+      }).then(result => {
         // Cache the file if it's not already cached.
         if (!this.isCached) {
           let metadata
@@ -396,16 +321,16 @@ ImageHandler.prototype.get = function () {
             }
           }
 
-          // The only situation where we don't want to write the stream to
+          // The only situation where we don't want to write the result to
           // cache is when the response is a 404 and the config specifies
           // that 404s should not be cached.
           if (
             !this.storageHandler.notFound ||
             config.get('caching.cache404', this.req.__domain)
           ) {
-            this.cache.cacheFile(
-              this.options.format === 'json' ? responseStream : this.cacheStream,
+            this.cache.set(
               cacheKey,
+              result,
               {
                 metadata,
                 ttl: config.get('caching.ttl', this.req.__domain)
@@ -414,34 +339,29 @@ ImageHandler.prototype.get = function () {
           }
         }
 
-        return responseStream
+        return result
       })
-    }).catch(err => {
-      // If the response is a 404 and we want to cache 404s, we
-      // write the error to cache.
-      if (
-        (err.statusCode === 404) &&
-        config.get('caching.cache404', this.req.__domain) &&
-        !this.isCached
-      ) {
-        let errorStream = new Readable()
-
-        errorStream.push(JSON.stringify(err))
-        errorStream.push(null)
-
-        this.cache.cacheFile(
-          errorStream,
-          cacheKey,
-          {
-            metadata: {
-              errorCode: err.statusCode
-            }
-          }
-        )
-      }
-
-      return Promise.reject(err)
     })
+  }).catch(error => {
+    // If the response is a 404 and we want to cache 404s, we
+    // write the error to cache.
+    if (
+      (error.statusCode === 404) &&
+      config.get('caching.cache404', this.req.__domain) &&
+      !this.isCached
+    ) {
+      this.cache.set(
+        cacheKey,
+        JSON.stringify(error),
+        {
+          metadata: {
+            errorCode: error.statusCode
+          }
+        }
+      )
+    }
+
+    return Promise.reject(error)
   })
 }
 
@@ -502,9 +422,9 @@ ImageHandler.prototype.getContentType = function () {
 /**
  *
  */
-ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, originalDimensions, croppedDimensions, scale) {
-  const originalWidth = parseInt(originalDimensions.naturalWidth)
-  const originalHeight = parseInt(originalDimensions.naturalHeight)
+ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, croppedDimensions, scale) {
+  const originalWidth = this.imageData.width
+  const originalHeight = this.imageData.height
 
   const croppedWidth = parseInt(croppedDimensions.width)
   const croppedHeight = parseInt(croppedDimensions.height)
@@ -570,12 +490,13 @@ ImageHandler.prototype.getCropOffsetsByGravity = function (gravity, originalDime
   }
 }
 
-ImageHandler.prototype.getDimensions = function (options, imageInfo) {
+ImageHandler.prototype.getCalculatedDimensions = function ({width, height}) {
+  let options = this.options
   let dimensions = {
-    width: imageInfo.naturalWidth,
-    height: imageInfo.naturalHeight
+    width,
+    height
   }
-  let ratio = imageInfo.naturalHeight / imageInfo.naturalWidth
+  let ratio = height / width
   let ratioOverride = Boolean(options.ratio) && options.ratio.match(/^(\d+)-(\d+)$/)
 
   // Is there an explicit ratio defined?
@@ -646,19 +567,11 @@ ImageHandler.prototype.getFilename = function () {
   "filter":"None", "blur":0, "strip":0, "rotate":0, "flip":0, "ratio":0, "devicePixelRatio":0
 }
 */
-ImageHandler.prototype.getImageInfo = function (stream, imageInfo, cb) {
-  var self = this
-  var options = self.options
-  var buffers = []
-  var fileSize = 0
-
-  function lengthListener (length) {
-    fileSize = length
-  }
-
-  var data = {
-    fileName: self.fileName,
-    cacheReference: sha1(self.fileName),
+ImageHandler.prototype.getImageInfo = function (buffer) {
+  let options = this.options
+  let data = {
+    fileName: this.fileName,
+    cacheReference: sha1(this.fileName),
     quality: options.quality ? options.quality : 75,
     trim: options.trim ? options.trim : 0,
     trimFuzz: options.trimFuzz ? options.trimFuzz : 0,
@@ -672,53 +585,30 @@ ImageHandler.prototype.getImageInfo = function (stream, imageInfo, cb) {
     ratio: options.ratio ? options.ratio : 0,
     devicePixelRatio: options.devicePixelRatio ? options.devicePixelRatio : 0
   }
+  let colourOptions = {
+    colorCount: options.maxColours || 64,
+    quality: options.colourQuality || 1
+  }
 
-  var ls = lengthStream(lengthListener)
-  stream.pipe(ls)
-    .on('error', function (err) { console.log(err) })
-    .on('data', function (data) { buffers.push(data) })
-    .on('end', function () {
-      var buffer = Buffer.concat(buffers)
+  if (this.entropy) {
+    data.entropyCrop = this.entropy
+  }
 
-      var colourOpts = {
-        colorCount: options.maxColours || 64,
-        quality: options.colourQuality || 1
+  return getColours(buffer, colourOptions).then(colours => {
+    data.format = this.imageData.format
+    data.fileSize = buffer.byteLength
+    data.primaryColor = colours.primaryColour
+    data.palette = colours.palette
+
+    if (this.exifData.image && this.exifData.image.XResolution && this.exifData.image.YResolution) {
+      data.density = {
+        width: this.exifData.image.XResolution,
+        height: this.exifData.image.YResolution,
+        unit: (this.exifData.image.ResolutionUnit ? (this.exifData.image.ResolutionUnit === 2 ? 'dpi' : '') : '')
       }
+    }
 
-      getColours(buffer, colourOpts).then((colours) => {
-        data.format = imageInfo.format
-        data.fileSize = fileSize
-        data.primaryColor = colours.primaryColour
-        data.palette = colours.palette
-
-        if (self.exifData.image && self.exifData.image.XResolution && self.exifData.image.YResolution) {
-          data.density = {
-            width: self.exifData.image.XResolution,
-            height: self.exifData.image.YResolution,
-            unit: (self.exifData.image.ResolutionUnit ? (self.exifData.image.ResolutionUnit === 2 ? 'dpi' : '') : '')
-          }
-        }
-
-        return cb(data)
-      })
-    })
-}
-
-ImageHandler.prototype.getImageSize = function (stream) {
-  return new Promise((resolve, reject) => {
-    const size = imagesize()
-
-    size.on('size', data => {
-      resolve({
-        format: data.type,
-        naturalWidth: data.width,
-        naturalHeight: data.height
-      })
-    })
-
-    size.on('error', reject)
-
-    stream.pipe(size)
+    return data
   })
 }
 
@@ -755,9 +645,8 @@ ImageHandler.prototype.parseUrl = function (url) {
   }
 }
 
-ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
-  // load the input image
-  let sharpImage = sharp(imageBuffer)
+ImageHandler.prototype.process = function (sharpImage, imageBuffer) {
+  let options = this.options
 
   // Default values fot resize style
   if (!options.resizeStyle) {
@@ -777,12 +666,14 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
     options.resizeStyle = 'aspectfill'
   }
 
-  const {width, height} = imageInfo
+  const {width, height} = this.calculatedDimensions
   const shouldExtractEntropy = ((options.resizeStyle === 'entropy') && width && height)
     ? this.extractEntropy(imageBuffer, width, height)
     : false
 
   return Promise.resolve(shouldExtractEntropy).then(entropy => {
+    this.entropy = entropy
+
     return new Promise((resolve, reject) => {
       const resizeOptions = {
         kernel: config.get('engines.sharp.kernel'),
@@ -804,7 +695,7 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
           You are left with the extra space on top and bottom.
           */
           case 'aspectfit':
-            const size = fit(imageInfo.naturalWidth, imageInfo.naturalHeight, width, height)
+            const size = fit(this.imageData.width, this.imageData.height, width, height)
 
             sharpImage = sharpImage.resize(parseInt(size.width), parseInt(size.height), resizeOptions)
 
@@ -814,33 +705,32 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
           Your image is clipped. It will size proportionally to make sure there is no blank space left in your area.
           */
           case 'aspectfill':
-            const scaleWidth = (width / imageInfo.naturalWidth)
-            const scaleHeight = (height / imageInfo.naturalHeight)
+            const scaleWidth = (width / this.imageData.width)
+            const scaleHeight = (height / this.imageData.height)
             const scale = Math.max(scaleWidth, scaleHeight)
             const crops = this.getCropOffsetsByGravity(
               options.gravity,
-              imageInfo,
               {width, height},
               scale
             )
 
             if (scaleHeight >= scaleWidth) {
               sharpImage = sharpImage.resize(
-                Math.round(scale * imageInfo.naturalWidth),
+                Math.round(scale * this.imageData.width),
                 height,
                 resizeOptions
               )
             } else {
               sharpImage = sharpImage.resize(
                 width,
-                Math.round(scale * imageInfo.naturalHeight),
+                Math.round(scale * this.imageData.height),
                 resizeOptions
               )
             }
 
             // Only crop if the aspect ratio is not the same
             if (
-              (width / height) !== (imageInfo.naturalWidth / imageInfo.naturalHeight)
+              (width / height) !== (this.imageData.width / this.imageData.height)
             ) {
               sharpImage.extract({
                 left: crops.x1,
@@ -908,8 +798,8 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
               }
             } else {
               // Width & height provided, crop from centre
-              const excessWidth = Math.max(0, imageInfo.naturalWidth - width)
-              const excessHeight = Math.max(0, imageInfo.naturalHeight - height)
+              const excessWidth = Math.max(0, this.imageData.width - width)
+              const excessHeight = Math.max(0, this.imageData.height - height)
 
               sharpImage.extract({
                 left: Math.round(excessWidth / 2),
@@ -972,7 +862,7 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
 
       // Image format and parameters
       const format = (this.options.format === 'json'
-        ? imageInfo.format
+        ? this.imageData.format
         : this.options.format).toLowerCase()
 
       let outputFn
@@ -1010,10 +900,6 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
 
         sharpImage = sharpImage[outputFn](outputOptions)
 
-        if (entropy) {
-          jsonData.entropyCrop = entropy
-        }
-
         // Run any plugins with a `post` method
         this.plugins.forEach(plugin => {
           if (typeof plugin.post === 'function') {
@@ -1024,7 +910,10 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
                   get: this.cache.getStream,
                   set: this.cache.set
                 },
-                imageInfo,
+                imageInfo: Object.assign({}, this.imageData, this.calculatedDimensions, {
+                  naturalWidth: this.imageData.width,
+                  naturalHeight: this.imageData.height
+                }),
                 jsonData,
                 options: this.options,
                 processor: sharpImage,
@@ -1038,10 +927,9 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
 
         pluginQueue.then(pluginStream => {
           if (pluginStream) {
-            return resolve({
-              stream: pluginStream,
-              data: jsonData
-            })
+            return resolve(
+              help.streamToBuffer(pluginStream)
+            )
           }
 
           sharpImage.toBuffer({}, (err, buffer, info) => {
@@ -1054,13 +942,7 @@ ImageHandler.prototype.process = function (imageBuffer, options, imageInfo) {
             }
 
             processBuffer.then(buffer => {
-              let bufferStream = new PassThrough()
-              bufferStream.end(buffer)
-
-              return resolve({
-                stream: bufferStream,
-                data: jsonData
-              })
+              resolve(buffer)
             })
           })
         })
@@ -1227,30 +1109,6 @@ function getImageOptionsFromLegacyURL (optionsArray) {
   }
 
   return options
-}
-
-function flushExifFiles () {
-  fs.readdir(exifDirectory, (err, files) => {
-    if (err) {
-      console.log(err)
-    }
-
-    files.forEach((file) => {
-      var filePath = path.join(exifDirectory, file)
-
-      fs.stat(filePath, (err, stats) => {
-        if (err) {
-          console.log(err)
-        }
-
-        var lastModified = stats && stats.mtime && stats.mtime.valueOf()
-
-        if (lastModified && (Date.now() - lastModified) / 1000 > 36) {
-          fs.unlinkSync(filePath)
-        }
-      })
-    })
-  })
 }
 
 module.exports = ImageHandler
