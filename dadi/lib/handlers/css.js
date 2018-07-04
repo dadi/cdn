@@ -1,12 +1,12 @@
+const Cache = require('./../cache')
 const compressor = require('node-minify')
+const config = require('./../../../config')
 const fs = require('fs')
+const help = require('./../help')
 const mkdirp = require('mkdirp')
 const path = require('path')
+const StorageFactory = require('./../storage/factory')
 const url = require('url')
-
-const Cache = require(path.join(__dirname, '/../cache'))
-const config = require(path.join(__dirname, '/../../../config'))
-const StorageFactory = require(path.join(__dirname, '/../storage/factory'))
 
 /**
  * Creates a new CSSHandler instance.
@@ -73,6 +73,8 @@ CSSHandler.prototype.get = function () {
         ttl: config.get('caching.ttl', this.req.__domain)
       })
     })
+  }).then(stream => {
+    return help.streamToBuffer(stream)
   })
 }
 

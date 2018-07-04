@@ -1,7 +1,6 @@
-const path = require('path')
-
-const Cache = require(path.join(__dirname, '/../cache'))()
-const StorageFactory = require(path.join(__dirname, '/../storage/factory'))
+const Cache = require('./../cache')()
+const help = require('./../help')
+const StorageFactory = require('./../storage/factory')
 
 const Plugin = function (req, plugin) {
   this.headers = {}
@@ -22,7 +21,9 @@ Plugin.prototype.get = function () {
         req: this.req,
         setHeader: this.setHeader.bind(this)
       })
-    )
+    ).then(stream => {
+      return help.streamToBuffer(stream)
+    })
   } catch (err) {
     let error = new Error(err)
 

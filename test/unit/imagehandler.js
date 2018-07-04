@@ -57,21 +57,11 @@ describe('ImageHandler', function (done) {
       })
     })
 
-    let convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert').callsFake(function (aStream, imageInfo) {
-      return new Promise(function (resolve, reject) {
-        let readable = new stream.Readable()
-        readable.push('')
-        readable.push(null)
-        resolve({stream: readable})
-      })
-    })
-
     // this is the test
     let im = new imageHandler('jpg', req)
     im.get().then(function (stream) {
       factory.create.restore()
       DiskStorage.DiskStorage.prototype.get.restore()
-      imageHandler.ImageHandler.prototype.convert.restore()
 
       spy.called.should.eql(true)
       get.called.should.eql(true)
@@ -111,21 +101,11 @@ describe('ImageHandler', function (done) {
       })
     })
 
-    let convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert').callsFake(function (aStream, imageInfo) {
-      return new Promise(function (resolve, reject) {
-        let readable = new stream.Readable()
-        readable.push('')
-        readable.push(null)
-        resolve({stream: readable})
-      })
-    })
-
     // this is the test
     let im = new imageHandler('jpg', req)
     im.get().then(function (stream) {
       factory.create.restore()
       DiskStorage.DiskStorage.prototype.get.restore()
-      imageHandler.ImageHandler.prototype.convert.restore()
 
       spy.called.should.eql(true)
       get.called.should.eql(true)
@@ -173,21 +153,11 @@ describe('ImageHandler', function (done) {
       })
     })
 
-    let convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert').callsFake(function (aStream, imageInfo) {
-      return new Promise(function (resolve, reject) {
-        let readable = new stream.Readable()
-        readable.push('')
-        readable.push(null)
-        resolve({stream: readable})
-      })
-    })
-
     // this is the test
     let im = new imageHandler('jpg', req)
     return im.get().then(function (stream) {
       factory.create.restore()
       HTTPStorage.HTTPStorage.prototype.get.restore()
-      imageHandler.ImageHandler.prototype.convert.restore()
 
       spy.called.should.eql(true)
       get.called.should.eql(true)
@@ -225,21 +195,11 @@ describe('ImageHandler', function (done) {
       })
     })
 
-    let convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert').callsFake(function (aStream, imageInfo) {
-      return new Promise(function (resolve, reject) {
-        let readable = new stream.Readable()
-        readable.push('')
-        readable.push(null)
-        resolve({stream: readable})
-      })
-    })
-
     // this is the test
     let im = new imageHandler('jpg', req)
     im.get().then(function (stream) {
       factory.create.restore()
       S3Storage.S3Storage.prototype.get.restore()
-      imageHandler.ImageHandler.prototype.convert.restore()
 
       spy.called.should.eql(true)
       get.called.should.eql(true)
