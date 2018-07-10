@@ -212,17 +212,7 @@ ImageHandler.prototype.get = function () {
   // Clean the options array up.
   this.options = this.sanitiseOptions(this.options || {})
 
-  this.options.format = this.options.format || this.fileExt
-
-  if (this.options.format === 'json') {
-    if (this.fileExt === this.fileName) {
-      this.format = 'PNG'
-    } else {
-      this.format = this.fileExt
-    }
-  } else {
-    this.format = this.options.format
-  }
+  this.getFormat()
 
   // Run any plugins with a `pre` method
   this.plugins.forEach(plugin => {
@@ -550,6 +540,51 @@ ImageHandler.prototype.getFilename = function () {
     return this.fileName + '.' + this.fileExt
   } else {
     return this.fileName
+  }
+}
+
+/**
+ * Sets `this.options.format` and `this.format` with the output format
+ * and the format of the processed image, respectively (these may not be
+ * the same, for example when the format is JSON there is still an image
+ * being processed, which can be a JPEG or a PNG).
+ *
+ * It also resolves comma-separated conditional formats (e.g. `webp,jpg`,
+ * which will use WebP if the requesting client supports it, or JPEG
+ * otherwise).
+ */
+ImageHandler.prototype.getFormat = function () {
+  let formats = (this.options.format || this.fileExt).split(',')
+
+  this.options.format = formats.find((format, index) => {
+    // If this is the last format in the input string, that's
+    // what we'll use.
+    if (index === (formats.length - 1)) {
+      return true
+    }
+
+    // If we're here, it means the requested format is WebP and
+    // there is a fallback. We check the `accept` header to see
+    // if the client supports WebP, choosing it if it does, or
+    // choosing the fallback if it doesn't.
+    if (format === 'webp') {
+      let acceptHeader = (this.req.headers && this.req.headers.accept) || ''
+      let supportsWebP = acceptHeader.split(',').includes('image/webp')
+
+      return supportsWebP
+    }
+
+    return true
+  })
+
+  if (this.options.format === 'json') {
+    if (this.fileExt === this.fileName) {
+      this.format = 'PNG'
+    } else {
+      this.format = this.fileExt
+    }
+  } else {
+    this.format = this.options.format
   }
 }
 
