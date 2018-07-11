@@ -17,6 +17,21 @@ const images = {
   'testdomain.com': 'test/images/dog-w600.jpeg'
 }
 
+const stylesheets = {
+  'localhost': 'test/assets/test.css',
+  'testdomain.com': 'test/assets/test.css'
+}
+
+const jsFiles = {
+  'localhost': 'test/assets/test.js',
+  'testdomain.com': 'test/assets/test.js'
+}
+
+const txtFiles = {
+  'localhost': 'test/assets/test.txt',
+  'testdomain.com': 'test/assets/test.txt'
+}
+
 let configBackup = config.get()
 let server1 = nock('http://one.somedomain.tech')
   .get('/test.jpg')
@@ -36,6 +51,60 @@ let server2 = nock('http://two.somedomain.tech')
     )
   })
 
+let cssScope1 = nock('http://one.somedomain.tech')
+  .get('/test.css')
+  .times(Infinity)
+  .reply(200, (uri, requestBody) => {
+    return fs.createReadStream(
+      path.resolve(stylesheets['localhost'])
+    )
+  })
+
+let cssScope2 = nock('http://two.somedomain.tech')
+  .get('/test.css')
+  .times(Infinity)
+  .reply(200, (uri, requestBody) => {
+    return fs.createReadStream(
+      path.resolve(stylesheets['testdomain.com'])
+    )
+  })
+
+let jsScope1 = nock('http://one.somedomain.tech')
+  .get('/test.js')
+  .times(Infinity)
+  .reply(200, (uri, requestBody) => {
+    return fs.createReadStream(
+      path.resolve(jsFiles['localhost'])
+    )
+  })
+
+let jsScope2 = nock('http://two.somedomain.tech')
+  .get('/test.js')
+  .times(Infinity)
+  .reply(200, (uri, requestBody) => {
+    return fs.createReadStream(
+      path.resolve(jsFiles['testdomain.com'])
+    )
+  })
+
+let txtScope1 = nock('http://one.somedomain.tech')
+  .get('/test.txt')
+  .times(Infinity)
+  .reply(200, (uri, requestBody) => {
+    return fs.createReadStream(
+      path.resolve(txtFiles['localhost'])
+    )
+  })
+
+let txtScope2 = nock('http://two.somedomain.tech')
+  .get('/test.txt')
+  .times(Infinity)
+  .reply(200, (uri, requestBody) => {
+    return fs.createReadStream(
+      path.resolve(txtFiles['testdomain.com'])
+    )
+  })
+
 describe('Multi-domain', function () {
   describe('if multi-domain is disabled', () => {
     before(done => {
@@ -51,7 +120,7 @@ describe('Multi-domain', function () {
     })
 
     after(done => {
-      config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
+      config.set('multiDomain.enabled', false)
 
       help.proxyStop().then(() => {
         app.stop(done)  
@@ -109,7 +178,7 @@ describe('Multi-domain', function () {
       it('should not include domain name as part of cache key', done => {
         let cacheSet = sinon.spy(
           Cache.Cache.prototype,
-          'cacheFile'
+          'set'
         )
 
         request(cdnUrl)
@@ -126,7 +195,7 @@ describe('Multi-domain', function () {
                 .expect(200)
                 .end((err, res) => {
                   res.headers['x-cache'].should.eql('HIT')
-                  cacheSet.getCall(0).args[1].includes('testdomain.com').should.eql(false)
+                  cacheSet.getCall(0).args[0].includes('testdomain.com').should.eql(false)
 
                   cacheSet.restore()
 
@@ -151,6 +220,12 @@ describe('Multi-domain', function () {
       config.set('images.directory.enabled', false, 'testdomain.com')
       config.set('images.remote.enabled', true, 'testdomain.com')
 
+      config.set('assets.directory.enabled', false, 'localhost')
+      config.set('assets.remote.enabled', true, 'localhost')
+
+      config.set('assets.directory.enabled', false, 'testdomain.com')
+      config.set('assets.remote.enabled', true, 'testdomain.com')
+
       app.start(err => {
         if (err) return done(err)
 
@@ -166,6 +241,10 @@ describe('Multi-domain', function () {
       config.set('images.directory.enabled', configBackup.images.directory.enabled, 'localhost')
       config.set('images.remote.enabled', configBackup.images.remote.enabled, 'localhost')
       config.set('images.remote.path', configBackup.images.remote.path, 'localhost')
+
+      config.set('assets.directory.enabled', configBackup.assets.directory.enabled, 'localhost')
+      config.set('assets.remote.enabled', configBackup.assets.remote.enabled, 'localhost')
+      config.set('assets.remote.path', configBackup.assets.remote.path, 'localhost')
 
       config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
 
@@ -200,6 +279,54 @@ describe('Multi-domain', function () {
         return help.imagesEqual({
           base: images['testdomain.com'],
           test: `${help.proxyUrl}/test.jpg?mockdomain=testdomain.com`
+        }).then(match => {
+          match.should.eql(true)
+        })
+      })
+    }).timeout(5000)
+
+    it('should retrieve a remote CSS file from the path specified by the domain config', () => {
+      return help.filesEqual({
+        base: stylesheets['localhost'],
+        test: `${help.proxyUrl}/test.css?mockdomain=localhost`
+      }).then(match => {
+        match.should.eql(true)
+
+        return help.filesEqual({
+          base: stylesheets['testdomain.com'],
+          test: `${help.proxyUrl}/test.css?mockdomain=testdomain.com`
+        }).then(match => {
+          match.should.eql(true)
+        })
+      })
+    }).timeout(5000)
+
+    it('should retrieve a remote TXT file from the path specified by the domain config', () => {
+      return help.filesEqual({
+        base: txtFiles['localhost'],
+        test: `${help.proxyUrl}/test.txt?mockdomain=localhost`
+      }).then(match => {
+        match.should.eql(true)
+
+        return help.filesEqual({
+          base: txtFiles['testdomain.com'],
+          test: `${help.proxyUrl}/test.txt?mockdomain=testdomain.com`
+        }).then(match => {
+          match.should.eql(true)
+        })
+      })
+    }).timeout(5000)
+
+    it.skip('should retrieve a remote JS file from the path specified by the domain config', () => {
+      return help.filesEqual({
+        base: jsFiles['localhost'],
+        test: `${help.proxyUrl}/test.js?mockdomain=localhost`
+      }).then(match => {
+        match.should.eql(true)
+
+        return help.filesEqual({
+          base: jsFiles['testdomain.com'],
+          test: `${help.proxyUrl}/test.js?mockdomain=testdomain.com`
         }).then(match => {
           match.should.eql(true)
         })
@@ -306,7 +433,7 @@ describe('Multi-domain', function () {
       it('should include domain name as part of cache key', done => {
         let cacheSet = sinon.spy(
           Cache.Cache.prototype,
-          'cacheFile'
+          'set'
         )
 
         request(cdnUrl)
@@ -323,7 +450,7 @@ describe('Multi-domain', function () {
                 .expect(200)
                 .end((err, res) => {
                   res.headers['x-cache'].should.eql('HIT')
-                  cacheSet.getCall(0).args[1].includes('testdomain.com').should.eql(true)
+                  cacheSet.getCall(0).args[0].includes('testdomain.com').should.eql(true)
                   cacheSet.restore()
 
                   request(cdnUrl)

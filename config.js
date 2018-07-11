@@ -277,7 +277,8 @@ const schema = {
       path: {
         doc: 'The remote host to request assets from, for example http://media.example.com',
         format: String,
-        default: ''
+        default: '',
+        allowDomainOverride: true
       }
     }
   },

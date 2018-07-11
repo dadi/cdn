@@ -4,6 +4,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.1.0] - 2018-07-04
+
+### Changed
+
+* [#394](https://github.com/dadi/cdn/pull/394): performance improvements.
+
+## [3.0.5] - 2018-06-27
+
+### Changed
+
+* work queue added, ensures if multiple requests are made for the same resource _before_ the first one has finished processing, remaining requests wait for the result of the first one _instead of requesting a new computation each time_. When the processing for the first request finishes, all waiting requests are served and the request is removed from the work queue.
+
+## [3.0.4] - 2018-06-22
+
+### Fixed
+
+* [#388](https://github.com/dadi/cdn/pull/388): fix issue where not all chunks from a remote HTTP call were passed to the calling function.
+
+## [3.0.3] - 2018-06-06
+
+### Changed
+
+* [#372](https://github.com/dadi/cdn/pull/372): add proper support for range requests, enabling seekable content such as audio and video to be served correctly.
+
+## [3.0.2] - 2018-06-04
+
+### Changed
+
+* changed `.npmignore` to correctly exclude any files and directories used for development purposes only.
+
+## [3.0.1] - 2018-06-04
+
+### Changed
+
+* [#369](https://github.com/dadi/cdn/pull/369): fix issue where `devicePixelRatio` was ignored when a resize style other than `crop` was used; change default resize style to `aspectfill` when `width`, `height` and `gravity` are supplied.
+
+## [3.0.0] - 2018-05-21
+
+Full public release of Release Candidate 4.
+
+### Breaking changes
+
+* The file upload function in CDN was recently removed. We came to the conclusion that CDN should remain a delivery tool - how a user gets their assets to their storage location for CDN to serve should be up to them. There are a great number of ways to do that, including via DADI API (see https://docs.dadi.tech/api/latest).
+
 ## [3.0.0-RC4] - 2018-05-16
 
 ### Added

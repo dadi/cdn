@@ -6,5 +6,10 @@
     "remote": {
       "path": "http://two.somedomain.tech"
     }
+  },
+  "assets": {
+    "remote": {
+      "path": "http://two.somedomain.tech"
+    }
   }
 }

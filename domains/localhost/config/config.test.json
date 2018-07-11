@@ -3,5 +3,10 @@
     "remote": {
       "path": "http://one.somedomain.tech"
     }
+  },
+  "assets": {
+    "remote": {
+      "path": "http://one.somedomain.tech"
+    }
   }
 }

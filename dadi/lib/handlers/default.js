@@ -1,10 +1,10 @@
+const Cache = require('./../cache')
+const config = require('./../../../config')
+const help = require('./../help')
 const mime = require('mime')
 const path = require('path')
+const StorageFactory = require('./../storage/factory')
 const url = require('url')
-
-const Cache = require(path.join(__dirname, '/../cache'))
-const config = require(path.join(__dirname, '/../../../config'))
-const StorageFactory = require(path.join(__dirname, '/../storage/factory'))
 
 /**
  * Creates a new DefaultHandler instance.
@@ -49,7 +49,7 @@ DefaultHandler.prototype.get = function () {
     this.storageHandler = this.storageFactory.create(
       'asset',
       this.url.pathname.slice(1),
-      false
+      {domain: this.req.__domain}
     )
 
     return this.storageHandler.get().then(stream => {
@@ -57,6 +57,8 @@ DefaultHandler.prototype.get = function () {
         ttl: config.get('caching.ttl', this.req.__domain)
       })
     })
+  }).then(stream => {
+    return help.streamToBuffer(stream)
   })
 }
 
@@ -66,6 +68,10 @@ DefaultHandler.prototype.get = function () {
  * @return {String} The content type
  */
 DefaultHandler.prototype.getContentType = function () {
+  if (path.extname(this.url.pathname) === '') {
+    return 'text/html'
+  }
+
   return mime.lookup(this.url.pathname)
 }
 
