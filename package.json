@@ -38,7 +38,7 @@
     "exif-reader": "^1.0.2",
     "farmhash": "2.1.0",
     "finalhandler": "~1.1.0",
-    "fs-extra": "^6.0.0",
+    "fs-extra": "^7.0.0",
     "gifwrap": "^0.7.5",
     "he": "^1.1.0",
     "image-size-stream": "1.1.0",
