@@ -41,7 +41,7 @@ describe('Cache', function () {
         bearerToken = token
         done()
       })
-    })    
+    })
   })
 
   afterEach(done => {
@@ -294,14 +294,14 @@ describe('Cache', function () {
                     res.headers['x-cache'].should.eql('HIT')
 
                     done()
-                  })                
+                  })
                 }, 150)
-              })              
+              })
             })
           }, 150)
         })
       })
-    })    
+    })
   })
 
   describe('JavaScript', () => {
@@ -428,14 +428,14 @@ describe('Cache', function () {
                     res.headers['x-cache'].should.eql('HIT')
 
                     done()
-                  })                
+                  })
                 }, 150)
-              })              
+              })
             })
           }, 150)
         })
       })
-    })    
+    })
   })
 
   describe('CSS', () => {
@@ -569,14 +569,14 @@ describe('Cache', function () {
                     res.headers['x-cache'].should.eql('HIT')
 
                     done()
-                  })                
+                  })
                 }, 150)
-              })              
+              })
             })
           }, 150)
         })
       })
-    })    
+    })
   })
 
   describe('Other assets', () => {
@@ -686,14 +686,14 @@ describe('Cache', function () {
                     res.headers['x-cache'].should.eql('HIT')
 
                     done()
-                  })                
+                  })
                 }, 150)
-              })              
+              })
             })
           }, 150)
         })
       })
-    })    
+    })
   })
 
   describe('TTL', () => {

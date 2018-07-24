@@ -120,7 +120,7 @@ const schema = {
         default: '',
         env: 'AWS_REGION'
       }
-    }    
+    }
   },
   notFound: {
     statusCode: {
@@ -626,6 +626,11 @@ const schema = {
       default: 10,
       allowDomainOverride: true
     }
+  },
+  defaultFiles: {
+    doc: 'An array of filenames that can be used as fallback defaults when no path is specified',
+    format: Array,
+    default: []
   }
 }
 

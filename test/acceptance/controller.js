@@ -17,7 +17,8 @@ let cdnUrl = 'http://' + config.get('server.host') + ':' + config.get('server.po
 let testConfigString
 
 describe('Controller', function () {
-  this.timeout(6000)
+  this.timeout(10000)
+
   let tokenRoute = config.get('auth.tokenUrl')
 
   before(done => {
@@ -750,14 +751,14 @@ describe('Controller', function () {
           .get('/dm.jpg?format=json')
           .end(function (err, res) {
             res.statusCode.should.eql(200)
-            
+
             res.body.density.should.be.Object
             res.body.density.width.should.be.Number
             res.body.density.height.should.be.Number
             res.body.density.unit.should.be.String
             done()
           })
-      })      
+      })
 
       it('should get image from cache if cache is enabled and cached item exists', function (done) {
         this.timeout(4000)
@@ -944,6 +945,34 @@ describe('Controller', function () {
 
             done()
           })
+      })
+    })
+
+    describe('default files', () => {
+      it('should return a configured default file if no path is specified', function (done) {
+        config.set('defaultFiles', ['test.css'])
+
+        request(cdnUrl)
+        .get('/')
+        .expect(200)
+        .end((err, res) => {
+          res.headers['content-type'].should.eql('text/css')
+
+          config.set('defaultFiles', [])
+          done()
+        })
+      })
+
+      it('should return 404 if no default file is found', function (done) {
+        config.set('defaultFiles', ['index.html'])
+
+        request(cdnUrl)
+        .get('/')
+        .expect(404)
+        .end((err, res) => {
+          config.set('defaultFiles', [])
+          done()
+        })
       })
     })
 
@@ -1621,10 +1650,10 @@ describe('Controller', function () {
     })
 
     describe('Other', function () {
-      it('should respond to the root endpoint', function (done) {
+      it('should respond to the hello endpoint', function (done) {
         var client = request(cdnUrl)
         client
-          .get('/')
+          .get('/hello')
           .end(function (err, res) {
             res.statusCode.should.eql(200)
             res.text.should.eql('Welcome to DADI CDN')

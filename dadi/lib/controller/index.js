@@ -27,6 +27,10 @@ const Controller = function (router) {
 
   router.use(seek)
 
+  router.get('/hello', function (req, res, next) {
+    res.end('Welcome to DADI CDN')
+  })
+
   router.get('/robots.txt', (req, res) => {
     const robotsFile = config.get('robots')
 
@@ -52,7 +56,6 @@ const Controller = function (router) {
           return { handler, data }
         }).catch(err => {
           err.__handler = handler
-
           return Promise.reject(err)
         })
       })
