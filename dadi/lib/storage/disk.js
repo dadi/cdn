@@ -106,7 +106,7 @@ DiskStorage.prototype.get = function () {
           return reject(err)
         })
       })
-    }).catch(err => console.log(err))
+    })
   })
 }
 
