@@ -874,6 +874,32 @@ describe('Controller', function () {
         })
     })
 
+    describe('comma-separated conditional formats', () => {
+      it('should return an image as WebP if format is `webp,jpg` and the requesting browser indicates support for WebP', done => {
+        request(cdnUrl)
+        .get('/test.jpg?format=webp,jpg')
+        .set('accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8')
+        .end((err, res) => {
+          res.statusCode.should.eql(200)
+          res.headers['content-type'].should.eql('image/webp')
+
+          done()
+        })
+      })
+
+      it('should return an image as JPEG if format is `webp,jpg` and the requesting browser does not indicate support for WebP', done => {
+        request(cdnUrl)
+        .get('/test.jpg?format=webp,jpg')
+        .set('accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')
+        .end((err, res) => {
+          res.statusCode.should.eql(200)
+          res.headers['content-type'].should.eql('image/jpeg')
+
+          done()
+        })
+      })
+    })
+
     describe.skip('gzip encoding', () => {
       it('should return gzipped content when headers.useGzipCompression is true', done => {
         config.set('headers.useGzipCompression', false)
