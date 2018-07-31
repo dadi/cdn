@@ -8,8 +8,13 @@ const Missing = require(path.join(__dirname, '/missing'))
 const DiskStorage = function ({assetType = 'assets', domain, url}) {
   let assetPath = config.get(`${assetType}.directory.path`)
 
+  if (url !== '') {
+    this.url = nodeUrl.parse(url, true).pathname
+  } else {
+    this.url = '/'
+  }
+
   this.domain = domain
-  this.url = nodeUrl.parse(url, true).pathname
   this.path = path.resolve(assetPath)
 }
 
@@ -21,45 +26,85 @@ DiskStorage.prototype.getLastModified = function () {
   return this.lastModified
 }
 
+/**
+ * Scans a directory for files and compares them to the config.defaultFiles array,
+ * returning an array of file names that match the defaultFiles array.
+ */
+DiskStorage.prototype.getDefaultFile = function () {
+  return new Promise((resolve, reject) => {
+    let fullUrl = this.getFullUrl()
+
+    fs.lstat(fullUrl, (err, stats) => {
+      if (err) return reject(err)
+
+      if (stats.isDirectory()) {
+        let defaultFiles = config.get('defaultFiles')
+
+        fs.readdir(fullUrl, (err, files) => {
+          if (err) return reject(err)
+
+          files = files.filter(file => defaultFiles.includes(path.basename(file)))
+
+          return resolve(files[0] || 'no-default-configured')
+        })
+      }
+    })
+  })
+}
+
 DiskStorage.prototype.get = function () {
   return new Promise((resolve, reject) => {
-    // attempt to open
-    let stream = fs.createReadStream(this.getFullUrl())
+    let wait = Promise.resolve()
 
-    stream.on('open', () => {
-      // check file size
-      let stats = fs.statSync(this.getFullUrl())
-      let fileSize = parseInt(stats.size)
+    // If we're looking at a directory (assumed because no extension),
+    // attempt to get a configured default file from the directory
+    if (path.parse(this.getFullUrl()).ext === '') {
+      wait = this.getDefaultFile()
+    }
 
-      this.lastModified = stats.mtime
+    return wait.then(file => {
+      if (file) {
+        // reset the url property so that this.getFullUrl() now loads the default file
+        this.url = `/${file}`
+      }
 
-      if (fileSize === 0) {
-        let err = {
-          statusCode: 404,
-          message: 'File size is 0 bytes'
+      // attempt to open
+      let stream = fs.createReadStream(this.getFullUrl())
+
+      stream.on('open', () => {
+        // check file size
+        let stats = fs.statSync(this.getFullUrl())
+        let fileSize = parseInt(stats.size)
+
+        this.lastModified = stats.mtime
+
+        if (fileSize === 0) {
+          let err = {
+            statusCode: 404,
+            message: 'File size is 0 bytes'
+          }
+
+          return reject(err)
         }
 
-        return reject(err)
-      }
-
-      return resolve(stream)
-    })
-
-    stream.on('error', () => {
-      let err = {
-        statusCode: 404,
-        message: 'File not found: ' + this.getFullUrl()
-      }
-
-      return new Missing().get({
-        domain: this.domain
-      }).then(stream => {
-        this.notFound = true
-        this.lastModified = new Date()
         return resolve(stream)
-      }).catch(e => {
-        console.log(e)
-        return reject(err)
+      })
+
+      stream.on('error', () => {
+        let err = {
+          statusCode: 404,
+          message: 'File not found: ' + this.getFullUrl()
+        }
+
+        return new Missing().get({
+          domain: this.domain
+        }).then(stream => {
+          this.notFound = true
+          this.lastModified = new Date()
+          return resolve(stream)
+        }).catch(e => {
+          return reject(err)
+        })
       })
     })
   })

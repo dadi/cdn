@@ -217,10 +217,6 @@ Server.prototype.start = function (done) {
     next()
   })
 
-  router.get('/', function (req, res, next) {
-    res.end('Welcome to DADI CDN')
-  })
-
   // Ensure that middleware runs in the correct order,
   // especially when running an integrated status page.
   if (config.get('status.standalone')) {

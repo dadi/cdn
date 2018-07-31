@@ -55,10 +55,10 @@ module.exports.imagesEqual = function ({base, headers, test}) {
         let distance = Jimp.distance(baselineImage, testImage)
 
         if (distance < 0.15 || diff.percent < 0.15) {
-          return true
+          return Promise.resolve(true)
         }
 
-        return false
+        return Promise.resolve(false)
       })
     }).catch(err => {
       console.error(err)
@@ -186,7 +186,7 @@ let proxyServer = http.createServer((req, res) => {
 
 module.exports.proxyStart = () => {
   return new Promise((resolve, reject) => {
-    proxyServer.listen(proxyPort, resolve)  
+    proxyServer.listen(proxyPort, resolve)
   })
 }
 
