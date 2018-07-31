@@ -17,7 +17,8 @@ let cdnUrl = 'http://' + config.get('server.host') + ':' + config.get('server.po
 let testConfigString
 
 describe('Controller', function () {
-  this.timeout(6000)
+  this.timeout(10000)
+
   let tokenRoute = config.get('auth.tokenUrl')
 
   before(done => {
@@ -726,13 +727,35 @@ describe('Controller', function () {
 
         var client = request(cdnUrl)
         client
-          .get('/json/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
+          .get('/test.jpg?format=json')
           .end(function (err, res) {
             res.statusCode.should.eql(200)
             var info = res.body
 
             info.fileName.should.eql('test.jpg')
             info.format.should.eql('jpg')
+            done()
+          })
+      })
+
+      it('should include EXIF data when format = JSON', function (done) {
+        var newTestConfig = JSON.parse(testConfigString)
+        newTestConfig.images.directory.enabled = true
+        newTestConfig.images.directory.path = './test/images'
+        fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+        config.loadFile(config.configPath())
+
+        var client = request(cdnUrl)
+        client
+          .get('/dm.jpg?format=json')
+          .end(function (err, res) {
+            res.statusCode.should.eql(200)
+
+            res.body.density.should.be.Object
+            res.body.density.width.should.be.Number
+            res.body.density.height.should.be.Number
+            res.body.density.unit.should.be.String
             done()
           })
       })
@@ -852,6 +875,32 @@ describe('Controller', function () {
         })
     })
 
+    describe('comma-separated conditional formats', () => {
+      it('should return an image as WebP if format is `webp,jpg` and the requesting browser indicates support for WebP', done => {
+        request(cdnUrl)
+        .get('/test.jpg?format=webp,jpg')
+        .set('accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8')
+        .end((err, res) => {
+          res.statusCode.should.eql(200)
+          res.headers['content-type'].should.eql('image/webp')
+
+          done()
+        })
+      })
+
+      it('should return an image as JPEG if format is `webp,jpg` and the requesting browser does not indicate support for WebP', done => {
+        request(cdnUrl)
+        .get('/test.jpg?format=webp,jpg')
+        .set('accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')
+        .end((err, res) => {
+          res.statusCode.should.eql(200)
+          res.headers['content-type'].should.eql('image/jpeg')
+
+          done()
+        })
+      })
+    })
+
     describe.skip('gzip encoding', () => {
       it('should return gzipped content when headers.useGzipCompression is true', done => {
         config.set('headers.useGzipCompression', false)
@@ -922,6 +971,34 @@ describe('Controller', function () {
 
             done()
           })
+      })
+    })
+
+    describe('default files', () => {
+      it('should return a configured default file if no path is specified', function (done) {
+        config.set('defaultFiles', ['test.css'])
+
+        request(cdnUrl)
+        .get('/')
+        .expect(200)
+        .end((err, res) => {
+          res.headers['content-type'].should.eql('text/css')
+
+          config.set('defaultFiles', [])
+          done()
+        })
+      })
+
+      it('should return 404 if no default file is found', function (done) {
+        config.set('defaultFiles', ['index.html'])
+
+        request(cdnUrl)
+        .get('/')
+        .expect(404)
+        .end((err, res) => {
+          config.set('defaultFiles', [])
+          done()
+        })
       })
     })
 
@@ -1599,10 +1676,10 @@ describe('Controller', function () {
     })
 
     describe('Other', function () {
-      it('should respond to the root', function (done) {
+      it('should respond to the hello endpoint', function (done) {
         var client = request(cdnUrl)
         client
-          .get('/')
+          .get('/hello')
           .end(function (err, res) {
             res.statusCode.should.eql(200)
             res.text.should.eql('Welcome to DADI CDN')

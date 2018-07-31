@@ -1,14 +1,13 @@
 const babel = require('babel-core')
 const babelPresetEnv = require('babel-preset-env').default
+const Cache = require('./../cache')
+const config = require('./../../../config')
 const farmhash = require('farmhash')
-const path = require('path')
+const help = require('./../help')
 const Readable = require('stream').Readable
 const url = require('url')
 const userAgent = require('useragent')
-
-const Cache = require(path.join(__dirname, '/../cache'))
-const config = require(path.join(__dirname, '/../../../config'))
-const StorageFactory = require(path.join(__dirname, '/../storage/factory'))
+const StorageFactory = require('./../storage/factory')
 
 const DEFAULT_UA = 'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.0; Trident/4.0)'
 
@@ -61,7 +60,7 @@ JSHandler.prototype.get = function () {
     this.storageHandler = this.storageFactory.create(
       'asset',
       this.url.pathname.slice(1),
-      false
+      {domain: this.req.__domain}
     )
 
     return this.storageHandler.get().then(stream => {
@@ -71,6 +70,8 @@ JSHandler.prototype.get = function () {
         ttl: config.get('caching.ttl', this.req.__domain)
       })
     })
+  }).then(stream => {
+    return help.streamToBuffer(stream)
   })
 }
 

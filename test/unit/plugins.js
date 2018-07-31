@@ -1,15 +1,14 @@
 const config = require(__dirname + '/../../config')
 const fs = require('fs')
+const ImageHandler = require('./../../dadi/lib/handlers/image')
 const path = require('path')
 const should = require('should')
 const sinon = require('sinon')
 const stream = require('stream')
 
-const ImageHandler = require(__dirname + '/../../dadi/lib/handlers/image')
-
 describe('Plugins', done => {
   describe('post-processing', () => {
-    it('should receive the correct parameters', done => {
+    it('should receive the correct parameters', () => {
       const req = {
         url: '/test.jpg?width=350&height=530&resizeStyle=entropy'
       }
@@ -35,7 +34,7 @@ describe('Plugins', done => {
         post: pluginPost
       }]
 
-      handler.get().then(response => {
+      return handler.get().then(response => {
         handler.storageFactory.create.restore()
 
         pluginParameters.assetStore.should.be.Function
@@ -60,8 +59,6 @@ describe('Plugins', done => {
         pluginParameters.sharp.should.be.Function
 
         pluginParameters.url.should.eql(req.url)
-
-        done()
       })
     })
   })
