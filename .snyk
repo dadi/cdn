@@ -8,3 +8,12 @@ patch:
         patched: '2018-07-04T02:27:36.332Z'
     - '@dadi/boot > cli-table2 > lodash':
         patched: '2018-07-04T02:27:36.332Z'
+  'npm:hoek:20180212':
+    - images > node-gyp > request > hawk > hoek:
+        patched: '2018-06-19T09:38:39.334Z'
+    - images > node-gyp > request > hawk > boom > hoek:
+        patched: '2018-06-19T09:38:39.334Z'
+    - images > node-gyp > request > hawk > sntp > hoek:
+        patched: '2018-06-19T09:38:39.334Z'
+    - images > node-gyp > request > hawk > cryptiles > boom > hoek:
+        patched: '2018-06-19T09:38:39.334Z'
