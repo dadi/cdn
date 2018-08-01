@@ -43,7 +43,7 @@ describe('SSL', () => {
       if (err) return done(err)
 
       client
-        .get('/')
+        .get('/hello')
         .end((err, res) => {
           if (err) throw err
           res.statusCode.should.eql(200)
@@ -63,7 +63,7 @@ describe('SSL', () => {
 
       var httpClient = request('http://' + config.get('server.host') + ':9999')
       httpClient
-        .get('/')
+        .get('/hello')
         .expect(301)
         .end((err, res) => {
           if (err) return done(err)
@@ -81,7 +81,7 @@ describe('SSL', () => {
       if (err) return done(err)
 
       secureClient
-        .get('/')
+        .get('/hello')
         .end((err, res) => {
           if (err) throw err
           res.statusCode.should.eql(200)
@@ -100,7 +100,7 @@ describe('SSL', () => {
       if (err) return done(err)
 
       secureClient
-        .get('/')
+        .get('/hello')
         .end((err, res) => {
           if (err) throw err
           res.statusCode.should.eql(200)

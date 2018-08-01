@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.2.0] - 2018-08-01
+
+### Added
+
+* [#400](https://github.com/dadi/cdn/pull/400): support for conditional formats 
+* [#405](https://github.com/dadi/cdn/pull/405): support for default files
+* With #405, the `/` route doesn't respond with a plain text 200 response. In order to check that CDN is online, send a request to `/hello`
+
+
 ## [3.1.1] - 2018-07-11
 
 ### Changed

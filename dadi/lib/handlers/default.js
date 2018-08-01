@@ -68,11 +68,17 @@ DefaultHandler.prototype.get = function () {
  * @return {String} The content type
  */
 DefaultHandler.prototype.getContentType = function () {
-  if (path.extname(this.url.pathname) === '') {
+  let newUrl = this.url.pathname
+
+  if (this.storageHandler && this.storageHandler.url !== newUrl) {
+    newUrl = this.storageHandler.url
+  }
+
+  if (path.extname(newUrl) === '') {
     return 'text/html'
   }
 
-  return mime.lookup(this.url.pathname)
+  return mime.lookup(newUrl)
 }
 
 /**
