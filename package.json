@@ -78,7 +78,7 @@
     "coveralls": "^3.0.1",
     "env-test": "^1.0.0",
     "fakeredis": "^2.0.0",
-    "greenkeeper-postpublish": "^1.0.1",
+    "greenkeeper-postpublish": "^2.0.0",
     "http-proxy": "^1.16.2",
     "istanbul": "^1.1.0-alpha.1",
     "it-each": "^0.3.1",
