@@ -117,7 +117,7 @@ CSSHandler.prototype.getLastModified = function () {
 CSSHandler.prototype.getLegacyURLOverrides = function (url) {
   let overrides = {}
 
-  const legacyURLMatch = url.match(/\/css(\/(\d))?/)
+  let legacyURLMatch = url.match(/^\/css(\/(\d))?/)
 
   if (legacyURLMatch) {
     if (legacyURLMatch[2]) {
