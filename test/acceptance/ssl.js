@@ -118,6 +118,7 @@ describe('SSL', () => {
     try {
       app.start(() => {})
     } catch (ex) {
+      console.log('ex :', ex);
       ex.message.should.eql('error starting https server: incorrect ssl passphrase')
     }
 
@@ -133,6 +134,7 @@ describe('SSL', () => {
     try {
       app.start(() => {})
     } catch (ex) {
+      console.log('ex :', ex);
       ex.message.should.eql('error starting https server: required ssl passphrase not provided')
     }
 
