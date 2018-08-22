@@ -792,7 +792,7 @@ describe('Frequency cache flush', () => {
           mockCacheDelete.args.every(callArgs => {
             return callArgs.length === 0
           }).should.eql(true)
-          mockCacheDelete.callCount.should.eql(5)
+          mockCacheDelete.callCount.should.be.above(4)
 
           mockCacheDelete.restore()
 
@@ -823,7 +823,7 @@ describe('Frequency cache flush', () => {
 
             return true
           }).should.eql(true)
-          mockCacheDelete.callCount.should.eql(5)
+          mockCacheDelete.callCount.should.be.above(4)
 
           mockCacheDelete.restore()
 
