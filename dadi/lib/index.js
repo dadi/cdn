@@ -102,8 +102,6 @@ Server.prototype.create = function (listener) {
       serverOptions.ca = readFileSyncSafe(caPath)
     }
 
-    console.log('serverOptions :', serverOptions)
-
     // We need to catch any errors resulting from bad parameters,
     // such as incorrect passphrase or no passphrase provided.
     try {
