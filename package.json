@@ -1,6 +1,6 @@
 {
   "name": "@dadi/cdn",
-  "version": "3.2.0",
+  "version": "3.2.1",
   "product": "DADI CDN",
   "description": "A high performance, just-in-time asset manipulation and delivery layer designed as a modern content distribution solution.",
   "scripts": {
@@ -71,7 +71,7 @@
     "useragent": "2.3.0",
     "uuid": "latest",
     "validate-commit-message": "^3.0.1",
-    "snyk": "^1.88.1"
+    "snyk": "^1.93.0"
   },
   "devDependencies": {
     "aws-sdk-mock": "^1.5.0",
