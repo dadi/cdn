@@ -54,7 +54,7 @@ describe('http2', () => {
           // We're assuming here that the 'supertest' module doesn't support http2
           // If they ever add it this test might need to be changed!
 
-          res.statusCode.should.eql(200)
+          res.httpVersion.should.eql('1.1')
           
           done()
         })
