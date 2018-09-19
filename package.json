@@ -42,6 +42,7 @@
     "fs-extra": "^6.0.0",
     "gifwrap": "^0.7.5",
     "he": "^1.1.0",
+    "husky": "^0.14.3",
     "image-size-stream": "1.1.0",
     "images": "^3.0.0",
     "jimp": "^0.2.28",
@@ -62,6 +63,7 @@
     "sharp": "^0.20.7",
     "simple-bufferstream": "^1.0.0",
     "smartcrop-sharp": "^2.0.2",
+    "snyk": "^1.93.0",
     "sqwish": "^0.2.2",
     "stream-length": "^1.0.2",
     "streamifier": "^0.1.1",
@@ -71,8 +73,7 @@
     "url-join": "^3.0.0",
     "useragent": "2.3.0",
     "uuid": "latest",
-    "validate-commit-message": "^3.0.1",
-    "snyk": "^1.93.0"
+    "validate-commit-message": "^3.0.1"
   },
   "devDependencies": {
     "aws-sdk-mock": "^1.5.0",
