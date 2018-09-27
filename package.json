@@ -42,7 +42,7 @@
     "fs-extra": "^6.0.0",
     "gifwrap": "^0.7.5",
     "he": "^1.1.0",
-    "husky": "^0.14.3",
+    "husky": "^1.0.1",
     "image-size-stream": "1.1.0",
     "images": "^3.0.0",
     "jimp": "^0.2.28",
