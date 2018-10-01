@@ -23,9 +23,9 @@ function getFormat (req) {
   let parsedPath = parseUrl(req).pathname
 
   // add default jpg extension
-  if (path.extname(parsedPath) === '') {
-    parsedPath += '.jpg'
-  }
+  // if (path.extname(parsedPath) === '') {
+  //   parsedPath += '.jpg'
+  // }
 
   if (req.__cdnLegacyURLSyntax) {
     return parsedPath.split('/').find(Boolean)
