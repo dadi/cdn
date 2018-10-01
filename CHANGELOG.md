@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.2.2] - 2018-10-01
+
+### Changed
+
+* [#424](https://github.com/dadi/cdn/issues/424): PNG compression honours quality parameter setting
+* [#431](https://github.com/dadi/cdn/pull/431): don't assume JPG extension when no extension is supplied
+
+
 ## [3.2.1] - 2018-08-22
 
 ### Changed
