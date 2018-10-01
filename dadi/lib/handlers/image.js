@@ -915,6 +915,7 @@ ImageHandler.prototype.process = function (sharpImage, imageBuffer) {
         case 'png':
           outputFn = 'png'
           // Map options.quality inversely to a compression level between 1 and 9
+          // Ignore compressionLevel=0 since this results in much larger file sizes
           let compressionLevel = parseInt((options.quality * -0.09) + 9)
           outputOptions.compressionLevel = Math.max(Math.min(compressionLevel, 9), 1)
 
