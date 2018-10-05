@@ -114,11 +114,11 @@ HTTPStorage.prototype.get = function ({
 
         if (statusCode === 404) {
           new Missing().get({
-            domain: this.domain
+            domain: this.domain,
+            isDirectory: path.parse(this.getFullUrl()).ext === ''
           }).then(stream => {
             this.notFound = true
             this.lastModified = new Date()
-
             resolve(stream)
           }).catch(() => {
             reject(httpError)

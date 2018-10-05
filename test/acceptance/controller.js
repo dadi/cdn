@@ -1035,6 +1035,27 @@ describe('Controller', function () {
           })
       })
 
+      it('should return a json response when a directory is requested', function (done) {
+
+        config.set('notFound.images.enabled', true)
+        config.set('notFound.images.path', './test/images/missing.png')
+        config.set('notFound.statusCode', 410)
+
+        let client = request(cdnUrl)
+          .get('/path/to/missing/')
+          .expect(410)
+          .end((err, res) => {
+            res.body.message.includes('File not found:').should.eql(true)
+            res.statusCode.should.eql(404)
+
+            config.set('notFound.images.enabled', configBackup.notFound.images.enabled)
+            config.set('notFound.statusCode', configBackup.notFound.statusCode)
+
+            done()
+          })
+
+      })
+
       describe('when multi-domain is enabled', () => {
         let fallbackImages = {
           localhost: 'test/images/original.jpg',
@@ -1430,7 +1451,7 @@ describe('Controller', function () {
               res.headers['content-type'].should.eql('image/png')
               res.statusCode.should.eql(410)
 
-              config.set('notFound.images.enabled', configBackup.notFound.statusCode)
+              config.set('notFound.images.enabled', configBackup.notFound.images.enabled)
               config.set('notFound.statusCode', configBackup.notFound.statusCode)
 
               done()
@@ -1644,6 +1665,30 @@ describe('Controller', function () {
 
           done()
         })
+      })
+
+      it('should return a json response when a directory is requested', function (done) {
+        // return 404 from the S3 request
+        AWS.mock('S3', 'getObject', Promise.reject({ statusCode: 404 }))
+
+        config.set('images.s3.bucketName', 'test-bucket')
+        config.set('images.s3.accessKey', 'xxx')
+        config.set('images.s3.secretKey', 'xyz')
+        config.set('notFound.statusCode', 404)
+        config.set('notFound.images.enabled', true)
+        config.set('notFound.images.path', './test/images/')
+
+        let client = request(cdnUrl)
+          .get('/images/mock/')
+          .expect(404)
+          .end((err, res) => {
+            AWS.restore()
+
+            res.body.message.includes('File not found:').should.eql(true)
+            res.statusCode.should.eql(404)
+
+            done()
+          })
       })
 
       it('should return configured statusCode if image is not found', function (done) {
