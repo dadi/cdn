@@ -102,6 +102,18 @@ describe('Cache', function () {
       })
     })
 
+    it('should return a vary accept encoding header', done => {
+      client
+        .get('/test.jpg')
+        .expect(200)
+        .end((err, res) => {
+          if (err) return done(err)
+
+          res.headers['vary'].should.eql('Accept-Encoding')
+          done()
+        })
+    })
+
     describe('caching 404 responses', () => {
       it('should not cache a 404 if caching.cache404 is false and the image fallback is disabled', done => {
         config.set('caching.cache404', false)

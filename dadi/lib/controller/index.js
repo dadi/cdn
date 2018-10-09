@@ -63,6 +63,7 @@ const Controller = function (router) {
       this.addContentTypeHeader(res, handler)
       this.addCacheControlHeader(res, handler, req.__domain)
       this.addLastModifiedHeader(res, handler)
+      this.addVaryHeader(res, handler)
 
       if (handler.storageHandler && handler.storageHandler.notFound) {
         res.statusCode = config.get('notFound.statusCode', req.__domain) || 404
@@ -199,6 +200,12 @@ Controller.prototype.addLastModifiedHeader = function (res, handler) {
     var lastMod = handler.getLastModified()
     if (lastMod) res.setHeader('Last-Modified', lastMod)
   }
+}
+
+Controller.prototype.addVaryHeader = function (res, handler) {
+  if (!handler) return
+
+  res.setHeader('Vary', 'Accept-Encoding')
 }
 
 Controller.prototype.addCacheControlHeader = function (res, handler, domain) {
