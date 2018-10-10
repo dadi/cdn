@@ -371,6 +371,139 @@ describe('Controller', function () {
     })
   })
 
+  describe('HTML passthrough', function () {
+    let server
+    let remoteUrl = 'http://localhost:8888'
+
+    before(() => {
+      config.set('images.directory.enabled', false)
+      config.set('images.remote.enabled', true)
+      config.set('images.remote.path', remoteUrl)
+      config.set('images.s3.enabled', false)
+      
+      config.set('assets.directory.enabled', false)
+      config.set('assets.s3.enabled', false)
+
+      config.set('assets.remote.enabled', true)
+      config.set('assets.remote.path', remoteUrl)
+
+      config.set('caching.directory.enabled', true)
+
+      server = require('http').createServer((req, res) => {
+        switch (req.url) {
+          case '/':
+            fs.readFile(path.join(__dirname, '../assets/test.html'), 'utf8', (_err, data) => {
+              res.statusCode = 200
+              res.setHeader('Content-Type', 'text/html')
+              res.end(data)
+            })
+
+            break
+
+          case '/test.jpg':
+            fs.readFile(path.join(__dirname, '../images/test.jpg'), null, (_err, data) => {
+              res.statusCode = 200
+              res.setHeader('Content-Type', 'image/jpeg')
+              res.end(data)
+            })
+
+            break
+
+          default:
+            res.statusCode = 404
+            res.end('Page not found.')
+
+            break
+        }
+      })
+
+      server.listen(8888)
+    })
+
+    after(done => {
+      config.set('images.directory.enabled', configBackup.images.directory.enabled)
+      config.set('images.remote.enabled', configBackup.images.remote.enabled)
+      config.set('images.remote.path', configBackup.images.remote.path)
+      config.set('images.remote.allowFullURL', configBackup.images.remote.allowFullURL)
+      config.set('images.s3.enabled', configBackup.images.s3.enabled)
+
+      config.set('assets.directory.enabled', configBackup.assets.directory.enabled)
+      config.set('assets.remote.enabled', configBackup.assets.remote.enabled)
+      config.set('assets.remote.path', configBackup.assets.remote.path)
+      config.set('assets.remote.allowFullURL', configBackup.assets.remote.allowFullURL)
+      config.set('assets.s3.enabled', configBackup.assets.s3.enabled)
+
+      config.set('caching.directory.enabled', configBackup.caching.directory.enabled)
+
+      server = null
+      done()
+    })
+
+    it('should pass an html request through from the configured remote origin', function (done) {
+      let client = request(cdnUrl)
+
+      client
+      .get('/')
+      .expect(200)
+      .end((_err, res) => {
+        res.headers['content-type'].should.exist
+        res.headers['content-type'].should.eql('text/html')
+
+        res.headers['x-cache'].should.exist
+        res.headers['x-cache'].should.eql('MISS')
+
+        done()
+      })
+    })
+
+    it('should cache and return an html request from the configured remote origin', function (done) {
+      let client = request(cdnUrl)
+
+      client
+      .get('/')
+      .expect(200)
+      .end((_err, res) => {
+        res.headers['content-type'].should.exist
+        res.headers['content-type'].should.eql('text/html')
+
+        res.headers['x-cache'].should.exist
+        res.headers['x-cache'].should.eql('MISS')
+
+        client
+        .get('/')
+        .expect(200)
+        .end((_err, res) => {
+          res.headers['content-type'].should.exist
+          res.headers['content-type'].should.eql('text/html')
+  
+          res.headers['x-cache'].should.exist
+          res.headers['x-cache'].should.eql('HIT')
+  
+          done()
+        })
+      })
+    })
+
+    it('should pass an image request through from the configured remote origin', function (done) {
+      let client = request(cdnUrl)
+
+      client
+      .get('/test.jpg')
+      .expect(200)
+      .end((_err, res) => {
+        res.body.should.be.an.instanceOf(Buffer)
+
+        res.headers['content-type'].should.exist
+        res.headers['content-type'].should.eql('image/jpeg')
+
+        res.headers['x-cache'].should.exist
+        res.headers['x-cache'].should.eql('MISS')
+
+        done()
+      })
+    })
+  })
+
   describe('JavaScript', function () {
     this.timeout(10000)
 
