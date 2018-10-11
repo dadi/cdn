@@ -35,13 +35,13 @@ DiskStorage.prototype.getDefaultFile = function () {
     let fullUrl = this.getFullUrl()
 
     fs.lstat(fullUrl, (err, stats) => {
-      if (err) return reject(err)
+      if (err) return resolve()
 
       if (stats.isDirectory()) {
         let defaultFiles = config.get('defaultFiles')
 
         fs.readdir(fullUrl, (err, files) => {
-          if (err) return reject(err)
+          if (err) return resolve()
 
           files = files.filter(file => defaultFiles.includes(path.basename(file)))
 
@@ -58,7 +58,9 @@ DiskStorage.prototype.get = function () {
 
     // If we're looking at a directory (assumed because no extension),
     // attempt to get a configured default file from the directory
-    if (path.parse(this.getFullUrl()).ext === '') {
+    let isDirectory = path.parse(this.getFullUrl()).ext === ''
+
+    if (isDirectory) {
       wait = this.getDefaultFile()
     }
 
@@ -97,7 +99,8 @@ DiskStorage.prototype.get = function () {
         }
 
         return new Missing().get({
-          domain: this.domain
+          domain: this.domain,
+          isDirectory: isDirectory
         }).then(stream => {
           this.notFound = true
           this.lastModified = new Date()
