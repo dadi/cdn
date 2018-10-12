@@ -14,6 +14,8 @@ const sharp = require('sharp')
 const smartcrop = require('smartcrop-sharp')
 const urlParser = require('url')
 const Vibrant = require('node-vibrant')
+const imagemin = require('imagemin')
+const imageminJpegtran = require('imagemin-jpegtran')
 
 const StorageFactory = require(path.join(__dirname, '/../storage/factory'))
 const Cache = require(path.join(__dirname, '/../cache'))
@@ -979,6 +981,10 @@ ImageHandler.prototype.process = function (sharpImage, imageBuffer) {
               processBuffer = this.processGif(buffer)
             }
 
+            if (format === 'jpeg' || format === 'jpg') {
+              processBuffer = this.processJpeg(buffer)
+            }
+
             processBuffer.then(buffer => {
               resolve(buffer)
             })
@@ -1017,6 +1023,23 @@ ImageHandler.prototype.processGif = function (buffer) {
         return gif.buffer
       })
     })
+  })
+}
+
+/**
+ * Transcodes an input buffer to a progressive JPEG
+ *
+ * @param {Buffer} buffer - a Buffer extracted from the main image
+ * processor after applying image manipulations
+ * @returns {Buffer} a progressive JPEG encoded buffer
+ */
+ImageHandler.prototype.processJpeg = function (buffer) {
+  return imagemin.buffer(buffer, {
+    plugins: [
+      imageminJpegtran({progressive: true})
+    ]
+  }).then(outputBuffer => {
+    return outputBuffer
   })
 }
 
