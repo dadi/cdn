@@ -655,11 +655,11 @@ const Config = function () {
     depth: 1,
     usePolling: true
   }).on('addDir', (event, filePath) => {
-    this.loadDomainConfigs(domainsDirectory)
+    this.loadDomainConfigs()
   }).on('unlinkDir', (event, filePath) => {
     // Wait 3 sec for the delete to finish before rescanning
     setTimeout(() => {
-      this.loadDomainConfigs(domainsDirectory)
+      this.loadDomainConfigs()
     }, 3000)
   })
 }
@@ -747,11 +747,12 @@ Config.prototype.get = function (path, domain) {
  *
  * @return {Object}
  */
-Config.prototype.loadDomainConfigs = function (domainsDirectory) {
+Config.prototype.loadDomainConfigs = function () {
   if (!this.get('multiDomain.enabled')) {
     return {}
   }
 
+  let domainsDirectory = this.get('multiDomain.directory')
   let configs = {}
 
   domainManager
