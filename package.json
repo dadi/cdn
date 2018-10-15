@@ -91,7 +91,7 @@
     "should": "~13.2.0",
     "sinon": "^4.0.2",
     "standard": "8.x.x",
-    "supertest": "~3.2.0"
+    "supertest": "~3.3.0"
   },
   "greenkeeper": {
     "ignore": [
