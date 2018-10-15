@@ -279,6 +279,12 @@ const schema = {
         format: String,
         default: '',
         allowDomainOverride: true
+      },
+      allowFullURL: {
+        doc: 'If true, assets can be loaded from any remote URL',
+        format: Boolean,
+        default: true,
+        allowDomainOverride: true
       }
     }
   },
