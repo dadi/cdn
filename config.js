@@ -647,7 +647,21 @@ const Config = function () {
   this.domainSchema = {}
   this.createDomainSchema(schema, this.domainSchema)
 
-  this.loadDomainConfigs()
+  let domainsDirectory = this.get('multiDomain.directory')
+
+  // Watch the domains directory for new & removed domain configurations.
+  this.domainsWatcher = chokidar.watch(domainsDirectory, {
+    awaitWriteFinish: true,
+    depth: 1,
+    usePolling: true
+  }).on('addDir', (event, filePath) => {
+    this.loadDomainConfigs()
+  }).on('unlinkDir', (event, filePath) => {
+    // Wait 3 sec for the delete to finish before rescanning
+    setTimeout(() => {
+      this.loadDomainConfigs()
+    }, 3000)
+  })
 }
 
 Config.prototype = convict(schema)
@@ -738,8 +752,8 @@ Config.prototype.loadDomainConfigs = function () {
     return {}
   }
 
-  let configs = {}
   let domainsDirectory = this.get('multiDomain.directory')
+  let configs = {}
 
   domainManager
     .scanDomains(domainsDirectory)
