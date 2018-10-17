@@ -989,6 +989,30 @@ describe('Controller', function () {
         })
     })
 
+    it('should return pre and post image details', function (done) {
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.images.directory.enabled = true
+      newTestConfig.images.directory.path = './test/images'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+      config.loadFile(config.configPath())
+
+      var client = request(cdnUrl)
+      client
+        .get('/test.jpg?quality=100&width=180&height=180&resizeStyle=entropy&format=json')
+        .end(function (err, res) {
+          res.statusCode.should.eql(200)
+
+          let fileSizePre = res.body.fileSizePre
+          res.body.fileSizePost.should.be.below(fileSizePre)
+
+          let primaryColorPre = res.body.primaryColorPre
+          res.body.primaryColorPost.should.not.eql(primaryColorPre)
+
+          done()
+        })
+    })
+
     it('should return 400 when requested crop dimensions are larger than the original image', function (done) {
       var newTestConfig = JSON.parse(testConfigString)
       newTestConfig.images.directory.enabled = true
