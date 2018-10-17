@@ -1003,10 +1003,11 @@ describe('Controller', function () {
         .end(function (err, res) {
           res.statusCode.should.eql(200)
 
-          res.body.fileSizePre.should.eql(173685)
-          res.body.fileSizePost.should.eql(54089)
-          res.body.primaryColorPre.should.eql('#6b482b')
-          res.body.primaryColorPost.should.eql('#704f36')
+          let fileSizePre = res.body.fileSizePre
+          res.body.fileSizePost.should.be.below(fileSizePre)
+
+          let primaryColorPre = res.body.primaryColorPre
+          res.body.primaryColorPost.should.not.eql(primaryColorPre)
 
           done()
         })
