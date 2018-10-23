@@ -269,6 +269,28 @@ describe('Multi-domain', function () {
       })
     }).timeout(5000)
 
+    it('should retrieve a local image from the path specified by the domain config', () => {
+      config.set('images.directory.enabled', true, 'localhost')
+      config.set('images.directory.path', 'test/images/next-level', 'localhost')
+      config.set('images.remote.enabled', false, 'localhost')
+
+      let DiskStorage = require(path.join(__dirname, '../../dadi/lib/storage/disk'))
+      let diskStorage = new DiskStorage({
+        assetType: 'images',
+        domain: 'localhost',
+        url: '/test.jpg'}
+      )
+
+      diskStorage.path.should.eql(path.resolve('./test/images/next-level'))
+
+      return help.imagesEqual({
+        base: images['localhost'],
+        test: `${help.proxyUrl}/test.jpg?mockdomain=localhost`
+      }).then(match => {
+        match.should.eql(true)
+      })
+    }).timeout(5000)
+
     it('should retrieve a remote image from the path specified by the domain config', () => {
       return help.imagesEqual({
         base: images['localhost'],

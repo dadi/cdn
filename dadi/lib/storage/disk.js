@@ -6,7 +6,7 @@ const path = require('path')
 const Missing = require(path.join(__dirname, '/missing'))
 
 const DiskStorage = function ({assetType = 'assets', domain, url}) {
-  let assetPath = config.get(`${assetType}.directory.path`)
+  let assetPath = config.get(`${assetType}.directory.path`, domain)
 
   if (url !== '') {
     this.url = nodeUrl.parse(url, true).pathname
