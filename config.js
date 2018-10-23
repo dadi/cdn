@@ -155,7 +155,8 @@ const schema = {
       path: {
         doc: 'The path to the image directory',
         format: String,
-        default: './images'
+        default: './images',
+        allowDomainOverride: true
       }
     },
     s3: {
