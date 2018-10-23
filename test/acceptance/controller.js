@@ -371,6 +371,139 @@ describe('Controller', function () {
     })
   })
 
+  describe('HTML passthrough', function () {
+    let server
+    let remoteUrl = 'http://localhost:8888'
+
+    before(() => {
+      config.set('images.directory.enabled', false)
+      config.set('images.remote.enabled', true)
+      config.set('images.remote.path', remoteUrl)
+      config.set('images.s3.enabled', false)
+      
+      config.set('assets.directory.enabled', false)
+      config.set('assets.s3.enabled', false)
+
+      config.set('assets.remote.enabled', true)
+      config.set('assets.remote.path', remoteUrl)
+
+      config.set('caching.directory.enabled', true)
+
+      server = require('http').createServer((req, res) => {
+        switch (req.url) {
+          case '/':
+            fs.readFile(path.join(__dirname, '../assets/test.html'), 'utf8', (_err, data) => {
+              res.statusCode = 200
+              res.setHeader('Content-Type', 'text/html')
+              res.end(data)
+            })
+
+            break
+
+          case '/test.jpg':
+            fs.readFile(path.join(__dirname, '../images/test.jpg'), null, (_err, data) => {
+              res.statusCode = 200
+              res.setHeader('Content-Type', 'image/jpeg')
+              res.end(data)
+            })
+
+            break
+
+          default:
+            res.statusCode = 404
+            res.end('Page not found.')
+
+            break
+        }
+      })
+
+      server.listen(8888)
+    })
+
+    after(done => {
+      config.set('images.directory.enabled', configBackup.images.directory.enabled)
+      config.set('images.remote.enabled', configBackup.images.remote.enabled)
+      config.set('images.remote.path', configBackup.images.remote.path)
+      config.set('images.remote.allowFullURL', configBackup.images.remote.allowFullURL)
+      config.set('images.s3.enabled', configBackup.images.s3.enabled)
+
+      config.set('assets.directory.enabled', configBackup.assets.directory.enabled)
+      config.set('assets.remote.enabled', configBackup.assets.remote.enabled)
+      config.set('assets.remote.path', configBackup.assets.remote.path)
+      config.set('assets.remote.allowFullURL', configBackup.assets.remote.allowFullURL)
+      config.set('assets.s3.enabled', configBackup.assets.s3.enabled)
+
+      config.set('caching.directory.enabled', configBackup.caching.directory.enabled)
+
+      server = null
+      done()
+    })
+
+    it('should pass an html request through from the configured remote origin', function (done) {
+      let client = request(cdnUrl)
+
+      client
+      .get('/')
+      .expect(200)
+      .end((_err, res) => {
+        res.headers['content-type'].should.exist
+        res.headers['content-type'].should.eql('text/html')
+
+        res.headers['x-cache'].should.exist
+        res.headers['x-cache'].should.eql('MISS')
+
+        done()
+      })
+    })
+
+    it('should cache and return an html request from the configured remote origin', function (done) {
+      let client = request(cdnUrl)
+
+      client
+      .get('/')
+      .expect(200)
+      .end((_err, res) => {
+        res.headers['content-type'].should.exist
+        res.headers['content-type'].should.eql('text/html')
+
+        res.headers['x-cache'].should.exist
+        res.headers['x-cache'].should.eql('MISS')
+
+        client
+        .get('/')
+        .expect(200)
+        .end((_err, res) => {
+          res.headers['content-type'].should.exist
+          res.headers['content-type'].should.eql('text/html')
+  
+          res.headers['x-cache'].should.exist
+          res.headers['x-cache'].should.eql('HIT')
+  
+          done()
+        })
+      })
+    })
+
+    it('should pass an image request through from the configured remote origin', function (done) {
+      let client = request(cdnUrl)
+
+      client
+      .get('/test.jpg')
+      .expect(200)
+      .end((_err, res) => {
+        res.body.should.be.an.instanceOf(Buffer)
+
+        res.headers['content-type'].should.exist
+        res.headers['content-type'].should.eql('image/jpeg')
+
+        res.headers['x-cache'].should.exist
+        res.headers['x-cache'].should.eql('MISS')
+
+        done()
+      })
+    })
+  })
+
   describe('JavaScript', function () {
     this.timeout(10000)
 
@@ -856,6 +989,30 @@ describe('Controller', function () {
         })
     })
 
+    it('should return pre and post image details', function (done) {
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.images.directory.enabled = true
+      newTestConfig.images.directory.path = './test/images'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+      config.loadFile(config.configPath())
+
+      var client = request(cdnUrl)
+      client
+        .get('/test.jpg?quality=100&width=180&height=180&resizeStyle=entropy&format=json')
+        .end(function (err, res) {
+          res.statusCode.should.eql(200)
+
+          let fileSizePre = res.body.fileSizePre
+          res.body.fileSizePost.should.be.below(fileSizePre)
+
+          let primaryColorPre = res.body.primaryColorPre
+          res.body.primaryColorPost.should.not.eql(primaryColorPre)
+
+          done()
+        })
+    })
+
     it('should return 400 when requested crop dimensions are larger than the original image', function (done) {
       var newTestConfig = JSON.parse(testConfigString)
       newTestConfig.images.directory.enabled = true
@@ -1033,6 +1190,27 @@ describe('Controller', function () {
 
             done()
           })
+      })
+
+      it('should return a json response when a directory is requested', function (done) {
+
+        config.set('notFound.images.enabled', true)
+        config.set('notFound.images.path', './test/images/missing.png')
+        config.set('notFound.statusCode', 410)
+
+        let client = request(cdnUrl)
+          .get('/path/to/missing/')
+          .expect(410)
+          .end((err, res) => {
+            res.body.message.includes('File not found:').should.eql(true)
+            res.statusCode.should.eql(404)
+
+            config.set('notFound.images.enabled', configBackup.notFound.images.enabled)
+            config.set('notFound.statusCode', configBackup.notFound.statusCode)
+
+            done()
+          })
+
       })
 
       describe('when multi-domain is enabled', () => {
@@ -1430,7 +1608,7 @@ describe('Controller', function () {
               res.headers['content-type'].should.eql('image/png')
               res.statusCode.should.eql(410)
 
-              config.set('notFound.images.enabled', configBackup.notFound.statusCode)
+              config.set('notFound.images.enabled', configBackup.notFound.images.enabled)
               config.set('notFound.statusCode', configBackup.notFound.statusCode)
 
               done()
@@ -1644,6 +1822,30 @@ describe('Controller', function () {
 
           done()
         })
+      })
+
+      it('should return a json response when a directory is requested', function (done) {
+        // return 404 from the S3 request
+        AWS.mock('S3', 'getObject', Promise.reject({ statusCode: 404 }))
+
+        config.set('images.s3.bucketName', 'test-bucket')
+        config.set('images.s3.accessKey', 'xxx')
+        config.set('images.s3.secretKey', 'xyz')
+        config.set('notFound.statusCode', 404)
+        config.set('notFound.images.enabled', true)
+        config.set('notFound.images.path', './test/images/')
+
+        let client = request(cdnUrl)
+          .get('/images/mock/')
+          .expect(404)
+          .end((err, res) => {
+            AWS.restore()
+
+            res.body.message.includes('File not found:').should.eql(true)
+            res.statusCode.should.eql(404)
+
+            done()
+          })
       })
 
       it('should return configured statusCode if image is not found', function (done) {

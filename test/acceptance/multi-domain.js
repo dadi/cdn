@@ -269,6 +269,28 @@ describe('Multi-domain', function () {
       })
     }).timeout(5000)
 
+    it('should retrieve a local image from the path specified by the domain config', () => {
+      config.set('images.directory.enabled', true, 'localhost')
+      config.set('images.directory.path', 'test/images/next-level', 'localhost')
+      config.set('images.remote.enabled', false, 'localhost')
+
+      let DiskStorage = require(path.join(__dirname, '../../dadi/lib/storage/disk'))
+      let diskStorage = new DiskStorage({
+        assetType: 'images',
+        domain: 'localhost',
+        url: '/test.jpg'}
+      )
+
+      diskStorage.path.should.eql(path.resolve('./test/images/next-level'))
+
+      return help.imagesEqual({
+        base: images['localhost'],
+        test: `${help.proxyUrl}/test.jpg?mockdomain=localhost`
+      }).then(match => {
+        match.should.eql(true)
+      })
+    }).timeout(5000)
+
     it('should retrieve a remote image from the path specified by the domain config', () => {
       return help.imagesEqual({
         base: images['localhost'],
@@ -333,7 +355,7 @@ describe('Multi-domain', function () {
       })
     }).timeout(5000)
 
-    it('should use the allowFullURL setting defined at domain level to determine whether or not a request with a full remote URL will be served', done => {
+    it('should use the images.allowFullURL setting defined at domain level to determine whether or not a request with a full remote URL will be served', done => {
       config.set('images.remote.allowFullURL', true, 'localhost')
       config.set('images.remote.allowFullURL', false, 'testdomain.com')
 
@@ -351,6 +373,81 @@ describe('Multi-domain', function () {
               res.statusCode.should.eql(403)
               res.body.message.should.eql(
                 'Loading images from a full remote URL is not supported by this instance of DADI CDN'
+              )
+
+              done()
+            })
+        })
+    }).timeout(5000)
+
+    it('should use the assets.allowFullURL setting defined at domain level to determine whether or not a CSS request with a full remote URL will be served', done => {
+      config.set('assets.remote.allowFullURL', true, 'localhost')
+      config.set('assets.remote.allowFullURL', false, 'testdomain.com')
+
+      request(cdnUrl)
+        .get('/http://one.somedomain.tech/test.css')
+        .set('Host', 'localhost:80')
+        .expect(200)
+        .end((err, res) => {
+          res.headers['content-type'].should.eql('text/css')
+
+          request(cdnUrl)
+            .get('/http://one.somedomain.tech/test.css')
+            .set('Host', 'testdomain.com:80')
+            .end((err, res) => {
+              res.statusCode.should.eql(403)
+              res.body.message.should.eql(
+                'Loading assets from a full remote URL is not supported by this instance of DADI CDN'
+              )
+
+              done()
+            })
+        })
+    }).timeout(5000)
+
+    it('should use the assets.allowFullURL setting defined at domain level to determine whether or not a JS request with a full remote URL will be served', done => {
+      config.set('assets.remote.allowFullURL', true, 'localhost')
+      config.set('assets.remote.allowFullURL', false, 'testdomain.com')
+
+      request(cdnUrl)
+        .get('/http://one.somedomain.tech/test.js')
+        .set('Host', 'localhost:80')
+        .expect(200)
+        .end((err, res) => {
+          res.headers['content-type'].should.eql('application/javascript')
+
+          request(cdnUrl)
+            .get('/http://one.somedomain.tech/test.js')
+            .set('Host', 'testdomain.com:80')
+            .end((err, res) => {
+              res.statusCode.should.eql(403)
+              res.body.message.should.eql(
+                'Loading assets from a full remote URL is not supported by this instance of DADI CDN'
+              )
+
+              done()
+            })
+        })
+    }).timeout(5000)
+
+    it('should use the assets.allowFullURL setting defined at domain level to determine whether or not a default request with a full remote URL will be served', done => {
+      config.set('assets.remote.allowFullURL', true, 'localhost')
+      config.set('assets.remote.allowFullURL', false, 'testdomain.com')
+
+      request(cdnUrl)
+        .get('/http://one.somedomain.tech/test.txt')
+        .set('Host', 'localhost:80')
+        .expect(200)
+        .end((err, res) => {
+          res.headers['content-type'].should.eql('text/plain')
+
+          request(cdnUrl)
+            .get('/http://one.somedomain.tech/test.txt')
+            .set('Host', 'testdomain.com:80')
+            .end((err, res) => {
+              res.statusCode.should.eql(403)
+              res.body.message.should.eql(
+                'Loading assets from a full remote URL is not supported by this instance of DADI CDN'
               )
 
               done()
