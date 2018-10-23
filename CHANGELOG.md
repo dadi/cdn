@@ -4,11 +4,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.3.0] - 2018-10-24
+
+### Added
+
+* [#398](https://github.com/dadi/cdn/issues/398): add 'Vary: Accept-Encoding' header to responses
+* [#439](https://github.com/dadi/cdn/issues/439): reload domain configs on directory changes
+
+### Changed 
+
+* [#351](https://github.com/dadi/cdn/issues/351): add `assets.remote.allowFullURL` configuration parameter
+* [#406](https://github.com/dadi/cdn/issues/406): return JSON response when URL is incomplete
+* [#434](https://github.com/dadi/cdn/issues/434): return file size attributes for the image pre and post transforms
+* Sharp image dependency updated to 0.21.0
+
+
 ## [3.2.2] - 2018-10-01
 
 ### Changed
 
-* [#424](https://github.com/dadi/cdn/issues/424): PNG compression honours quality parameter setting
+* [#424](https://github.com/dadi/cdn/issues/424): PNG compression honours quality parameter setting, mapping the `quality` parameter inversely to a compression level between 1 and 9
 * [#431](https://github.com/dadi/cdn/pull/431): don't assume JPG extension when no extension is supplied
 
 
