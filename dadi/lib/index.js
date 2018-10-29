@@ -365,13 +365,17 @@ Server.prototype.status = function (req, res, next) {
     return next()
   }
 
+  let baseUrl = config.get('publicUrl') && config.get('publicUrl.host')
+    ? `${config.get('publicUrl.protocol')}://${config.get('publicUrl.host')}:${config.get('publicUrl.port')}`
+    : `http://${config.get('server.host')}:${config.get('server.port')}`
+
   let params = {
     site: site,
     package: '@dadi/cdn',
     version: version,
     healthCheck: {
       authorization: authorization,
-      baseUrl: `http://${config.get('server.host')}:${config.get('server.port')}`,
+      baseUrl: baseUrl,
       routes: config.get('status.routes')
     }
   }

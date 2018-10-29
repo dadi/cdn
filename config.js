@@ -68,6 +68,26 @@ const schema = {
       env: 'SSL_INTERMEDIATE_CERTIFICATE_PATHS'
     }
   },
+  publicUrl: {
+    host: {
+      doc: 'The host of the URL where the CDN instance can be publicly accessed at',
+      format: '*',
+      default: null,
+      env: 'URL_HOST'
+    },
+    port: {
+      doc: 'The port of the URL where the CDN instance can be publicly accessed at',
+      format: '*',
+      default: null,
+      env: 'URL_PORT'
+    },
+    protocol: {
+      doc: 'The protocol of the URL where the CDN instance can be publicly accessed at',
+      format: 'String',
+      default: 'http',
+      env: 'URL_PROTOCOL'
+    }
+  },
   logging: {
     enabled: {
       doc: 'If true, logging is enabled using the following settings.',
