@@ -78,7 +78,7 @@ const schema = {
     port: {
       doc: 'The port of the URL where the CDN instance can be publicly accessed at',
       format: '*',
-      default: null,
+      default: 80,
       env: 'URL_PORT'
     },
     protocol: {
