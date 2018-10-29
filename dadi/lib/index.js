@@ -365,7 +365,7 @@ Server.prototype.status = function (req, res, next) {
     return next()
   }
 
-  let baseUrl = config.get('publicUrl') && config.get('publicUrl.host')
+  let baseUrl = config.get('publicUrl.host')
     ? `${config.get('publicUrl.protocol')}://${config.get('publicUrl.host')}:${config.get('publicUrl.port')}`
     : `http://${config.get('server.host')}:${config.get('server.port')}`
 
