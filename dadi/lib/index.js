@@ -375,7 +375,7 @@ Server.prototype.status = function (req, res, next) {
     version: version,
     healthCheck: {
       authorization: authorization,
-      baseUrl: baseUrl,
+      baseUrl,
       routes: config.get('status.routes')
     }
   }
