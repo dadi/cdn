@@ -297,6 +297,10 @@
         "quality": "100"
       },
       "baselineFilename": "images/visual/baseline/measure.png?quality=100.png"
+    },
+    {
+      "image": "measure2.jpg",
+      "baselineFilename": "images/visual/baseline/measure2.jpg?progressive=true"
     }
   ]
 }

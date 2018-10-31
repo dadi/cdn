@@ -63,7 +63,8 @@ const IMAGE_PARAMETERS = [
   { name: 'blur', aliases: ['b'] },
   { name: 'strip', aliases: ['s'] },
   { name: 'rotate', aliases: ['r'] },
-  { name: 'flip', aliases: ['fl'] }
+  { name: 'flip', aliases: ['fl'] },
+  { name: 'progressive', aliases: ['pg'], default: 'true' }
 ]
 
 /**
@@ -981,8 +982,8 @@ ImageHandler.prototype.process = function (sharpImage, imageBuffer) {
               processBuffer = this.processGif(buffer)
             }
 
-            if (format === 'jpeg' || format === 'jpg') {
-              processBuffer = this.processJpeg(buffer)
+            if (options.progressive === 'true' && (format === 'jpeg' || format === 'jpg')) {
+              processBuffer = this.progressiveJpeg(buffer)
             }
 
             processBuffer.then(buffer => {
@@ -1033,13 +1034,11 @@ ImageHandler.prototype.processGif = function (buffer) {
  * processor after applying image manipulations
  * @returns {Buffer} a progressive JPEG encoded buffer
  */
-ImageHandler.prototype.processJpeg = function (buffer) {
+ImageHandler.prototype.progressiveJpeg = function (buffer) {
   return imagemin.buffer(buffer, {
     plugins: [
       imageminJpegtran({progressive: true})
     ]
-  }).then(outputBuffer => {
-    return outputBuffer
   })
 }
 
@@ -1166,7 +1165,8 @@ function getImageOptionsFromLegacyURL (optionsArray) {
     blur: optionsArray[9 + superLegacyFormatOffset],
     strip: optionsArray[10 + superLegacyFormatOffset],
     rotate: optionsArray[11 + superLegacyFormatOffset],
-    flip: optionsArray[12 + superLegacyFormatOffset]
+    flip: optionsArray[12 + superLegacyFormatOffset],
+    progressive: optionsArray[13 + superLegacyFormatOffset]
   }
 
   return options
