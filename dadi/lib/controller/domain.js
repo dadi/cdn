@@ -2,43 +2,49 @@ const path = require('path')
 const DomainManager = require(path.join(__dirname, '/../models/domain-manager'))
 const help = require(path.join(__dirname, '/../help'))
 
-// Domain configuration template.
-let configContent = {
+const configTemplate = {
   images: {
+    directory: {
+      enabled: false
+    },
     remote: {
+      enabled: true,
       path: null
     }
   },
   assets: {
+    directory: {
+      enabled: false
+    },
     remote: {
+      enabled: true,
       path: null
     }
   }
 }
-
 /**
  * Accept POST requests for adding domains to the internal domain configuration.
  */
 module.exports.post = (req, res) => {
   // Don't accept an empty POST
-  if (!req.body || (Object.keys(req.body).length === 0)) {
+  if (!req.body || !Array.isArray(req.body) || req.body.length === 0) {
     return help.sendBackJSON(400, {
       success: false,
       errors: ['Bad Request']
     }, res)
   }
 
-  let payload = req.body
-  let domains = Object.keys(payload)
+  let domains = req.body
 
-  domains.forEach((domain, index) => {
-    if (!DomainManager.getDomain(domain)) {
+  domains.forEach((item, index) => {
+    if (!DomainManager.getDomain(item.domain)) {
       // Prepare the domain configuration.
-      configContent.images.remote.path = payload[domain].remote.path
-      configContent.assets.remote.path = payload[domain].remote.path
+      let configContent = Object.assign({}, configTemplate)
+      configContent.images.remote.path = item.data.remote.path
+      configContent.assets.remote.path = item.data.remote.path
 
       // Add the domain configuration.
-      DomainManager.addDomain(domain, configContent)
+      DomainManager.addDomain(item.domain, configContent)
     }
 
     if (index === domains.length - 1) {
@@ -74,6 +80,7 @@ module.exports.put = (req, res) => {
   }
 
   // Prepare the domain configuration.
+  let configContent = Object.assign({}, configTemplate)
   configContent.images.remote.path = payload.remote.path
   configContent.assets.remote.path = payload.remote.path
 
