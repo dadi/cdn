@@ -16,7 +16,7 @@ module.exports.post = (req, res) => {
 
   let domains = req.body
 
-  domains.forEach((item, index) => {
+  domains.forEach(item => {
     if (!DomainManager.getDomain(item.domain)) {
       // Prepare the domain configuration.
       let configContent = {
@@ -43,14 +43,12 @@ module.exports.post = (req, res) => {
       // Add the domain configuration.
       DomainManager.addDomain(item.domain, configContent)
     }
-
-    if (index === domains.length - 1) {
-      return help.sendBackJSON(201, {
-        success: true,
-        domains: DomainManager.getDomains().map(item => item.domain)
-      }, res)
-    }
   })
+
+  return help.sendBackJSON(201, {
+    success: true,
+    domains: DomainManager.getDomains().map(item => item.domain)
+  }, res)
 }
 
 /**
@@ -61,7 +59,7 @@ module.exports.put = (req, res) => {
   let payload = req.body
 
   // Don't accept an empty param.
-  if (!domain || !Object.keys(payload).length === 0) {
+  if (!domain || Object.keys(payload).length === 0) {
     return help.sendBackJSON(400, {
       success: false,
       errors: ['Bad Request']
