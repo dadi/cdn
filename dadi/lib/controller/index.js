@@ -187,7 +187,11 @@ const Controller = function (router) {
     return RouteController.post(req, res)
   })
 
-  router.use('/_dadi/domains/:domain?', function (req, res) {
+  router.use('/_dadi/domains/:domain?', function (req, res, next) {
+    if (!config.get('multiDomain.enabled')) {
+      return next()
+    }
+
     return DomainController[req.method.toLowerCase()](req, res)
   })
 }
