@@ -6,7 +6,7 @@ const DomainManager = function () {
 }
 
 /**
- * Adds a domain and it's configuration to the internal domain configs.
+ * Adds a domain and its configuration to the internal domain configs.
  *
  * @param {String} domain
  * @param {Object} domainConfig
