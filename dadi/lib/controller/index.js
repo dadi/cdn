@@ -188,7 +188,10 @@ const Controller = function (router) {
   })
 
   router.use('/_dadi/domains/:domain?', function (req, res, next) {
-    if (!config.get('multiDomain.enabled')) {
+    if (
+      !config.get('dadiNetwork.enableConfigurationAPI') ||
+      !config.get('multiDomain.enabled')
+    ) {
       return next()
     }
 

@@ -614,6 +614,13 @@ const schema = {
       allowDomainOverride: true
     }
   },
+  dadiNetwork: {
+    enableConfigurationAPI: {
+      doc: 'Whether to enable domain configuration endpoints',
+      format: Boolean,
+      default: false
+    }
+  },
   multiDomain: {
     directory: {
       doc: 'Path to domains directory',

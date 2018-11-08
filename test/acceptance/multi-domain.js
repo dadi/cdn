@@ -248,6 +248,7 @@ describe('Multi-domain', function () {
       config.set('assets.remote.path', configBackup.assets.remote.path, 'localhost')
 
       config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
+      config.set('dadiNetwork.enableConfigurationAPI', false)
 
       help.proxyStop().then(() => {
         app.stop(done)
@@ -457,7 +458,21 @@ describe('Multi-domain', function () {
     }).timeout(5000)
 
     describe('internal domain management', () => {
+      it('should return 404 if not configured', done => {
+        config.set('dadiNetwork.enableConfigurationAPI', false)
+
+        request(cdnUrl)
+          .post('/_dadi/domains')
+          .set('Host', 'testdomain.com:80')
+          .end((_err, res) => {
+            res.statusCode.should.eql(404)
+            done()
+          })
+      })
+
       it('should return 400 if no array is provided', done => {
+        config.set('dadiNetwork.enableConfigurationAPI', true)
+
         request(cdnUrl)
           .post('/_dadi/domains')
           .set('Host', 'testdomain.com:80')
@@ -468,6 +483,8 @@ describe('Multi-domain', function () {
       })
 
       it('should return 400 if a array is not provided', done => {
+        config.set('dadiNetwork.enableConfigurationAPI', true)
+
         request(cdnUrl)
           .post('/_dadi/domains')
           .set('Host', 'testdomain.com:80')
@@ -479,6 +496,8 @@ describe('Multi-domain', function () {
       })
 
       it('should return 400 if an empty array is provided', done => {
+        config.set('dadiNetwork.enableConfigurationAPI', true)
+
         request(cdnUrl)
           .post('/_dadi/domains')
           .set('Host', 'testdomain.com:80')
@@ -490,6 +509,8 @@ describe('Multi-domain', function () {
       })
 
       it('should return 201 when adding a single domain', done => {
+        config.set('dadiNetwork.enableConfigurationAPI', true)
+
         let domains = [
           {
             domain: 'api-added-domain.com',
@@ -514,6 +535,8 @@ describe('Multi-domain', function () {
       })
 
       it('should return 201 when adding multiple domains', done => {
+        config.set('dadiNetwork.enableConfigurationAPI', true)
+
         let domains = [
           {
             domain: 'api-added-domain-one.com',
@@ -549,6 +572,8 @@ describe('Multi-domain', function () {
       })
 
       it('should return 404 when modifying a domain that doesn\'t exist', done => {
+        config.set('dadiNetwork.enableConfigurationAPI', true)
+
         let domain = 'api-added-domain.com'
         let domains = [
           {
@@ -588,6 +613,8 @@ describe('Multi-domain', function () {
       })
 
       it('should return 200 when modifying a domain', done => {
+        config.set('dadiNetwork.enableConfigurationAPI', true)
+
         let domain = 'api-added-domain.com'
         let domains = [
           {
@@ -635,6 +662,8 @@ describe('Multi-domain', function () {
       })
 
       it('should return 404 when deleting a domain that doesn\'t exist', done => {
+        config.set('dadiNetwork.enableConfigurationAPI', true)
+
         let domain = 'api-added-domain.com'
 
         request(cdnUrl)
@@ -647,6 +676,8 @@ describe('Multi-domain', function () {
       })
 
       it('should return 200 when deleting a domain', done => {
+        config.set('dadiNetwork.enableConfigurationAPI', true)
+
         let domain = 'api-added-domain.com'
         let domains = [
           {
