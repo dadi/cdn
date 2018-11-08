@@ -2,26 +2,6 @@ const path = require('path')
 const DomainManager = require(path.join(__dirname, '/../models/domain-manager'))
 const help = require(path.join(__dirname, '/../help'))
 
-const configTemplate = {
-  images: {
-    directory: {
-      enabled: false
-    },
-    remote: {
-      enabled: true,
-      path: null
-    }
-  },
-  assets: {
-    directory: {
-      enabled: false
-    },
-    remote: {
-      enabled: true,
-      path: null
-    }
-  }
-}
 /**
  * Accept POST requests for adding domains to the internal domain configuration.
  */
@@ -39,9 +19,26 @@ module.exports.post = (req, res) => {
   domains.forEach((item, index) => {
     if (!DomainManager.getDomain(item.domain)) {
       // Prepare the domain configuration.
-      let configContent = Object.assign({}, configTemplate)
-      configContent.images.remote.path = item.data.remote.path
-      configContent.assets.remote.path = item.data.remote.path
+      let configContent = {
+        images: {
+          directory: {
+            enabled: false
+          },
+          remote: {
+            enabled: true,
+            path: item.data.remote.path
+          }
+        },
+        assets: {
+          directory: {
+            enabled: false
+          },
+          remote: {
+            enabled: true,
+            path: item.data.remote.path
+          }
+        }
+      }
 
       // Add the domain configuration.
       DomainManager.addDomain(item.domain, configContent)
@@ -80,9 +77,26 @@ module.exports.put = (req, res) => {
   }
 
   // Prepare the domain configuration.
-  let configContent = Object.assign({}, configTemplate)
-  configContent.images.remote.path = payload.remote.path
-  configContent.assets.remote.path = payload.remote.path
+  let configContent = {
+    images: {
+      directory: {
+        enabled: false
+      },
+      remote: {
+        enabled: true,
+        path: payload.remote.path
+      }
+    },
+    assets: {
+      directory: {
+        enabled: false
+      },
+      remote: {
+        enabled: true,
+        path: payload.remote.path
+      }
+    }
+  }
 
   // Update the domain configuration.
   DomainManager.addDomain(domain, configContent)
