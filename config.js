@@ -155,7 +155,8 @@ const schema = {
       path: {
         doc: 'The path to the image directory',
         format: String,
-        default: './images'
+        default: './images',
+        allowDomainOverride: true
       }
     },
     s3: {
@@ -278,6 +279,12 @@ const schema = {
         doc: 'The remote host to request assets from, for example http://media.example.com',
         format: String,
         default: '',
+        allowDomainOverride: true
+      },
+      allowFullURL: {
+        doc: 'If true, assets can be loaded from any remote URL',
+        format: Boolean,
+        default: true,
         allowDomainOverride: true
       }
     }
@@ -607,6 +614,13 @@ const schema = {
       allowDomainOverride: true
     }
   },
+  dadiNetwork: {
+    enableConfigurationAPI: {
+      doc: 'Whether to enable domain configuration endpoints',
+      format: Boolean,
+      default: false
+    }
+  },
   multiDomain: {
     directory: {
       doc: 'Path to domains directory',
@@ -647,7 +661,21 @@ const Config = function () {
   this.domainSchema = {}
   this.createDomainSchema(schema, this.domainSchema)
 
-  this.loadDomainConfigs()
+  let domainsDirectory = this.get('multiDomain.directory')
+
+  // Watch the domains directory for new & removed domain configurations.
+  this.domainsWatcher = chokidar.watch(domainsDirectory, {
+    awaitWriteFinish: true,
+    depth: 1,
+    usePolling: true
+  }).on('addDir', (event, filePath) => {
+    this.loadDomainConfigs()
+  }).on('unlinkDir', (event, filePath) => {
+    // Wait 3 sec for the delete to finish before rescanning
+    setTimeout(() => {
+      this.loadDomainConfigs()
+    }, 3000)
+  })
 }
 
 Config.prototype = convict(schema)
@@ -727,6 +755,11 @@ Config.prototype.get = function (path, domain) {
   return this.domainConfigs[domain].get(path)
 }
 
+Config.prototype.loadDomainConfig = function (domain, domainConfig) {
+  this.domainConfigs[domain] = convict(this.domainSchema)
+  this.domainConfigs[domain].load(domainConfig)
+}
+
 /**
  * Builds a hash map with a Convict instance for each configured
  * domain.
@@ -738,8 +771,8 @@ Config.prototype.loadDomainConfigs = function () {
     return {}
   }
 
-  let configs = {}
   let domainsDirectory = this.get('multiDomain.directory')
+  let configs = {}
 
   domainManager
     .scanDomains(domainsDirectory)

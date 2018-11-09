@@ -6,6 +6,41 @@ const DomainManager = function () {
 }
 
 /**
+ * Adds a domain and its configuration to the internal domain configs.
+ *
+ * @param {String} domain
+ * @param {Object} domainConfig
+ */
+DomainManager.prototype.addDomain = function (domain, domainConfig) {
+  let config = require('./../../../config')
+
+  if (!this.getDomain(domain)) {
+    config.loadDomainConfig(domain, domainConfig)
+
+    this.domains.push({
+      domain
+    })
+  } else {
+    config.loadDomainConfig(domain, domainConfig)
+  }
+}
+
+/**
+ * Removes a domain from the internal domain configs.
+ *
+ * @param {String} domain
+ */
+DomainManager.prototype.removeDomain = function (domain) {
+  let config = require('./../../../config')
+
+  if (this.getDomain(domain)) {
+    delete config.domainConfigs[domain]
+
+    this.domains = this.domains.filter(item => item.domain !== domain)
+  }
+}
+
+/**
  * Returns a domain by name.
  *
  * @param  {String} domain

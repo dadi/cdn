@@ -1,11 +1,10 @@
+const domainManager = require('../../dadi/lib/models/domain-manager')
+const exec = require('child_process').exec
 const fs = require('fs')
-const nock = require('nock')
 const path = require('path')
 const should = require('should')
-const sinon = require('sinon')
 const request = require('supertest')
 
-const cache = require('./../../dadi/lib/cache')
 const help = require('./help')
 const app = require('./../../dadi/lib/')
 const workspace = require('./../../dadi/lib/models/workspace')
@@ -13,9 +12,20 @@ const workspace = require('./../../dadi/lib/models/workspace')
 let config = require('./../../config')
 let configBackup = config.get()
 let cdnUrl = `http://${config.get('server.host')}:${config.get('server.port')}`
+let newDomainSubdirectory = path.join(__dirname, '../../domains/xxx-domain')
 let testConfig
 
+const cleanup = (dir, done) => {
+  exec(`rm -rf ${dir}`, (err, stdout, stderr) => {
+    if (err) console.log(err)
+    console.log(stdout, stderr)
+    done()
+  })
+}
+
 describe('File change monitor', function () {
+  this.timeout(15000)
+
   describe('Config', () => {
     before(done => {
       testConfig = JSON.parse(
@@ -60,6 +70,33 @@ describe('File change monitor', function () {
 
         done()
       }, 1000)
+    })
+
+    it('should regenerate the configured domains when a new subdirectory is added', done => {
+      config.set('multiDomain.enabled', true)
+
+      // Get initial domain list
+      let domains = domainManager.getDomains()
+
+      // Make a new domain directory
+      fs.mkdir(newDomainSubdirectory, err => {
+        if (err) console.log(err)
+
+        setTimeout(() => {
+          // Get new domain list and compare with initial
+          domainManager.getDomains().length.should.be.above(domains.length)
+
+          // Remove new domain directory
+          cleanup(newDomainSubdirectory, () => {
+            // wait a while...
+            setTimeout(() => {
+              config.set('multiDomain.enabled', false)
+
+              done()
+            }, 6000)
+          })
+        }, 1000)
+      })
     })
   })
 

@@ -294,10 +294,12 @@ ImageHandler.prototype.get = function () {
       }).then(result => {
         // Return image info only, as JSON.
         if (isJSONResponse) {
-          return this.getImageInfo(imageBuffer).then(data => {
-            return JSON.stringify(
-              Object.assign({}, data, result.data)
-            )
+          return sharpImage.toBuffer().then(sharpImageBuffer => {
+            return this.getImageInfo(imageBuffer, sharpImageBuffer).then(data => {
+              return JSON.stringify(
+                Object.assign({}, data, result.data)
+              )
+            })
           })
         }
 
@@ -605,7 +607,7 @@ ImageHandler.prototype.getFormat = function () {
   "filter":"None", "blur":0, "strip":0, "rotate":0, "flip":0, "ratio":0, "devicePixelRatio":0
 }
 */
-ImageHandler.prototype.getImageInfo = function (buffer) {
+ImageHandler.prototype.getImageInfo = function (oldBuffer, newBuffer) {
   let options = this.options
   let data = {
     fileName: this.fileName,
@@ -632,11 +634,11 @@ ImageHandler.prototype.getImageInfo = function (buffer) {
     data.entropyCrop = this.entropy
   }
 
-  return getColours(buffer, colourOptions).then(colours => {
+  return getColours(oldBuffer, colourOptions).then(colours => {
     data.format = this.imageData.format
-    data.fileSize = buffer.byteLength
-    data.primaryColor = colours.primaryColour
-    data.palette = colours.palette
+    data.fileSizePre = oldBuffer.byteLength
+    data.primaryColorPre = colours.primaryColour
+    data.palettePre = colours.palette
 
     if (this.exifData.image && this.exifData.image.XResolution && this.exifData.image.YResolution) {
       data.density = {
@@ -647,6 +649,14 @@ ImageHandler.prototype.getImageInfo = function (buffer) {
     }
 
     return data
+  }).then(data => {
+    return getColours(newBuffer, colourOptions).then(colours => {
+      data.fileSizePost = newBuffer.byteLength
+      data.primaryColorPost = colours.primaryColour
+      data.palettePost = colours.palette
+
+      return data
+    })
   })
 }
 

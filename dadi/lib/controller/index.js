@@ -10,6 +10,7 @@ const urlParser = require('url')
 const zlib = require('zlib')
 
 const config = require(path.join(__dirname, '/../../../config'))
+const DomainController = require(path.join(__dirname, '/domain'))
 const help = require(path.join(__dirname, '/../help'))
 const logger = require('@dadi/logger')
 const HandlerFactory = require(path.join(__dirname, '/../handlers/factory'))
@@ -63,6 +64,7 @@ const Controller = function (router) {
       this.addContentTypeHeader(res, handler)
       this.addCacheControlHeader(res, handler, req.__domain)
       this.addLastModifiedHeader(res, handler)
+      this.addVaryHeader(res, handler)
 
       if (handler.storageHandler && handler.storageHandler.notFound) {
         res.statusCode = config.get('notFound.statusCode', req.__domain) || 404
@@ -184,6 +186,17 @@ const Controller = function (router) {
   router.post('/api/routes', function (req, res) {
     return RouteController.post(req, res)
   })
+
+  router.use('/_dadi/domains/:domain?', function (req, res, next) {
+    if (
+      !config.get('dadiNetwork.enableConfigurationAPI') ||
+      !config.get('multiDomain.enabled')
+    ) {
+      return next()
+    }
+
+    return DomainController[req.method.toLowerCase()](req, res)
+  })
 }
 
 Controller.prototype.addContentTypeHeader = function (res, handler) {
@@ -199,6 +212,12 @@ Controller.prototype.addLastModifiedHeader = function (res, handler) {
     var lastMod = handler.getLastModified()
     if (lastMod) res.setHeader('Last-Modified', lastMod)
   }
+}
+
+Controller.prototype.addVaryHeader = function (res, handler) {
+  if (!handler) return
+
+  res.setHeader('Vary', 'Accept-Encoding')
 }
 
 Controller.prototype.addCacheControlHeader = function (res, handler, domain) {
