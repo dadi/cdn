@@ -14,6 +14,8 @@ const sharp = require('sharp')
 const smartcrop = require('smartcrop-sharp')
 const urlParser = require('url')
 const Vibrant = require('node-vibrant')
+const imagemin = require('imagemin')
+const imageminJpegtran = require('imagemin-jpegtran')
 
 const StorageFactory = require(path.join(__dirname, '/../storage/factory'))
 const Cache = require(path.join(__dirname, '/../cache'))
@@ -61,7 +63,8 @@ const IMAGE_PARAMETERS = [
   { name: 'blur', aliases: ['b'] },
   { name: 'strip', aliases: ['s'] },
   { name: 'rotate', aliases: ['r'] },
-  { name: 'flip', aliases: ['fl'] }
+  { name: 'flip', aliases: ['fl'] },
+  { name: 'progressive', aliases: ['pg'], default: 'true' }
 ]
 
 /**
@@ -792,9 +795,9 @@ ImageHandler.prototype.process = function (sharpImage, imageBuffer) {
           will _not_ be preserved.
           */
           case 'fill':
+            resizeOptions.fit = 'fill'
             sharpImage = sharpImage
               .resize(width, height, resizeOptions)
-              .ignoreAspectRatio()
 
             break
 
@@ -822,7 +825,7 @@ ImageHandler.prototype.process = function (sharpImage, imageBuffer) {
               // resize if options.width or options.height are explicitly set
               if (options.width || options.height) {
                 if (options.width && options.height) {
-                  sharpImage = sharpImage.ignoreAspectRatio()
+                  resizeOptions.fit = 'fill'
                 }
 
                 if (options.devicePixelRatio && options.devicePixelRatio < 4) {
@@ -989,6 +992,10 @@ ImageHandler.prototype.process = function (sharpImage, imageBuffer) {
               processBuffer = this.processGif(buffer)
             }
 
+            if (options.progressive === 'true' && (format === 'jpeg' || format === 'jpg')) {
+              processBuffer = this.progressiveJpeg(buffer)
+            }
+
             processBuffer.then(buffer => {
               resolve(buffer)
             })
@@ -1027,6 +1034,21 @@ ImageHandler.prototype.processGif = function (buffer) {
         return gif.buffer
       })
     })
+  })
+}
+
+/**
+ * Transcodes an input buffer to a progressive JPEG
+ *
+ * @param {Buffer} buffer - a Buffer extracted from the main image
+ * processor after applying image manipulations
+ * @returns {Buffer} a progressive JPEG encoded buffer
+ */
+ImageHandler.prototype.progressiveJpeg = function (buffer) {
+  return imagemin.buffer(buffer, {
+    plugins: [
+      imageminJpegtran({progressive: true})
+    ]
   })
 }
 
@@ -1153,7 +1175,8 @@ function getImageOptionsFromLegacyURL (optionsArray) {
     blur: optionsArray[9 + superLegacyFormatOffset],
     strip: optionsArray[10 + superLegacyFormatOffset],
     rotate: optionsArray[11 + superLegacyFormatOffset],
-    flip: optionsArray[12 + superLegacyFormatOffset]
+    flip: optionsArray[12 + superLegacyFormatOffset],
+    progressive: optionsArray[13 + superLegacyFormatOffset]
   }
 
   return options
