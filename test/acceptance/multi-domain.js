@@ -134,15 +134,16 @@ describe('Multi-domain', function () {
         test: `${cdnUrl}/sample-image-recipe/test.jpg`
       }).then(match => {
         match.should.eql(true)
-
+        console.log('match :', match);
         return help.imagesEqual({
           base: images['localhost'],
           test: `${help.proxyUrl}/sample-image-recipe/test.jpg?mockdomain=unknowndomain.com`
         }).then(match => {
+          console.log('match :', match);
           match.should.eql(true)
         })
       })
-    }).timeout(5000)
+    }).timeout(10000)
 
     it('should retrieve a remote image regardless of whether the domain is configured', () => {
       return help.imagesEqual({
@@ -158,7 +159,7 @@ describe('Multi-domain', function () {
           match.should.eql(true)
         })
       })
-    }).timeout(5000)
+    }).timeout(10000)
 
     describe('Caching', () => {
       beforeEach(() => {
@@ -204,7 +205,7 @@ describe('Multi-domain', function () {
                 })
             }, 1000)
           })
-      }).timeout(5000)
+      }).timeout(10000)
     })    
   })
 
@@ -269,7 +270,7 @@ describe('Multi-domain', function () {
           match.should.eql(true)
         })
       })
-    }).timeout(5000)
+    }).timeout(10000)
 
     it('should retrieve a local image from the path specified by the domain config', () => {
       config.set('images.directory.enabled', true, 'localhost')
@@ -291,7 +292,7 @@ describe('Multi-domain', function () {
       }).then(match => {
         match.should.eql(true)
       })
-    }).timeout(5000)
+    }).timeout(10000)
 
     it('should retrieve a remote image from the path specified by the domain config', () => {
       return help.imagesEqual({
@@ -307,7 +308,7 @@ describe('Multi-domain', function () {
           match.should.eql(true)
         })
       })
-    }).timeout(5000)
+    }).timeout(10000)
 
     it('should retrieve a remote CSS file from the path specified by the domain config', () => {
       return help.filesEqual({
@@ -323,7 +324,7 @@ describe('Multi-domain', function () {
           match.should.eql(true)
         })
       })
-    }).timeout(5000)
+    }).timeout(10000)
 
     it('should retrieve a remote TXT file from the path specified by the domain config', () => {
       return help.filesEqual({
@@ -339,7 +340,7 @@ describe('Multi-domain', function () {
           match.should.eql(true)
         })
       })
-    }).timeout(5000)
+    }).timeout(10000)
 
     it.skip('should retrieve a remote JS file from the path specified by the domain config', () => {
       return help.filesEqual({
@@ -355,7 +356,7 @@ describe('Multi-domain', function () {
           match.should.eql(true)
         })
       })
-    }).timeout(5000)
+    }).timeout(10000)
 
     it('should use the images.allowFullURL setting defined at domain level to determine whether or not a request with a full remote URL will be served', done => {
       config.set('images.remote.allowFullURL', true, 'localhost')
@@ -380,7 +381,7 @@ describe('Multi-domain', function () {
               done()
             })
         })
-    }).timeout(5000)
+    }).timeout(10000)
 
     it('should use the assets.allowFullURL setting defined at domain level to determine whether or not a CSS request with a full remote URL will be served', done => {
       config.set('assets.remote.allowFullURL', true, 'localhost')
@@ -405,7 +406,7 @@ describe('Multi-domain', function () {
               done()
             })
         })
-    }).timeout(5000)
+    }).timeout(10000)
 
     it('should use the assets.allowFullURL setting defined at domain level to determine whether or not a JS request with a full remote URL will be served', done => {
       config.set('assets.remote.allowFullURL', true, 'localhost')
@@ -430,7 +431,7 @@ describe('Multi-domain', function () {
               done()
             })
         })
-    }).timeout(5000)
+    }).timeout(10000)
 
     it('should use the assets.allowFullURL setting defined at domain level to determine whether or not a default request with a full remote URL will be served', done => {
       config.set('assets.remote.allowFullURL', true, 'localhost')
@@ -455,7 +456,7 @@ describe('Multi-domain', function () {
               done()
             })
         })
-    }).timeout(5000)
+    }).timeout(10000)
 
     describe('internal domain management', () => {
       it('should return 404 if not configured', done => {
@@ -827,7 +828,7 @@ describe('Multi-domain', function () {
                 })
             }, 1000)
           })
-      }).timeout(5000)
+      }).timeout(10000)
     })
   })
 })
