@@ -274,7 +274,10 @@ Server.prototype.start = function (done) {
     if (config.get('multiDomain.enabled')) {
       let domain = req.headers.host.split(':')[0]
 
-      if (!domainManager.getDomain(domain)) {
+      if (
+        !config.get('dadiNetwork.enableConfigurationAPI') &&
+        !domainManager.getDomain(domain)
+      ) {
         return help.sendBackJSON(404, {
           success: false,
           message: `Domain not configured: ${domain}`
