@@ -6,6 +6,11 @@ const config = require(path.join(__dirname, '/../../../config.js'))
 const help = require(path.join(__dirname, '/../help'))
 
 function mustAuthenticate (requestUrl) {
+  // Allow internal requests.
+  if (requestUrl.indexOf('/_dadi') === 0) {
+    return false
+  }
+
   // All /api requests must be authenticated.
   return requestUrl.indexOf('/api') === 0
 }
