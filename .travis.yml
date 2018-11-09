@@ -10,13 +10,5 @@ before_script:
 branches:
   except:
     - /^v\d+\.\d+\.\d+$/
-env:
-  - CXX=g++-4.9
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      - g++-4.9
 before_install:
   - sudo apt-get install libjpeg-dev libgif-dev
