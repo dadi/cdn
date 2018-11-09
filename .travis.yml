@@ -3,12 +3,20 @@ notifications:
   slack: dadi:pnhiL60xOrm7GOglHUmb7xHK
   email: false
 node_js:
-  - '10'
   - '8'
+  - '10'
 before_script:
   - npm prune
 branches:
   except:
     - /^v\d+\.\d+\.\d+$/
+env:
+  - CXX=g++-4.9
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-4.9
 before_install:
   - sudo apt-get install libjpeg-dev libgif-dev
