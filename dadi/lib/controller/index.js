@@ -145,7 +145,7 @@ const Controller = function (router) {
 
       pattern = pattern.concat([
         parsedUrl.pathname,
-        parsedUrl.search.slice(1)
+        parsedUrl.search ? parsedUrl.search.slice(1) : null
       ])
     }
 
@@ -250,7 +250,7 @@ Controller.prototype.addCacheControlHeader = function (res, handler, domain) {
     if (!value || (value.length === 0)) return
 
     // already set
-    if (res._headers['cache-control']) return
+    if (res.getHeader('cache-control')) return
 
     // set the header
     res.setHeader('Cache-Control', value)

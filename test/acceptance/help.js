@@ -137,12 +137,20 @@ module.exports.clearCache = function () {
         if (fs.lstatSync(curPath).isDirectory()) { // recurse
           deleteFolderRecursive(curPath)
         } else { // delete file
-          fs.unlinkSync(path.resolve(curPath))
+          try {
+            fs.unlinkSync(path.resolve(curPath))
+          } catch (err) {
+
+          }
         }
       })
       fs.rmdirSync(filepath)
     } else {
-      fs.unlinkSync(filepath)
+      try {
+        fs.unlinkSync(filepath)
+      } catch (err) {
+
+      }
     }
   }
 
