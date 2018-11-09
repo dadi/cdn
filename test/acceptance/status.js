@@ -99,10 +99,9 @@ describe('Status', function () {
         .expect('content-type', 'application/json')
         .expect(200)
         .end((err, res) => {
-          console.log('res :', res)
 
+          console.log('nock :', nock)
           let statusResponse = res.body
-
           statusResponse.status.status.should.eql(200)
           done()
         })
