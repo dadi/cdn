@@ -614,6 +614,13 @@ const schema = {
       allowDomainOverride: true
     }
   },
+  dadiNetwork: {
+    enableConfigurationAPI: {
+      doc: 'Whether to enable domain configuration endpoints',
+      format: Boolean,
+      default: false
+    }
+  },
   multiDomain: {
     directory: {
       doc: 'Path to domains directory',
@@ -746,6 +753,11 @@ Config.prototype.get = function (path, domain) {
   }
 
   return this.domainConfigs[domain].get(path)
+}
+
+Config.prototype.loadDomainConfig = function (domain, domainConfig) {
+  this.domainConfigs[domain] = convict(this.domainSchema)
+  this.domainConfigs[domain].load(domainConfig)
 }
 
 /**

@@ -9,6 +9,7 @@ const request = require('supertest')
 const app = require(__dirname + '/../../dadi/lib/')
 const Cache = require(__dirname + '/../../dadi/lib/cache')
 const config = require(__dirname + '/../../config')
+const domainManager = require(__dirname + '/../../dadi/lib/models/domain-manager')
 const help = require(__dirname + '/help')
 
 const cdnUrl = `http://${config.get('server.host')}:${config.get('server.port')}`
@@ -247,6 +248,7 @@ describe('Multi-domain', function () {
       config.set('assets.remote.path', configBackup.assets.remote.path, 'localhost')
 
       config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
+      config.set('dadiNetwork.enableConfigurationAPI', false)
 
       help.proxyStop().then(() => {
         app.stop(done)
@@ -454,6 +456,269 @@ describe('Multi-domain', function () {
             })
         })
     }).timeout(5000)
+
+    describe('internal domain management', () => {
+      it('should return 404 if not configured', done => {
+        config.set('dadiNetwork.enableConfigurationAPI', false)
+
+        request(cdnUrl)
+          .post('/_dadi/domains')
+          .set('Host', 'testdomain.com:80')
+          .end((_err, res) => {
+            res.statusCode.should.eql(404)
+            done()
+          })
+      })
+
+      it('should return 400 if no array is provided', done => {
+        config.set('dadiNetwork.enableConfigurationAPI', true)
+
+        request(cdnUrl)
+          .post('/_dadi/domains')
+          .set('Host', 'testdomain.com:80')
+          .end((_err, res) => {
+            res.statusCode.should.eql(400)
+            done()
+          })
+      })
+
+      it('should return 400 if a array is not provided', done => {
+        config.set('dadiNetwork.enableConfigurationAPI', true)
+
+        request(cdnUrl)
+          .post('/_dadi/domains')
+          .set('Host', 'testdomain.com:80')
+          .send({})
+          .end((_err, res) => {
+            res.statusCode.should.eql(400)
+            done()
+          })
+      })
+
+      it('should return 400 if an empty array is provided', done => {
+        config.set('dadiNetwork.enableConfigurationAPI', true)
+
+        request(cdnUrl)
+          .post('/_dadi/domains')
+          .set('Host', 'testdomain.com:80')
+          .send([])
+          .end((_err, res) => {
+            res.statusCode.should.eql(400)
+            done()
+          })
+      })
+
+      it('should return 201 when adding a single domain', done => {
+        config.set('dadiNetwork.enableConfigurationAPI', true)
+
+        let domains = [
+          {
+            domain: 'api-added-domain.com',
+            data: {
+              remote: {
+                path: 'https://google.com'
+              }
+            }
+          }
+        ]
+
+        request(cdnUrl)
+          .post('/_dadi/domains')
+          .set('Host', 'testdomain.com:80')
+          .send(domains)
+          .end((_err, res) => {
+            res.statusCode.should.eql(201)
+            let domainAdded = res.body.domains.includes('api-added-domain.com')
+            domainAdded.should.eql(true)
+            done()
+          })
+      })
+
+      it('should return 201 when adding multiple domains', done => {
+        config.set('dadiNetwork.enableConfigurationAPI', true)
+
+        let domains = [
+          {
+            domain: 'api-added-domain-one.com',
+            data: {
+              remote: {
+                path: 'https://google.com'
+              }
+            }
+          },
+          {
+            domain: 'api-added-domain-two.com',
+            data: {
+              remote: {
+                path: 'https://google.com'
+              }
+            }
+          }
+        ]
+
+        request(cdnUrl)
+          .post('/_dadi/domains')
+          .set('Host', 'testdomain.com:80')
+          .send(domains)
+          .end((_err, res) => {
+            res.statusCode.should.eql(201)
+
+            let domainsAdded = res.body.domains.includes('api-added-domain-one.com') &&
+             res.body.domains.includes('api-added-domain-two.com')
+
+            domainsAdded.should.eql(true)
+            done()
+          })
+      })
+
+      it('should return 404 when modifying a domain that doesn\'t exist', done => {
+        config.set('dadiNetwork.enableConfigurationAPI', true)
+
+        let domain = 'api-added-domain.com'
+        let domains = [
+          {
+            domain: domain,
+            data: {
+              remote: {
+                path: 'https://google.com'
+              }
+            }
+          }
+        ]
+
+        let update = {
+          remote: {
+            path: 'https://example.com'
+          }
+        }
+
+        request(cdnUrl)
+          .post('/_dadi/domains')
+          .set('Host', 'testdomain.com:80')
+          .send(domains)
+          .end((_err, res) => {
+            res.statusCode.should.eql(201)
+            let domainAdded = res.body.domains.includes(domain)
+            domainAdded.should.eql(true)
+
+            request(cdnUrl)
+              .put('/_dadi/domains/not-a-domain')
+              .set('Host', 'testdomain.com:80')
+              .send(update)
+              .end((_err, res) => {
+                res.statusCode.should.eql(404)
+                done()
+              })
+          })
+      })
+
+      it('should return 200 when modifying a domain', done => {
+        config.set('dadiNetwork.enableConfigurationAPI', true)
+
+        let domain = 'api-added-domain.com'
+        let domains = [
+          {
+            domain: domain,
+            data: {
+              remote: {
+                path: 'https://google.com'
+              }
+            }
+          }
+        ]
+
+        let update = {
+          remote: {
+            path: 'https://example.com'
+          }
+        }
+
+        request(cdnUrl)
+          .post('/_dadi/domains')
+          .set('Host', 'testdomain.com:80')
+          .send(domains)
+          .end((_err, res) => {
+            res.statusCode.should.eql(201)
+            let domainAdded = res.body.domains.includes(domain)
+            domainAdded.should.eql(true)
+
+            let configuredPath = config.get('images.remote.path', domain)
+            configuredPath.should.eql(domains[0].data.remote.path)
+
+            request(cdnUrl)
+              .put('/_dadi/domains/' + domain)
+              .set('Host', 'testdomain.com:80')
+              .send(update)
+              .end((_err, res) => {
+                res.statusCode.should.eql(200)
+                let domainAdded = res.body.domains.includes(domain)
+                domainAdded.should.eql(true)
+
+                configuredPath = config.get('images.remote.path', domain)
+                configuredPath.should.eql(update.remote.path)
+                done()
+              })
+          })
+      })
+
+      it('should return 404 when deleting a domain that doesn\'t exist', done => {
+        config.set('dadiNetwork.enableConfigurationAPI', true)
+
+        let domain = 'api-added-domain.com'
+
+        request(cdnUrl)
+          .delete('/_dadi/domains/not-a-domain')
+          .set('Host', 'testdomain.com:80')
+          .end((_err, res) => {
+            res.statusCode.should.eql(404)
+            done()
+          })
+      })
+
+      it('should return 200 when deleting a domain', done => {
+        config.set('dadiNetwork.enableConfigurationAPI', true)
+
+        let domain = 'api-added-domain.com'
+        let domains = [
+          {
+            domain: domain,
+            data: {
+              remote: {
+                path: 'https://google.com'
+              }
+            }
+          }
+        ]
+
+        request(cdnUrl)
+          .post('/_dadi/domains')
+          .set('Host', 'testdomain.com:80')
+          .send(domains)
+          .end((_err, res) => {
+            res.statusCode.should.eql(201)
+            let domainAdded = res.body.domains.includes(domain)
+            domainAdded.should.eql(true)
+
+            let configuredPath = config.get('images.remote.path', domain)
+            configuredPath.should.eql(domains[0].data.remote.path)
+
+            ;(typeof domainManager.getDomain(domain)).should.eql('object')
+
+            request(cdnUrl)
+              .delete('/_dadi/domains/' + domain)
+              .set('Host', 'testdomain.com:80')
+              .end((_err, res) => {
+                res.statusCode.should.eql(200)
+                let domainAdded = res.body.domains.includes(domain)
+                domainAdded.should.eql(false)
+
+               ;(typeof domainManager.getDomain(domain)).should.eql('undefined')
+
+                done()
+              })
+          })
+      })
+    })
 
     describe('when the target domain is not configured', () => {
       let testDomain = 'unknowndomain.com'

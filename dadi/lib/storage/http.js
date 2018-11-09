@@ -127,6 +127,18 @@ HTTPStorage.prototype.get = function ({
           reject(httpError)
         }
       }
+    }).on('error', (err) => {
+      let httpError
+
+      if (err.code && err.code === 'ENOTFOUND') {
+        httpError = new Error(`Remote server not found for URL: ${this.getFullUrl()} ${err.message}`)
+      } else {
+        httpError = new Error(`ERROR: ${err.message} CODE: ${err.code}`)
+      }
+
+      httpError.statusCode = 500
+
+      reject(httpError)
     })
   })
 }

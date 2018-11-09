@@ -10,6 +10,7 @@ const urlParser = require('url')
 const zlib = require('zlib')
 
 const config = require(path.join(__dirname, '/../../../config'))
+const DomainController = require(path.join(__dirname, '/domain'))
 const help = require(path.join(__dirname, '/../help'))
 const logger = require('@dadi/logger')
 const HandlerFactory = require(path.join(__dirname, '/../handlers/factory'))
@@ -184,6 +185,17 @@ const Controller = function (router) {
 
   router.post('/api/routes', function (req, res) {
     return RouteController.post(req, res)
+  })
+
+  router.use('/_dadi/domains/:domain?', function (req, res, next) {
+    if (
+      !config.get('dadiNetwork.enableConfigurationAPI') ||
+      !config.get('multiDomain.enabled')
+    ) {
+      return next()
+    }
+
+    return DomainController[req.method.toLowerCase()](req, res)
   })
 }
 
