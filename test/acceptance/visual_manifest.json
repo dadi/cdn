@@ -300,7 +300,10 @@
     },
     {
       "image": "measure2.jpg",
-      "baselineFilename": "images/visual/baseline/measure2.jpg?progressive=true"
+      "params": {
+        "progressive": true
+      },
+      "baselineFilename": "images/visual/baseline/measure2.jpg?progressive=true.jpg"
     }
   ]
 }
