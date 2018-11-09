@@ -1,8 +1,7 @@
 var _ = require('underscore')
 var fs = require('fs')
-var path = require('path')
+var nock = require('nock')
 var should = require('should')
-var sinon = require('sinon')
 var request = require('supertest')
 
 var cache = require(__dirname + '/../../dadi/lib/cache')
@@ -57,6 +56,57 @@ describe('Status', function () {
     // it's essential that status.standalone is disabled
     updateConfigAndReloadApp({})
     done()
+  })
+
+  describe('Base URL', function () {
+    beforeEach(function (done) {
+      updateConfigAndReloadApp({
+        publicUrl: {
+          host: 'www.example.com',
+          port: 80
+        }
+      })
+
+      let statusScope = nock('http://www.example.com')
+        .get('/test.jpg?format=png&quality=50&width=800&height=600')
+        .reply(200)
+
+      app.start(function (err) {
+        if (err) return done(err)
+
+        // give http.Server a moment to finish starting up
+        // then grab a bearer token from it
+        setTimeout(function () {
+          help.getBearerToken(function (err, token) {
+            if (err) return done(err)
+            bearerToken = token
+            done()
+          })
+        }, 500)
+      })
+    })
+
+    afterEach(function (done) {
+      help.clearCache()
+      app.stop(done)
+    })
+    
+    it('should use publicUrl as base for status checks, if configured', function (done) {
+      var client = request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+      client
+        .post(statusRoute)
+        .set('Authorization', 'Bearer ' + bearerToken)
+        .expect('content-type', 'application/json')
+        .expect(200)
+        .end((err, res) => {
+          console.log('res :', res)
+
+          let statusResponse = res.body
+
+          statusResponse.status.status.should.eql(200)
+          done()
+        })
+    })
   })
 
   describe('Integrated', function () {
