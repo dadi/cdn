@@ -2,7 +2,7 @@
 
 const _ = require('underscore')
 const fs = require('fs-extra')
-const exifReader = require('exif-reader')
+const exifReader = require('exif-reader-paras20xx')
 const fit = require('aspect-fit')
 const { BitmapImage, GifFrame, GifUtil } = require('gifwrap')
 const help = require('./../help')
