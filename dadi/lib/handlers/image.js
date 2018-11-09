@@ -795,9 +795,9 @@ ImageHandler.prototype.process = function (sharpImage, imageBuffer) {
           will _not_ be preserved.
           */
           case 'fill':
+            resizeOptions.fit = 'fill'
             sharpImage = sharpImage
               .resize(width, height, resizeOptions)
-              .ignoreAspectRatio()
 
             break
 
@@ -825,7 +825,7 @@ ImageHandler.prototype.process = function (sharpImage, imageBuffer) {
               // resize if options.width or options.height are explicitly set
               if (options.width || options.height) {
                 if (options.width && options.height) {
-                  sharpImage = sharpImage.ignoreAspectRatio()
+                  resizeOptions.fit = 'fill'
                 }
 
                 if (options.devicePixelRatio && options.devicePixelRatio < 4) {
