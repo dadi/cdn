@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.4.0] - 2018-11-09
+
+### Added
+
+* [#378](https://github.com/dadi/cdn/issues/378): support progressive JPEGs - add `?progressive=true` to a URL
+* [#447](https://github.com/dadi/cdn/issues/447): use a base URL for status endpoint checks, configure with `publicUrl`
+
+### Changed
+
+* [#437](https://github.com/dadi/cdn/issues/437): allow override of local image directory in multi-domain
+* [#451](https://github.com/dadi/cdn/issues/451): replace exif-reader package with a forked+patched version
+* Add support for Node.js 10
+
 ## [3.3.0] - 2018-10-24
 
 ### Added

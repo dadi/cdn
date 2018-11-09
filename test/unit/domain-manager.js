@@ -35,7 +35,7 @@ describe('Domain manager', () => {
       })
     })
 
-    it('should ignoring any files and only include directories', () => {
+    it('should ignore any files and only include directories', () => {
       let domainsDirectory = path.resolve(
         config.get('multiDomain.directory')
       )
@@ -61,6 +61,26 @@ describe('Domain manager', () => {
       }).then(() => {
         return fs.remove(mockFile2)
       })
+    })
+  })
+
+  describe('`addDomain()` method', () => {
+    it('should add the specified domain to the internal map of domains', () => {
+      let domains = new domainManager.DomainManager()
+
+      domains.addDomain('test-domain', {})
+      domains.getDomain('test-domain').should.eql({domain: 'test-domain'})
+    })
+  })
+
+  describe('`removeDomain()` method', () => {
+    it('should remove the specified domain from the internal map of domains', () => {
+      let domains = new domainManager.DomainManager()
+
+      domains.removeDomain('test-domain')
+      let domain = domains.getDomain('test-domain');
+
+      (typeof domain).should.eql('undefined')
     })
   })
 

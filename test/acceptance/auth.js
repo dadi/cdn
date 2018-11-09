@@ -62,7 +62,10 @@ describe('Authentication', function () {
         .send({pattern: 'test'})
         .set('Authorization', 'Bearer ' + token)
         .expect('content-type', 'application/json')
-        .expect(200, done)
+        .end((err, res) => {
+          res.statusCode.should.eql(200)
+          done()
+        })
     })
   })
 

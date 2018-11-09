@@ -10,6 +10,7 @@ const urlParser = require('url')
 const zlib = require('zlib')
 
 const config = require(path.join(__dirname, '/../../../config'))
+const DomainController = require(path.join(__dirname, '/domain'))
 const help = require(path.join(__dirname, '/../help'))
 const logger = require('@dadi/logger')
 const HandlerFactory = require(path.join(__dirname, '/../handlers/factory'))
@@ -144,7 +145,7 @@ const Controller = function (router) {
 
       pattern = pattern.concat([
         parsedUrl.pathname,
-        parsedUrl.search.slice(1)
+        parsedUrl.search ? parsedUrl.search.slice(1) : null
       ])
     }
 
@@ -184,6 +185,17 @@ const Controller = function (router) {
 
   router.post('/api/routes', function (req, res) {
     return RouteController.post(req, res)
+  })
+
+  router.use('/_dadi/domains/:domain?', function (req, res, next) {
+    if (
+      !config.get('dadiNetwork.enableConfigurationAPI') ||
+      !config.get('multiDomain.enabled')
+    ) {
+      return next()
+    }
+
+    return DomainController[req.method.toLowerCase()](req, res)
   })
 }
 
@@ -238,7 +250,7 @@ Controller.prototype.addCacheControlHeader = function (res, handler, domain) {
     if (!value || (value.length === 0)) return
 
     // already set
-    if (res._headers['cache-control']) return
+    if (res.getHeader('cache-control')) return
 
     // set the header
     res.setHeader('Cache-Control', value)

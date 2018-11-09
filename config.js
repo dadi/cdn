@@ -68,6 +68,26 @@ const schema = {
       env: 'SSL_INTERMEDIATE_CERTIFICATE_PATHS'
     }
   },
+  publicUrl: {
+    host: {
+      doc: 'The host of the URL where the CDN instance can be publicly accessed at',
+      format: '*',
+      default: null,
+      env: 'URL_HOST'
+    },
+    port: {
+      doc: 'The port of the URL where the CDN instance can be publicly accessed at',
+      format: '*',
+      default: 80,
+      env: 'URL_PORT'
+    },
+    protocol: {
+      doc: 'The protocol of the URL where the CDN instance can be publicly accessed at',
+      format: 'String',
+      default: 'http',
+      env: 'URL_PROTOCOL'
+    }
+  },
   logging: {
     enabled: {
       doc: 'If true, logging is enabled using the following settings.',
@@ -614,6 +634,13 @@ const schema = {
       allowDomainOverride: true
     }
   },
+  dadiNetwork: {
+    enableConfigurationAPI: {
+      doc: 'Whether to enable domain configuration endpoints',
+      format: Boolean,
+      default: false
+    }
+  },
   multiDomain: {
     directory: {
       doc: 'Path to domains directory',
@@ -746,6 +773,11 @@ Config.prototype.get = function (path, domain) {
   }
 
   return this.domainConfigs[domain].get(path)
+}
+
+Config.prototype.loadDomainConfig = function (domain, domainConfig) {
+  this.domainConfigs[domain] = convict(this.domainSchema)
+  this.domainConfigs[domain].load(domainConfig)
 }
 
 /**
