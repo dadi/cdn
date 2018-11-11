@@ -9,6 +9,14 @@ const url = require('url')
 const urljoin = require('url-join')
 const Missing = require(path.join(__dirname, '/missing'))
 
+let httpKeepAliveAgent = new http.Agent({ keepAlive: true })
+let httpsKeepAliveAgent = new https.Agent({ keepAlive: true })
+
+if (config.get('http.maxSockets')) {
+  http.globalAgent.maxSockets = config.get('http.maxSockets')
+  https.globalAgent.maxSockets = config.get('http.maxSockets')
+}
+
 const HTTPStorage = function ({assetType = 'assets', domain, url}) {
   let isExternalURL = url.indexOf('http:') === 0 ||
     url.indexOf('https:') === 0
@@ -45,11 +53,14 @@ HTTPStorage.prototype.get = function ({
       ? https
       : http
 
+    let agent = parsedUrl.protocol === 'https:' ? httpsKeepAliveAgent : httpKeepAliveAgent
+
     requestFn.get({
-      protocol: parsedUrl.protocol,
+      agent,
       hostname: parsedUrl.hostname,
       path: parsedUrl.path,
       port: parsedUrl.port,
+      protocol: parsedUrl.protocol,
       headers: {
         'User-Agent': 'DADI CDN'
       }

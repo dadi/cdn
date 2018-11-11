@@ -659,6 +659,11 @@ const schema = {
       format: Number,
       default: 10,
       allowDomainOverride: true
+    },
+    maxSockets: {
+      doc: 'Determines how many concurrent sockets the HTTP/HTTPS agents can have open per origin',
+      format: Number,
+      default: null
     }
   },
   defaultFiles: {
