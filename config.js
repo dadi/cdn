@@ -246,9 +246,10 @@ const schema = {
         allowDomainOverride: true
       },
       path: {
-        doc: 'The remote host to request images from, for example http://media.example.com',
+        doc: 'The path to the assets directory',
         format: String,
-        default: './public'
+        default: './public',
+        allowDomainOverride: true
       }
     },
     s3: {
@@ -422,14 +423,14 @@ const schema = {
     clientId: {
       doc: 'Client ID used to access protected endpoints',
       format: String,
-      default: '1235488',
+      default: null,
       env: 'AUTH_TOKEN_ID',
       allowDomainOverride: true
     },
     secret: {
       doc: 'Client secret used to access protected endpoints',
       format: String,
-      default: 'asd544see68e52',
+      default: null,
       env: 'AUTH_TOKEN_SECRET',
       allowDomainOverride: true
     },
