@@ -3,6 +3,7 @@ domains/
 images/
 public/
 test/
+workspace/_exif/
 workspace/_tmp/
 log/
 cache/
