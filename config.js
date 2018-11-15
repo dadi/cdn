@@ -445,7 +445,7 @@ const schema = {
       doc: 'Private key for signing JSON Web Tokens',
       format: String,
       env: 'AUTH_KEY',
-      default: 'YOU-MUST-CHANGE-ME-NOW!',
+      default: null,
       allowDomainOverride: true
     }
   },
