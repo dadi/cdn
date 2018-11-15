@@ -256,6 +256,10 @@ describe('Cache', function () {
       before(() => {
         config.set('multiDomain.enabled', true)
         config.loadDomainConfigs()
+
+        config.set('auth.clientId', 'test')
+        config.set('auth.secret', 'test')
+        config.set('auth.privateKey', 'test')
       })
 
       after(() => {

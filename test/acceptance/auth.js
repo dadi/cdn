@@ -164,6 +164,10 @@ describe('Authentication', function () {
     after(() => {
       config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
       config.set('multiDomain.directory', configBackup.multiDomain.directory)
+
+      config.set('auth.clientId', 'test', 'testdomain.com')
+      config.set('auth.secret', 'test', 'testdomain.com')
+      config.set('auth.privateKey', 'test', 'testdomain.com')
     })
 
     it('should encode the domain in the JWT', done => {
