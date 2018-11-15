@@ -18,30 +18,8 @@ module.exports.post = (req, res) => {
 
   domains.forEach(item => {
     if (!DomainManager.getDomain(item.domain)) {
-      // Prepare the domain configuration.
-      let configContent = {
-        images: {
-          directory: {
-            enabled: false
-          },
-          remote: {
-            enabled: true,
-            path: item.data.remote.path
-          }
-        },
-        assets: {
-          directory: {
-            enabled: false
-          },
-          remote: {
-            enabled: true,
-            path: item.data.remote.path
-          }
-        }
-      }
-
       // Add the domain configuration.
-      DomainManager.addDomain(item.domain, configContent)
+      DomainManager.addDomain(item.domain, item.data)
     }
   })
 
@@ -55,11 +33,19 @@ module.exports.post = (req, res) => {
  * Accept PUT requests for modifying domains in the internal domain configuration.
  */
 module.exports.put = (req, res) => {
+  // Don't accept an empty body
+  if (!req.body || !req.body.data) {
+    return help.sendBackJSON(400, {
+      success: false,
+      errors: ['Bad Request']
+    }, res)
+  }
+
   let domain = req.params.domain
-  let payload = req.body
+  let configSchema = req.body.data
 
   // Don't accept an empty param.
-  if (!domain || Object.keys(payload).length === 0) {
+  if (!domain || Object.keys(configSchema).length === 0) {
     return help.sendBackJSON(400, {
       success: false,
       errors: ['Bad Request']
@@ -74,30 +60,8 @@ module.exports.put = (req, res) => {
     }, res)
   }
 
-  // Prepare the domain configuration.
-  let configContent = {
-    images: {
-      directory: {
-        enabled: false
-      },
-      remote: {
-        enabled: true,
-        path: payload.remote.path
-      }
-    },
-    assets: {
-      directory: {
-        enabled: false
-      },
-      remote: {
-        enabled: true,
-        path: payload.remote.path
-      }
-    }
-  }
-
   // Update the domain configuration.
-  DomainManager.addDomain(domain, configContent)
+  DomainManager.addDomain(domain, configSchema)
 
   return help.sendBackJSON(200, {
     success: true,
