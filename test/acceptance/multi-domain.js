@@ -516,8 +516,10 @@ describe('Multi-domain', function () {
           {
             domain: 'api-added-domain.com',
             data: {
-              remote: {
-                path: 'https://google.com'
+              images: {
+                remote: {
+                  path: 'https://google.com'
+                }
               }
             }
           }
@@ -531,6 +533,8 @@ describe('Multi-domain', function () {
             res.statusCode.should.eql(201)
             let domainAdded = res.body.domains.includes('api-added-domain.com')
             domainAdded.should.eql(true)
+
+            config.get('images.remote.path', 'api-added-domain.com').should.eql('https://google.com')
             done()
           })
       })
@@ -542,16 +546,20 @@ describe('Multi-domain', function () {
           {
             domain: 'api-added-domain-one.com',
             data: {
-              remote: {
-                path: 'https://google.com'
+              images: {
+                remote: {
+                  path: 'https://google.com'
+                }  
               }
             }
           },
           {
             domain: 'api-added-domain-two.com',
             data: {
-              remote: {
-                path: 'https://google.com'
+              images: {
+                remote: {
+                  path: 'https://google.co.uk'
+                }
               }
             }
           }
@@ -568,6 +576,12 @@ describe('Multi-domain', function () {
              res.body.domains.includes('api-added-domain-two.com')
 
             domainsAdded.should.eql(true)
+
+            let addedPath = config.get('images.remote.path', 'api-added-domain-one.com')
+            addedPath.should.eql('https://google.com')
+
+            addedPath = config.get('images.remote.path', 'api-added-domain-two.com')
+            addedPath.should.eql('https://google.co.uk')
             done()
           })
       })
@@ -580,16 +594,22 @@ describe('Multi-domain', function () {
           {
             domain: domain,
             data: {
-              remote: {
-                path: 'https://google.com'
+              images: {
+                remote: {
+                  path: 'https://google.com'
+                }
               }
             }
           }
         ]
 
         let update = {
-          remote: {
-            path: 'https://example.com'
+          data: {
+            images: {
+              remote: {
+                path: 'https://example.com'
+              }
+            }
           }
         }
 
@@ -621,16 +641,22 @@ describe('Multi-domain', function () {
           {
             domain: domain,
             data: {
-              remote: {
-                path: 'https://google.com'
+              images: {
+                remote: {
+                  path: 'https://google.com'
+                }
               }
             }
           }
         ]
 
         let update = {
-          remote: {
-            path: 'https://example.com'
+          data: {
+            images: {
+              remote: {
+                path: 'https://example.com'
+              }
+            }
           }
         }
 
@@ -644,7 +670,7 @@ describe('Multi-domain', function () {
             domainAdded.should.eql(true)
 
             let configuredPath = config.get('images.remote.path', domain)
-            configuredPath.should.eql(domains[0].data.remote.path)
+            configuredPath.should.eql(domains[0].data.images.remote.path)
 
             request(cdnUrl)
               .put('/_dadi/domains/' + domain)
@@ -656,7 +682,7 @@ describe('Multi-domain', function () {
                 domainAdded.should.eql(true)
 
                 configuredPath = config.get('images.remote.path', domain)
-                configuredPath.should.eql(update.remote.path)
+                configuredPath.should.eql(update.data.images.remote.path)
                 done()
               })
           })
@@ -684,8 +710,10 @@ describe('Multi-domain', function () {
           {
             domain: domain,
             data: {
-              remote: {
-                path: 'https://google.com'
+              images: {
+                remote: {
+                  path: 'https://google.com'
+                }
               }
             }
           }
@@ -701,7 +729,7 @@ describe('Multi-domain', function () {
             domainAdded.should.eql(true)
 
             let configuredPath = config.get('images.remote.path', domain)
-            configuredPath.should.eql(domains[0].data.remote.path)
+            configuredPath.should.eql(domains[0].data.images.remote.path)
 
             ;(typeof domainManager.getDomain(domain)).should.eql('object')
 

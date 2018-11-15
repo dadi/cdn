@@ -67,7 +67,8 @@
   },
   "auth": {
     "clientId": "test",
-    "secret": "test"
+    "secret": "test",
+    "privateKey": "test"
   },
   "cloudfront": {
     "accessKey": "",

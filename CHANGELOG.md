@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.4.2] - 2018-11-15
+
+### Changed
+
+* Remove defaults for authentication and token signing credentials, requires user to set them explicitly
+* Accept full configuration block at internal mgmt endpoints
+
 ## [3.4.0] - 2018-11-09
 
 ### Added

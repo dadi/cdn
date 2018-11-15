@@ -64,6 +64,17 @@ module.exports = function (router) {
     let clientId = req.body.clientId
     let secret = req.body.secret
 
+    // Fail if the auth.clientId or auth.secret haven't been set.
+    if (!clientId || !secret) {
+      return fail('NoAccess', res)
+    }
+
+    // Fail if the auth.privateKey hasn't been set.
+    if (!config.get('auth.privateKey')) {
+      return fail('NoPrivateKey', res)
+    }
+
+    // Fail if the auth.clientId and auth.secret don't match the configured values.
     if (
       clientId !== config.get('auth.clientId', req.__domain) ||
       secret !== config.get('auth.secret', req.__domain)
@@ -103,6 +114,9 @@ module.exports = function (router) {
         break
       case 'InvalidToken':
         res.setHeader('WWW-Authenticate', 'Bearer, error="invalid_token", error_description="Invalid or expired access token"')
+        break
+      case 'NoPrivateKey':
+        res.setHeader('WWW-Authenticate', 'Bearer, error="no_private_key", error_description="No private key configured in auth.privateKey"')
         break
       default:
         res.setHeader('WWW-Authenticate', 'Bearer realm="/token"')
