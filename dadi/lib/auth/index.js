@@ -71,7 +71,7 @@ module.exports = function (router) {
 
     // Fail if the auth.privateKey hasn't been set.
     if (!config.get('auth.privateKey')) {
-      return fail('NoPrivateKey')
+      return fail('NoPrivateKey', res)
     }
 
     // Fail if the auth.clientId and auth.secret don't match the configured values.
