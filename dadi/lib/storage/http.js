@@ -75,6 +75,8 @@ HTTPStorage.prototype.get = function ({
         })
 
         res.on('end', () => {
+          agent.destroy()
+
           return resolve(streamifier.createReadStream(Buffer.concat(buffers)))
         })
       } else {
