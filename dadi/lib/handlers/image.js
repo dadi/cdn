@@ -64,7 +64,7 @@ const IMAGE_PARAMETERS = [
   { name: 'strip', aliases: ['s'] },
   { name: 'rotate', aliases: ['r'] },
   { name: 'flip', aliases: ['fl'] },
-  { name: 'progressive', aliases: ['pg'], default: 'true' }
+  { name: 'progressive', aliases: ['pg'] }
 ]
 
 /**
@@ -96,6 +96,10 @@ const ImageHandler = function (format, req, {
 
   this.exifData = {}
   this.isExternalUrl = !pathname.indexOf('http://') || !pathname.indexOf('https://')
+
+  this.noCache = this.parsedUrl.original.query &&
+    Object.keys(this.parsedUrl.original.query).includes('cache') &&
+    this.parsedUrl.original.query.cache === 'false'
 
   this.plugins = Object.keys(workspace.get()).reduce((activePlugins, file) => {
     if ((workspace.get(file).type === 'plugins') && plugins.includes(file)) {
@@ -250,7 +254,7 @@ ImageHandler.prototype.get = function () {
   return this.cache.getStream(cacheKey, {
     ttl: config.get('caching.ttl', this.req.__domain)
   }).then(cacheStream => {
-    if (cacheStream) {
+    if (cacheStream && !this.noCache) {
       this.isCached = true
 
       return this.cache.getMetadata(cacheKey).then(metadata => {
