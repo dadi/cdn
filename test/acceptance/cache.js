@@ -740,7 +740,7 @@ describe('Cache', function () {
       }, 1500)
     })
 
-    it('when multi-domain is enabled, cached itemd should be kept for the period of time defined in each domain config', done => {
+    it('when multi-domain is enabled, cached items should be kept for the period of time defined in each domain config', done => {
       let mockCacheGet = sinon.spy(cache.Cache.prototype, 'getStream')
       let mockCacheSet = sinon.spy(cache.Cache.prototype, 'cacheFile')
 

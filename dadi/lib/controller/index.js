@@ -82,15 +82,7 @@ const Controller = function (router) {
       res.setHeader('Content-Length', contentLength)
       res.setHeader('ETag', etagResult)
 
-      let shouldCompress =
-        req.headers['accept-encoding'] === 'gzip' &&
-        compressible(handler.getContentType())
-
-      if (
-        shouldCompress &&
-        config.get('headers.useGzipCompression', req.__domain) &&
-        handler.getContentType() !== 'application/json'
-      ) {
+      if (this.shouldCompress(req, handler)) {
         res.setHeader('Content-Encoding', 'gzip')
 
         data = new Promise((resolve, reject) => {
@@ -197,6 +189,24 @@ const Controller = function (router) {
 
     return DomainController[req.method.toLowerCase()](req, res)
   })
+}
+
+/**
+ * Determines whether the response should be compressed
+ *
+ * @param {Object} req - the original HTTP request, containing headers
+ * @param {Object} handler - the current asset handler (image, CSS, JS)
+ * @returns {Boolean} - whether to compress the data before sending the response
+ */
+Controller.prototype.shouldCompress = function (req, handler) {
+  let acceptHeader = req.headers['accept-encoding'] || ''
+  let contentType = handler.getContentType()
+  let useCompression = config.get('headers.useGzipCompression', req.__domain)
+
+  return useCompression &&
+    contentType !== 'application/json' &&
+    acceptHeader.split(',').includes('gzip') &&
+    compressible(contentType)
 }
 
 Controller.prototype.addContentTypeHeader = function (res, handler) {
