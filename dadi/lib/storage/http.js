@@ -54,79 +54,75 @@ HTTPStorage.prototype.get = function ({
         'User-Agent': 'DADI CDN'
       }
     }, res => {
-      let statusCode = res.statusCode
+      let buffers = []
 
-      if (statusCode === 200) {
-        let buffers = []
+      res.on('data', chunk => {
+        buffers.push(chunk)
+      })
 
-        res.on('data', chunk => {
-          buffers.push(chunk)
-        })
+      res.on('end', () => {
+        let statusCode = res.statusCode
 
-        res.on('end', () => {
+        if (statusCode === 200) {
           return resolve(streamifier.createReadStream(Buffer.concat(buffers)))
-        })
-      } else {
-        if (
-          [301, 302, 307].includes(statusCode) &&
-          typeof res.headers.location === 'string'
-        ) {
-          let parsedRedirectUrl = url.parse(res.headers.location)
+        } else {
+          if (
+            [301, 302, 307].includes(statusCode) &&
+            typeof res.headers.location === 'string'
+          ) {
+            let parsedRedirectUrl = url.parse(res.headers.location)
 
-          parsedRedirectUrl.host = parsedRedirectUrl.host || parsedUrl.host
-          parsedRedirectUrl.port = parsedRedirectUrl.port || parsedUrl.port
-          parsedRedirectUrl.protocol = parsedRedirectUrl.protocol || parsedUrl.protocol
+            parsedRedirectUrl.host = parsedRedirectUrl.host || parsedUrl.host
+            parsedRedirectUrl.port = parsedRedirectUrl.port || parsedUrl.port
+            parsedRedirectUrl.protocol = parsedRedirectUrl.protocol || parsedUrl.protocol
 
-          if (redirects < config.get('http.followRedirects', this.domain)) {
-            return resolve(
-              this.get({
-                redirects: redirects + 1,
-                requestUrl: url.format(parsedRedirectUrl)
-              })
-            )
+            if (redirects < config.get('http.followRedirects', this.domain)) {
+              return resolve(
+                this.get({
+                  redirects: redirects + 1,
+                  requestUrl: url.format(parsedRedirectUrl)
+                })
+              )
+            }
+
+            // We've hit the maximum number of redirects allowed, so we'll
+            // treat this as a 404.
+            statusCode = 404
           }
 
-          // We've hit the maximum number of redirects allowed, so we'll
-          // treat this as a 404.
-          statusCode = 404
-        }
+          let httpError
 
-        let httpError
+          switch (statusCode) {
+            case 404:
+              httpError = new Error(`Not Found: ${this.getFullUrl()}`)
 
-        switch (statusCode) {
-          case 404:
-            httpError = new Error(`Not Found: ${this.getFullUrl()}`)
+              break
+            case 403:
+              httpError = new Error(`Forbidden: ${this.getFullUrl()}`)
 
-            break
+              break
+            default:
+              httpError = new Error(`Remote server responded with error code ${statusCode} for URL: ${this.getFullUrl()}`)
+          }
 
-          case 403:
-            httpError = new Error(`Forbidden: ${this.getFullUrl()}`)
+          httpError.statusCode = statusCode
 
-            break
-
-          default:
-            httpError = new Error(`Remote server responded with error code ${statusCode} for URL: ${this.getFullUrl()}`)
-
-            break
-        }
-
-        httpError.statusCode = statusCode
-
-        if (statusCode === 404) {
-          new Missing().get({
-            domain: this.domain,
-            isDirectory: path.parse(this.getFullUrl()).ext === ''
-          }).then(stream => {
-            this.notFound = true
-            this.lastModified = new Date()
-            resolve(stream)
-          }).catch(() => {
+          if (statusCode === 404) {
+            new Missing().get({
+              domain: this.domain,
+              isDirectory: path.parse(this.getFullUrl()).ext === ''
+            }).then(stream => {
+              this.notFound = true
+              this.lastModified = new Date()
+              resolve(stream)
+            }).catch(() => {
+              reject(httpError)
+            })
+          } else {
             reject(httpError)
-          })
-        } else {
-          reject(httpError)
+          }
         }
-      }
+      })
     }).on('error', (err) => {
       let httpError
 
