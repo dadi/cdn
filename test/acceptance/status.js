@@ -1,13 +1,12 @@
-var _ = require('underscore')
-var fs = require('fs')
-var nock = require('nock')
-var should = require('should')
-var request = require('supertest')
+const fs = require('fs')
+const merge = require('deepmerge')
+const nock = require('nock')
+const should = require('should')
+const request = require('supertest')
 
-var cache = require(__dirname + '/../../dadi/lib/cache')
-var config = require(__dirname + '/../../config')
-var help = require(__dirname + '/help')
-var app = require(__dirname + '/../../dadi/lib/')
+let app = require(__dirname + '/../../dadi/lib/')
+let config = require(__dirname + '/../../config')
+const help = require(__dirname + '/help')
 
 var defaultConfig = {
   'status': {
@@ -29,7 +28,7 @@ function updateConfigAndReloadApp (configOverride) {
   config = require(__dirname + '/../../config')
 
   var testConfigString = fs.readFileSync(config.configPath())
-  var newTestConfig = _.extend({}, JSON.parse(testConfigString), defaultConfig, configOverride)
+  var newTestConfig = merge(JSON.parse(testConfigString), defaultConfig, configOverride)
 
   fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
   config.loadFile(config.configPath())

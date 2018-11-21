@@ -71,7 +71,6 @@
     "streamifier": "^0.1.1",
     "ua-parser-js": "^0.7.10",
     "uglify-js": "^3.0.25",
-    "underscore": "~1.8.3",
     "url-join": "^3.0.0",
     "useragent": "2.3.0",
     "uuid": "latest",
@@ -80,6 +79,7 @@
   "devDependencies": {
     "aws-sdk-mock": "^1.5.0",
     "coveralls": "^3.0.1",
+    "deepmerge": "^2.2.1",
     "env-test": "^1.0.0",
     "fakeredis": "^2.0.0",
     "greenkeeper-postpublish": "^1.0.1",

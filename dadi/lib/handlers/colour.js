@@ -1,11 +1,10 @@
-var _ = require('underscore')
-var colourNamer = require('color-namer')
-var Vibrant = require('node-vibrant')
+const colourNamer = require('color-namer')
+const Vibrant = require('node-vibrant')
 
 /**
  * Handles colour-related tasks for CDN images
  */
-var ColourHandler = function () {
+const ColourHandler = function () {
 
 }
 
@@ -14,7 +13,7 @@ var ColourHandler = function () {
  * @returns {object}
  */
 ColourHandler.prototype.getColours = function (buffer, callback) {
-  var v = new Vibrant(buffer, { colorCount: 12, quality: 1 })
+  let v = new Vibrant(buffer, { colorCount: 12, quality: 1 })
 
   v.getSwatches((err, swatches) => {
     if (err) {
@@ -22,10 +21,14 @@ ColourHandler.prototype.getColours = function (buffer, callback) {
     }
 
     // remove empty swatches and sort by population descending
-    swatches = _.compact(_.sortBy(swatches, 'population')).reverse()
+    swatches = Object.values(swatches)
+    swatches.sort((a, b) => {
+      if (a.population === b.population) return 0
+      return a.population > b.population ? -1 : 1
+    })
 
-    var dominantColour = swatches[0]
-    var palette = swatches.slice(1)
+    let dominantColour = swatches[0]
+    let palette = swatches.slice(1)
 
     return callback(null, {
       flattened: this.getFlattenedColours(dominantColour, palette),
@@ -40,16 +43,16 @@ ColourHandler.prototype.getColours = function (buffer, callback) {
  * @param {Array} palette - an array of colour swatches
  */
 ColourHandler.prototype.getFullColours = function (dominantColour, palette) {
-  var primaryColourHex = dominantColour.getHex()
-  var primaryColourHSL = this.getHsl(dominantColour.getHsl())
-  var humanColour = new HumanColours(primaryColourHSL)
+  let primaryColourHex = dominantColour.getHex()
+  let primaryColourHSL = this.getHsl(dominantColour.getHsl())
+  let humanColour = new HumanColours(primaryColourHSL)
 
-  var paletteColours = {}
+  let paletteColours = {}
 
-  _.each(palette, (colour, index) => {
-    var hex = colour.getHex()
-    var hsl = this.getHsl(colour.getHsl())
-    var humanColourPalette = new HumanColours(hsl)
+  palette.forEach((colour, index) => {
+    let hex = colour.getHex()
+    let hsl = this.getHsl(colour.getHsl())
+    let humanColourPalette = new HumanColours(hsl)
 
     paletteColours[index] = {
       rgb: colour.getRgb(),
@@ -85,26 +88,31 @@ ColourHandler.prototype.getFullColours = function (dominantColour, palette) {
  * @param {Array} palette - an array of colour swatches
  */
 ColourHandler.prototype.getFlattenedColours = function (dominantColour, palette) {
-  var primaryColourHex = dominantColour.getHex()
-  var primaryColourHSL = this.getHsl(dominantColour.getHsl())
-  var humanColour = new HumanColours(primaryColourHSL)
+  let primaryColourHex = dominantColour.getHex()
+  let primaryColourHSL = this.getHsl(dominantColour.getHsl())
+  let humanColour = new HumanColours(primaryColourHSL)
 
-  var colourNames = colourNamer(dominantColour.getRgb())
-  var colours = _.sortBy([colourNames.basic[0], colourNames.roygbiv[0], colourNames.html[0], colourNames.pantone[0]], 'distance')
-  var names = _.pluck(colours, 'name')
-  var primaryColourArrays = {
-    names: _.map(names, (name) => { return name.toLowerCase() }),
-    hex: _.pluck(colours, 'hex')
+  let colourNames = colourNamer(dominantColour.getRgb())
+  let colours = [colourNames.basic[0], colourNames.roygbiv[0], colourNames.html[0], colourNames.pantone[0]].sort((a, b) => {
+    if (a.distance === b.distance) return 0
+    return a.distance < b.distance ? -1 : 1
+  })
+
+  let names = colours.map(({ name }) => name)
+  let primaryColourArrays = {
+    names: names.map(name => { return name.toLowerCase() }),
+    hex: colours.map(({ hex }) => hex)
   }
 
   primaryColourArrays.names.push(humanColour.hueName())
-  primaryColourArrays.names = _.uniq(primaryColourArrays.names)
+  // dedupe
+  primaryColourArrays.names = [...(new Set(primaryColourArrays.names))]
 
-  var colourPalette = _.map(palette, (colour) => {
-    var pc = colour.getHex()
-    var hsl = this.getHsl(colour.getHsl())
-    var humanColour = new HumanColours(hsl)
-    var names = colourNamer(pc)
+  let colourPalette = palette.map(colour => {
+    let pc = colour.getHex()
+    let hsl = this.getHsl(colour.getHsl())
+    let humanColour = new HumanColours(hsl)
+    let names = colourNamer(pc)
 
     return {
       primary: pc,
@@ -116,16 +124,28 @@ ColourHandler.prototype.getFlattenedColours = function (dominantColour, palette)
     }
   })
 
-  var colourArrays = _.map(colourPalette, (colour) => {
-    var colours = _.sortBy([colour.basic, colour.roygbiv, colour.html, colour.pantone], 'distance')
+  let colourArrays = colourPalette.map(colour => {
+    let colours = [colour.basic, colour.roygbiv, colour.html, colour.pantone].sort((a, b) => {
+      if (a.distance === b.distance) return 0
+      return a.distance < b.distance ? -1 : 1
+    })
     return {
       names: [colours[0].name.toLowerCase(), colour.human.toLowerCase()],
       hex: [colours[0].hex]
     }
   })
 
-  var nameArray = _.uniq(_.flatten(_.pluck(colourArrays, 'names')))
-  var hexArray = _.uniq(_.flatten(_.pluck(colourArrays, 'hex')))
+  let nameArray = colourArrays.map(({ names }) => names)
+  // flatten
+  nameArray.reduce((acc, val) => acc.concat(val), [])
+  // dedupe
+  nameArray = [...(new Set(nameArray))]
+
+  let hexArray = colourArrays.map(({ hex }) => hex)
+  // flatten
+  hexArray.reduce((acc, val) => acc.concat(val), [])
+  // dedupe
+  hexArray = [...(new Set(hexArray))]
 
   return {
     primary: {
@@ -145,10 +165,10 @@ ColourHandler.prototype.getFlattenedColours = function (dominantColour, palette)
  * Gets the named colours for a specified colour. Draws from lists of colours such as Basic, HTML and Pantone
  */
 ColourHandler.prototype.getColourNames = function (colour) {
-  var obj = colourNamer(colour)
-  var data = {}
+  let obj = colourNamer(colour)
+  let data = {}
 
-  _.each(Object.keys(obj), (group) => {
+  Object.keys(obj).forEach(group => {
     data[group] = obj[group][0]
   })
 
@@ -166,12 +186,12 @@ ColourHandler.prototype.getHsl = function (hslArray) {
   return [ Math.ceil(hslArray[0] * 360), Math.ceil(hslArray[1] * 100).toString() + '%', Math.ceil(hslArray[2] * 100).toString() + '%' ]
 }
 
-var h // Hue
-var s // Saturation
-var l // Lightness
-var hue
-var sat
-var light
+let h // Hue
+let s // Saturation
+let l // Lightness
+let hue
+let sat
+let light
 
 function HumanColours (hsl) {
   this.HSL = hsl
