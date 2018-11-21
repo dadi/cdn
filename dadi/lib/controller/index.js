@@ -191,6 +191,13 @@ const Controller = function (router) {
   })
 }
 
+/**
+ * Determines whether the response should be compressed
+ *
+ * @param {Object} req - the original HTTP request, containing headers
+ * @param {Object} handler - the current asset handler (image, CSS, JS)
+ * @returns {Boolean} - whether to compress the data before sending the response
+ */
 Controller.prototype.shouldCompress = function (req, handler) {
   let acceptHeader = req.headers['accept-encoding'] || ''
   let contentType = handler.getContentType()
