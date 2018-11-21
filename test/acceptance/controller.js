@@ -390,7 +390,6 @@ describe('Controller', function () {
                 res.headers['content-encoding'].should.eql('gzip')
 
                 // console.log('res :', res)
-
                 config.set('headers.useGzipCompression', configBackup.headers.useGzipCompression)
 
                 done()
