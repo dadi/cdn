@@ -1130,8 +1130,6 @@ function getColours (buffer, options) {
       }
 
       // remove empty swatches and sort by population descending
-
-      // swatches = swatches.filter(Boolean)
       swatches = Object.values(swatches).sort((a, b) => {
         if (a.population === b.population) return 0
         return a.population > b.population ? -1 : 1
