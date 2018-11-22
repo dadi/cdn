@@ -54,19 +54,23 @@ HTTPStorage.prototype.get = function ({
         'User-Agent': 'DADI CDN'
       }
     }, res => {
-      let statusCode = res.statusCode
+      let buffers = []
 
-      if (statusCode === 200) {
-        let buffers = []
+      res.on('data', chunk => {
+        buffers.push(chunk)
+      })
 
-        res.on('data', chunk => {
-          buffers.push(chunk)
-        })
+      res.on('end', () => {
+        let statusCode = res.statusCode
 
-        res.on('end', () => {
+        // Successful response, return the data
+        if (statusCode === 200) {
           return resolve(streamifier.createReadStream(Buffer.concat(buffers)))
-        })
-      } else {
+        }
+
+        // Determine what to do with the response when not successful. If it's
+        // a redirect status code, we continue trying to get it until we reach the
+        // configured redirect limit.
         if (
           [301, 302, 307].includes(statusCode) &&
           typeof res.headers.location === 'string'
@@ -91,6 +95,7 @@ HTTPStorage.prototype.get = function ({
           statusCode = 404
         }
 
+        // It's not a redirect, determine what to return
         let httpError
 
         switch (statusCode) {
@@ -98,16 +103,12 @@ HTTPStorage.prototype.get = function ({
             httpError = new Error(`Not Found: ${this.getFullUrl()}`)
 
             break
-
           case 403:
             httpError = new Error(`Forbidden: ${this.getFullUrl()}`)
 
             break
-
           default:
             httpError = new Error(`Remote server responded with error code ${statusCode} for URL: ${this.getFullUrl()}`)
-
-            break
         }
 
         httpError.statusCode = statusCode
@@ -126,7 +127,7 @@ HTTPStorage.prototype.get = function ({
         } else {
           reject(httpError)
         }
-      }
+      })
     }).on('error', (err) => {
       let httpError
 

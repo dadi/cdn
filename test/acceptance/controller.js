@@ -369,6 +369,66 @@ describe('Controller', function () {
       .expect('Content-Type', 'font/ttf')
       .expect(200, done)
     })
+
+    describe('gzip encoding', () => {
+      it('should return gzipped content when headers.useGzipCompression is true', done => {
+        config.set('headers.useGzipCompression', false)
+
+        request(cdnUrl)
+          .get('/css/0/test.css')
+          .end((err, res) => {
+            res.statusCode.should.eql(200)
+            should.not.exist(res.headers['content-encoding'])
+
+            config.set('headers.useGzipCompression', true)
+
+            request(cdnUrl)
+              .get('/css/0/test.css')
+              .set('Accept-Encoding', 'gzip, deflate')
+              .end((err, res) => {
+                res.statusCode.should.eql(200)
+                res.headers['content-encoding'].should.eql('gzip')
+
+                config.set('headers.useGzipCompression', configBackup.headers.useGzipCompression)
+
+                done()
+              })
+          })
+      })
+
+      it('should use the value of headers.useGzipCompression defined at domain level', done => {
+        config.set('multiDomain.enabled', true)
+        config.loadDomainConfigs()
+
+        config.set('headers.useGzipCompression', true)
+        config.set('headers.useGzipCompression', false, 'localhost')
+        config.set('headers.useGzipCompression', true, 'testdomain.com')
+
+        request(cdnUrl)
+          .get('/css/0/test.css?cache=false')
+          .set('Host', 'localhost')
+          .end((err, res) => {
+            res.statusCode.should.eql(200)
+            should.not.exist(res.headers['content-encoding'])
+
+            config.set('headers.useGzipCompression', true)
+
+            request(cdnUrl)
+              .get('/css/0/test.css?cache=false')
+              .set('Host', 'testdomain.com')
+              .end((err, res) => {
+                res.statusCode.should.eql(200)
+                res.headers['content-encoding'].should.eql('gzip')
+
+                config.set('headers.useGzipCompression', configBackup.headers.useGzipCompression)
+                config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
+
+                done()
+              })
+          })
+      })
+    })
+
   })
 
   describe('HTML passthrough', function () {
@@ -1055,64 +1115,6 @@ describe('Controller', function () {
 
           done()
         })
-      })
-    })
-
-    describe.skip('gzip encoding', () => {
-      it('should return gzipped content when headers.useGzipCompression is true', done => {
-        config.set('headers.useGzipCompression', false)
-
-        request(cdnUrl)
-          .get('/test.jpg')
-          .end((err, res) => {
-            res.statusCode.should.eql(200)
-            should.not.exist(res.headers['content-encoding'])
-
-            config.set('headers.useGzipCompression', true)
-
-            request(cdnUrl)
-              .get('/test.jpg')
-              .end((err, res) => {
-                res.statusCode.should.eql(200)
-                res.headers['content-encoding'].should.eql('gzip')
-
-                config.set('headers.useGzipCompression', configBackup.headers.useGzipCompression)
-
-                done()
-              })
-          })
-      })
-
-      it('should use the value of headers.useGzipCompression defined at domain level', done => {
-        config.set('multiDomain.enabled', true)
-        config.loadDomainConfigs()
-
-        config.set('headers.useGzipCompression', true)
-        config.set('headers.useGzipCompression', false, 'localhost')
-        config.set('headers.useGzipCompression', true, 'testdomain.com')
-
-        request(cdnUrl)
-          .get('/test.jpg')
-          .set('Host', 'localhost')
-          .end((err, res) => {
-            res.statusCode.should.eql(200)
-            should.not.exist(res.headers['content-encoding'])
-
-            config.set('headers.useGzipCompression', true)
-
-            request(cdnUrl)
-              .get('/test.jpg')
-              .set('Host', 'testdomain.com')
-              .end((err, res) => {
-                res.statusCode.should.eql(200)
-                res.headers['content-encoding'].should.eql('gzip')
-
-                config.set('headers.useGzipCompression', configBackup.headers.useGzipCompression)
-                config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
-
-                done()
-              })
-          })
       })
     })
 

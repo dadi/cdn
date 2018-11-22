@@ -64,7 +64,7 @@ const IMAGE_PARAMETERS = [
   { name: 'strip', aliases: ['s'] },
   { name: 'rotate', aliases: ['r'] },
   { name: 'flip', aliases: ['fl'] },
-  { name: 'progressive', aliases: ['pg'], default: 'true' }
+  { name: 'progressive', aliases: ['pg'] }
 ]
 
 /**
