@@ -25,4 +25,5 @@ public/**/*
 
 workspace/_exif/*
 workspace/_tmp/*
-.vscode
+.vscode/settings.json
+
