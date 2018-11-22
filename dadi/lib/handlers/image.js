@@ -1133,7 +1133,7 @@ function getColours (buffer, options) {
       swatches = Object.values(swatches)
 
       // swatches = swatches.filter(Boolean)
-      swatches.sort((a, b) => {
+      swatches = Object.values(swatches).sort((a, b) => {
         if (a.population === b.population) return 0
         return a.population > b.population ? -1 : 1
       })
