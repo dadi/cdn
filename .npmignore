@@ -7,3 +7,11 @@ workspace/_exif/
 workspace/_tmp/
 log/
 cache/
+
+# Config
+config/config.development.json
+config/config.production.json
+config/config.qa.json
+config/config.test.json
+
+.vscode/settings.json
