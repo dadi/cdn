@@ -16,7 +16,7 @@
     "@dadi/boot": "^1.1.4",
     "@dadi/cache": "^3.0.0",
     "@dadi/logger": "latest",
-    "@dadi/status": "latest",
+    "@dadi/status": "^1.0.4",
     "accept-language-parser": "^1.2.0",
     "aspect-fit": "^1.0.2",
     "aws-sdk": "2.252.x",
@@ -79,7 +79,6 @@
   "devDependencies": {
     "aws-sdk-mock": "^1.5.0",
     "coveralls": "^3.0.1",
-    "deepmerge": "^2.2.1",
     "env-test": "^1.0.0",
     "fakeredis": "^2.0.0",
     "greenkeeper-postpublish": "^1.0.1",
