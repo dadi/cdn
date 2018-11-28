@@ -1,8 +1,7 @@
 const concat = require('concat-stream')
-const imageLib = require('images')
 const imagesize = require('image-size-stream')
+const Jimp = require('jimp')
 const PassThrough = require('stream').PassThrough
-const Readable = require('stream').Readable
 const path = require('path')
 const url = require('url')
 
@@ -16,33 +15,8 @@ function getValue (input) {
   return parseInt(input.substring(2))
 }
 
-/**
- *
- */
-function RGBtoHex (red, green, blue) {
-  return '#' + ('00000' + (red << 16 | green << 8 | blue).toString(16)).slice(-6)
-}
-
-// hexToRgbA('#fbafff')
-function hexToRgbA (hex) {
-  var c
-
-  if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
-    c = hex.substring(1).split('')
-
-    if (c.length == 3) {
-      c = [c[0], c[0], c[1], c[1], c[2], c[2]]
-    }
-
-    c = '0x' + c.join('')
-    return [(c >> 16) & 255, (c >> 8) & 255, c & 255]
-  }
-
-  throw new Error('Bad Hex')
-}
-
 const ImageLayoutProcessor = function ({assetStore, cache, req, setHeader}) {
-  const parsedUrl = url.parse(req.url, true)
+  let parsedUrl = url.parse(req.url, true)
 
   this.cache = cache
   this.assetStore = assetStore
@@ -51,10 +25,11 @@ const ImageLayoutProcessor = function ({assetStore, cache, req, setHeader}) {
   this.fileExt = path.extname(this.outputFile.fileName).substring(1)
   this.req = req
   this.setHeader = setHeader
+  this.newImage = null
 }
 
 ImageLayoutProcessor.prototype.get = function () {
-  const cacheKey = this.req.url
+  let cacheKey = this.req.url
 
   return this.cache.get(cacheKey).then(cachedLayout => {
     if (cachedLayout) {
@@ -78,14 +53,12 @@ ImageLayoutProcessor.prototype.get = function () {
 
     return Promise.all(assetsQueue).then(streams => {
       return new Promise((resolve, reject) => {
-        let newImage = imageLib(this.outputFile.width, this.outputFile.height)
-        let i = 0
+        const addImage = (input, obj, cb) => {
+          if (obj instanceof Buffer) {
+            let resizedWidth
+            let resizedHeight
 
-        const addImage = (input, obj) => {
-          let inputImage
-
-          try {
-            if (obj instanceof Buffer) {
+            if (input.fileName) {
               let scaleWidth = (600 / input.originalImageSize.naturalWidth)
               let scaleHeight = (600 / input.originalImageSize.naturalHeight)
               let scale = Math.max(scaleWidth, scaleHeight)
@@ -93,62 +66,102 @@ ImageLayoutProcessor.prototype.get = function () {
               let calculatedWidth = input.originalImageSize.naturalWidth * scale
               let calculatedHeight = input.originalImageSize.naturalHeight * scale
               let sc = Math.max(input.width / calculatedWidth, input.height / calculatedHeight)
-              let resizedWidth = calculatedWidth * sc
-              let resizedHeight = calculatedHeight * sc
+              resizedWidth = calculatedWidth * sc
+              resizedHeight = calculatedHeight * sc
 
               input.l = resizedWidth === input.width ? 0 : (resizedWidth - input.width) / 2
               input.t = resizedHeight === input.height ? 0 : (resizedHeight - input.height) / 2
-
-              inputImage = imageLib(obj).resize(resizedWidth, resizedHeight)
             } else {
-              inputImage = obj
+              resizedWidth = input.width
+              resizedHeight = input.height
             }
 
-            let extractedImage = imageLib(inputImage, input.l, input.t, input.width, input.height)
+            // Read the overlay image, resive and composite it on the original
+            Jimp.read(obj)
+              .then(inputImage => {
+                inputImage.resize(Math.floor(resizedWidth), Math.floor(resizedHeight))
 
-            newImage.draw(extractedImage, input.x, input.y)
-          } catch (err) {
+                this.newImage.blit(
+                  inputImage,
+                  input.x,
+                  input.y,
+                  Math.floor(input.l),
+                  Math.floor(input.t),
+                  Math.floor(input.width),
+                  Math.floor(input.height)
+                )
 
-          }
-
-          if (++i === this.inputs.length) {
-            let outBuffer = newImage.encode(this.format, { operation: 100 })
-
-            let cacheStream = new PassThrough()
-            let responseStream = new PassThrough()
-
-            let bufferStream = new PassThrough()
-            bufferStream.end(outBuffer)
-
-            bufferStream.pipe(cacheStream)
-            bufferStream.pipe(responseStream)
-
-            // Cache the layout
-            this.cache.set(cacheStream, cacheKey)
-
-            return resolve(responseStream)
+                cb()
+              })
           }
         }
 
-        this.inputs.forEach((input, index) => {
-          if (input.fileName) {
-            const imageSizeStream = new PassThrough()
-            const imageStream = new PassThrough()
-            const concatStream = concat(obj => addImage(input, obj))
+        let instance = this
 
-            streams[index].pipe(imageSizeStream)
-            streams[index].pipe(imageStream)
+        // Create a blank canvas using the output file dimensions.
+        new Jimp(this.outputFile.width, this.outputFile.height, 0xff0000ff, (_err, image) => {
+          this.newImage = image
 
-            this.getImageSize(imageSizeStream).then(imageInfo => {
-              input.originalImageSize = imageInfo
-              imageStream.pipe(concatStream)
-            })
-          } else if (input.colour) {
-            const rgb = hexToRgbA('#' + input.colour)
+          let i = 0
 
-            addImage(input, imageLib(input.width, input.height).fill(rgb[0], rgb[1], rgb[2], 1))
-          }
+          this.inputs.forEach((input, index) => {
+            if (input.fileName) {
+              let imageSizeStream = new PassThrough()
+              let imageStream = new PassThrough()
+
+              let concatStream = concat(obj => {
+                return addImage(input, obj, () => {
+                  if (++i === this.inputs.length) {
+                    return returnImage(instance)
+                  }
+                })
+              })
+
+              console.log('>>>>', input.fileName, index)
+
+              streams[index].pipe(imageSizeStream)
+              streams[index].pipe(imageStream)
+
+              return this.getImageSize(imageSizeStream).then(imageInfo => {
+                input.originalImageSize = imageInfo
+                imageStream.pipe(concatStream)
+              })
+            } else if (input.colour) {
+              console.log('>>>>', input.colour, index)
+
+              // Create a colour tile.
+              new Jimp(input.width, input.height, `#${input.colour}`, (_err, image) => {
+                image.getBuffer(Jimp.MIME_PNG, (err, buffer) => {
+                  addImage(input, buffer, () => {
+
+                    if (++i === this.inputs.length) {
+                      return returnImage(instance)
+                    }
+                  })
+                })
+              })
+            }
+          })
         })
+
+        function returnImage (instance) {
+          return instance.newImage
+            .getBuffer(instance.getContentType(), (err, outBuffer) => {
+              let cacheStream = new PassThrough()
+              let responseStream = new PassThrough()
+
+              let bufferStream = new PassThrough()
+              bufferStream.end(outBuffer)
+
+              bufferStream.pipe(cacheStream)
+              bufferStream.pipe(responseStream)
+
+              // Cache the layout
+              instance.cache.set(cacheStream, cacheKey)
+
+              return resolve(responseStream)
+            })
+        }
       })
     })
   })
@@ -284,6 +297,5 @@ ImageLayoutProcessor.prototype.processUrl = function (requestPath) {
 
 module.exports = options => {
   const layoutProcessor = new ImageLayoutProcessor(options)
-
   return layoutProcessor.get()
 }
