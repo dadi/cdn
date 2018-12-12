@@ -62,7 +62,6 @@ function requestTestImage (test) {
       return Jimp
         .read(cdnUrl + requestPath)
         .then(testImage => {
-          console.log('testImage :', testImage)
           let diff = Jimp.diff(baselineImage, testImage, 0.1) // threshold ranges 0-1 (default: 0.1)
           let distance = Jimp.distance(baselineImage, testImage) // perceived distance
 
