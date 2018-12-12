@@ -92,6 +92,8 @@ ImageLayoutProcessor.prototype.get = function () {
                 )
 
                 cb()
+              }).catch(err => {
+                cb(err)
               })
           }
         }
@@ -110,14 +112,16 @@ ImageLayoutProcessor.prototype.get = function () {
               let imageStream = new PassThrough()
 
               let concatStream = concat(obj => {
-                return addImage(input, obj, () => {
+                return addImage(input, obj, (err) => {
+                  if (err) {
+                    console.log(err)
+                  }
+
                   if (++i === this.inputs.length) {
                     return returnImage(instance)
                   }
                 })
               })
-
-              console.log('>>>>', input.fileName, index)
 
               streams[index].pipe(imageSizeStream)
               streams[index].pipe(imageStream)
@@ -127,13 +131,10 @@ ImageLayoutProcessor.prototype.get = function () {
                 imageStream.pipe(concatStream)
               })
             } else if (input.colour) {
-              console.log('>>>>', input.colour, index)
-
               // Create a colour tile.
               new Jimp(input.width, input.height, `#${input.colour}`, (_err, image) => {
-                image.getBuffer(Jimp.MIME_PNG, (err, buffer) => {
+                image.getBuffer(Jimp.MIME_PNG, (_err, buffer) => {
                   addImage(input, buffer, () => {
-
                     if (++i === this.inputs.length) {
                       return returnImage(instance)
                     }

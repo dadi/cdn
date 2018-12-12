@@ -1,4 +1,3 @@
-const fs = require('fs')
 const Jimp = require('jimp')
 const path = require('path')
 const querystring = require('querystring')
@@ -59,9 +58,11 @@ function requestTestImage (test) {
   return Jimp
     .read(baselineImagePath)
     .then(baselineImage => {
+      console.log('baselineImage :', baselineImage)
       return Jimp
         .read(cdnUrl + requestPath)
         .then(testImage => {
+          console.log('testImage :', testImage)
           let diff = Jimp.diff(baselineImage, testImage, 0.1) // threshold ranges 0-1 (default: 0.1)
           let distance = Jimp.distance(baselineImage, testImage) // perceived distance
 
@@ -75,7 +76,7 @@ function requestTestImage (test) {
 
           diff.image.write(outputPath)
 
-          return Promise.reject(error)            
+          return Promise.reject(error)
         })
     })
 }
