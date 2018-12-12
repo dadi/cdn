@@ -273,11 +273,6 @@
       "baselineFilename": "images/visual/baseline/duotone-measure.png?highlight=f00e2e&shadow=192550.png"
     },
     {
-      "url": "/layout/i:visual/measure1.png,h_300,w_200,x_0,y_0%7Cc:01ee88,h_300,w_200,x_200,y_0%7Ci:visual/measure2.jpg,h_300,w_200,x_400,y_0%7Co:output.jpg,h_300,w_600",
-      "params": {},
-      "baselineFilename": "images/visual/baseline/layout-measure1-green-measure2.jpg"
-    },
-    {
       "image": "measure1.png",
       "params": {
         "quality": "1"
