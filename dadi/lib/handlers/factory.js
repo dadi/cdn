@@ -49,7 +49,7 @@ HandlerFactory.prototype.create = function (req, mimetype) {
     req.__cdnLegacyURLSyntax = true
 
     logger.warn(
-      `'${parsedUrl.pathname}': this request uses a deprecated URL format which will be removed from future versions of DADI CDN. For more information, please visit https://docs.dadi.tech/cdn#querystring-url-scheme.`
+      `'${parsedUrl.pathname}': this request uses a deprecated URL format which will be removed from future versions of DADI CDN. For more information, please visit https://docs.dadi.cloud/cdn/1.11#querystring-url-scheme.`
     )
   } else {
     // ensure the querystring is decoded (removes for eg &amp; entities introduced via XSLT)

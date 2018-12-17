@@ -4,10 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.4.5] - 2018-12-17
+
+### Fixes
+
+* [#472](https://github.com/dadi/cdn/issues/472): remove dependency incompatible with ARM64 architecture
+
 ## [3.4.4] - 2018-11-22
 
 * Removes invalid configuration samples
-
 
 ## [3.4.3] - 2018-11-22
 

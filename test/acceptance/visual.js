@@ -1,4 +1,3 @@
-const fs = require('fs')
 const Jimp = require('jimp')
 const path = require('path')
 const querystring = require('querystring')
@@ -59,6 +58,7 @@ function requestTestImage (test) {
   return Jimp
     .read(baselineImagePath)
     .then(baselineImage => {
+      console.log('baselineImage :', baselineImage)
       return Jimp
         .read(cdnUrl + requestPath)
         .then(testImage => {
@@ -75,7 +75,7 @@ function requestTestImage (test) {
 
           diff.image.write(outputPath)
 
-          return Promise.reject(error)            
+          return Promise.reject(error)
         })
     })
 }
