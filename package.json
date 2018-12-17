@@ -33,7 +33,7 @@
     "compressible": "^2.0.13",
     "concat-stream": "^1.5.1",
     "console-stamp": "^0.2.2",
-    "convict": "^4.0.0",
+    "convict": "^4.4.1",
     "cron": "^1.4.0",
     "etag": "^1.7.0",
     "exif-reader-paras20xx": "^1.1.1",
