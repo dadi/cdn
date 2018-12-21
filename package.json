@@ -31,7 +31,7 @@
     "color-namer": "^1.1.0",
     "colors": "^1.1.2",
     "compressible": "^2.0.13",
-    "concat-stream": "^1.5.1",
+    "concat-stream": "^2.0.0",
     "console-stamp": "^0.2.2",
     "convict": "^4.0.0",
     "cron": "^1.4.0",
