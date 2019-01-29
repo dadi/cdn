@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.14.0] - 2019-01-29
+
+## Changed
+
+* [#481](https://github.com/dadi/cdn/issues/481): improve s3 bucket string comparison to avoid false positives when "s3" is in the filename
+
+
 ## [1.13.3] - 2017-11-02
 
 ## Changed
