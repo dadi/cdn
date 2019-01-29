@@ -10,7 +10,6 @@ var client = request(clientHost)
 var secureClient = request(secureClientHost)
 
 describe('SSL', () => {
-
   before((done) => {
     // avoid [Error: self signed certificate] code: 'DEPTH_ZERO_SELF_SIGNED_CERT'
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
@@ -53,7 +52,7 @@ describe('SSL', () => {
     })
   })
 
-  it('should redirect http request to https when redirectPort is set', function(done) {
+  it('should redirect http request to https when redirectPort is set', function (done) {
     config.set('server.protocol', 'https')
     config.set('server.redirectPort', '9999')
     config.set('server.sslPrivateKeyPath', 'test/ssl/unprotected/key.pem')
@@ -134,10 +133,9 @@ describe('SSL', () => {
     try {
       app.start(() => {})
     } catch (ex) {
-      ex.message.should.eql('error starting https server: required ssl passphrase not provided')
+      ex.message.indexOf('ssl passphrase').should.be.above(0)
     }
 
     done()
   })
-
 })

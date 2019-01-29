@@ -14,6 +14,7 @@
     "@dadi/cache": "1.5.x",
     "@dadi/logger": "latest",
     "@dadi/status": "latest",
+    "@dadi/wget": "latest",
     "accept-language-parser": "^1.2.0",
     "aspect-fit": "^1.0.2",
     "aws-sdk": "2.5.4",
@@ -55,8 +56,7 @@
     "underscore": "~1.8.3",
     "url-join": "^2.0.2",
     "uuid": "latest",
-    "validate-commit-message": "^3.0.1",
-    "wget-improved": "git+https://github.com/jimlambie/node-wget"
+    "validate-commit-message": "^3.0.1"
   },
   "devDependencies": {
     "aws-sdk-mock": "^1.5.0",

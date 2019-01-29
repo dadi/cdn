@@ -22,7 +22,7 @@ var S3Storage = function (settings, url) {
   this.s3 = new AWS.S3()
 
   this.getBucket = function () {
-    if (self.url.indexOf('s3') > 0) {
+    if (self.url.indexOf('/s3/') === 0) {
       return _.compact(self.urlParts())[0]
     } else {
       return settings.s3.bucketName
@@ -32,7 +32,7 @@ var S3Storage = function (settings, url) {
   this.getKey = function () {
     var url
 
-    if (self.url.indexOf('s3') > 0) {
+    if (self.url.indexOf('/s3/') === 0) {
       var parts = _.compact(self.urlParts())
       parts.shift()
       url = parts.join('/')
@@ -46,8 +46,8 @@ var S3Storage = function (settings, url) {
   }
 
   this.urlParts = function () {
-    if (self.url.indexOf('/s3') === 0) {
-      return self.url.replace('/s3', '').split('/')
+    if (self.url.indexOf('/s3/') === 0) {
+      return self.url.replace('/s3/', '').split('/')
     } else if (self.url.substring(0, 1) === '/') {
       return self.url.substring(1).split('/')
     } else {
@@ -57,7 +57,7 @@ var S3Storage = function (settings, url) {
 }
 
 S3Storage.prototype.getFullUrl = function () {
-  return this.url.replace('/s3', '')
+  return this.url.replace('/s3/', '')
 }
 
 S3Storage.prototype.getLastModified = function () {

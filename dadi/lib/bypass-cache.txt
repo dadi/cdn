@@ -1,0 +1,6 @@
+ this.bypassCache = this.parsedUrl.original.query &&
+    Object.keys(this.parsedUrl.original.query).includes('cache') &&
+    this.parsedUrl.original.query.cache === 'false'
+
+   if (cacheStream && !this.bypassCache) {
+
