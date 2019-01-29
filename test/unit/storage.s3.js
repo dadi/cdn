@@ -7,8 +7,6 @@ var Promise = require('bluebird')
 var stream = require('stream')
 var imageHandler = require(__dirname + '/../../dadi/lib/handlers/image')
 var factory = require(__dirname + '/../../dadi/lib/storage/factory')
-var DiskStorage = require(__dirname + '/../../dadi/lib/storage/disk')
-var HTTPStorage = require(__dirname + '/../../dadi/lib/storage/http')
 var S3Storage = require(__dirname + '/../../dadi/lib/storage/s3')
 var cache = require(__dirname + '/../../dadi/lib/cache')
 
@@ -28,6 +26,10 @@ describe('Storage', function (done) {
   })
 
   afterEach(function (done) {
+    if (S3Storage.S3Storage.prototype.get.restore) {
+      S3Storage.S3Storage.prototype.get.restore()
+    }
+
     setTimeout(function () {
       fs.writeFileSync(config.configPath(), testConfigString)
       done()
@@ -83,21 +85,12 @@ describe('Storage', function (done) {
         })
       })
 
-      // // stub the get method so it doesn't do anything
-      // var get = sinon.stub(S3Storage.S3Storage.prototype, 'get').callsFake(function () { return new Promise(function (resolve, reject) {
-      //     var readable = new stream.Readable()
-      //     readable.push('')
-      //     readable.push(null)
-      //     resolve(readable)
-      //   })
-      // })
-
       var convert = sinon.stub(imageHandler.ImageHandler.prototype, 'convert').callsFake(function (aStream, imageInfo) {
         return new Promise(function (resolve, reject) {
           var readable = new stream.Readable()
           readable.push('')
           readable.push(null)
-          resolve({stream:readable})
+          resolve({stream: readable})
         })
       })
 
@@ -114,6 +107,51 @@ describe('Storage', function (done) {
         var returnValue = spy.firstCall.returnValue
         returnValue.getKey().should.eql(expected)
       })
+    })
+
+    it('should use bucket name from config when not specified in path but filename contains s3', function () {
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.images.directory.enabled = false
+      newTestConfig.images.s3.enabled = true
+      newTestConfig.images.s3.bucketName = 'test'
+      newTestConfig.images.s3.region = 'eu-east-1'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+      config.loadFile(config.configPath())
+
+      var req = {
+        url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/tests3.jpg'
+      }
+
+      var settings = config.get('images')
+      var s3Storage = new S3Storage(settings, req.url)
+
+      s3Storage.getBucket().should.eql(settings.s3.bucketName)
+    })
+
+    it('should use correct key when s3 adapter is specified in config but filename contains s3', function () {
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.images.directory.enabled = false
+      newTestConfig.images.s3.enabled = true
+      newTestConfig.images.s3.bucketName = 'test'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+      config.loadFile(config.configPath())
+
+      // var spy = sinon.spy(factory, 'create')
+
+      var req = {
+        url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/tests3.jpg'
+      }
+
+      // set expected key value
+      var expected = 'tests3.jpg'
+      var im = new imageHandler('jpg', req)
+
+      // create the s3 handler
+      var storage = im.storageFactory.create('image', req.url)
+
+      storage.getKey().should.eql(expected)
     })
 
     it('should use bucket name from path when specified', function () {
@@ -171,7 +209,7 @@ describe('Storage', function (done) {
       var expected = 'test.jpg'
 
       // mock the s3 request
-      AWS.mock('S3', 'getObject', function(data) {
+      AWS.mock('S3', 'getObject', function (data) {
         AWS.restore()
         // here's the test
         // "data" contains the parameters passed to getObject

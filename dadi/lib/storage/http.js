@@ -6,7 +6,7 @@ var path = require('path')
 var querystring = require('querystring')
 var sha1 = require('sha1')
 var urljoin = require('url-join')
-var wget = require('wget-improved')
+var wget = require('@dadi/wget')
 
 // var Missing = require(path.join(__dirname, '/missing'))
 
