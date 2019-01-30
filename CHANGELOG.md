@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.4.5] - 2018-12-17
+
+### Fixes
+
+* [#472](https://github.com/dadi/cdn/issues/472): remove dependency incompatible with ARM64 architecture
+
+## [3.4.4] - 2018-11-22
+
+* Removes invalid configuration samples
+
+## [3.4.3] - 2018-11-22
+
+### Changed
+
+* [#449](https://github.com/dadi/cdn/issues/449): ensure responses for all status codes are allowed to complete before taking action
+* Remove the default behaviour of responding with progressize JPEGs
+* Handle requests for gzip encoding better, checking for "gzip" anywhere in the Accept-Encoding header
+
 ## [3.4.2] - 2018-11-15
 
 ### Changed

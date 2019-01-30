@@ -143,7 +143,7 @@ describe('Multi-domain', function () {
           match.should.eql(true)
         })
       })
-    }).timeout(10000)
+    }).timeout(20000)
 
     it('should retrieve a remote image regardless of whether the domain is configured', () => {
       return help.imagesEqual({
@@ -159,7 +159,7 @@ describe('Multi-domain', function () {
           match.should.eql(true)
         })
       })
-    }).timeout(10000)
+    }).timeout(20000)
 
     describe('Caching', () => {
       beforeEach(() => {
@@ -205,7 +205,7 @@ describe('Multi-domain', function () {
                 })
             }, 1000)
           })
-      }).timeout(10000)
+      }).timeout(20000)
     })    
   })
 
@@ -270,7 +270,7 @@ describe('Multi-domain', function () {
           match.should.eql(true)
         })
       })
-    }).timeout(10000)
+    }).timeout(20000)
 
     it('should retrieve a local image from the path specified by the domain config', () => {
       config.set('images.directory.enabled', true, 'localhost')

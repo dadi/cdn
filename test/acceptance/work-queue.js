@@ -15,7 +15,7 @@ let client = request(cdnUrl)
 let configBackup = config.get()
 
 describe('Work queue', function () {
-  this.timeout(10000)
+  this.timeout(100000)
 
   beforeEach(done => {
     config.set('caching.directory.enabled', false)
