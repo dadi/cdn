@@ -75,25 +75,24 @@ const Controller = function (router) {
       }
 
       let etagResult = etag(data)
-      let contentLength = Buffer.isBuffer(data)
-        ? data.byteLength
-        : data.length
-
       res.setHeader('ETag', etagResult)
 
       if (this.shouldCompress(req, handler)) {
         res.setHeader('Content-Encoding', 'gzip')
-        res.setHeader('Transfer-Encoding', 'chunked')
 
         data = new Promise((resolve, reject) => {
           zlib.gzip(data, (err, compressedData) => {
             if (err) return reject(err)
 
+            res.setHeader('Content-Length', compressedData.byteLength)
             resolve(compressedData)
           })
         })
       } else {
-        res.setHeader('Content-Length', contentLength)
+        res.setHeader(
+          'Content-Length',
+          Buffer.isBuffer(data) ? data.byteLength : data.length
+        )
       }
 
       return Promise.resolve(data).then(data => {
