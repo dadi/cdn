@@ -79,11 +79,11 @@ const Controller = function (router) {
         ? data.byteLength
         : data.length
 
-      res.setHeader('Content-Length', contentLength)
       res.setHeader('ETag', etagResult)
 
       if (this.shouldCompress(req, handler)) {
         res.setHeader('Content-Encoding', 'gzip')
+        res.setHeader('Transfer-Encoding', 'chunked')
 
         data = new Promise((resolve, reject) => {
           zlib.gzip(data, (err, compressedData) => {
@@ -92,6 +92,8 @@ const Controller = function (router) {
             resolve(compressedData)
           })
         })
+      } else {
+        res.setHeader('Content-Length', contentLength)
       }
 
       return Promise.resolve(data).then(data => {
