@@ -58,7 +58,6 @@ function requestTestImage (test) {
   return Jimp
     .read(baselineImagePath)
     .then(baselineImage => {
-      console.log('baselineImage :', baselineImage)
       return Jimp
         .read(cdnUrl + requestPath)
         .then(testImage => {
