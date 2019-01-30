@@ -428,6 +428,12 @@ Server.prototype.stop = function (done) {
         this.readyState = 0
 
         if (typeof done === 'function') {
+          if (err) {
+            if (err.message && err.message.indexOf('Server is not running') > -1) {
+              err = null
+            }
+          }
+
           done(err)
         }
       })
