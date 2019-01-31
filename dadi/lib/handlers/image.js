@@ -258,6 +258,10 @@ ImageHandler.prototype.get = function () {
           this.contentType = metadata.contentType || 'application/json'
         }
 
+        if (metadata && metadata.lastModified) {
+          this.storageHandler.lastModified = metadata.lastModified
+        }
+
         return help.streamToBuffer(cacheStream)
       })
     }
@@ -306,7 +310,9 @@ ImageHandler.prototype.get = function () {
       }).then(result => {
         // Cache the file if it's not already cached.
         if (!this.isCached) {
-          let metadata
+          let metadata = {
+            lastModified: this.storageHandler.getLastModified ? this.storageHandler.getLastModified() : null
+          }
 
           if (this.storageHandler.notFound) {
             metadata = {
