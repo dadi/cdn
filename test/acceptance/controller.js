@@ -279,7 +279,8 @@ describe('Controller', function () {
 
       request(cdnUrl)
         .get('/test.jpg')
-        .expect(200, (err, res) => {
+        .expect(200)
+        .end((err, res) => {
           res.headers['cache-control'].should.eql(cacheControl.default)
 
           request(cdnUrl)
@@ -428,7 +429,6 @@ describe('Controller', function () {
           })
       })
     })
-
   })
 
   describe('HTML passthrough', function () {
@@ -440,7 +440,7 @@ describe('Controller', function () {
       config.set('images.remote.enabled', true)
       config.set('images.remote.path', remoteUrl)
       config.set('images.s3.enabled', false)
-      
+
       config.set('assets.directory.enabled', false)
       config.set('assets.s3.enabled', false)
 
@@ -535,10 +535,10 @@ describe('Controller', function () {
         .end((_err, res) => {
           res.headers['content-type'].should.exist
           res.headers['content-type'].should.eql('text/html')
-  
+
           res.headers['x-cache'].should.exist
           res.headers['x-cache'].should.eql('HIT')
-  
+
           done()
         })
       })
@@ -1020,7 +1020,7 @@ describe('Controller', function () {
       var client = request(cdnUrl)
       client
         .get('/shane%20long%20new%20contract.JPG?quality=100')
-        .end(function (err, res) {
+        .end((err, res) => {
           res.statusCode.should.eql(200)
           done()
         })
@@ -1037,7 +1037,7 @@ describe('Controller', function () {
       var client = request(cdnUrl)
       client
         .get('/test.jpg?quality=100&width=180&height=180&resizeStyle=entropy&format=json')
-        .end(function (err, res) {
+        .end((err, res) => {
           res.statusCode.should.eql(200)
 
           res.body.entropyCrop.should.have.property('x1').and.be.type('number')
@@ -1195,7 +1195,6 @@ describe('Controller', function () {
       })
 
       it('should return a json response when a directory is requested', function (done) {
-
         config.set('notFound.images.enabled', true)
         config.set('notFound.images.path', './test/images/missing.png')
         config.set('notFound.statusCode', 410)
@@ -1212,7 +1211,6 @@ describe('Controller', function () {
 
             done()
           })
-
       })
 
       describe('when multi-domain is enabled', () => {
