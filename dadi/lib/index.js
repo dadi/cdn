@@ -429,7 +429,7 @@ Server.prototype.stop = function (done) {
 
         if (typeof done === 'function') {
           if (err) {
-            if (err.message && err.message.indexOf('Server is not running') > -1) {
+            if (err.message && err.message.toLowerCase().indexOf('not running') > -1) {
               err = null
             }
           }
