@@ -1,3 +1,7 @@
+const http = require('http')
+const https = require('https')
+const http2 = require('http2')
+
 const CronJob = require('cron').CronJob
 const site = require('../../package.json').name
 const version = require('../../package.json').version
@@ -8,8 +12,6 @@ const bodyParser = require('body-parser')
 const finalhandler = require('finalhandler')
 const fs = require('fs')
 const help = require('./help')
-const http = require('http')
-const https = require('https')
 const logger = require('@dadi/logger')
 const path = require('path')
 const Router = require('router')
@@ -66,7 +68,7 @@ Server.prototype.create = function (listener) {
 
   if (protocol === 'http') {
     return http.createServer(listener)
-  } else if (protocol === 'https') {
+  } else {
     let readFileSyncSafe = (path) => {
       try {
         return fs.readFileSync(path)
@@ -105,7 +107,12 @@ Server.prototype.create = function (listener) {
     // We need to catch any errors resulting from bad parameters,
     // such as incorrect passphrase or no passphrase provided.
     try {
-      return https.createServer(serverOptions, listener)
+      if (config.get('server.enableHTTP2')) {
+        serverOptions['allowHTTP1'] = true // fallback to http1
+        return http2.createSecureServer(serverOptions, listener)
+      } else {
+        return https.createServer(serverOptions, listener)
+      }
     } catch (ex) {
       let exPrefix = 'error starting https server: '
 

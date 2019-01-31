@@ -29,7 +29,7 @@ const schema = {
     name: {
       doc: 'Server name',
       format: String,
-      default: 'DADI (CDN)'
+      default: 'DADI CDN'
     },
     protocol: {
       doc: 'The protocol the web application will use',
@@ -66,6 +66,11 @@ const schema = {
       format: Array,
       default: [],
       env: 'SSL_INTERMEDIATE_CERTIFICATE_PATHS'
+    },
+    enableHTTP2: {
+      doc: 'When `server.protocol = https` use http2 as the primary response method. Fallback to http1 for unsupported clients.',
+      format: Boolean,
+      default: true
     }
   },
   publicUrl: {
