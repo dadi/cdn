@@ -46,20 +46,15 @@ describe('http2', () => {
     app.start(function (err) {
       if (err) return done(err)
 
-// <<<<<<< HEAD
-//       secureClient
-//         .get('/')
-// =======
-      client
+      secureClient
         .get('/hello')
-// >>>>>>> f01d21ad091da5943e61c26da86395be16ea7807
         .end((err, res) => {
           if (err) throw err
 
           // We're assuming here that the 'supertest' module doesn't support http2
           // If they ever add it this test might need to be changed!
 
-          res.httpVersion.should.eql('1.1')
+          res.res.httpVersion.should.eql('1.1')
 
           done()
         })
@@ -100,15 +95,8 @@ describe('SSL', () => {
     app.start(function (err) {
       if (err) return done(err)
 
-// <<<<<<< HEAD
-//       client
-//         .get('/')
-// =======
-      var httpClient = request('http://' + config.get('server.host') + ':9999')
-      httpClient
+      client
         .get('/hello')
-        .expect(301)
-// >>>>>>> f01d21ad091da5943e61c26da86395be16ea7807
         .end((err, res) => {
           if (err) throw err
           res.statusCode.should.eql(200)
@@ -126,17 +114,14 @@ describe('SSL', () => {
     app.start(function (err) {
       if (err) return done(err)
 
-// <<<<<<< HEAD
       var httpClient = request('http://' + config.get('server.host') + ':9999')
       httpClient
         .get('/')
         .expect(301)
-// =======
-//       secureClient
-//         .get('/hello')
-// >>>>>>> f01d21ad091da5943e61c26da86395be16ea7807
         .end((err, res) => {
           if (err) return done(err)
+          res.headers['location'].should.exist
+          ;(res.headers['location'].indexOf('https') > -1).should.eql(true)
           done()
         })
     })
