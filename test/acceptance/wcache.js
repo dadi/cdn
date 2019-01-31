@@ -41,7 +41,7 @@ describe('Cache', function () {
         bearerToken = token
         done()
       })
-    })    
+    })
   })
 
   afterEach(done => {
@@ -100,6 +100,18 @@ describe('Cache', function () {
           })
         }, 500)
       })
+    })
+
+    it('should return a vary accept encoding header', done => {
+      client
+        .get('/test.jpg')
+        .expect(200)
+        .end((err, res) => {
+          if (err) return done(err)
+
+          res.headers['vary'].should.eql('Accept-Encoding')
+          done()
+        })
     })
 
     describe('caching 404 responses', () => {
@@ -244,6 +256,10 @@ describe('Cache', function () {
       before(() => {
         config.set('multiDomain.enabled', true)
         config.loadDomainConfigs()
+
+        config.set('auth.clientId', 'test')
+        config.set('auth.secret', 'test')
+        config.set('auth.privateKey', 'test')
       })
 
       after(() => {
@@ -294,14 +310,14 @@ describe('Cache', function () {
                     res.headers['x-cache'].should.eql('HIT')
 
                     done()
-                  })                
+                  })
                 }, 150)
-              })              
+              })
             })
           }, 150)
         })
       })
-    })    
+    })
   })
 
   describe('JavaScript', () => {
@@ -428,14 +444,14 @@ describe('Cache', function () {
                     res.headers['x-cache'].should.eql('HIT')
 
                     done()
-                  })                
+                  })
                 }, 150)
-              })              
+              })
             })
           }, 150)
         })
       })
-    })    
+    })
   })
 
   describe('CSS', () => {
@@ -569,14 +585,14 @@ describe('Cache', function () {
                     res.headers['x-cache'].should.eql('HIT')
 
                     done()
-                  })                
+                  })
                 }, 150)
-              })              
+              })
             })
           }, 150)
         })
       })
-    })    
+    })
   })
 
   describe('Other assets', () => {
@@ -686,14 +702,14 @@ describe('Cache', function () {
                     res.headers['x-cache'].should.eql('HIT')
 
                     done()
-                  })                
+                  })
                 }, 150)
-              })              
+              })
             })
           }, 150)
         })
       })
-    })    
+    })
   })
 
   describe('TTL', () => {
@@ -724,7 +740,7 @@ describe('Cache', function () {
       }, 1500)
     })
 
-    it('when multi-domain is enabled, cached itemd should be kept for the period of time defined in each domain config', done => {
+    it('when multi-domain is enabled, cached items should be kept for the period of time defined in each domain config', done => {
       let mockCacheGet = sinon.spy(cache.Cache.prototype, 'getStream')
       let mockCacheSet = sinon.spy(cache.Cache.prototype, 'cacheFile')
 
@@ -792,7 +808,7 @@ describe('Frequency cache flush', () => {
           mockCacheDelete.args.every(callArgs => {
             return callArgs.length === 0
           }).should.eql(true)
-          mockCacheDelete.callCount.should.eql(5)
+          mockCacheDelete.callCount.should.be.above(4)
 
           mockCacheDelete.restore()
 
@@ -823,7 +839,7 @@ describe('Frequency cache flush', () => {
 
             return true
           }).should.eql(true)
-          mockCacheDelete.callCount.should.eql(5)
+          mockCacheDelete.callCount.should.be.above(4)
 
           mockCacheDelete.restore()
 

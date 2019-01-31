@@ -70,7 +70,8 @@ S3Storage.prototype.get = function () {
     (error) => {
       if (error.statusCode === 404) {
         return new Missing().get({
-          domain: this.domain
+          domain: this.domain,
+          isDirectory: path.parse(this.getFullUrl()).ext === ''
         }).then(stream => {
           this.notFound = true
           this.lastModified = new Date()

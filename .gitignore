@@ -1,4 +1,5 @@
 .DS_Store
+package-lock.json
 
 # Config
 config.development.json
@@ -24,3 +25,5 @@ public/**/*
 
 workspace/_exif/*
 workspace/_tmp/*
+.vscode/settings.json
+

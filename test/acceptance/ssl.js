@@ -46,8 +46,13 @@ describe('http2', () => {
     app.start(function (err) {
       if (err) return done(err)
 
-      secureClient
-        .get('/')
+// <<<<<<< HEAD
+//       secureClient
+//         .get('/')
+// =======
+      client
+        .get('/hello')
+// >>>>>>> f01d21ad091da5943e61c26da86395be16ea7807
         .end((err, res) => {
           if (err) throw err
 
@@ -55,7 +60,7 @@ describe('http2', () => {
           // If they ever add it this test might need to be changed!
 
           res.httpVersion.should.eql('1.1')
-          
+
           done()
         })
     })
@@ -95,8 +100,15 @@ describe('SSL', () => {
     app.start(function (err) {
       if (err) return done(err)
 
-      client
-        .get('/')
+// <<<<<<< HEAD
+//       client
+//         .get('/')
+// =======
+      var httpClient = request('http://' + config.get('server.host') + ':9999')
+      httpClient
+        .get('/hello')
+        .expect(301)
+// >>>>>>> f01d21ad091da5943e61c26da86395be16ea7807
         .end((err, res) => {
           if (err) throw err
           res.statusCode.should.eql(200)
@@ -114,10 +126,15 @@ describe('SSL', () => {
     app.start(function (err) {
       if (err) return done(err)
 
+// <<<<<<< HEAD
       var httpClient = request('http://' + config.get('server.host') + ':9999')
       httpClient
         .get('/')
         .expect(301)
+// =======
+//       secureClient
+//         .get('/hello')
+// >>>>>>> f01d21ad091da5943e61c26da86395be16ea7807
         .end((err, res) => {
           if (err) return done(err)
           done()
@@ -135,7 +152,7 @@ describe('SSL', () => {
       if (err) return done(err)
 
       secureClient
-        .get('/')
+        .get('/hello')
         .end((err, res) => {
           if (err) throw err
           res.statusCode.should.eql(200)
@@ -153,7 +170,7 @@ describe('SSL', () => {
     try {
       app.start(() => {})
     } catch (ex) {
-      ex.message.should.eql('error starting https server: incorrect ssl passphrase')
+      ex.message.should.startWith('error starting https server')
     }
 
     done()
@@ -168,7 +185,7 @@ describe('SSL', () => {
     try {
       app.start(() => {})
     } catch (ex) {
-      ex.message.should.eql('error starting https server: required ssl passphrase not provided')
+      ex.message.should.startWith('error starting https server')
     }
 
     done()

@@ -55,10 +55,50 @@ module.exports.imagesEqual = function ({base, headers, test}) {
         let distance = Jimp.distance(baselineImage, testImage)
 
         if (distance < 0.15 || diff.percent < 0.15) {
-          return true
+          return Promise.resolve(true)
         }
 
-        return false
+        return Promise.resolve(false)
+      })
+    }).catch(err => {
+      console.error(err)
+    })
+}
+
+module.exports.filesEqual = function ({base, headers, test}) {
+  let fullBasePath = path.resolve(base)
+
+  if (test.indexOf('/') === 0) {
+    test = `http://${config.get('server.host')}:${config.get('server.port')}${test}`
+  }
+
+  let getFileContents = fileName => {
+    return new Promise((resolve, reject) => {
+      fs.readFile(fileName, (err, data) => {
+        return err ? reject(err) : resolve(data.toString())
+      })
+    })
+  }
+
+  let getRemoteFileContents = url => {
+    return new Promise((resolve, reject) => {
+      require('http').get(url, (res) => {
+        let string = ''
+        res.on('data', (chunk) => {
+          string += chunk.toString()
+        })
+
+        res.on('end', () => {
+          return resolve(string)
+        })
+      })
+    })
+  }
+
+  return getFileContents(fullBasePath)
+    .then(baselineFile => {
+      return getRemoteFileContents(test).then(testFile => {
+        return testFile === baselineFile
       })
     }).catch(err => {
       console.error(err)
@@ -97,12 +137,20 @@ module.exports.clearCache = function () {
         if (fs.lstatSync(curPath).isDirectory()) { // recurse
           deleteFolderRecursive(curPath)
         } else { // delete file
-          fs.unlinkSync(path.resolve(curPath))
+          try {
+            fs.unlinkSync(path.resolve(curPath))
+          } catch (err) {
+
+          }
         }
       })
       fs.rmdirSync(filepath)
     } else {
-      fs.unlinkSync(filepath)
+      try {
+        fs.unlinkSync(filepath)
+      } catch (err) {
+
+      }
     }
   }
 
@@ -146,7 +194,7 @@ let proxyServer = http.createServer((req, res) => {
 
 module.exports.proxyStart = () => {
   return new Promise((resolve, reject) => {
-    proxyServer.listen(proxyPort, resolve)  
+    proxyServer.listen(proxyPort, resolve)
   })
 }
 

@@ -1,29 +1,36 @@
 const cloudfront = require('cloudfront')
 const compressible = require('compressible')
-const concat = require('concat-stream')
 const etag = require('etag')
 const fs = require('fs')
-const lengthStream = require('length-stream')
 const mime = require('mime')
 const path = require('path')
 const seek = require('./seek')
+const sha1 = require('sha1')
 const urlParser = require('url')
 const zlib = require('zlib')
 
 const config = require(path.join(__dirname, '/../../../config'))
+const DomainController = require(path.join(__dirname, '/domain'))
 const help = require(path.join(__dirname, '/../help'))
 const logger = require('@dadi/logger')
 const HandlerFactory = require(path.join(__dirname, '/../handlers/factory'))
 const RecipeController = require(path.join(__dirname, '/recipe'))
 const RouteController = require(path.join(__dirname, '/route'))
+const WorkQueue = require('./../workQueue')
 const workspace = require(path.join(__dirname, '/../models/workspace'))
 
 logger.init(config.get('logging'), config.get('logging.aws'), config.get('env'))
+
+let workQueue = new WorkQueue()
 
 const Controller = function (router) {
   router.use(logger.requestLogger)
 
   router.use(seek)
+
+  router.get('/hello', function (req, res, next) {
+    res.end('Welcome to DADI CDN')
+  })
 
   router.get('/robots.txt', (req, res) => {
     const robotsFile = config.get('robots')
@@ -41,75 +48,76 @@ const Controller = function (router) {
   })
 
   router.get(/(.+)/, (req, res) => {
-    const factory = new HandlerFactory(workspace.get())
+    let factory = new HandlerFactory(workspace.get())
+    let queueKey = sha1(req.__domain + req.url)
 
-    factory.create(req).then(handler => {
-      return handler.get().then(stream => {
-        this.addContentTypeHeader(res, handler)
-        this.addCacheControlHeader(res, handler, req.__domain)
-        this.addLastModifiedHeader(res, handler)
+    return workQueue.run(queueKey, () => {
+      return factory.create(req).then(handler => {
+        return handler.get().then(data => {
+          return { handler, data }
+        }).catch(err => {
+          err.__handler = handler
+          return Promise.reject(err)
+        })
+      })
+    }).then(({handler, data}) => {
+      this.addContentTypeHeader(res, handler)
+      this.addCacheControlHeader(res, handler, req.__domain)
+      this.addLastModifiedHeader(res, handler)
+      this.addVaryHeader(res, handler)
 
-        if (handler.storageHandler && handler.storageHandler.notFound) {
-          res.statusCode = config.get('notFound.statusCode', req.__domain) || 404
-        }
+      if (handler.storageHandler && handler.storageHandler.notFound) {
+        res.statusCode = config.get('notFound.statusCode', req.__domain) || 404
+      }
 
-        if (handler.storageHandler && handler.storageHandler.cleanUp) {
-          handler.storageHandler.cleanUp()
-        }
+      if (handler.storageHandler && handler.storageHandler.cleanUp) {
+        handler.storageHandler.cleanUp()
+      }
 
-        let contentLength = 0
+      let etagResult = etag(data)
+      res.setHeader('ETag', etagResult)
 
-        // receive the concatenated buffer and send the response
-        // unless the etag hasn't changed, then send 304 and end the response
-        function sendBuffer (buffer) {
-          res.setHeader('Content-Length', contentLength)
-          res.setHeader('ETag', etag(buffer))
+      if (this.shouldCompress(req, handler)) {
+        res.setHeader('Content-Encoding', 'gzip')
 
-          if (req.headers.range) {
-            res.sendSeekable(buffer)
-          } else if (req.headers['if-none-match'] === etag(buffer) && handler.getContentType() !== 'application/json') {
-            res.statusCode = 304
-            res.end()
-          } else {
-            let cacheHeader = (handler.getHeader && handler.getHeader('x-cache')) ||
-              (handler.isCached ? 'HIT' : 'MISS')
+        data = new Promise((resolve, reject) => {
+          zlib.gzip(data, (err, compressedData) => {
+            if (err) return reject(err)
 
-            res.setHeader('X-Cache', cacheHeader)
-            res.end(buffer)
-          }
-        }
+            res.setHeader('Content-Length', compressedData.byteLength)
+            resolve(compressedData)
+          })
+        })
+      } else {
+        res.setHeader(
+          'Content-Length',
+          Buffer.isBuffer(data) ? data.byteLength : data.length
+        )
+      }
 
-        function lengthListener (length) {
-          contentLength = length
-        }
-
-        let concatStream = concat(sendBuffer)
-
-        let shouldCompress =
-          req.headers['accept-encoding'] === 'gzip' &&
-          compressible(handler.getContentType())
-
-        if (
-          shouldCompress &&
-          config.get('headers.useGzipCompression', req.__domain) &&
-          handler.getContentType() !== 'application/json'
-        ) {
-          res.setHeader('Content-Encoding', 'gzip')
-
-          let gzipStream = stream.pipe(zlib.createGzip())
-          gzipStream = gzipStream.pipe(lengthStream(lengthListener))
-          gzipStream.pipe(concatStream)
+      return Promise.resolve(data).then(data => {
+        if (req.headers.range) {
+          res.sendSeekable(data)
+        } else if (req.headers['if-none-match'] === etagResult && handler.getContentType() !== 'application/json') {
+          res.statusCode = 304
+          res.end()
         } else {
-          stream.pipe(lengthStream(lengthListener)).pipe(concatStream)
+          let cacheHeader = (handler.getHeader && handler.getHeader('x-cache')) ||
+            (handler.isCached ? 'HIT' : 'MISS')
+
+          res.setHeader('X-Cache', cacheHeader)
+          res.end(data)
         }
-      }).catch(err => {
-        logger.error({err: err})
-
-        res.setHeader('X-Cache', handler.isCached ? 'HIT' : 'MISS')
-
-        help.sendBackJSON(err.statusCode || 400, err, res)
       })
     }).catch(err => {
+      logger.error({err: err})
+
+      if (err.__handler) {
+        res.setHeader('X-Cache', err.__handler.isCached ? 'HIT' : 'MISS')
+
+        delete err.__handler
+      }
+
       help.sendBackJSON(err.statusCode || 400, err, res)
     })
   })
@@ -130,7 +138,7 @@ const Controller = function (router) {
 
       pattern = pattern.concat([
         parsedUrl.pathname,
-        parsedUrl.search.slice(1)
+        parsedUrl.search ? parsedUrl.search.slice(1) : null
       ])
     }
 
@@ -171,6 +179,35 @@ const Controller = function (router) {
   router.post('/api/routes', function (req, res) {
     return RouteController.post(req, res)
   })
+
+  router.use('/_dadi/domains/:domain?', function (req, res, next) {
+    if (
+      !config.get('dadiNetwork.enableConfigurationAPI') ||
+      !config.get('multiDomain.enabled')
+    ) {
+      return next()
+    }
+
+    return DomainController[req.method.toLowerCase()](req, res)
+  })
+}
+
+/**
+ * Determines whether the response should be compressed
+ *
+ * @param {Object} req - the original HTTP request, containing headers
+ * @param {Object} handler - the current asset handler (image, CSS, JS)
+ * @returns {Boolean} - whether to compress the data before sending the response
+ */
+Controller.prototype.shouldCompress = function (req, handler) {
+  let acceptHeader = req.headers['accept-encoding'] || ''
+  let contentType = handler.getContentType()
+  let useCompression = config.get('headers.useGzipCompression', req.__domain)
+
+  return useCompression &&
+    contentType !== 'application/json' &&
+    acceptHeader.split(',').includes('gzip') &&
+    compressible(contentType)
 }
 
 Controller.prototype.addContentTypeHeader = function (res, handler) {
@@ -186,6 +223,12 @@ Controller.prototype.addLastModifiedHeader = function (res, handler) {
     var lastMod = handler.getLastModified()
     if (lastMod) res.setHeader('Last-Modified', lastMod)
   }
+}
+
+Controller.prototype.addVaryHeader = function (res, handler) {
+  if (!handler) return
+
+  res.setHeader('Vary', 'Accept-Encoding')
 }
 
 Controller.prototype.addCacheControlHeader = function (res, handler, domain) {
@@ -206,7 +249,7 @@ Controller.prototype.addCacheControlHeader = function (res, handler, domain) {
     let key = Object.keys(obj)[0]
     let value = obj[key]
 
-    if (handler.getFilename && (mime.lookup(handler.getFilename()) === key)) {
+    if (handler.getFilename && (mime.getType(handler.getFilename()) === key)) {
       setHeader(value)
     }
   })

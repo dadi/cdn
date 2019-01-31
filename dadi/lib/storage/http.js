@@ -3,8 +3,8 @@
 const config = require('./../../../config')
 const http = require('http')
 const https = require('https')
-const PassThrough = require('stream').PassThrough
 const path = require('path')
+const streamifier = require('streamifier')
 const url = require('url')
 const urljoin = require('url-join')
 const Missing = require(path.join(__dirname, '/missing'))
@@ -12,6 +12,7 @@ const Missing = require(path.join(__dirname, '/missing'))
 const HTTPStorage = function ({assetType = 'assets', domain, url}) {
   let isExternalURL = url.indexOf('http:') === 0 ||
     url.indexOf('https:') === 0
+
   let remoteAddress = config.get(`${assetType}.remote.path`, domain)
 
   if (!isExternalURL) {
@@ -38,8 +39,6 @@ HTTPStorage.prototype.get = function ({
   redirects = 0,
   requestUrl = this.getFullUrl()
 } = {}) {
-  let outputStream = PassThrough()
-
   return new Promise((resolve, reject) => {
     let parsedUrl = url.parse(requestUrl)
     let requestFn = parsedUrl.protocol === 'https:'
@@ -55,73 +54,92 @@ HTTPStorage.prototype.get = function ({
         'User-Agent': 'DADI CDN'
       }
     }, res => {
-      if (res.statusCode === 200) {
-        res.pipe(outputStream)
+      let buffers = []
 
-        return resolve(outputStream)
-      }
+      res.on('data', chunk => {
+        buffers.push(chunk)
+      })
 
-      let statusCode = res.statusCode
+      res.on('end', () => {
+        let statusCode = res.statusCode
 
-      if (
-        [301, 302, 307].includes(res.statusCode) &&
-        typeof res.headers.location === 'string'
-      ) {
-        let parsedRedirectUrl = url.parse(res.headers.location)
-
-        parsedRedirectUrl.host = parsedRedirectUrl.host || parsedUrl.host
-        parsedRedirectUrl.port = parsedRedirectUrl.port || parsedUrl.port
-        parsedRedirectUrl.protocol = parsedRedirectUrl.protocol || parsedUrl.protocol
-
-        if (redirects < config.get('http.followRedirects', this.domain)) {
-          return resolve(
-            this.get({
-              redirects: redirects + 1,
-              requestUrl: url.format(parsedRedirectUrl)
-            })
-          )
+        // Successful response, return the data
+        if (statusCode === 200) {
+          return resolve(streamifier.createReadStream(Buffer.concat(buffers)))
         }
 
-        // We've hit the maximum number of redirects allowed, so we'll
-        // treat this as a 404.
-        statusCode = 404
-      }
+        // Determine what to do with the response when not successful. If it's
+        // a redirect status code, we continue trying to get it until we reach the
+        // configured redirect limit.
+        if (
+          [301, 302, 307].includes(statusCode) &&
+          typeof res.headers.location === 'string'
+        ) {
+          let parsedRedirectUrl = url.parse(res.headers.location)
 
+          parsedRedirectUrl.host = parsedRedirectUrl.host || parsedUrl.host
+          parsedRedirectUrl.port = parsedRedirectUrl.port || parsedUrl.port
+          parsedRedirectUrl.protocol = parsedRedirectUrl.protocol || parsedUrl.protocol
+
+          if (redirects < config.get('http.followRedirects', this.domain)) {
+            return resolve(
+              this.get({
+                redirects: redirects + 1,
+                requestUrl: url.format(parsedRedirectUrl)
+              })
+            )
+          }
+
+          // We've hit the maximum number of redirects allowed, so we'll
+          // treat this as a 404.
+          statusCode = 404
+        }
+
+        // It's not a redirect, determine what to return
+        let httpError
+
+        switch (statusCode) {
+          case 404:
+            httpError = new Error(`Not Found: ${this.getFullUrl()}`)
+
+            break
+          case 403:
+            httpError = new Error(`Forbidden: ${this.getFullUrl()}`)
+
+            break
+          default:
+            httpError = new Error(`Remote server responded with error code ${statusCode} for URL: ${this.getFullUrl()}`)
+        }
+
+        httpError.statusCode = statusCode
+
+        if (statusCode === 404) {
+          new Missing().get({
+            domain: this.domain,
+            isDirectory: path.parse(this.getFullUrl()).ext === ''
+          }).then(stream => {
+            this.notFound = true
+            this.lastModified = new Date()
+            resolve(stream)
+          }).catch(() => {
+            reject(httpError)
+          })
+        } else {
+          reject(httpError)
+        }
+      })
+    }).on('error', (err) => {
       let httpError
 
-      switch (statusCode) {
-        case 404:
-          httpError = new Error(`Not Found: ${this.getFullUrl()}`)
-
-          break
-
-        case 403:
-          httpError = new Error(`Forbidden: ${this.getFullUrl()}`)
-
-          break
-
-        default:
-          httpError = new Error(`Remote server responded with error code ${statusCode} for URL: ${this.getFullUrl()}`)
-
-          break
-      }
-
-      httpError.statusCode = statusCode
-
-      if (statusCode === 404) {
-        new Missing().get({
-          domain: this.domain
-        }).then(stream => {
-          this.notFound = true
-          this.lastModified = new Date()
-
-          resolve(stream)
-        }).catch(() => {
-          reject(httpError)
-        })
+      if (err.code && err.code === 'ENOTFOUND') {
+        httpError = new Error(`Remote server not found for URL: ${this.getFullUrl()} ${err.message}`)
       } else {
-        reject(httpError)
+        httpError = new Error(`ERROR: ${err.message} CODE: ${err.code}`)
       }
+
+      httpError.statusCode = 500
+
+      reject(httpError)
     })
   })
 }

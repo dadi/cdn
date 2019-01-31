@@ -17,7 +17,8 @@ let cdnUrl = 'http://' + config.get('server.host') + ':' + config.get('server.po
 let testConfigString
 
 describe('Controller', function () {
-  this.timeout(6000)
+  this.timeout(10000)
+
   let tokenRoute = config.get('auth.tokenUrl')
 
   before(done => {
@@ -52,7 +53,7 @@ describe('Controller', function () {
         client
           .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
           .expect(200)
-          .end(function (err, res) {
+          .end((err, res) => {
             imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
             var options = method.returnValues[0]
             options.quality.should.eql(50)
@@ -71,7 +72,7 @@ describe('Controller', function () {
         client
           .get('/jpg/50/0/0/801/478/aspectfit/North/0/0/0/0/0/test.jpg')
           .expect(200)
-          .end(function (err, res) {
+          .end((err, res) => {
             imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
             var options = method.returnValues[0]
 
@@ -92,7 +93,7 @@ describe('Controller', function () {
         client
           .get('/jpg/50/0/0/801/478/0/0/0//0/North/0/0/0/0/0/test.jpg')
           .expect(200)
-          .end(function (err, res) {
+          .end((err, res) => {
             imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
             var options = method.returnValues[0]
 
@@ -113,7 +114,7 @@ describe('Controller', function () {
       var client = request(cdnUrl)
       client
         .get('/test.jpg?quality=50&width=801&height=478&gravity=North&resizeStyle=aspectfit&devicePixelRatio=2')
-        .end(function (err, res) {
+        .end((err, res) => {
           imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
 
           method.called.should.eql(true)
@@ -134,7 +135,7 @@ describe('Controller', function () {
       var client = request(cdnUrl)
       client
         .get('/test.jpg?q=50&w=801&h=478&g=North&resize=aspectfit&dpr=2')
-        .end(function (err, res) {
+        .end((err, res) => {
           imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
 
           method.called.should.eql(true)
@@ -156,7 +157,7 @@ describe('Controller', function () {
       var client = request(cdnUrl)
       client
         .get('/test.jpg?q=50&amp;w=801&amp;h=478&amp;g=North&amp;resize=aspectfit&amp;dpr=2')
-        .end(function (err, res) {
+        .end((err, res) => {
           imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
 
           method.called.should.eql(true)
@@ -178,7 +179,7 @@ describe('Controller', function () {
       var client = request(cdnUrl)
       client
         .get('/test.jpg?format=png&quality=50&width=801&height=478&gravity=North&resizeStyle=aspectfit&devicePixelRatio=2')
-        .end(function (err, res) {
+        .end((err, res) => {
           imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
 
           method.called.should.eql(true)
@@ -206,7 +207,7 @@ describe('Controller', function () {
       let client = request(cdnUrl)
       client
         .get('/https://cdn.somedomain.tech/images/mock/logo.png?quality=50&width=80&height=478&gravity=North&resizeStyle=aspectfit&devicePixelRatio=2')
-        .end(function (err, res) {
+        .end((err, res) => {
           imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
 
           method.called.should.eql(true)
@@ -243,7 +244,7 @@ describe('Controller', function () {
       var client = request(cdnUrl)
       client
         .get('/https://cdn.somedomain.tech/images/mock/logo.png?height=100&width=500?quality=50&width=80&height=478&gravity=North&resizeStyle=aspectfit&devicePixelRatio=2')
-        .end(function (err, res) {
+        .end((err, res) => {
           imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
 
           method.called.should.eql(true)
@@ -278,7 +279,8 @@ describe('Controller', function () {
 
       request(cdnUrl)
         .get('/test.jpg')
-        .expect(200, (err, res) => {
+        .expect(200)
+        .end((err, res) => {
           res.headers['cache-control'].should.eql(cacheControl.default)
 
           request(cdnUrl)
@@ -367,6 +369,198 @@ describe('Controller', function () {
       .get('/fonts/next-level/test.ttf')
       .expect('Content-Type', 'font/ttf')
       .expect(200, done)
+    })
+
+    describe('gzip encoding', () => {
+      it('should return gzipped content when headers.useGzipCompression is true', done => {
+        config.set('headers.useGzipCompression', false)
+
+        request(cdnUrl)
+          .get('/css/0/test.css')
+          .end((err, res) => {
+            res.statusCode.should.eql(200)
+            should.not.exist(res.headers['content-encoding'])
+
+            config.set('headers.useGzipCompression', true)
+
+            request(cdnUrl)
+              .get('/css/0/test.css')
+              .set('Accept-Encoding', 'gzip, deflate')
+              .end((err, res) => {
+                res.statusCode.should.eql(200)
+                res.headers['content-encoding'].should.eql('gzip')
+
+                config.set('headers.useGzipCompression', configBackup.headers.useGzipCompression)
+
+                done()
+              })
+          })
+      })
+
+      it('should use the value of headers.useGzipCompression defined at domain level', done => {
+        config.set('multiDomain.enabled', true)
+        config.loadDomainConfigs()
+
+        config.set('headers.useGzipCompression', true)
+        config.set('headers.useGzipCompression', false, 'localhost')
+        config.set('headers.useGzipCompression', true, 'testdomain.com')
+
+        request(cdnUrl)
+          .get('/css/0/test.css?cache=false')
+          .set('Host', 'localhost')
+          .end((err, res) => {
+            res.statusCode.should.eql(200)
+            should.not.exist(res.headers['content-encoding'])
+
+            config.set('headers.useGzipCompression', true)
+
+            request(cdnUrl)
+              .get('/css/0/test.css?cache=false')
+              .set('Host', 'testdomain.com')
+              .end((err, res) => {
+                res.statusCode.should.eql(200)
+                res.headers['content-encoding'].should.eql('gzip')
+
+                config.set('headers.useGzipCompression', configBackup.headers.useGzipCompression)
+                config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
+
+                done()
+              })
+          })
+      })
+    })
+  })
+
+  describe('HTML passthrough', function () {
+    let server
+    let remoteUrl = 'http://localhost:8888'
+
+    before(() => {
+      config.set('images.directory.enabled', false)
+      config.set('images.remote.enabled', true)
+      config.set('images.remote.path', remoteUrl)
+      config.set('images.s3.enabled', false)
+
+      config.set('assets.directory.enabled', false)
+      config.set('assets.s3.enabled', false)
+
+      config.set('assets.remote.enabled', true)
+      config.set('assets.remote.path', remoteUrl)
+
+      config.set('caching.directory.enabled', true)
+
+      server = require('http').createServer((req, res) => {
+        switch (req.url) {
+          case '/':
+            fs.readFile(path.join(__dirname, '../assets/test.html'), 'utf8', (_err, data) => {
+              res.statusCode = 200
+              res.setHeader('Content-Type', 'text/html')
+              res.end(data)
+            })
+
+            break
+
+          case '/test.jpg':
+            fs.readFile(path.join(__dirname, '../images/test.jpg'), null, (_err, data) => {
+              res.statusCode = 200
+              res.setHeader('Content-Type', 'image/jpeg')
+              res.end(data)
+            })
+
+            break
+
+          default:
+            res.statusCode = 404
+            res.end('Page not found.')
+
+            break
+        }
+      })
+
+      server.listen(8888)
+    })
+
+    after(done => {
+      config.set('images.directory.enabled', configBackup.images.directory.enabled)
+      config.set('images.remote.enabled', configBackup.images.remote.enabled)
+      config.set('images.remote.path', configBackup.images.remote.path)
+      config.set('images.remote.allowFullURL', configBackup.images.remote.allowFullURL)
+      config.set('images.s3.enabled', configBackup.images.s3.enabled)
+
+      config.set('assets.directory.enabled', configBackup.assets.directory.enabled)
+      config.set('assets.remote.enabled', configBackup.assets.remote.enabled)
+      config.set('assets.remote.path', configBackup.assets.remote.path)
+      config.set('assets.remote.allowFullURL', configBackup.assets.remote.allowFullURL)
+      config.set('assets.s3.enabled', configBackup.assets.s3.enabled)
+
+      config.set('caching.directory.enabled', configBackup.caching.directory.enabled)
+
+      server = null
+      done()
+    })
+
+    it('should pass an html request through from the configured remote origin', function (done) {
+      let client = request(cdnUrl)
+
+      client
+      .get('/')
+      .expect(200)
+      .end((_err, res) => {
+        res.headers['content-type'].should.exist
+        res.headers['content-type'].should.eql('text/html')
+
+        res.headers['x-cache'].should.exist
+        res.headers['x-cache'].should.eql('MISS')
+
+        done()
+      })
+    })
+
+    it('should cache and return an html request from the configured remote origin', function (done) {
+      let client = request(cdnUrl)
+
+      client
+      .get('/')
+      .expect(200)
+      .end((_err, res) => {
+        res.headers['content-type'].should.exist
+        res.headers['content-type'].should.eql('text/html')
+
+        res.headers['x-cache'].should.exist
+        res.headers['x-cache'].should.eql('MISS')
+
+        client
+        .get('/')
+        .expect(200)
+        .end((_err, res) => {
+          res.headers['content-type'].should.exist
+          res.headers['content-type'].should.eql('text/html')
+
+          res.headers['x-cache'].should.exist
+          res.headers['x-cache'].should.eql('HIT')
+
+          done()
+        })
+      })
+    })
+
+    it('should pass an image request through from the configured remote origin', function (done) {
+      let client = request(cdnUrl)
+
+      client
+      .get('/test.jpg')
+      .expect(200)
+      .end((_err, res) => {
+        res.body.should.be.an.instanceOf(Buffer)
+
+        res.headers['content-type'].should.exist
+        res.headers['content-type'].should.eql('image/jpeg')
+
+        res.headers['x-cache'].should.exist
+        res.headers['x-cache'].should.eql('MISS')
+
+        done()
+      })
     })
   })
 
@@ -566,7 +760,7 @@ describe('Controller', function () {
         var client = request(cdnUrl)
         client
           .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
-          .end(function (err, res) {
+          .end((err, res) => {
             res.statusCode.should.eql(200)
             done()
           })
@@ -583,7 +777,7 @@ describe('Controller', function () {
         var client = request(cdnUrl)
         client
           .get('/jpg/50/0/0/801/478/aspectfit/North/0/0/0/0/0/next-level/test.jpg')
-          .end(function (err, res) {
+          .end((err, res) => {
             res.statusCode.should.eql(200)
             done()
           })
@@ -600,7 +794,7 @@ describe('Controller', function () {
         var client = request(cdnUrl)
         client
           .get('/jpg/50/0/0/801/478/0/0/0//0/North/0/0/0/0/0/test.jpg')
-          .end(function (err, res) {
+          .end((err, res) => {
             res.statusCode.should.eql(200)
             done()
           })
@@ -617,7 +811,7 @@ describe('Controller', function () {
         var client = request(cdnUrl)
         client
           .get('/jpg/50/0/0/801/478/0/0/0//0/North/0/0/0/0/0/next-level/test.jpg')
-          .end(function (err, res) {
+          .end((err, res) => {
             res.statusCode.should.eql(200)
             done()
           })
@@ -634,7 +828,7 @@ describe('Controller', function () {
         var client = request(cdnUrl)
         client
           .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test%20copy.jpg')
-          .end(function (err, res) {
+          .end((err, res) => {
             res.statusCode.should.eql(200)
             done()
           })
@@ -651,7 +845,7 @@ describe('Controller', function () {
         var client = request(cdnUrl)
         client
           .get('/jpg/50/0/0/700/700/0/0/0/1/aspectfit/North/0/0/0/0/0/768px-Rotating_earth_%28huge%29.gif')
-          .end(function (err, res) {
+          .end((err, res) => {
             res.statusCode.should.eql(200)
             done()
           })
@@ -676,7 +870,7 @@ describe('Controller', function () {
         var client = request(cdnUrl)
         client
           .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/testxxx.jpg')
-          .end(function (err, res) {
+          .end((err, res) => {
             res.body.should.be.instanceof(Buffer)
             res.headers['content-type'].should.eql('image/png')
             res.statusCode.should.eql(404)
@@ -704,7 +898,7 @@ describe('Controller', function () {
         var client = request(cdnUrl)
         client
           .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/testxxx.jpg')
-          .end(function (err, res) {
+          .end((err, res) => {
             res.statusCode.should.eql(410)
 
             newTestConfig.notFound.statusCode = 404
@@ -726,13 +920,35 @@ describe('Controller', function () {
 
         var client = request(cdnUrl)
         client
-          .get('/json/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
-          .end(function (err, res) {
+          .get('/test.jpg?format=json')
+          .end((err, res) => {
             res.statusCode.should.eql(200)
             var info = res.body
 
             info.fileName.should.eql('test.jpg')
             info.format.should.eql('jpg')
+            done()
+          })
+      })
+
+      it('should include EXIF data when format = JSON', function (done) {
+        var newTestConfig = JSON.parse(testConfigString)
+        newTestConfig.images.directory.enabled = true
+        newTestConfig.images.directory.path = './test/images'
+        fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+        config.loadFile(config.configPath())
+
+        var client = request(cdnUrl)
+        client
+          .get('/dm.jpg?format=json')
+          .end((err, res) => {
+            res.statusCode.should.eql(200)
+
+            res.body.density.should.be.Object
+            res.body.density.width.should.be.Number
+            res.body.density.height.should.be.Number
+            res.body.density.unit.should.be.String
             done()
           })
       })
@@ -755,7 +971,7 @@ describe('Controller', function () {
         var client = request(cdnUrl)
         client
           .get('/jpg/50/0/0/801/478/0/0/0/1/aspectfit/North/0/0/0/0/0/test.jpg')
-          .end(function (err, res) {
+          .end((err, res) => {
             res.statusCode.should.eql(200)
 
             res.headers['x-cache'].should.exist
@@ -764,7 +980,7 @@ describe('Controller', function () {
             setTimeout(function () {
               client
                 .get('/jpg/50/0/0/801/478/0/0/0/1/aspectfit/North/0/0/0/0/0/test.jpg')
-                .end(function (err, res) {
+                .end((err, res) => {
                   res.statusCode.should.eql(200)
 
                   res.headers['x-cache'].should.exist
@@ -774,6 +990,42 @@ describe('Controller', function () {
             }, 1000)
           })
       })
+    })
+
+    it('should return lastModified header for cached items using disk storage', function (done) {
+      this.timeout(4000)
+
+      help.clearCache()
+
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.caching.directory.enabled = true
+      newTestConfig.images.directory.enabled = true
+      newTestConfig.images.directory.path = './test/images'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+      config.loadFile(config.configPath())
+
+      cache.reset()
+
+      var client = request(cdnUrl)
+      client
+        .get('/jpg/50/0/0/801/478/0/0/0/1/aspectfit/North/0/0/0/0/0/test.jpg')
+        .end((err, res) => {
+          res.statusCode.should.eql(200)
+
+          res.headers['last-modified'].should.exist
+
+          setTimeout(function () {
+            client
+              .get('/jpg/50/0/0/801/478/0/0/0/1/aspectfit/North/0/0/0/0/0/test.jpg')
+              .end((err, res) => {
+                res.statusCode.should.eql(200)
+
+                res.headers['last-modified'].should.exist
+                done()
+              })
+          }, 1000)
+        })
     })
 
     it('should handle deep nested test image', function (done) {
@@ -787,7 +1039,7 @@ describe('Controller', function () {
       var client = request(cdnUrl)
       client
         .get('/next-level/test.jpg')
-        .end(function (err, res) {
+        .end((err, res) => {
           res.statusCode.should.eql(200)
           done()
         })
@@ -804,7 +1056,7 @@ describe('Controller', function () {
       var client = request(cdnUrl)
       client
         .get('/shane%20long%20new%20contract.JPG?quality=100')
-        .end(function (err, res) {
+        .end((err, res) => {
           res.statusCode.should.eql(200)
           done()
         })
@@ -821,13 +1073,37 @@ describe('Controller', function () {
       var client = request(cdnUrl)
       client
         .get('/test.jpg?quality=100&width=180&height=180&resizeStyle=entropy&format=json')
-        .end(function (err, res) {
+        .end((err, res) => {
           res.statusCode.should.eql(200)
 
           res.body.entropyCrop.should.have.property('x1').and.be.type('number')
           res.body.entropyCrop.should.have.property('x2').and.be.type('number')
           res.body.entropyCrop.should.have.property('y1').and.be.type('number')
           res.body.entropyCrop.should.have.property('y2').and.be.type('number')
+
+          done()
+        })
+    })
+
+    it('should return pre and post image details', function (done) {
+      var newTestConfig = JSON.parse(testConfigString)
+      newTestConfig.images.directory.enabled = true
+      newTestConfig.images.directory.path = './test/images'
+      fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+
+      config.loadFile(config.configPath())
+
+      var client = request(cdnUrl)
+      client
+        .get('/test.jpg?quality=100&width=180&height=180&resizeStyle=entropy&format=json')
+        .end((err, res) => {
+          res.statusCode.should.eql(200)
+
+          let fileSizePre = res.body.fileSizePre
+          res.body.fileSizePost.should.be.below(fileSizePre)
+
+          let primaryColorPre = res.body.primaryColorPre
+          res.body.primaryColorPost.should.not.eql(primaryColorPre)
 
           done()
         })
@@ -844,7 +1120,7 @@ describe('Controller', function () {
       var client = request(cdnUrl)
       client
         .get('/test.jpg?resize=crop&crop=0,0,3000,3000')
-        .end(function (err, res) {
+        .end((err, res) => {
           res.statusCode.should.eql(400)
           res.body.message.should.exist
 
@@ -852,61 +1128,29 @@ describe('Controller', function () {
         })
     })
 
-    describe.skip('gzip encoding', () => {
-      it('should return gzipped content when headers.useGzipCompression is true', done => {
-        config.set('headers.useGzipCompression', false)
-
+    describe('comma-separated conditional formats', () => {
+      it('should return an image as WebP if format is `webp,jpg` and the requesting browser indicates support for WebP', done => {
         request(cdnUrl)
-          .get('/test.jpg')
-          .end((err, res) => {
-            res.statusCode.should.eql(200)
-            should.not.exist(res.headers['content-encoding'])
+        .get('/test.jpg?format=webp,jpg')
+        .set('accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8')
+        .end((err, res) => {
+          res.statusCode.should.eql(200)
+          res.headers['content-type'].should.eql('image/webp')
 
-            config.set('headers.useGzipCompression', true)
-
-            request(cdnUrl)
-              .get('/test.jpg')
-              .end((err, res) => {
-                res.statusCode.should.eql(200)
-                res.headers['content-encoding'].should.eql('gzip')
-
-                config.set('headers.useGzipCompression', configBackup.headers.useGzipCompression)
-
-                done()
-              })
-          })
+          done()
+        })
       })
 
-      it('should use the value of headers.useGzipCompression defined at domain level', done => {
-        config.set('multiDomain.enabled', true)
-        config.loadDomainConfigs()
-
-        config.set('headers.useGzipCompression', true)
-        config.set('headers.useGzipCompression', false, 'localhost')
-        config.set('headers.useGzipCompression', true, 'testdomain.com')
-
+      it('should return an image as JPEG if format is `webp,jpg` and the requesting browser does not indicate support for WebP', done => {
         request(cdnUrl)
-          .get('/test.jpg')
-          .set('Host', 'localhost')
-          .end((err, res) => {
-            res.statusCode.should.eql(200)
-            should.not.exist(res.headers['content-encoding'])
+        .get('/test.jpg?format=webp,jpg')
+        .set('accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')
+        .end((err, res) => {
+          res.statusCode.should.eql(200)
+          res.headers['content-type'].should.eql('image/jpeg')
 
-            config.set('headers.useGzipCompression', true)
-
-            request(cdnUrl)
-              .get('/test.jpg')
-              .set('Host', 'testdomain.com')
-              .end((err, res) => {
-                res.statusCode.should.eql(200)
-                res.headers['content-encoding'].should.eql('gzip')
-
-                config.set('headers.useGzipCompression', configBackup.headers.useGzipCompression)
-                config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
-
-                done()
-              })
-          })
+          done()
+        })
       })
     })
 
@@ -922,6 +1166,34 @@ describe('Controller', function () {
 
             done()
           })
+      })
+    })
+
+    describe('default files', () => {
+      it('should return a configured default file if no path is specified', function (done) {
+        config.set('defaultFiles', ['test.css'])
+
+        request(cdnUrl)
+        .get('/')
+        .expect(200)
+        .end((err, res) => {
+          res.headers['content-type'].should.eql('text/css')
+
+          config.set('defaultFiles', [])
+          done()
+        })
+      })
+
+      it('should return 404 if no default file is found', function (done) {
+        config.set('defaultFiles', ['index.html'])
+
+        request(cdnUrl)
+        .get('/')
+        .expect(404)
+        .end((err, res) => {
+          config.set('defaultFiles', [])
+          done()
+        })
       })
     })
 
@@ -950,6 +1222,25 @@ describe('Controller', function () {
             res.body.should.be.instanceof(Buffer)
             res.headers['content-type'].should.eql('image/png')
             res.statusCode.should.eql(410)
+
+            config.set('notFound.images.enabled', configBackup.notFound.images.enabled)
+            config.set('notFound.statusCode', configBackup.notFound.statusCode)
+
+            done()
+          })
+      })
+
+      it('should return a json response when a directory is requested', function (done) {
+        config.set('notFound.images.enabled', true)
+        config.set('notFound.images.path', './test/images/missing.png')
+        config.set('notFound.statusCode', 410)
+
+        let client = request(cdnUrl)
+          .get('/path/to/missing/')
+          .expect(410)
+          .end((err, res) => {
+            res.body.message.includes('File not found:').should.eql(true)
+            res.statusCode.should.eql(404)
 
             config.set('notFound.images.enabled', configBackup.notFound.images.enabled)
             config.set('notFound.statusCode', configBackup.notFound.statusCode)
@@ -1353,7 +1644,7 @@ describe('Controller', function () {
               res.headers['content-type'].should.eql('image/png')
               res.statusCode.should.eql(410)
 
-              config.set('notFound.images.enabled', configBackup.notFound.statusCode)
+              config.set('notFound.images.enabled', configBackup.notFound.images.enabled)
               config.set('notFound.statusCode', configBackup.notFound.statusCode)
 
               done()
@@ -1544,6 +1835,54 @@ describe('Controller', function () {
           })
       })
 
+      it('should return lastModified header for cached items using S3 storage', function (done) {
+        this.timeout(4000)
+
+        help.clearCache()
+        cache.reset()
+
+        let stream = fs.createReadStream('./test/images/missing.png')
+        let buffers = []
+        stream
+          .on('data', function (data) { buffers.push(data) })
+          .on('end', function () {
+            let buffer = Buffer.concat(buffers)
+
+            AWS.mock('S3', 'getObject', Promise.resolve({
+              LastModified: new Date().toLocaleString(),
+              Body: buffer
+            }))
+
+            config.set('images.s3.bucketName', 'test-bucket')
+            config.set('images.s3.accessKey', 'xxx')
+            config.set('images.s3.secretKey', 'xyz')
+            config.set('notFound.statusCode', 404)
+            config.set('notFound.images.enabled', true)
+            config.set('notFound.images.path', './test/images/missing.png')
+
+            let client = request(cdnUrl)
+            .get('/images/mock/logo.png')
+            .end((err, res) => {
+              res.body.should.be.instanceof(Buffer)
+              res.headers['content-type'].should.eql('image/png')
+              res.statusCode.should.eql(200)
+
+              setTimeout(function () {
+                request(cdnUrl)
+                  .get('/images/mock/logo.png')
+                  .end((err, res) => {
+                    AWS.restore()
+
+                    res.statusCode.should.eql(200)
+
+                    res.headers['last-modified'].should.exist
+                    done()
+                  })
+              }, 1000)
+            })
+          })
+      })
+
       it('should return a placeholder image when the S3 image returns 404', function (done) {
         // return 404 from the S3 request
         AWS.mock('S3', 'getObject', Promise.reject({ statusCode: 404 }))
@@ -1555,7 +1894,7 @@ describe('Controller', function () {
         config.set('notFound.images.enabled', true)
         config.set('notFound.images.path', './test/images/missing.png')
 
-        let client = request(cdnUrl)
+        request(cdnUrl)
         .get('/images/mock/logo.png')
         .expect(404)
         .end((err, res) => {
@@ -1569,6 +1908,30 @@ describe('Controller', function () {
         })
       })
 
+      it('should return a json response when a directory is requested', function (done) {
+        // return 404 from the S3 request
+        AWS.mock('S3', 'getObject', Promise.reject({ statusCode: 404 }))
+
+        config.set('images.s3.bucketName', 'test-bucket')
+        config.set('images.s3.accessKey', 'xxx')
+        config.set('images.s3.secretKey', 'xyz')
+        config.set('notFound.statusCode', 404)
+        config.set('notFound.images.enabled', true)
+        config.set('notFound.images.path', './test/images/')
+
+        request(cdnUrl)
+          .get('/images/mock/')
+          .expect(404)
+          .end((err, res) => {
+            AWS.restore()
+
+            res.body.message.includes('File not found:').should.eql(true)
+            res.statusCode.should.eql(404)
+
+            done()
+          })
+      })
+
       it('should return configured statusCode if image is not found', function (done) {
         // return 404 from the S3 request
         AWS.mock('S3', 'getObject', Promise.reject({ statusCode: 404 }))
@@ -1580,7 +1943,7 @@ describe('Controller', function () {
         config.set('notFound.images.enabled', true)
         config.set('notFound.images.path', './test/images/missing.png')
 
-        let client = request(cdnUrl)
+        request(cdnUrl)
         .get('/images/mock/logo.png')
         .expect(410)
         .end((err, res) => {
@@ -1599,11 +1962,11 @@ describe('Controller', function () {
     })
 
     describe('Other', function () {
-      it('should respond to the root', function (done) {
+      it('should respond to the hello endpoint', function (done) {
         var client = request(cdnUrl)
         client
-          .get('/')
-          .end(function (err, res) {
+          .get('/hello')
+          .end((err, res) => {
             res.statusCode.should.eql(200)
             res.text.should.eql('Welcome to DADI CDN')
             done()
@@ -1614,7 +1977,7 @@ describe('Controller', function () {
         var client = request(cdnUrl)
         client
           .get('/robots.txt')
-          .end(function (err, res) {
+          .end((err, res) => {
             res.statusCode.should.eql(404)
             res.text.should.eql('File not found')
             done()
@@ -1631,7 +1994,7 @@ describe('Controller', function () {
         var client = request(cdnUrl)
         client
           .get('/robots.txt')
-          .end(function (err, res) {
+          .end((err, res) => {
             res.statusCode.should.eql(200)
             res.text.should.eql('User-Agent: *\nDisallow: /')
             done()
@@ -1649,7 +2012,7 @@ describe('Controller', function () {
         var client = request(cdnUrl)
         client
         .get('/favicon.ico')
-        .end(function (err, res) {
+        .end((err, res) => {
           res.statusCode.should.eql(204)
           done()
         })
@@ -1666,7 +2029,7 @@ describe('Controller', function () {
         var client = request(cdnUrl)
         client
         .get('/something-else.zip')
-        .end(function (err, res) {
+        .end((err, res) => {
           res.statusCode.should.eql(404)
           done()
         })

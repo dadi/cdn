@@ -1,12 +1,12 @@
+const Cache = require('./../cache')
 const compressor = require('node-minify')
+const config = require('./../../../config')
 const fs = require('fs')
+const help = require('./../help')
 const mkdirp = require('mkdirp')
 const path = require('path')
+const StorageFactory = require('./../storage/factory')
 const url = require('url')
-
-const Cache = require(path.join(__dirname, '/../cache'))
-const config = require(path.join(__dirname, '/../../../config'))
-const StorageFactory = require(path.join(__dirname, '/../storage/factory'))
 
 /**
  * Creates a new CSSHandler instance.
@@ -23,6 +23,8 @@ const CSSHandler = function (format, req, {
     this.legacyURLOverrides.url || req.url,
     true
   )
+
+  this.isExternalUrl = this.url.pathname.indexOf('http://') > 0 || this.url.pathname.indexOf('https://') > 0
 
   this.isCompressed = Boolean(
     this.options.compress ||
@@ -63,8 +65,24 @@ CSSHandler.prototype.get = function () {
     this.storageHandler = this.storageFactory.create(
       'asset',
       this.url.pathname.slice(1),
-      false
+      {domain: this.req.__domain}
     )
+
+    // Aborting the request if full remote URL is required and not enabled.
+    if (
+      this.isExternalUrl &&
+      (
+        !config.get('assets.remote.enabled', this.req.__domain) ||
+        !config.get('assets.remote.allowFullURL', this.req.__domain)
+      )
+    ) {
+      let err = {
+        statusCode: 403,
+        message: 'Loading assets from a full remote URL is not supported by this instance of DADI CDN'
+      }
+
+      return Promise.reject(err)
+    }
 
     return this.storageHandler.get().then(stream => {
       return this.transform(stream)
@@ -73,6 +91,8 @@ CSSHandler.prototype.get = function () {
         ttl: config.get('caching.ttl', this.req.__domain)
       })
     })
+  }).then(stream => {
+    return help.streamToBuffer(stream)
   })
 }
 
@@ -115,7 +135,7 @@ CSSHandler.prototype.getLastModified = function () {
 CSSHandler.prototype.getLegacyURLOverrides = function (url) {
   let overrides = {}
 
-  const legacyURLMatch = url.match(/\/css(\/(\d))?/)
+  let legacyURLMatch = url.match(/^\/css(\/(\d))?/)
 
   if (legacyURLMatch) {
     if (legacyURLMatch[2]) {

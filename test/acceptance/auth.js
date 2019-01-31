@@ -20,6 +20,13 @@ describe('Authentication', function () {
     })
   })
 
+  beforeEach(done => {
+    config.set('auth.clientId', 'test')
+    config.set('auth.secret', 'test')
+    config.set('auth.privateKey', 'test')
+    done()
+  })
+
   after(done => {
     app.stop(done)
   })
@@ -55,6 +62,41 @@ describe('Authentication', function () {
       .expect(401, done)
   })
 
+  it('should not issue token if credentials are the null defaults', done => {
+    config.set('auth.clientId', null)
+    config.set('auth.secret', null)
+
+    request(cdnUrl)
+      .post(tokenRoute)
+      .send({
+        clientId: 'test123',
+        secret: 'badSecret',
+        code: ' '
+      })
+      .end((err, res) => {
+        res.statusCode.should.eql(401)
+        res.headers['www-authenticate'].should.eql('Bearer realm="/token"')
+        done()
+      })
+  })
+
+  it('should not issue token if privateKey for token signing is not set', done => {
+    config.set('auth.privateKey', null)
+
+    request(cdnUrl)
+      .post(tokenRoute)
+      .send({
+        clientId: 'test123',
+        secret: 'badSecret',
+        code: ' '
+      })
+      .end((err, res) => {
+        res.statusCode.should.eql(401)
+        res.headers['www-authenticate'].should.eql('Bearer, error="no_private_key", error_description="No private key configured in auth.privateKey"')
+        done()
+      })
+  })
+
   it('should allow `/api/flush` request containing token', done => {
     help.getBearerToken((err, token) => {
       request(cdnUrl)
@@ -62,7 +104,10 @@ describe('Authentication', function () {
         .send({pattern: 'test'})
         .set('Authorization', 'Bearer ' + token)
         .expect('content-type', 'application/json')
-        .expect(200, done)
+        .end((err, res) => {
+          res.statusCode.should.eql(200)
+          done()
+        })
     })
   })
 
@@ -110,19 +155,27 @@ describe('Authentication', function () {
       config.set('multiDomain.directory', 'domains')
 
       config.loadDomainConfigs()
+
+      config.set('auth.clientId', 'testxyz', 'testdomain.com')
+      config.set('auth.secret', 'testabc', 'testdomain.com')
+      config.set('auth.privateKey', 'test123', 'testdomain.com')
     })
 
     after(() => {
       config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
       config.set('multiDomain.directory', configBackup.multiDomain.directory)
+
+      config.set('auth.clientId', 'test', 'testdomain.com')
+      config.set('auth.secret', 'test', 'testdomain.com')
+      config.set('auth.privateKey', 'test', 'testdomain.com')
     })
 
     it('should encode the domain in the JWT', done => {
       request(cdnUrl)
         .post(tokenRoute)
         .send({
-          clientId: 'test',
-          secret: 'test'
+          clientId: 'testxyz',
+          secret: 'testabc'
         })
         .set('host', 'testdomain.com:80')
         .expect('content-type', 'application/json')
@@ -136,7 +189,7 @@ describe('Authentication', function () {
 
           jwt.verify(
             res.body.accessToken,
-            config.get('auth.privateKey'),
+            config.get('auth.privateKey', 'testdomain.com'),
             (err, decoded) => {
               if (err) return done(err)
 
@@ -152,8 +205,8 @@ describe('Authentication', function () {
       request(cdnUrl)
         .post(tokenRoute)
         .send({
-          clientId: 'test',
-          secret: 'test'
+          clientId: 'testxyz',
+          secret: 'testabc'
         })
         .set('host', 'testdomain.com:80')
         .expect('content-type', 'application/json')

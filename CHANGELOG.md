@@ -4,6 +4,108 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.4.5] - 2018-12-17
+
+### Fixes
+
+* [#472](https://github.com/dadi/cdn/issues/472): remove dependency incompatible with ARM64 architecture
+
+## [3.4.4] - 2018-11-22
+
+* Removes invalid configuration samples
+
+## [3.4.3] - 2018-11-22
+
+### Changed
+
+* [#449](https://github.com/dadi/cdn/issues/449): ensure responses for all status codes are allowed to complete before taking action
+* Remove the default behaviour of responding with progressize JPEGs
+* Handle requests for gzip encoding better, checking for "gzip" anywhere in the Accept-Encoding header
+
+## [3.4.2] - 2018-11-15
+
+### Changed
+
+* Remove defaults for authentication and token signing credentials, requires user to set them explicitly
+* Accept full configuration block at internal mgmt endpoints
+
+## [3.4.0] - 2018-11-09
+
+### Added
+
+* [#378](https://github.com/dadi/cdn/issues/378): support progressive JPEGs - add `?progressive=true` to a URL
+* [#447](https://github.com/dadi/cdn/issues/447): use a base URL for status endpoint checks, configure with `publicUrl`
+
+### Changed
+
+* [#437](https://github.com/dadi/cdn/issues/437): allow override of local image directory in multi-domain
+* [#451](https://github.com/dadi/cdn/issues/451): replace exif-reader package with a forked+patched version
+* Add support for Node.js 10
+
+## [3.3.0] - 2018-10-24
+
+### Added
+
+* [#398](https://github.com/dadi/cdn/issues/398): add 'Vary: Accept-Encoding' header to responses
+* [#439](https://github.com/dadi/cdn/issues/439): reload domain configs on directory changes
+
+### Changed 
+
+* [#351](https://github.com/dadi/cdn/issues/351): add `assets.remote.allowFullURL` configuration parameter
+* [#406](https://github.com/dadi/cdn/issues/406): return JSON response when URL is incomplete
+* [#434](https://github.com/dadi/cdn/issues/434): return file size attributes for the image pre and post transforms
+* Sharp image dependency updated to 0.21.0
+
+
+## [3.2.2] - 2018-10-01
+
+### Changed
+
+* [#424](https://github.com/dadi/cdn/issues/424): PNG compression honours quality parameter setting, mapping the `quality` parameter inversely to a compression level between 1 and 9
+* [#431](https://github.com/dadi/cdn/pull/431): don't assume JPG extension when no extension is supplied
+
+
+## [3.2.1] - 2018-08-22
+
+### Changed
+
+* [#412](https://github.com/dadi/cdn/issues/412): modify regex for "CSS" to search from beginning of URL
+
+
+## [3.2.0] - 2018-08-01
+
+### Added
+
+* [#400](https://github.com/dadi/cdn/pull/400): support for conditional formats 
+* [#405](https://github.com/dadi/cdn/pull/405): support for default files
+* With #405, the `/` route doesn't respond with a plain text 200 response. In order to check that CDN is online, send a request to `/hello`
+
+
+## [3.1.1] - 2018-07-11
+
+### Changed
+
+* removed package lock file to allow latest dependencies
+* updated dependencies
+
+## [3.1.0] - 2018-07-04
+
+### Changed
+
+* [#394](https://github.com/dadi/cdn/pull/394): performance improvements.
+
+## [3.0.5] - 2018-06-27
+
+### Changed
+
+* work queue added, ensures if multiple requests are made for the same resource _before_ the first one has finished processing, remaining requests wait for the result of the first one _instead of requesting a new computation each time_. When the processing for the first request finishes, all waiting requests are served and the request is removed from the work queue.
+
+## [3.0.4] - 2018-06-22
+
+### Fixed
+
+* [#388](https://github.com/dadi/cdn/pull/388): fix issue where not all chunks from a remote HTTP call were passed to the calling function.
+
 ## [3.0.3] - 2018-06-06
 
 ### Changed

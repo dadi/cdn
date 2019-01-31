@@ -1,10 +1,10 @@
+const Cache = require('./../cache')
+const config = require('./../../../config')
+const help = require('./../help')
 const mime = require('mime')
 const path = require('path')
+const StorageFactory = require('./../storage/factory')
 const url = require('url')
-
-const Cache = require(path.join(__dirname, '/../cache'))
-const config = require(path.join(__dirname, '/../../../config'))
-const StorageFactory = require(path.join(__dirname, '/../storage/factory'))
 
 /**
  * Creates a new DefaultHandler instance.
@@ -21,6 +21,8 @@ const DefaultHandler = function (format, req, {
     this.legacyURLOverrides.url || req.url,
     true
   )
+
+  this.isExternalUrl = this.url.pathname.indexOf('http://') > 0 || this.url.pathname.indexOf('https://') > 0
 
   this.cache = Cache()
   this.cacheKey = [req.__domain, this.url.href]
@@ -49,14 +51,32 @@ DefaultHandler.prototype.get = function () {
     this.storageHandler = this.storageFactory.create(
       'asset',
       this.url.pathname.slice(1),
-      false
+      {domain: this.req.__domain}
     )
+
+    // Aborting the request if full remote URL is required and not enabled.
+    if (
+      this.isExternalUrl &&
+      (
+        !config.get('assets.remote.enabled', this.req.__domain) ||
+        !config.get('assets.remote.allowFullURL', this.req.__domain)
+      )
+    ) {
+      let err = {
+        statusCode: 403,
+        message: 'Loading assets from a full remote URL is not supported by this instance of DADI CDN'
+      }
+
+      return Promise.reject(err)
+    }
 
     return this.storageHandler.get().then(stream => {
       return this.cache.cacheFile(stream, this.cacheKey, {
         ttl: config.get('caching.ttl', this.req.__domain)
       })
     })
+  }).then(stream => {
+    return help.streamToBuffer(stream)
   })
 }
 
@@ -66,7 +86,17 @@ DefaultHandler.prototype.get = function () {
  * @return {String} The content type
  */
 DefaultHandler.prototype.getContentType = function () {
-  return mime.lookup(this.url.pathname)
+  let newUrl = this.url.pathname
+
+  if (this.storageHandler && this.storageHandler.url !== newUrl) {
+    newUrl = this.storageHandler.url
+  }
+
+  if (path.extname(newUrl) === '') {
+    return 'text/html'
+  }
+
+  return mime.getType(newUrl)
 }
 
 /**

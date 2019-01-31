@@ -40,22 +40,9 @@ const makeStream = string => {
   return stream
 }
 
-const readStream = stream => {
-  return new Promise((resolve, reject) => {
-    let output = ''
-
-    stream.on('data', chunk => {
-      output += chunk
-    })
-
-    stream.on('end', () => {
-      resolve(output)
-    })
-  })
-}
-
 describe('JS handler', function () {
   let mockCacheGet
+  let mockDiskStorageGet
 
   beforeEach(() => {
     mockCacheGet = sinon.spy(Cache.Cache.prototype, 'getStream')
@@ -85,7 +72,9 @@ describe('JS handler', function () {
 
       const jsHandler = new JSHandler('.js', mockRequest('/js/0/foo.js'))
 
-      return jsHandler.get().then(readStream).then(out => {
+      return jsHandler.get().then(out => {
+        return out.toString('utf8')
+      }).then(out => {
         mockCacheGet.getCall(0).args[0].includes('/foo.js').should.eql(true)
 
         out.should.eql(mockJsFile)
@@ -103,7 +92,9 @@ describe('JS handler', function () {
 
       const jsHandler = new JSHandler('.js', mockRequest('/js/1/foo.js'))
 
-      return jsHandler.get().then(readStream).then(out => {
+      return jsHandler.get().then(out => {
+        return out.toString('utf8')
+      }).then(out => {
         mockCacheGet.getCall(0).args[0].includes('/foo.js').should.eql(true)
 
         out.should.eql('const greeter=a=>`Hello, ${a}`;')
@@ -122,7 +113,9 @@ describe('JS handler', function () {
 
     const jsHandler = new JSHandler('.js', mockRequest('/foo.js'))
 
-    return jsHandler.get().then(readStream).then(out => {
+    return jsHandler.get().then(out => {
+      return out.toString('utf8')
+    }).then(out => {
       mockCacheGet.getCall(0).args[0].includes('/foo.js').should.eql(true)
 
       out.should.eql(mockJsFile)
@@ -140,7 +133,9 @@ describe('JS handler', function () {
 
     const jsHandler = new JSHandler('.js', mockRequest('/foo.js?compress=1'))
 
-    return jsHandler.get().then(readStream).then(out => {
+    return jsHandler.get().then(out => {
+      return out.toString('utf8')
+    }).then(out => {
       mockCacheGet.getCall(0).args[0].includes('/foo.js?compress=1').should.eql(true)
 
       out.should.eql('const greeter=a=>`Hello, ${a}`;')
@@ -159,7 +154,9 @@ describe('JS handler', function () {
 
       const jsHandler = new JSHandler('.js', mockRequest('/foo.js?transform=1', 'ie-9'))
 
-      return jsHandler.get().then(readStream).then(out => {
+      return jsHandler.get().then(out => {
+        return out.toString('utf8')
+      }).then(out => {
         out.should.eql(
           [
             '"use strict";',
@@ -183,7 +180,9 @@ describe('JS handler', function () {
 
       const jsHandler = new JSHandler('.js', mockRequest('/foo.js?transform=1'))
 
-      return jsHandler.get().then(readStream).then(out => {
+      return jsHandler.get().then(out => {
+        return out.toString('utf8')
+      }).then(out => {
         out.should.eql(
           [
             '"use strict";',
@@ -207,7 +206,9 @@ describe('JS handler', function () {
 
       const jsHandler = new JSHandler('.js', mockRequest('/foo.js?transform=1', 'some funky user agent'))
 
-      return jsHandler.get().then(readStream).then(out => {
+      return jsHandler.get().then(out => {
+        return out.toString('utf8')
+      }).then(out => {
         out.should.eql(
           [
             '"use strict";',
@@ -231,7 +232,9 @@ describe('JS handler', function () {
 
       const jsHandler = new JSHandler('.js', mockRequest('/foo.js?transform=1', 'chrome-65'))
 
-      return jsHandler.get().then(readStream).then(out => {
+      return jsHandler.get().then(out => {
+        return out.toString('utf8')
+      }).then(out => {
         out.should.eql('"use strict";\n\n' + mockJsFile)
       })
     })
