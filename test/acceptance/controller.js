@@ -279,7 +279,8 @@ describe('Controller', function () {
 
       request(cdnUrl)
         .get('/test.jpg')
-        .expect(200, (err, res) => {
+        .expect(200)
+        .end((err, res) => {
           res.headers['cache-control'].should.eql(cacheControl.default)
 
           request(cdnUrl)

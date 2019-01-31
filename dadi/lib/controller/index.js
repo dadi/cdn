@@ -249,7 +249,7 @@ Controller.prototype.addCacheControlHeader = function (res, handler, domain) {
     let key = Object.keys(obj)[0]
     let value = obj[key]
 
-    if (handler.getFilename && (mime.lookup(handler.getFilename()) === key)) {
+    if (handler.getFilename && (mime.getType(handler.getFilename()) === key)) {
       setHeader(value)
     }
   })
