@@ -57,7 +57,7 @@
     "range-parser": "^1.2.0",
     "range-stream": "^1.1.0",
     "request": "~2.88.0",
-    "request-promise": "^4.1.1",
+    "request-promise": "^4.2.4",
     "router": "~1.3.0",
     "sha1": "~1.1.1",
     "sharp": "^0.21.0",
