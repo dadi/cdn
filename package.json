@@ -99,7 +99,8 @@
       "sinon",
       "standard",
       "mocha",
-      "aws-sdk"
+      "aws-sdk",
+      "snyk"
     ]
   },
   "repository": {
