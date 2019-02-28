@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [3.5.0] - 2019-02-28
+
+### Changed
+
+* [#253](https://github.com/dadi/cdn/issues/253): add LastModified header to items returned from cache
+* [#479](https://github.com/dadi/cdn/issues/479): set content-length header after gzipping
+* Update dependencies: mime, concat-stream
+
 ## [3.4.5] - 2018-12-17
 
 ### Fixes

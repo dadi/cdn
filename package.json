@@ -1,6 +1,6 @@
 {
   "name": "@dadi/cdn",
-  "version": "3.4.5",
+  "version": "3.5.0",
   "product": "DADI CDN",
   "description": "A high performance, just-in-time asset manipulation and delivery layer designed as a modern content distribution solution.",
   "scripts": {
