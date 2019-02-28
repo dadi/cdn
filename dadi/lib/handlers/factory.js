@@ -40,7 +40,7 @@ HandlerFactory.prototype.create = function (req, mimetype) {
   const parsedUrl = url.parse(req.url, true)
   const pathComponents = parsedUrl.pathname.slice(1).split('/')
 
-  let format = mimetype ? mime.extension(mimetype) : null
+  let format = mimetype ? mime.getExtension(mimetype) : null
 
   // version 1 matches a string like /jpg/80/0/0/640/480/ at the beginning of the url pathname
   const v1pattern = /^\/[a-z]{3,4}\/[0-9]+\/[0-1]+\/[0-1]+\/[0-9]+\/[0-9]+\//gi

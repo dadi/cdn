@@ -9,6 +9,59 @@ var secureClientHost = 'https://' + config.get('server.host') + ':' + config.get
 var client = request(clientHost)
 var secureClient = request(secureClientHost)
 
+describe('http2', () => {
+  before((done) => {
+    // avoid [Error: self signed certificate] code: 'DEPTH_ZERO_SELF_SIGNED_CERT'
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+    done()
+  })
+
+  beforeEach((done) => {
+    delete require.cache[require.resolve(__dirname + '/../../dadi/lib/')]
+    app = require(__dirname + '/../../dadi/lib/')
+
+    done()
+  })
+
+  afterEach((done) => {
+    config.set('server.protocol', 'http')
+    config.set('server.redirectPort', '')
+    config.set('server.sslPassphrase', '')
+    config.set('server.sslPrivateKeyPath', '')
+    config.set('server.sslCertificatePath', '')
+
+    // try and close the server, unless it's crashed (as with SSL errors)
+    try {
+      app.stop(done)
+    } catch (ex) {
+      done()
+    }
+  })
+
+  it('should respond to a http1 request even if http2 is enabled', (done) => {
+    config.set('server.protocol', 'https')
+    config.set('server.sslPrivateKeyPath', 'test/ssl/unprotected/key.pem')
+    config.set('server.sslCertificatePath', 'test/ssl/unprotected/cert.pem')
+
+    app.start(function (err) {
+      if (err) return done(err)
+
+      secureClient
+        .get('/hello')
+        .end((err, res) => {
+          if (err) throw err
+
+          // We're assuming here that the 'supertest' module doesn't support http2
+          // If they ever add it this test might need to be changed!
+
+          res.res.httpVersion.should.eql('1.1')
+
+          done()
+        })
+    })
+  })
+})
+
 describe('SSL', () => {
   before((done) => {
     // avoid [Error: self signed certificate] code: 'DEPTH_ZERO_SELF_SIGNED_CERT'
@@ -63,28 +116,12 @@ describe('SSL', () => {
 
       var httpClient = request('http://' + config.get('server.host') + ':9999')
       httpClient
-        .get('/hello')
+        .get('/')
         .expect(301)
         .end((err, res) => {
           if (err) return done(err)
-          done()
-        })
-    })
-  })
-
-  it('should respond to a https request when using unprotected ssl key without a passphrase', (done) => {
-    config.set('server.protocol', 'https')
-    config.set('server.sslPrivateKeyPath', 'test/ssl/unprotected/key.pem')
-    config.set('server.sslCertificatePath', 'test/ssl/unprotected/cert.pem')
-
-    app.start(function (err) {
-      if (err) return done(err)
-
-      secureClient
-        .get('/hello')
-        .end((err, res) => {
-          if (err) throw err
-          res.statusCode.should.eql(200)
+          res.headers['location'].should.exist
+          ;(res.headers['location'].indexOf('https') > -1).should.eql(true)
           done()
         })
     })

@@ -96,7 +96,7 @@ DefaultHandler.prototype.getContentType = function () {
     return 'text/html'
   }
 
-  return mime.lookup(newUrl)
+  return mime.getType(newUrl)
 }
 
 /**
