@@ -91,7 +91,7 @@
     "sinon": "^4.0.2",
     "standard": "8.x.x",
     "superagent": "^4.1.0",
-    "supertest": "^3.4.2"
+    "supertest": "^4.0.2"
   },
   "greenkeeper": {
     "ignore": [
