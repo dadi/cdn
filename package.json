@@ -90,7 +90,7 @@
     "should": "~13.2.0",
     "sinon": "^4.0.2",
     "standard": "8.x.x",
-    "superagent": "^4.1.0",
+    "superagent": "^5.0.2",
     "supertest": "^3.4.2"
   },
   "greenkeeper": {
