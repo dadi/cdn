@@ -75,7 +75,7 @@
     "validate-commit-message": "^3.0.1"
   },
   "devDependencies": {
-    "aws-sdk-mock": "^1.5.0",
+    "aws-sdk-mock": "^4.4.0",
     "coveralls": "^3.0.1",
     "env-test": "^1.0.0",
     "fakeredis": "^2.0.0",
