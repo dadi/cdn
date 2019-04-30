@@ -79,7 +79,6 @@
     "coveralls": "^3.0.1",
     "env-test": "^1.0.0",
     "fakeredis": "^2.0.0",
-    "greenkeeper-postpublish": "^1.0.1",
     "http-proxy": "^1.16.2",
     "istanbul": "^1.1.0-alpha.1",
     "it-each": "^0.3.1",
@@ -92,16 +91,6 @@
     "standard": "8.x.x",
     "superagent": "^4.1.0",
     "supertest": "^3.4.2"
-  },
-  "greenkeeper": {
-    "ignore": [
-      "nock",
-      "sinon",
-      "standard",
-      "mocha",
-      "aws-sdk",
-      "snyk"
-    ]
   },
   "repository": {
     "type": "git",

@@ -4,7 +4,6 @@
 [![Coverage Status](https://coveralls.io/repos/github/dadi/cdn/badge.svg?branch=develop)](https://coveralls.io/github/dadi/cdn?branch=develop)
 [![Build Status](https://travis-ci.org/dadi/cdn.svg?branch=master)](https://travis-ci.org/dadi/cdn)
 [![JavaScript Style Guide](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat-square)](http://standardjs.com/)
-[![Greenkeeper badge](https://badges.greenkeeper.io/dadi/cdn.svg)](https://greenkeeper.io/)
 
 
 ## DADI CDN
