@@ -219,6 +219,12 @@ const schema = {
         format: String,
         default: '',
         env: 'AWS_S3_IMAGES_ENDPOINT'
+      },
+      pathStyle: {
+        doc: 'Forces path style access to s3 storage, helpful for storage systems with S3 support. Not required for Amazon S3 and Digital Ocean Spaces.',
+        format: Boolean,
+        default: false,
+        env: 'AWS_S3_IMAGES_PATH_STYLE'
       }
     },
     remote: {
@@ -292,6 +298,12 @@ const schema = {
         format: String,
         default: '',
         env: 'AWS_S3_ASSETS_ENDPOINT'
+      },
+      pathStyle: {
+        doc: 'Forces path style access to s3 storage, helpful for storage systems with S3 support. Not required for Amazon S3 and Digital Ocean Spaces.',
+        format: Boolean,
+        default: false,
+        env: 'AWS_S3_ASSETS_PATH_STYLE'
       }
     },
     remote: {

@@ -11,7 +11,8 @@ const S3Storage = function ({assetType = 'assets', domain, url}) {
 
   AWS.config.update({
     accessKeyId: config.get(`${assetType}.s3.accessKey`),
-    secretAccessKey: config.get(`${assetType}.s3.secretKey`)
+    secretAccessKey: config.get(`${assetType}.s3.secretKey`),
+    s3ForcePathStyle: config.get(`${assetType}.s3.pathStyle`)
   })
 
   let region = config.get(`${assetType}.s3.region`)
