@@ -299,6 +299,11 @@
         "progressive": true
       },
       "baselineFilename": "images/visual/baseline/measure2.jpg?progressive=true.jpg"
-    }
+    },
+    {
+      "image": "measure2.jpg",
+      "params": {},
+      "baselineFilename": "images/visual/measure2.jpg"
+    }    
   ]
 }
