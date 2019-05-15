@@ -1,12 +1,12 @@
 {
   "name": "@dadi/cdn",
-  "version": "3.5.0",
+  "version": "3.6.0",
   "product": "DADI CDN",
   "description": "A high performance, just-in-time asset manipulation and delivery layer designed as a modern content distribution solution.",
   "scripts": {
     "init": "validate-commit-msg",
     "start": "node index.js --node_env=development",
-    "test": "rm -f config/config.test.json && standard 'dadi/**/*.js' && env NODE_ENV=test ./node_modules/.bin/istanbul cover -x '**/workspace/**' --report cobertura --report text --report html --report lcov ./node_modules/mocha/bin/_mocha test",
+    "test": "rm -f config/config.test.json && standard 'dadi/**/*.js' && env NODE_ENV=test ./node_modules/.bin/nyc --reporter=lcov -x '**/workspace/**' -x 'test/**' ./node_modules/mocha/bin/_mocha test && ./node_modules/.bin/nyc report",
     "precommit": "node scripts/precommit.js",
     "posttest": "./scripts/coverage.js",
     "snyk-protect": "snyk protect",
@@ -79,12 +79,11 @@
     "coveralls": "^3.0.1",
     "env-test": "^1.0.0",
     "fakeredis": "^2.0.0",
-    "greenkeeper-postpublish": "^1.0.1",
     "http-proxy": "^1.16.2",
-    "istanbul": "^1.1.0-alpha.1",
     "it-each": "^0.3.1",
     "mocha": "^5.2.0",
     "nock": "^9.0.2",
+    "nyc": "^14.0.0",
     "proxyquire": "~2.0.0",
     "redis": "^2.6.3",
     "should": "~13.2.0",
@@ -92,16 +91,6 @@
     "standard": "8.x.x",
     "superagent": "^4.1.0",
     "supertest": "^3.4.2"
-  },
-  "greenkeeper": {
-    "ignore": [
-      "nock",
-      "sinon",
-      "standard",
-      "mocha",
-      "aws-sdk",
-      "snyk"
-    ]
   },
   "repository": {
     "type": "git",

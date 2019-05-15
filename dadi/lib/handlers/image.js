@@ -195,6 +195,10 @@ ImageHandler.prototype.get = function () {
     )
   }
 
+  // The image only needs processing if there are any manipulation parameters
+  // applied.
+  const needsProcessing = Object.keys(this.options).length > 0
+
   // Aborting the request if full remote URL is required and not enabled.
   if (
     this.isExternalUrl &&
@@ -271,6 +275,12 @@ ImageHandler.prototype.get = function () {
     return stream.then(stream => {
       return help.streamToBuffer(stream)
     }).then(imageBuffer => {
+      // If the image does not need processing, we can return the buffer
+      // straight away.
+      if (!needsProcessing) {
+        return imageBuffer
+      }
+
       let sharpImage = sharp(imageBuffer)
 
       return sharpImage.metadata().then(imageData => {
@@ -307,40 +317,40 @@ ImageHandler.prototype.get = function () {
         }
 
         return result
-      }).then(result => {
-        // Cache the file if it's not already cached.
-        if (!this.isCached) {
-          let metadata = {
-            lastModified: this.storageHandler.getLastModified ? this.storageHandler.getLastModified() : null
-          }
+      })
+    }).then(result => {
+      // Cache the file if it's not already cached.
+      if (!this.isCached) {
+        let metadata = {
+          lastModified: this.storageHandler.getLastModified ? this.storageHandler.getLastModified() : null
+        }
 
-          if (this.storageHandler.notFound) {
-            metadata = {
-              contentType: this.getContentType(),
-              errorCode: 404
-            }
-          }
-
-          // The only situation where we don't want to write the result to
-          // cache is when the response is a 404 and the config specifies
-          // that 404s should not be cached.
-          if (
-            !this.storageHandler.notFound ||
-            config.get('caching.cache404', this.req.__domain)
-          ) {
-            this.cache.set(
-              cacheKey,
-              result,
-              {
-                metadata,
-                ttl: config.get('caching.ttl', this.req.__domain)
-              }
-            )
+        if (this.storageHandler.notFound) {
+          metadata = {
+            contentType: this.getContentType(),
+            errorCode: 404
           }
         }
 
-        return result
-      })
+        // The only situation where we don't want to write the result to
+        // cache is when the response is a 404 and the config specifies
+        // that 404s should not be cached.
+        if (
+          !this.storageHandler.notFound ||
+          config.get('caching.cache404', this.req.__domain)
+        ) {
+          this.cache.set(
+            cacheKey,
+            result,
+            {
+              metadata,
+              ttl: config.get('caching.ttl', this.req.__domain)
+            }
+          )
+        }
+      }
+
+      return result
     })
   }).catch(error => {
     // If the response is a 404 and we want to cache 404s, we
