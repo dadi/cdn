@@ -9,7 +9,6 @@ const request = require('supertest')
 const sinon = require('sinon')
 const should = require('should')
 
-let bearerToken
 let cdnUrl = `http://${config.get('server.host')}:${config.get('server.port')}`
 let client = request(cdnUrl)
 let configBackup = config.get()
@@ -51,7 +50,7 @@ describe('Work queue', function () {
     }).map(() => {
       return help.imagesEqual({
         base: 'test/images/original.jpg',
-        test: `${cdnUrl}/original.jpg`
+        test: `${cdnUrl}/original.jpg?format=jpg`
       })
     })
 
@@ -70,7 +69,7 @@ describe('Work queue', function () {
     }).map(() => {
       return new Promise((resolve, reject) => {
         client
-        .get('/original.jpg')
+        .get('/original.jpg?format=jpg')
         .expect(200)
         .end((err, res) => {
           if (err) {

@@ -1,8 +1,13 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](http://keepachangelog.com/)
-and this project adheres to [Semantic Versioning](http://semver.org/).
+The format is based on [Keep a Changelog](http://keepachangelog.com/).
+
+## [3.6.0] - 2019-05-15
+
+### Changed
+
+* [#505](https://github.com/dadi/cdn/pull/505): serve original image untransformed when no manipulation parameters are defined
 
 ## [3.5.0] - 2019-02-28
 

@@ -4,7 +4,6 @@
 [![Coverage Status](https://coveralls.io/repos/github/dadi/cdn/badge.svg?branch=develop)](https://coveralls.io/github/dadi/cdn?branch=develop)
 [![Build Status](https://travis-ci.org/dadi/cdn.svg?branch=master)](https://travis-ci.org/dadi/cdn)
 [![JavaScript Style Guide](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat-square)](http://standardjs.com/)
-[![Greenkeeper badge](https://badges.greenkeeper.io/dadi/cdn.svg)](https://greenkeeper.io/)
 
 
 ## DADI CDN
@@ -130,7 +129,7 @@ http://127.0.0.1:8001/92875.jpg
 DADI is a data centric development and delivery stack, built specifically in support of the principles of API first and COPE.
 
 Copyright notice<br />
-(C) 2018 DADI+ Limited <support@dadi.cloud><br />
+(C) 2019 DADI+ Limited <support@dadi.cloud><br />
 All rights reserved
 
 This product is part of DADI.<br />

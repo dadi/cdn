@@ -1,5 +1,6 @@
 .DS_Store
 package-lock.json
+.nyc_output/
 
 # Config
 config.development.json
