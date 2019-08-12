@@ -82,7 +82,13 @@ JSHandler.prototype.get = function () {
     }
 
     return this.storageHandler.get().then(stream => {
-      return this.transform(stream)
+      const {compress, transform} = this.url.query
+
+      if (compress === '1' || transform === '1') {
+        return this.transform(stream)
+      }
+
+      return stream
     }).then(stream => {
       return this.cache.cacheFile(stream, this.cacheKey, {
         ttl: config.get('caching.ttl', this.req.__domain)
