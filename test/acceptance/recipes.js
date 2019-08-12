@@ -48,7 +48,8 @@ describe('Recipes', function () {
         'blur': '0',
         'strip': '0',
         'rotate': '0',
-        'flip': '0'
+        'flip': '0',
+        'transform': '1'
       }
     }
 
