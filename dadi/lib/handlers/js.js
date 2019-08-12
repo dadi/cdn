@@ -113,15 +113,7 @@ JSHandler.prototype.get = function () {
     return this.storageHandler.get().then(stream => {
       const {compress, transform} = this.options
 
-      console.log({compress, transform})
-
-      // (!) TO DO: normalise the format of the options somewhere upstream.
-      if (
-        compress === '1' ||
-        compress === true ||
-        transform === '1' ||
-        transform === true
-      ) {
+      if (compress === true || transform === true) {
         return this.transform(stream)
       }
 
