@@ -21,11 +21,40 @@ const JSHandler = function (format, req, {
   options = {}
 } = {}) {
   this.legacyURLOverrides = this.getLegacyURLOverrides(req.url)
-  this.options = options
   this.url = url.parse(
     this.legacyURLOverrides.url || req.url,
     true
   )
+
+  const mergedOptions = Object.assign({}, this.url.query, this.legacyURLOverrides, options)
+
+  // Normalising boolean values (e.g. true vs. 1 vs. '1').
+  this.options = Object.keys(mergedOptions).reduce((result, key) => {
+    let value
+
+    switch (mergedOptions[key]) {
+      case 0:
+      case '0':
+      case 'false':
+        value = false
+
+        break
+
+      case 1:
+      case '1':
+      case 'true':
+        value = true
+
+        break
+
+      default:
+        value = mergedOptions[key]
+    }
+
+    result[key] = value
+
+    return result
+  }, {})
 
   this.isExternalUrl = this.url.pathname.indexOf('http://') > 0 || this.url.pathname.indexOf('https://') > 0
 
@@ -82,9 +111,17 @@ JSHandler.prototype.get = function () {
     }
 
     return this.storageHandler.get().then(stream => {
-      const {compress, transform} = this.url.query
+      const {compress, transform} = this.options
 
-      if (compress === '1' || transform === '1') {
+      console.log({compress, transform})
+
+      // (!) TO DO: normalise the format of the options somewhere upstream.
+      if (
+        compress === '1' ||
+        compress === true ||
+        transform === '1' ||
+        transform === true
+      ) {
         return this.transform(stream)
       }
 
