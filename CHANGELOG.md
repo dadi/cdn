@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
+## [3.6.1] - 2019-08-12
+
+### Fixed
+
+* [#508](https://github.com/dadi/cdn/pull/508): bypass JS processing when no transformation parameters supplied
+
 ## [3.6.0] - 2019-05-15
 
 ### Changed
