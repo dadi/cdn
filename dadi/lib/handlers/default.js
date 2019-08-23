@@ -50,7 +50,7 @@ DefaultHandler.prototype.get = function () {
 
     this.storageHandler = this.storageFactory.create(
       'asset',
-      this.url.pathname.slice(1),
+      this.url.href.slice(1),
       {domain: this.req.__domain}
     )
 
