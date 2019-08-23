@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
+## [3.6.2] - 2019-08-23
+
+### Fixed
+
+* [#510](https://github.com/dadi/cdn/pull/510): ensure search parameters are used in passthrough URL
+
 ## [3.6.1] - 2019-08-12
 
 ### Fixed
