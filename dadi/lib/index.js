@@ -40,10 +40,7 @@ const devConfigPath = path.join(
 
 fs.stat(devConfigPath, (err, stats) => {
   if (err && err.code === 'ENOENT') {
-    fs.writeFileSync(
-      devConfigPath,
-      fs.readFileSync(devConfigPath + '.sample')
-    )
+    fs.writeFileSync(devConfigPath, fs.readFileSync(devConfigPath + '.sample'))
   }
 })
 
@@ -52,7 +49,7 @@ const Controller = require(path.join(__dirname, '/controller'))
 const configPath = path.resolve(path.join(__dirname, '/../../config'))
 const config = require(configPath)
 
-const Server = function () {
+const Server = function() {
   this.crons = {}
 }
 
@@ -63,69 +60,70 @@ const Server = function () {
  * @param  {Function} listener
  * @return {http.Server}
  */
-Server.prototype.create = function (listener) {
-  let protocol = config.get('server.protocol')
+Server.prototype.create = function(listener) {
+  const protocol = config.get('server.protocol')
 
   if (protocol === 'http') {
     return http.createServer(listener)
-  } else {
-    let readFileSyncSafe = (path) => {
-      try {
-        return fs.readFileSync(path)
-      } catch (ex) {
-        console.log(ex)
-      }
+  }
 
-      return null
-    }
-
-    let passphrase = config.get('server.sslPassphrase')
-    let caPath = config.get('server.sslIntermediateCertificatePath')
-    let caPaths = config.get('server.sslIntermediateCertificatePaths')
-    let serverOptions = {
-      key: readFileSyncSafe(config.get('server.sslPrivateKeyPath')),
-      cert: readFileSyncSafe(config.get('server.sslCertificatePath'))
-    }
-
-    if (passphrase && passphrase.length >= 4) {
-      serverOptions.passphrase = passphrase
-    }
-
-    if (caPaths && caPaths.length > 0) {
-      serverOptions.ca = []
-      caPaths.forEach(path => {
-        let data = readFileSyncSafe(path)
-
-        if (data) {
-          serverOptions.ca.push(data)
-        }
-      })
-    } else if (caPath && caPath.length > 0) {
-      serverOptions.ca = readFileSyncSafe(caPath)
-    }
-
-    // We need to catch any errors resulting from bad parameters,
-    // such as incorrect passphrase or no passphrase provided.
+  const readFileSyncSafe = path => {
     try {
-      if (config.get('server.enableHTTP2')) {
-        serverOptions['allowHTTP1'] = true // fallback to http1
-        return http2.createSecureServer(serverOptions, listener)
-      } else {
-        return https.createServer(serverOptions, listener)
-      }
+      return fs.readFileSync(path)
     } catch (ex) {
-      let exPrefix = 'error starting https server: '
+      console.log(ex)
+    }
 
-      switch (ex.message) {
-        case 'error:06065064:digital envelope routines:EVP_DecryptFinal_ex:bad decrypt':
-          throw new Error(exPrefix + 'incorrect ssl passphrase')
+    return null
+  }
 
-        case 'error:0906A068:PEM routines:PEM_do_header:bad password read':
-          throw new Error(exPrefix + 'required ssl passphrase not provided')
+  const passphrase = config.get('server.sslPassphrase')
+  const caPath = config.get('server.sslIntermediateCertificatePath')
+  const caPaths = config.get('server.sslIntermediateCertificatePaths')
+  const serverOptions = {
+    key: readFileSyncSafe(config.get('server.sslPrivateKeyPath')),
+    cert: readFileSyncSafe(config.get('server.sslCertificatePath'))
+  }
 
-        default:
-          throw new Error(exPrefix + ex.message)
+  if (passphrase && passphrase.length >= 4) {
+    serverOptions.passphrase = passphrase
+  }
+
+  if (caPaths && caPaths.length > 0) {
+    serverOptions.ca = []
+    caPaths.forEach(path => {
+      const data = readFileSyncSafe(path)
+
+      if (data) {
+        serverOptions.ca.push(data)
       }
+    })
+  } else if (caPath && caPath.length > 0) {
+    serverOptions.ca = readFileSyncSafe(caPath)
+  }
+
+  // We need to catch any errors resulting from bad parameters,
+  // such as incorrect passphrase or no passphrase provided.
+  try {
+    if (config.get('server.enableHTTP2')) {
+      serverOptions['allowHTTP1'] = true // fallback to http1
+
+      return http2.createSecureServer(serverOptions, listener)
+    }
+
+    return https.createServer(serverOptions, listener)
+  } catch (ex) {
+    const exPrefix = 'error starting https server: '
+
+    switch (ex.message) {
+      case 'error:06065064:digital envelope routines:EVP_DecryptFinal_ex:bad decrypt':
+        throw new Error(exPrefix + 'incorrect ssl passphrase')
+
+      case 'error:0906A068:PEM routines:PEM_do_header:bad password read':
+        throw new Error(exPrefix + 'required ssl passphrase not provided')
+
+      default:
+        throw new Error(exPrefix + ex.message)
     }
   }
 }
@@ -133,7 +131,7 @@ Server.prototype.create = function (listener) {
 /**
  * Handler function for when the server is listening for requests.
  */
-Server.prototype.onListening = function () {
+Server.prototype.onListening = function() {
   /* istanbul ignore next */
   if (config.get('env') !== 'test') {
     dadiBoot.started({
@@ -158,16 +156,18 @@ Server.prototype.onListening = function () {
  * Handler function for when the HTTP->HTTPS redirect server
  * is listening for requests.
  */
-Server.prototype.onRedirectListening = function () {
-  let address = this.address()
-  let env = config.get('env')
+Server.prototype.onRedirectListening = function() {
+  const address = this.address()
+  const env = config.get('env')
 
   /* istanbul ignore next */
   if (env !== 'test') {
     let startText = '\n  ----------------------------\n'
+
     startText += '  Started HTTP -> HTTPS Redirect\n'
     startText += '  ----------------------------\n'
-    startText += '  Server:      '.green + address.address + ':' + address.port + '\n'
+    startText +=
+      '  Server:      '.green + address.address + ':' + address.port + '\n'
     startText += '  ----------------------------\n'
 
     console.log(startText)
@@ -178,16 +178,18 @@ Server.prototype.onRedirectListening = function () {
  * Handler function for when the status endpoint server is
  * listening for requests.
  */
-Server.prototype.onStatusListening = function () {
-  var address = this.address()
-  let env = config.get('env')
+Server.prototype.onStatusListening = function() {
+  const address = this.address()
+  const env = config.get('env')
 
   /* istanbul ignore next */
   if (env !== 'test') {
     let startText = '\n  ----------------------------\n'
+
     startText += '  Started standalone status endpoint\n'
     startText += '  ----------------------------\n'
-    startText += '  Server:      '.green + address.address + ':' + address.port + '\n'
+    startText +=
+      '  Server:      '.green + address.address + ':' + address.port + '\n'
     startText += '  ----------------------------\n'
 
     console.log(startText)
@@ -200,7 +202,7 @@ Server.prototype.onStatusListening = function () {
  *
  * @param  {Function} done - callback function
  */
-Server.prototype.start = function (done) {
+Server.prototype.start = function(done) {
   router.use((req, res, next) => {
     const FAVICON_REGEX = /\/(favicon|(apple-)?touch-icon(-i(phone|pad))?(-\d{2,}x\d{2,})?(-precomposed)?)\.(jpe?g|png|ico|gif)$/i
 
@@ -215,10 +217,14 @@ Server.prototype.start = function (done) {
   router.use(bodyParser.json({limit: '50mb'}))
   router.use((err, req, res, next) => {
     if (err) {
-      return help.sendBackJSON(400, {
-        success: false,
-        errors: ['Invalid JSON Syntax']
-      }, res)
+      return help.sendBackJSON(
+        400,
+        {
+          success: false,
+          errors: ['Invalid JSON Syntax']
+        },
+        res
+      )
     }
 
     next()
@@ -227,19 +233,19 @@ Server.prototype.start = function (done) {
   // Ensure that middleware runs in the correct order,
   // especially when running an integrated status page.
   if (config.get('status.standalone')) {
-    let statusRouter = Router()
+    const statusRouter = Router()
 
     config.get('status.requireAuthentication') && auth(statusRouter)
     statusRouter.use('/api/status', this.status)
 
-    let statusApp = http.createServer(function (req, res) {
+    const statusApp = http.createServer(function(req, res) {
       res.setHeader('Access-Control-Allow-Origin', '*')
       res.setHeader('Cache-Control', 'no-cache')
 
       statusRouter(req, res, finalhandler(req, res))
     })
 
-    let statusServer = statusApp.listen(config.get('status.port'))
+    const statusServer = statusApp.listen(config.get('status.port'))
 
     statusServer.on('listening', this.onStatusListening)
 
@@ -260,13 +266,13 @@ Server.prototype.start = function (done) {
 
   let redirectInstance
   let redirectServer
-  let redirectPort = config.get('server.redirectPort')
+  const redirectPort = config.get('server.redirectPort')
 
   if (redirectPort > 0) {
     redirectInstance = http.createServer((req, res) => {
-      let port = config.get('server.port')
-      let hostname = req.headers.host.split(':')[0]
-      let location = `https://${hostname}:${port}${req.url}`
+      const port = config.get('server.port')
+      const hostname = req.headers.host.split(':')[0]
+      const location = `https://${hostname}:${port}${req.url}`
 
       res.setHeader('Location', location)
       res.statusCode = 301
@@ -277,18 +283,22 @@ Server.prototype.start = function (done) {
     redirectServer.on('listening', this.onRedirectListening)
   }
 
-  let app = this.create((req, res) => {
+  const app = this.create((req, res) => {
     if (config.get('multiDomain.enabled')) {
-      let domain = req.headers.host.split(':')[0]
+      const domain = req.headers.host.split(':')[0]
 
       if (
         !config.get('dadiNetwork.enableConfigurationAPI') &&
         !domainManager.getDomain(domain)
       ) {
-        return help.sendBackJSON(404, {
-          success: false,
-          message: `Domain not configured: ${domain}`
-        }, res)
+        return help.sendBackJSON(
+          404,
+          {
+            success: false,
+            message: `Domain not configured: ${domain}`
+          },
+          res
+        )
       }
 
       req.__domain = domain
@@ -303,7 +313,8 @@ Server.prototype.start = function (done) {
     router(req, res, finalhandler(req, res))
   })
 
-  let server = app.listen(config.get('server.port'))
+  const server = app.listen(config.get('server.port'))
+
   server.on('listening', this.onListening)
 
   this.readyState = 1
@@ -322,39 +333,49 @@ Server.prototype.start = function (done) {
 /**
  * Starts the frequency cache flushing process.
  */
-Server.prototype.startFrequencyCache = function () {
-  let crons = {}
+Server.prototype.startFrequencyCache = function() {
+  const crons = {}
 
   // If multi-domain is enabled, we'll set up a cron for each domain.
   if (config.get('multiDomain.enabled')) {
     domainManager.getDomains().forEach(({domain, path: domainPath}) => {
-      let cronString = config.get('caching.expireAt', domain)
+      const cronString = config.get('caching.expireAt', domain)
 
       if (typeof cronString !== 'string') return
 
-      crons[domain] = new CronJob(cronString, () => {
-        try {
-          // Flush cache for this domain.
-          cache().delete([domain])
-        } catch (err) {
-          logger.error({module: 'expireAt-flush'}, err)
-        }
-      }, null, true)
+      crons[domain] = new CronJob(
+        cronString,
+        () => {
+          try {
+            // Flush cache for this domain.
+            cache().delete([domain])
+          } catch (err) {
+            logger.error({module: 'expireAt-flush'}, err)
+          }
+        },
+        null,
+        true
+      )
     })
   } else {
-    let cronString = config.get('caching.expireAt')
+    const cronString = config.get('caching.expireAt')
 
     if (typeof cronString !== 'string') return
 
     // Otherwise, we'll set a single cron to flush the cache globally.
-    crons.__global = new CronJob(cronString, () => {
-      try {
-        // Flush cache globally.
-        cache().delete()
-      } catch (err) {
-        logger.error({module: 'expireAt-flush'}, err)
-      }
-    }, null, true)
+    crons.__global = new CronJob(
+      cronString,
+      () => {
+        try {
+          // Flush cache globally.
+          cache().delete()
+        } catch (err) {
+          logger.error({module: 'expireAt-flush'}, err)
+        }
+      },
+      null,
+      true
+    )
   }
 
   this.crons = crons
@@ -367,24 +388,26 @@ Server.prototype.startFrequencyCache = function () {
  * @param  {http.ServerResponse}  res
  * @param  {Function}             next
  */
-Server.prototype.status = function (req, res, next) {
-  let method = req.method && req.method.toLowerCase()
-  let authorization = req.headers.authorization
+Server.prototype.status = function(req, res, next) {
+  const method = req.method && req.method.toLowerCase()
+  const authorization = req.headers.authorization
 
   if (method !== 'post' || config.get('status.enabled') === false) {
     return next()
   }
 
-  let baseUrl = config.get('publicUrl.host')
-    ? `${config.get('publicUrl.protocol')}://${config.get('publicUrl.host')}:${config.get('publicUrl.port')}`
+  const baseUrl = config.get('publicUrl.host')
+    ? `${config.get('publicUrl.protocol')}://${config.get(
+        'publicUrl.host'
+      )}:${config.get('publicUrl.port')}`
     : `http://${config.get('server.host')}:${config.get('server.port')}`
 
-  let params = {
-    site: site,
+  const params = {
+    site,
     package: '@dadi/cdn',
-    version: version,
+    version,
     healthCheck: {
-      authorization: authorization,
+      authorization,
       baseUrl,
       routes: config.get('status.routes')
     }
@@ -393,7 +416,7 @@ Server.prototype.status = function (req, res, next) {
   dadiStatus(params, (err, data) => {
     if (err) return next(err)
 
-    let responseMessages = {
+    const responseMessages = {
       Green: 'Service is responding within specified parameters',
       Amber: 'Service is responding, but outside of specified parameters'
     }
@@ -401,11 +424,12 @@ Server.prototype.status = function (req, res, next) {
     data.status = {
       status: data.routes[0].status,
       healthStatus: data.routes[0].healthStatus,
-      message: responseMessages[data.routes[0].healthStatus] ||
+      message:
+        responseMessages[data.routes[0].healthStatus] ||
         'Service is not responding correctly'
     }
 
-    let resBody = JSON.stringify(data, null, 2)
+    const resBody = JSON.stringify(data, null, 2)
 
     res.statusCode = 200
     res.setHeader('Content-Type', 'application/json')
@@ -421,7 +445,7 @@ Server.prototype.status = function (req, res, next) {
  *
  * @param  {Function} done
  */
-Server.prototype.stop = function (done) {
+Server.prototype.stop = function(done) {
   this.readyState = 3
 
   this.stopFrequencyCache()
@@ -451,7 +475,7 @@ Server.prototype.stop = function (done) {
 /**
  * Starts the frequency cache flushing process.
  */
-Server.prototype.stopFrequencyCache = function () {
+Server.prototype.stopFrequencyCache = function() {
   Object.keys(this.crons).forEach(id => {
     this.crons[id].stop()
   })

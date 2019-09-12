@@ -19,7 +19,7 @@ function hexToRgb(hex) {
     ? [
         parseInt(result[1], 16),
         parseInt(result[2], 16),
-        parseInt(result[3], 16),
+        parseInt(result[3], 16)
       ]
     : null
 }
@@ -72,11 +72,13 @@ module.exports.post = ({jsonData, options, processor, sharp, stream, url}) => {
       }
 
       return sharp(data, {
-        raw: info,
-      }).toFormat(options.format).toBuffer()
+        raw: info
+      })
+        .toFormat(options.format)
+        .toBuffer()
     })
     .then(buffer => {
-      let bufferStream = new PassThrough()
+      const bufferStream = new PassThrough()
 
       bufferStream.end(buffer)
 

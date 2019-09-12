@@ -6,7 +6,7 @@ const stream = require('stream')
 const logger = require('@dadi/logger')
 const Missing = require(path.join(__dirname, '/missing'))
 
-const S3Storage = function ({assetType = 'assets', domain, url}) {
+const S3Storage = function({assetType = 'assets', domain, url}) {
   this.providerType = 'Amazon S3'
 
   AWS.config.update({
@@ -14,8 +14,8 @@ const S3Storage = function ({assetType = 'assets', domain, url}) {
     secretAccessKey: config.get(`${assetType}.s3.secretKey`)
   })
 
-  let region = config.get(`${assetType}.s3.region`)
-  let endpoint = config.get(`${assetType}.s3.endpoint`)
+  const region = config.get(`${assetType}.s3.region`)
+  const endpoint = config.get(`${assetType}.s3.endpoint`)
 
   if (region !== '') {
     AWS.config.update({region})
@@ -35,58 +35,71 @@ const S3Storage = function ({assetType = 'assets', domain, url}) {
   this.s3 = new AWS.S3()
 }
 
-S3Storage.prototype.get = function () {
+S3Storage.prototype.get = function() {
   return new Promise((resolve, reject) => {
-    let requestData = {
+    const requestData = {
       Bucket: this.getBucket(),
       Key: this.getKey()
     }
 
-    logger.info(`${this.providerType} Request (${this.url}):${JSON.stringify(requestData)}`)
+    logger.info(
+      `${this.providerType} Request (${this.url}):${JSON.stringify(
+        requestData
+      )}`
+    )
 
     if (requestData.Bucket === '' || requestData.Key === '') {
-      let err = {
+      const err = {
         statusCode: 400,
-        message: 'Either no Bucket or Key provided: ' + JSON.stringify(requestData)
+        message:
+          'Either no Bucket or Key provided: ' + JSON.stringify(requestData)
       }
+
       return reject(err)
     }
 
     // create the AWS.Request object
-    let request = this.s3.getObject(requestData)
+    const request = this.s3.getObject(requestData)
 
-    let promise = request.promise()
+    const promise = request.promise()
 
-    promise.then(data => {
-      if (data.LastModified) {
-        this.lastModified = data.LastModified
+    promise.then(
+      data => {
+        if (data.LastModified) {
+          this.lastModified = data.LastModified
+        }
+
+        const bufferStream = new stream.PassThrough()
+
+        bufferStream.push(data.Body)
+        bufferStream.push(null)
+        resolve(bufferStream)
+      },
+      error => {
+        if (error.statusCode === 404) {
+          return new Missing()
+            .get({
+              domain: this.domain,
+              isDirectory: path.parse(this.getFullUrl()).ext === ''
+            })
+            .then(stream => {
+              this.notFound = true
+              this.lastModified = new Date()
+
+              return resolve(stream)
+            })
+            .catch(err => {
+              return reject(err)
+            })
+        }
+
+        return reject(error)
       }
-
-      let bufferStream = new stream.PassThrough()
-      bufferStream.push(data.Body)
-      bufferStream.push(null)
-      resolve(bufferStream)
-    },
-    (error) => {
-      if (error.statusCode === 404) {
-        return new Missing().get({
-          domain: this.domain,
-          isDirectory: path.parse(this.getFullUrl()).ext === ''
-        }).then(stream => {
-          this.notFound = true
-          this.lastModified = new Date()
-          return resolve(stream)
-        }).catch(err => {
-          return reject(err)
-        })
-      }
-
-      return reject(error)
-    })
+    )
   })
 }
 
-S3Storage.prototype.getBucket = function () {
+S3Storage.prototype.getBucket = function() {
   // If the URL starts with /s3, it means the second parameter
   // is the name of the bucket.
   if (this.url.indexOf('/s3') === 0) {
@@ -96,29 +109,25 @@ S3Storage.prototype.getBucket = function () {
   return this.bucketName
 }
 
-S3Storage.prototype.getFullUrl = function () {
+S3Storage.prototype.getFullUrl = function() {
   return this.url
 }
 
-S3Storage.prototype.getKey = function () {
+S3Storage.prototype.getKey = function() {
   // If the URL start with /s3, it means the second parameter
   // is the name of the bucket. Let's strip that out.
   if (this.url.indexOf('/s3') === 0) {
-    return decodeURIComponent(
-      this.urlParts.slice(1).join('/')
-    )
+    return decodeURIComponent(this.urlParts.slice(1).join('/'))
   }
 
-  return decodeURIComponent(
-    this.urlParts.join('/')
-  )
+  return decodeURIComponent(this.urlParts.join('/'))
 }
 
-S3Storage.prototype.getLastModified = function () {
+S3Storage.prototype.getLastModified = function() {
   return this.lastModified
 }
 
-S3Storage.prototype.getUrlParts = function (url) {
+S3Storage.prototype.getUrlParts = function(url) {
   let canonicalUrl = url
 
   if (canonicalUrl.indexOf('/s3/') === 0) {

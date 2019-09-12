@@ -18,21 +18,27 @@ describe('Plugins', done => {
       const pluginPost = parameters => {
         pluginParameters = parameters
       }
+
       const handler = new ImageHandler('jpg', req)
 
       sinon.stub(handler.storageFactory, 'create').returns({
         get: () => {
           const readable = new fs.createReadStream(
-            path.join(path.resolve(config.get('images.directory.path')), '/test.jpg')
+            path.join(
+              path.resolve(config.get('images.directory.path')),
+              '/test.jpg'
+            )
           )
 
-          return Promise.resolve(readable)        
+          return Promise.resolve(readable)
         }
       })
 
-      handler.plugins = [{
-        post: pluginPost
-      }]
+      handler.plugins = [
+        {
+          post: pluginPost
+        }
+      ]
 
       return handler.get().then(response => {
         handler.storageFactory.create.restore()

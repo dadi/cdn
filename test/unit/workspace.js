@@ -3,9 +3,8 @@ const fs = require('fs-extra')
 const path = require('path')
 const should = require('should')
 const sinon = require('sinon')
-const workspaceFactory = require(
-  __dirname + '/../../dadi/lib/models/workspace'
-).factory
+const workspaceFactory = require(__dirname + '/../../dadi/lib/models/workspace')
+  .factory
 
 /**
  * Generates a workspace file with the given type and content.
@@ -16,35 +15,30 @@ const workspaceFactory = require(
  * @param  {String} content
  * @return {String}         The full path to the generated file
  */
-const mockWorkspaceFile = function ({
+const mockWorkspaceFile = function({
   content = {},
   delete: isDelete = false,
   domain,
   name,
   type
 }) {
-  let domainSubPath = domain
+  const domainSubPath = domain
     ? path.join(config.get('multiDomain.directory'), domain)
     : ''
-  let directory = path.resolve(
-    domainSubPath,
-    config.get(`paths.${type}`)
-  )
-  let fullPath = path.join(
-    directory,
-    name
-  )
+  const directory = path.resolve(domainSubPath, config.get(`paths.${type}`))
+  const fullPath = path.join(directory, name)
 
   if (isDelete) {
     try {
       fs.unlinkSync(fullPath)
 
       return fullPath
-    } catch (err) {}
+    } catch (err) {
+      // no-op
+    }
   } else {
-    const serialisedContent = typeof content === 'string'
-      ? content
-      : JSON.stringify(content, null, 2)
+    const serialisedContent =
+      typeof content === 'string' ? content : JSON.stringify(content, null, 2)
 
     fs.ensureDirSync(directory)
     fs.writeFileSync(fullPath, serialisedContent)
@@ -55,7 +49,7 @@ const mockWorkspaceFile = function ({
 
 let workspace
 
-describe('Workspace', function () {
+describe('Workspace', function() {
   beforeEach(() => {
     workspace = workspaceFactory()
   })
@@ -99,12 +93,14 @@ describe('Workspace', function () {
         files['my-plugin'].should.be.Object
         files['my-plugin'].path.should.eql(samplePluginPath)
         files['my-plugin'].type.should.eql('plugins')
-        
+
         // Recipe
         const source = require(sampleRecipePath)
 
         files['my-recipe'].should.be.Object
-        JSON.stringify(files['my-recipe'].source).should.eql(JSON.stringify(sampleRecipe))
+        JSON.stringify(files['my-recipe'].source).should.eql(
+          JSON.stringify(sampleRecipe)
+        )
         files['my-recipe'].path.should.eql(sampleRecipePath)
         files['my-recipe'].type.should.eql('recipes')
 
@@ -117,12 +113,12 @@ describe('Workspace', function () {
           type: 'recipes',
           name: 'my-recipe.json',
           delete: true
-        })        
+        })
       })
     })
 
     it('should read files from domain-specific workspace directories', () => {
-      let configBackup = config.get('multiDomain')
+      const configBackup = config.get('multiDomain')
 
       config.set('multiDomain.enabled', true)
       config.set('multiDomain.directory', 'domains')
@@ -156,12 +152,16 @@ describe('Workspace', function () {
         const source = require(sampleRecipePath)
 
         files['testdomain.com:my-domain-recipe'].should.be.Object
-        JSON.stringify(files['testdomain.com:my-domain-recipe'].source).should.eql(
-          JSON.stringify(sampleRecipe)
+        JSON.stringify(
+          files['testdomain.com:my-domain-recipe'].source
+        ).should.eql(JSON.stringify(sampleRecipe))
+        files['testdomain.com:my-domain-recipe'].path.should.eql(
+          sampleRecipePath
         )
-        files['testdomain.com:my-domain-recipe'].path.should.eql(sampleRecipePath)
         files['testdomain.com:my-domain-recipe'].type.should.eql('recipes')
-        files['testdomain.com:my-domain-recipe'].domain.should.eql('testdomain.com')
+        files['testdomain.com:my-domain-recipe'].domain.should.eql(
+          'testdomain.com'
+        )
 
         mockWorkspaceFile({
           type: 'plugins',
@@ -175,7 +175,7 @@ describe('Workspace', function () {
           delete: true
         })
 
-        config.set('multiDomain', configBackup)        
+        config.set('multiDomain', configBackup)
       })
     })
 
@@ -279,37 +279,34 @@ describe('Workspace', function () {
         content: sampleRecipe
       })
 
-      return workspace.read().then(files => {
-        files['my-recipe'].should.be.Object
-        files['my-recipe'].source.settings.format.should.eql('png')
+      return workspace
+        .read()
+        .then(files => {
+          files['my-recipe'].should.be.Object
+          files['my-recipe'].source.settings.format.should.eql('png')
 
-        sampleRecipePath = mockWorkspaceFile({
-          type: 'recipes',
-          name: 'my-recipe.json',
-          content: Object.assign(
-            {},
-            sampleRecipe,
-            {
-              settings: Object.assign(
-                {},
-                sampleRecipe.settings,
-                {format: 'jpg'}
-              )
-            }
-          )
+          sampleRecipePath = mockWorkspaceFile({
+            type: 'recipes',
+            name: 'my-recipe.json',
+            content: Object.assign({}, sampleRecipe, {
+              settings: Object.assign({}, sampleRecipe.settings, {
+                format: 'jpg'
+              })
+            })
+          })
+
+          return workspace.read()
         })
+        .then(files => {
+          files['my-recipe'].should.be.Object
+          files['my-recipe'].source.settings.format.should.eql('jpg')
 
-        return workspace.read()   
-      }).then(files => {
-        files['my-recipe'].should.be.Object
-        files['my-recipe'].source.settings.format.should.eql('jpg')
-
-        mockWorkspaceFile({
-          type: 'recipes',
-          name: 'my-recipe.json',
-          delete: true
+          mockWorkspaceFile({
+            type: 'recipes',
+            name: 'my-recipe.json',
+            delete: true
+          })
         })
-      })
     })
   })
 
@@ -317,20 +314,20 @@ describe('Workspace', function () {
     it('should generate a tree structure of the workspace files and save it internally', () => {
       return workspace.read().then(tree1 => {
         workspace.workspace.should.eql({})
-        
+
         return workspace.build().then(tree2 => {
           workspace.workspace.should.eql(tree1)
           workspace.workspace.should.eql(tree2)
         })
       })
-    })  
+    })
   })
 
   describe('get()', () => {
     it('should return the entire workspace tree when given no arguments', () => {
       return workspace.read().then(files => {
         return workspace.build().then(() => {
-          workspace.get().should.eql(files)    
+          workspace.get().should.eql(files)
         })
       })
     })
@@ -362,12 +359,12 @@ describe('Workspace', function () {
           type: 'recipes',
           name: 'my-recipe.json',
           delete: true
-        })        
+        })
       })
     })
 
     describe('by domain', () => {
-      let configBackup = config.get('multiDomain')
+      const configBackup = config.get('multiDomain')
 
       beforeEach(() => {
         config.set('multiDomain.enabled', true)
@@ -396,7 +393,7 @@ describe('Workspace', function () {
         return workspace.build().then(() => {
           should.not.exist(workspace.get('my-recipe'))
 
-          let workspaceItem = workspace.get('my-recipe', 'testdomain.com')
+          const workspaceItem = workspace.get('my-recipe', 'testdomain.com')
 
           workspaceItem.should.be.Object
           workspaceItem.source.should.eql(sampleRecipe)
@@ -432,7 +429,7 @@ describe('Workspace', function () {
             type: 'recipes',
             name: 'my-recipe.json',
             delete: true
-          })  
+          })
         })
       })
 
@@ -465,7 +462,9 @@ describe('Workspace', function () {
 
         return workspace.build().then(() => {
           workspace.get('my-recipe').source.settings.format.should.eql('png')
-          workspace.get('my-recipe', 'testdomain.com').source.settings.format.should.eql('jpg')
+          workspace
+            .get('my-recipe', 'testdomain.com')
+            .source.settings.format.should.eql('jpg')
 
           mockWorkspaceFile({
             type: 'recipes',

@@ -5,7 +5,7 @@ const path = require('path')
 const config = require(path.join(__dirname, '/../../../config.js'))
 const help = require(path.join(__dirname, '/../help'))
 
-function mustAuthenticate (requestUrl) {
+function mustAuthenticate(requestUrl) {
   // Allow internal requests.
   if (requestUrl.indexOf('/_dadi') === 0) {
     return false
@@ -16,8 +16,8 @@ function mustAuthenticate (requestUrl) {
 }
 
 // This attaches middleware to the passed in app instance
-module.exports = function (router) {
-  let tokenRoute = '/token'
+module.exports = function(router) {
+  const tokenRoute = '/token'
 
   // Authorize
   router.use((req, res, next) => {
@@ -33,36 +33,39 @@ module.exports = function (router) {
     }
 
     // Strip token value out of request headers.
-    let parts = req.headers.authorization.split(' ')
+    const parts = req.headers.authorization.split(' ')
 
     // Headers should be `Authorization: Bearer <%=tokenvalue%>`
-    let token = (parts.length === 2 && /^Bearer$/i.test(parts[0]))
-      ? parts[1]
-      : null
+    const token =
+      parts.length === 2 && /^Bearer$/i.test(parts[0]) ? parts[1] : null
 
     if (!token) {
       return fail('NoToken', res)
     }
 
-    jwt.verify(token, config.get('auth.privateKey', req.__domain), (err, decoded) => {
-      if (err || (decoded.domain !== req.__domain)) {
-        return fail('InvalidToken', res)
-      }
+    jwt.verify(
+      token,
+      config.get('auth.privateKey', req.__domain),
+      (err, decoded) => {
+        if (err || decoded.domain !== req.__domain) {
+          return fail('InvalidToken', res)
+        }
 
-      return next()
-    })
+        return next()
+      }
+    )
   })
 
   // Setup token service.
   router.use(tokenRoute, (req, res, next) => {
-    let method = req.method && req.method.toLowerCase()
+    const method = req.method && req.method.toLowerCase()
 
     if (method !== 'post') {
       return next()
     }
 
-    let clientId = req.body.clientId
-    let secret = req.body.secret
+    const clientId = req.body.clientId
+    const secret = req.body.secret
 
     // Fail if the auth.clientId or auth.secret haven't been set.
     if (!clientId || !secret) {
@@ -82,41 +85,57 @@ module.exports = function (router) {
       return fail('NoAccess', res)
     }
 
-    let payload = {
+    const payload = {
       domain: req.__domain
     }
 
     // Sign a JWT token.
-    jwt.sign(payload, config.get('auth.privateKey', req.__domain), {
-      expiresIn: config.get('auth.tokenTtl', req.__domain)
-    }, (err, token) => {
-      if (err) {
-        logger.error({module: 'auth'}, err)
+    jwt.sign(
+      payload,
+      config.get('auth.privateKey', req.__domain),
+      {
+        expiresIn: config.get('auth.tokenTtl', req.__domain)
+      },
+      (err, token) => {
+        if (err) {
+          logger.error({module: 'auth'}, err)
 
-        return fail('JWTError', res)
+          return fail('JWTError', res)
+        }
+
+        res.setHeader('Content-Type', 'application/json')
+        res.setHeader('Cache-Control', 'no-store')
+        res.setHeader('Pragma', 'no-cache')
+        res.end(
+          JSON.stringify({
+            accessToken: token,
+            tokenType: 'Bearer',
+            expiresIn: config.get('auth.tokenTtl')
+          })
+        )
       }
-
-      res.setHeader('Content-Type', 'application/json')
-      res.setHeader('Cache-Control', 'no-store')
-      res.setHeader('Pragma', 'no-cache')
-      res.end(JSON.stringify({
-        accessToken: token,
-        tokenType: 'Bearer',
-        expiresIn: config.get('auth.tokenTtl')
-      }))
-    })
+    )
   })
 
-  function fail (type, res) {
+  function fail(type, res) {
     switch (type) {
       case 'NoToken':
-        res.setHeader('WWW-Authenticate', 'Bearer, error="no_token", error_description="No access token supplied"')
+        res.setHeader(
+          'WWW-Authenticate',
+          'Bearer, error="no_token", error_description="No access token supplied"'
+        )
         break
       case 'InvalidToken':
-        res.setHeader('WWW-Authenticate', 'Bearer, error="invalid_token", error_description="Invalid or expired access token"')
+        res.setHeader(
+          'WWW-Authenticate',
+          'Bearer, error="invalid_token", error_description="Invalid or expired access token"'
+        )
         break
       case 'NoPrivateKey':
-        res.setHeader('WWW-Authenticate', 'Bearer, error="no_private_key", error_description="No private key configured in auth.privateKey"')
+        res.setHeader(
+          'WWW-Authenticate',
+          'Bearer, error="no_private_key", error_description="No private key configured in auth.privateKey"'
+        )
         break
       default:
         res.setHeader('WWW-Authenticate', 'Bearer realm="/token"')

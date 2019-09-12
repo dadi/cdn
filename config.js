@@ -62,32 +62,37 @@ const schema = {
       env: 'SSL_INTERMEDIATE_CERTIFICATE_PATH'
     },
     sslIntermediateCertificatePaths: {
-      doc: 'The filenames of SSL intermediate certificates, overrides sslIntermediateCertificate (singular)',
+      doc:
+        'The filenames of SSL intermediate certificates, overrides sslIntermediateCertificate (singular)',
       format: Array,
       default: [],
       env: 'SSL_INTERMEDIATE_CERTIFICATE_PATHS'
     },
     enableHTTP2: {
-      doc: 'When `server.protocol = https` use http2 as the primary response method. Fallback to http1 for unsupported clients.',
+      doc:
+        'When `server.protocol = https` use http2 as the primary response method. Fallback to http1 for unsupported clients.',
       format: Boolean,
       default: true
     }
   },
   publicUrl: {
     host: {
-      doc: 'The host of the URL where the CDN instance can be publicly accessed at',
+      doc:
+        'The host of the URL where the CDN instance can be publicly accessed at',
       format: '*',
       default: null,
       env: 'URL_HOST'
     },
     port: {
-      doc: 'The port of the URL where the CDN instance can be publicly accessed at',
+      doc:
+        'The port of the URL where the CDN instance can be publicly accessed at',
       format: '*',
       default: 80,
       env: 'URL_PORT'
     },
     protocol: {
-      doc: 'The protocol of the URL where the CDN instance can be publicly accessed at',
+      doc:
+        'The protocol of the URL where the CDN instance can be publicly accessed at',
       format: 'String',
       default: 'http',
       env: 'URL_PROTOCOL'
@@ -121,7 +126,8 @@ const schema = {
     },
     accessLog: {
       enabled: {
-        doc: "If true, HTTP access logging is enabled. The log file name is similar to the setting used for normal logging, with the addition of 'access'. For example `cdn.access.log`.",
+        doc:
+          "If true, HTTP access logging is enabled. The log file name is similar to the setting used for normal logging, with the addition of 'access'. For example `cdn.access.log`.",
         format: Boolean,
         default: true
       }
@@ -186,36 +192,42 @@ const schema = {
     },
     s3: {
       enabled: {
-        doc: 'If true, image files may be requested from Amazon S3 Buckets or Digital Ocean Spaces',
+        doc:
+          'If true, image files may be requested from Amazon S3 Buckets or Digital Ocean Spaces',
         format: Boolean,
         default: false
       },
       accessKey: {
-        doc: 'The access key used to connect to Amazon or Digital Ocean services for image files',
+        doc:
+          'The access key used to connect to Amazon or Digital Ocean services for image files',
         format: String,
         default: '',
         env: 'AWS_S3_IMAGES_ACCESS_KEY'
       },
       secretKey: {
-        doc: 'The secret used to connect to Amazon or Digital Ocean services for image files',
+        doc:
+          'The secret used to connect to Amazon or Digital Ocean services for image files',
         format: String,
         default: '',
         env: 'AWS_S3_IMAGES_SECRET_KEY'
       },
       bucketName: {
-        doc: 'The Amazon S3 Bucket or Digital Ocean Space that contains the image files',
+        doc:
+          'The Amazon S3 Bucket or Digital Ocean Space that contains the image files',
         format: String,
         default: '',
         env: 'AWS_S3_IMAGES_BUCKET_NAME'
       },
       region: {
-        doc: 'The Amazon S3 or Digital Ocean region the Bucket/Space is served from',
+        doc:
+          'The Amazon S3 or Digital Ocean region the Bucket/Space is served from',
         format: String,
         default: '',
         env: 'AWS_S3_IMAGES_REGION'
       },
       endpoint: {
-        doc: 'The endpoint used to access Digital Ocean Spaces. Not required for Amazon S3.',
+        doc:
+          'The endpoint used to access Digital Ocean Spaces. Not required for Amazon S3.',
         format: String,
         default: '',
         env: 'AWS_S3_IMAGES_ENDPOINT'
@@ -229,7 +241,8 @@ const schema = {
         allowDomainOverride: true
       },
       path: {
-        doc: 'The remote host to request images from, for example http://media.example.com',
+        doc:
+          'The remote host to request images from, for example http://media.example.com',
         format: String,
         default: '',
         allowDomainOverride: true
@@ -259,36 +272,42 @@ const schema = {
     },
     s3: {
       enabled: {
-        doc: 'If true, asset files may be requested from Amazon S3 Buckets or Digital Ocean Spaces',
+        doc:
+          'If true, asset files may be requested from Amazon S3 Buckets or Digital Ocean Spaces',
         format: Boolean,
         default: false
       },
       accessKey: {
-        doc: 'The access key used to connect to Amazon or Digital Ocean services for asset files',
+        doc:
+          'The access key used to connect to Amazon or Digital Ocean services for asset files',
         format: String,
         default: '',
         env: 'AWS_S3_ASSETS_ACCESS_KEY'
       },
       secretKey: {
-        doc: 'The secret used to connect to Amazon or Digital Ocean services for asset files',
+        doc:
+          'The secret used to connect to Amazon or Digital Ocean services for asset files',
         format: String,
         default: '',
         env: 'AWS_S3_ASSETS_SECRET_KEY'
       },
       bucketName: {
-        doc: 'The Amazon S3 Bucket or Digital Ocean Space that contains the asset files',
+        doc:
+          'The Amazon S3 Bucket or Digital Ocean Space that contains the asset files',
         format: String,
         default: '',
         env: 'AWS_S3_ASSETS_BUCKET_NAME'
       },
       region: {
-        doc: 'The Amazon S3 or Digital Ocean region the Bucket/Space is served from',
+        doc:
+          'The Amazon S3 or Digital Ocean region the Bucket/Space is served from',
         format: String,
         default: '',
         env: 'AWS_S3_ASSETS_REGION'
       },
       endpoint: {
-        doc: 'The endpoint used to access Digital Ocean Spaces. Not required for Amazon S3.',
+        doc:
+          'The endpoint used to access Digital Ocean Spaces. Not required for Amazon S3.',
         format: String,
         default: '',
         env: 'AWS_S3_ASSETS_ENDPOINT'
@@ -302,7 +321,8 @@ const schema = {
         allowDomainOverride: true
       },
       path: {
-        doc: 'The remote host to request assets from, for example http://media.example.com',
+        doc:
+          'The remote host to request assets from, for example http://media.example.com',
         format: String,
         default: '',
         allowDomainOverride: true
@@ -391,13 +411,15 @@ const schema = {
       default: false
     },
     port: {
-      doc: 'Accept connections on the specified port. A value of zero will assign a random port.',
+      doc:
+        'Accept connections on the specified port. A value of zero will assign a random port.',
       format: Number,
       default: 8003,
       env: 'STATUS_PORT'
     },
     routes: {
-      doc: 'An array of routes to test. Each route object must contain properties `route` and `expectedResponseTime`. Note, `expectedResponseTime` is seconds.',
+      doc:
+        'An array of routes to test. Each route object must contain properties `route` and `expectedResponseTime`. Note, `expectedResponseTime` is seconds.',
       format: Array,
       default: [
         {
@@ -480,7 +502,8 @@ const schema = {
     }
   },
   cluster: {
-    doc: 'If true, CDN runs in cluster mode, starting a worker for each CPU core',
+    doc:
+      'If true, CDN runs in cluster mode, starting a worker for each CPU core',
     format: Boolean,
     default: true
   },
@@ -506,18 +529,20 @@ const schema = {
   },
   headers: {
     useGzipCompression: {
-      doc: 'If true, uses gzip compression and adds a \'Content-Encoding:gzip\' header to the response.',
+      doc:
+        "If true, uses gzip compression and adds a 'Content-Encoding:gzip' header to the response.",
       format: Boolean,
       default: true,
       allowDomainOverride: true
     },
     cacheControl: {
-      doc: 'A set of cache control headers based on specified mimetypes or paths',
+      doc:
+        'A set of cache control headers based on specified mimetypes or paths',
       format: Object,
       default: {
-        'default': 'public, max-age=3600',
-        'paths': [],
-        'mimetypes': [
+        default: 'public, max-age=3600',
+        paths: [],
+        mimetypes: [
           {'text/css': 'public, max-age=86400'},
           {'text/javascript': 'public, max-age=86400'},
           {'application/javascript': 'public, max-age=86400'}
@@ -558,7 +583,8 @@ const schema = {
     },
     remote: {
       url: {
-        doc: 'Remote URL to be used for geolocation. {key}, {secret} and {ip} will be replaced by the API key, secret and IP to locate, respectively',
+        doc:
+          'Remote URL to be used for geolocation. {key}, {secret} and {ip} will be replaced by the API key, secret and IP to locate, respectively',
         format: String,
         default: ''
       },
@@ -583,7 +609,8 @@ const schema = {
   },
   network: {
     url: {
-      doc: 'Remote URL to be used for network test service. {key}, {secret} and {ip} will be replaced by the API key, secret and IP to locate, respectively',
+      doc:
+        'Remote URL to be used for network test service. {key}, {secret} and {ip} will be replaced by the API key, secret and IP to locate, respectively',
       format: String,
       default: ''
     },
@@ -625,7 +652,8 @@ const schema = {
         default: 'bicubic'
       },
       centreSampling: {
-        doc: 'Whether to use *magick centre sampling convention instead of corner sampling',
+        doc:
+          'Whether to use *magick centre sampling convention instead of corner sampling',
         format: Boolean,
         default: false
       }
@@ -633,7 +661,8 @@ const schema = {
   },
   experimental: {
     jsTranspiling: {
-      doc: 'Whether to enable experimental support for on-demand JavaScript transpiling',
+      doc:
+        'Whether to enable experimental support for on-demand JavaScript transpiling',
       format: Boolean,
       default: false,
       env: 'JSTRANSPILING',
@@ -661,47 +690,51 @@ const schema = {
   },
   http: {
     followRedirects: {
-      doc: 'The number of redirects to follow when retrieving assets via HTTP requests',
+      doc:
+        'The number of redirects to follow when retrieving assets via HTTP requests',
       format: Number,
       default: 10,
       allowDomainOverride: true
     }
   },
   defaultFiles: {
-    doc: 'An array of filenames that can be used as fallback defaults when no path is specified',
+    doc:
+      'An array of filenames that can be used as fallback defaults when no path is specified',
     format: Array,
     default: []
   }
 }
 
-const Config = function () {
+const Config = function() {
   this.loadFile(this.configPath())
 
-  this.watcher = chokidar.watch(
-    this.configPath(),
-    {usePolling: true}
-  ).on('all', (event, filePath) => {
-    this.loadFile(this.configPath())
-  })
+  this.watcher = chokidar
+    .watch(this.configPath(), {usePolling: true})
+    .on('all', (event, filePath) => {
+      this.loadFile(this.configPath())
+    })
 
   this.domainSchema = {}
   this.createDomainSchema(schema, this.domainSchema)
 
-  let domainsDirectory = this.get('multiDomain.directory')
+  const domainsDirectory = this.get('multiDomain.directory')
 
   // Watch the domains directory for new & removed domain configurations.
-  this.domainsWatcher = chokidar.watch(domainsDirectory, {
-    awaitWriteFinish: true,
-    depth: 1,
-    usePolling: true
-  }).on('addDir', (event, filePath) => {
-    this.loadDomainConfigs()
-  }).on('unlinkDir', (event, filePath) => {
-    // Wait 3 sec for the delete to finish before rescanning
-    setTimeout(() => {
+  this.domainsWatcher = chokidar
+    .watch(domainsDirectory, {
+      awaitWriteFinish: true,
+      depth: 1,
+      usePolling: true
+    })
+    .on('addDir', (event, filePath) => {
       this.loadDomainConfigs()
-    }, 3000)
-  })
+    })
+    .on('unlinkDir', (event, filePath) => {
+      // Wait 3 sec for the delete to finish before rescanning
+      setTimeout(() => {
+        this.loadDomainConfigs()
+      }, 3000)
+    })
 }
 
 Config.prototype = convict(schema)
@@ -712,8 +745,8 @@ Config.prototype = convict(schema)
  *
  * @return {String}
  */
-Config.prototype.configPath = function () {
-  let environment = this.get('env')
+Config.prototype.configPath = function() {
+  const environment = this.get('env')
 
   return `./config/config.${environment}.json`
 }
@@ -727,11 +760,11 @@ Config.prototype.configPath = function () {
  * @param  {Object} target - variable to write the schema to
  * @param  {Array}  tail   - helper variable for recursion
  */
-Config.prototype.createDomainSchema = function (schema, target, tail = []) {
+Config.prototype.createDomainSchema = function(schema, target, tail = []) {
   if (!schema || typeof schema !== 'object') return
 
   if (schema.allowDomainOverride) {
-    let path = tail.join('.')
+    const path = tail.join('.')
 
     objectPath.set(
       target,
@@ -745,11 +778,7 @@ Config.prototype.createDomainSchema = function (schema, target, tail = []) {
   }
 
   Object.keys(schema).forEach(key => {
-    this.createDomainSchema(
-      schema[key],
-      target,
-      tail.concat(key)
-    )
+    this.createDomainSchema(schema[key], target, tail.concat(key))
   })
 }
 
@@ -769,7 +798,7 @@ Config.prototype._get = Config.prototype.get
  * @param  {String} domain - domain name
  * @return {Object}
  */
-Config.prototype.get = function (path, domain) {
+Config.prototype.get = function(path, domain) {
   if (
     domain === undefined ||
     this.domainConfigs[domain] === undefined ||
@@ -781,7 +810,7 @@ Config.prototype.get = function (path, domain) {
   return this.domainConfigs[domain].get(path)
 }
 
-Config.prototype.loadDomainConfig = function (domain, domainConfig) {
+Config.prototype.loadDomainConfig = function(domain, domainConfig) {
   this.domainConfigs[domain] = convict(this.domainSchema)
   this.domainConfigs[domain].load(domainConfig)
 }
@@ -792,24 +821,25 @@ Config.prototype.loadDomainConfig = function (domain, domainConfig) {
  *
  * @return {Object}
  */
-Config.prototype.loadDomainConfigs = function () {
+Config.prototype.loadDomainConfigs = function() {
   if (!this.get('multiDomain.enabled')) {
     return {}
   }
 
-  let domainsDirectory = this.get('multiDomain.directory')
-  let configs = {}
+  const domainsDirectory = this.get('multiDomain.directory')
+  const configs = {}
 
   domainManager
     .scanDomains(domainsDirectory)
-    .getDomains().forEach(({domain, path: domainPath}) => {
-      let configPath = path.join(
+    .getDomains()
+    .forEach(({domain, path: domainPath}) => {
+      const configPath = path.join(
         domainPath,
         `config/config.${this.get('env')}.json`
       )
 
       try {
-        let file = fs.statSync(configPath)
+        const file = fs.statSync(configPath)
 
         if (file.isFile()) {
           configs[domain] = convict(this.domainSchema)
@@ -844,7 +874,7 @@ Config.prototype._set = Config.prototype.set
  * @param {Object} value
  * @param {String} domain
  */
-Config.prototype.set = function (path, value, domain) {
+Config.prototype.set = function(path, value, domain) {
   if (
     domain === undefined ||
     this.domainConfigs[domain] === undefined ||

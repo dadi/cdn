@@ -15,12 +15,12 @@ const PluginHandler = require(path.join(__dirname, '/plugin'))
 const Route = require(path.join(__dirname, '/../models/route'))
 const workspace = require(path.join(__dirname, '/../models/workspace'))
 
-function parseUrl (req) {
+function parseUrl(req) {
   return url.parse(req.url, true)
 }
 
-function getFormat (req) {
-  let parsedPath = parseUrl(req).pathname
+function getFormat(req) {
+  const parsedPath = parseUrl(req).pathname
 
   // add default jpg extension
   // if (path.extname(parsedPath) === '') {
@@ -31,21 +31,27 @@ function getFormat (req) {
     return parsedPath.split('/').find(Boolean)
   }
 
-  return path.extname(parsedPath).replace('.', '').toLowerCase()
+  return path
+    .extname(parsedPath)
+    .replace('.', '')
+    .toLowerCase()
 }
 
-const HandlerFactory = function () {}
+const HandlerFactory = function() {}
 
-HandlerFactory.prototype.create = function (req, mimetype) {
+HandlerFactory.prototype.create = function(req, mimetype) {
   const parsedUrl = url.parse(req.url, true)
   const pathComponents = parsedUrl.pathname.slice(1).split('/')
 
-  let format = mimetype ? mime.getExtension(mimetype) : null
+  const format = mimetype ? mime.getExtension(mimetype) : null
 
   // version 1 matches a string like /jpg/80/0/0/640/480/ at the beginning of the url pathname
   const v1pattern = /^\/[a-z]{3,4}\/[0-9]+\/[0-1]+\/[0-1]+\/[0-9]+\/[0-9]+\//gi
 
-  if (v1pattern.test(parsedUrl.pathname) || /\/(fonts|css|js)/.test(pathComponents[0])) {
+  if (
+    v1pattern.test(parsedUrl.pathname) ||
+    /\/(fonts|css|js)/.test(pathComponents[0])
+  ) {
     req.__cdnLegacyURLSyntax = true
 
     logger.warn(
@@ -65,41 +71,41 @@ HandlerFactory.prototype.create = function (req, mimetype) {
       format,
       req
     })
-  } else {
-    // Check if a workspace file matches the first part of the path.
-    const workspaceMatch = workspace.get(pathComponents[0], req.__domain)
+  }
 
-    switch (workspaceMatch && workspaceMatch.type) {
-      case 'plugins':
-        return this.createFromPlugin({
-          plugin: require(workspaceMatch.path),
-          req
-        })
+  // Check if a workspace file matches the first part of the path.
+  const workspaceMatch = workspace.get(pathComponents[0], req.__domain)
 
-      case 'recipes':
-        return this.createFromRecipe({
-          name: pathComponents[0],
-          req,
-          workspaceMatch
-        })
+  switch (workspaceMatch && workspaceMatch.type) {
+    case 'plugins':
+      return this.createFromPlugin({
+        plugin: require(workspaceMatch.path),
+        req
+      })
 
-      case 'routes':
-        return this.createFromRoute({
-          name: pathComponents[0],
-          req,
-          workspaceMatch
-        })
+    case 'recipes':
+      return this.createFromRecipe({
+        name: pathComponents[0],
+        req,
+        workspaceMatch
+      })
 
-      default:
-        return this.createFromFormat({
-          format,
-          req
-        })
-    }
+    case 'routes':
+      return this.createFromRoute({
+        name: pathComponents[0],
+        req,
+        workspaceMatch
+      })
+
+    default:
+      return this.createFromFormat({
+        format,
+        req
+      })
   }
 }
 
-HandlerFactory.prototype.callErrorHandler = function (format, req) {
+HandlerFactory.prototype.callErrorHandler = function(format, req) {
   const error = new Error('Unknown URI')
 
   error.statusCode = 404
@@ -108,8 +114,13 @@ HandlerFactory.prototype.callErrorHandler = function (format, req) {
   return Promise.reject(error)
 }
 
-HandlerFactory.prototype.createFromFormat = function ({format, options, plugins, req}) {
-  let handlerData = {
+HandlerFactory.prototype.createFromFormat = function({
+  format,
+  options,
+  plugins,
+  req
+}) {
+  const handlerData = {
     options,
     plugins
   }
@@ -131,6 +142,7 @@ HandlerFactory.prototype.createFromFormat = function ({format, options, plugins,
         return resolve(new ImageHandler(format, req, handlerData))
       case 'bin':
         format = 'jpg'
+
         return resolve(new ImageHandler(format, req, handlerData))
       default:
         return resolve(new DefaultHandler(format, req, handlerData))
@@ -138,11 +150,16 @@ HandlerFactory.prototype.createFromFormat = function ({format, options, plugins,
   })
 }
 
-HandlerFactory.prototype.createFromPlugin = function ({plugin, req}) {
+HandlerFactory.prototype.createFromPlugin = function({plugin, req}) {
   return Promise.resolve(new PluginHandler(req, plugin))
 }
 
-HandlerFactory.prototype.createFromRecipe = function ({name, req, route, workspaceMatch}) {
+HandlerFactory.prototype.createFromRecipe = function({
+  name,
+  req,
+  route,
+  workspaceMatch
+}) {
   const parsedUrl = url.parse(req.url, true)
   const source = workspaceMatch.source
   const recipeSettings = source.settings || {}
@@ -181,7 +198,11 @@ HandlerFactory.prototype.createFromRecipe = function ({name, req, route, workspa
   })
 }
 
-HandlerFactory.prototype.createFromRoute = function ({name, req, workspaceMatch}) {
+HandlerFactory.prototype.createFromRoute = function({
+  name,
+  req,
+  workspaceMatch
+}) {
   const route = new Route(workspaceMatch.source)
 
   route.setDomain(req.__domain)
@@ -189,7 +210,7 @@ HandlerFactory.prototype.createFromRoute = function ({name, req, workspaceMatch}
   route.setUserAgent(req.headers['user-agent'])
 
   return route.getRecipe().then(recipeName => {
-    let workspaceMatch = workspace.get(recipeName, req.__domain)
+    const workspaceMatch = workspace.get(recipeName, req.__domain)
 
     if (workspaceMatch && workspaceMatch.type === 'recipes') {
       return this.createFromRecipe({
@@ -204,7 +225,7 @@ HandlerFactory.prototype.createFromRoute = function ({name, req, workspaceMatch}
   })
 }
 
-module.exports = function () {
+module.exports = function() {
   return new HandlerFactory()
 }
 

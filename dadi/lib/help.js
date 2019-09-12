@@ -1,9 +1,10 @@
 const cache = require('./cache')
 const concat = require('concat-stream')
 
-module.exports.clearCache = function (pathname, callback) {
-  cache().delete(pathname, (err) => {
+module.exports.clearCache = function(pathname, callback) {
+  cache().delete(pathname, err => {
     if (err) console.log(err)
+
     return callback(null)
   })
 }
@@ -11,13 +12,13 @@ module.exports.clearCache = function (pathname, callback) {
 /**
  * Display Unauthorized Error
  */
-module.exports.displayUnauthorizedError = function (res) {
+module.exports.displayUnauthorizedError = function(res) {
   res.statusCode = 401
   res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate')
   res.setHeader('Content-Type', 'application/json')
   res.setHeader('Expires', '-1')
 
-  let errorMsg = {
+  const errorMsg = {
     Error: 'HTTP 401 Unauthorized'
   }
 
@@ -25,7 +26,7 @@ module.exports.displayUnauthorizedError = function (res) {
 }
 
 // helper that sends json response
-module.exports.sendBackJSON = function (successCode, results, res) {
+module.exports.sendBackJSON = function(successCode, results, res) {
   res.statusCode = successCode
 
   let resBody
@@ -52,9 +53,9 @@ module.exports.sendBackJSON = function (successCode, results, res) {
  *
  * @param {stream} stream
  */
-module.exports.streamToBuffer = function (stream) {
+module.exports.streamToBuffer = function(stream) {
   return new Promise((resolve, reject) => {
-    let concatStream = concat(buffer => {
+    const concatStream = concat(buffer => {
       return resolve(buffer)
     })
 

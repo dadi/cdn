@@ -9,7 +9,8 @@ const url = require('url')
 const userAgent = require('useragent')
 const StorageFactory = require('./../storage/factory')
 
-const DEFAULT_UA = 'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.0; Trident/4.0)'
+const DEFAULT_UA =
+  'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.0; Trident/4.0)'
 
 /**
  * Creates a new JSHandler instance.
@@ -17,17 +18,48 @@ const DEFAULT_UA = 'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.0; Trident/4
  * @param {String} format The extension of the file being handled
  * @param {Object} req    The request instance
  */
-const JSHandler = function (format, req, {
-  options = {}
-} = {}) {
+const JSHandler = function(format, req, {options = {}} = {}) {
   this.legacyURLOverrides = this.getLegacyURLOverrides(req.url)
-  this.options = options
-  this.url = url.parse(
-    this.legacyURLOverrides.url || req.url,
-    true
+  this.url = url.parse(this.legacyURLOverrides.url || req.url, true)
+
+  const mergedOptions = Object.assign(
+    {},
+    this.url.query,
+    this.legacyURLOverrides,
+    options
   )
 
-  this.isExternalUrl = this.url.pathname.indexOf('http://') > 0 || this.url.pathname.indexOf('https://') > 0
+  // Normalising boolean values (e.g. true vs. 1 vs. '1').
+  this.options = Object.keys(mergedOptions).reduce((result, key) => {
+    let value
+
+    switch (mergedOptions[key]) {
+      case 0:
+      case '0':
+      case 'false':
+        value = false
+
+        break
+
+      case 1:
+      case '1':
+      case 'true':
+        value = true
+
+        break
+
+      default:
+        value = mergedOptions[key]
+    }
+
+    result[key] = value
+
+    return result
+  }, {})
+
+  this.isExternalUrl =
+    this.url.pathname.indexOf('http://') > 0 ||
+    this.url.pathname.indexOf('https://') > 0
 
   this.cache = Cache()
   this.cacheKey = [req.__domain, this.url.href]
@@ -45,52 +77,63 @@ const JSHandler = function (format, req, {
  *
  * @return {Promise} A stream with the file
  */
-JSHandler.prototype.get = function () {
+JSHandler.prototype.get = function() {
   if (this.isTransformEnabled()) {
     this.cacheKey.push(this.getBabelPluginsHash())
   }
 
-  return this.cache.getStream(this.cacheKey, {
-    ttl: config.get('caching.ttl', this.req.__domain)
-  }).then(stream => {
-    if (stream) {
-      this.isCached = true
+  return this.cache
+    .getStream(this.cacheKey, {
+      ttl: config.get('caching.ttl', this.req.__domain)
+    })
+    .then(stream => {
+      if (stream) {
+        this.isCached = true
 
-      return stream
-    }
-
-    this.storageHandler = this.storageFactory.create(
-      'asset',
-      this.url.pathname.slice(1),
-      {domain: this.req.__domain}
-    )
-
-    // Aborting the request if full remote URL is required and not enabled.
-    if (
-      this.isExternalUrl &&
-      (
-        !config.get('assets.remote.enabled', this.req.__domain) ||
-        !config.get('assets.remote.allowFullURL', this.req.__domain)
-      )
-    ) {
-      let err = {
-        statusCode: 403,
-        message: 'Loading assets from a full remote URL is not supported by this instance of DADI CDN'
+        return stream
       }
 
-      return Promise.reject(err)
-    }
+      this.storageHandler = this.storageFactory.create(
+        'asset',
+        this.url.pathname.slice(1),
+        {domain: this.req.__domain}
+      )
 
-    return this.storageHandler.get().then(stream => {
-      return this.transform(stream)
-    }).then(stream => {
-      return this.cache.cacheFile(stream, this.cacheKey, {
-        ttl: config.get('caching.ttl', this.req.__domain)
-      })
+      // Aborting the request if full remote URL is required and not enabled.
+      if (
+        this.isExternalUrl &&
+        (!config.get('assets.remote.enabled', this.req.__domain) ||
+          !config.get('assets.remote.allowFullURL', this.req.__domain))
+      ) {
+        const err = {
+          statusCode: 403,
+          message:
+            'Loading assets from a full remote URL is not supported by this instance of DADI CDN'
+        }
+
+        return Promise.reject(err)
+      }
+
+      return this.storageHandler
+        .get()
+        .then(stream => {
+          const {compress, transform} = this.options
+
+          if (compress === true || transform === true) {
+            return this.transform(stream)
+          }
+
+          return stream
+        })
+        .then(stream => {
+          return this.cache.cacheFile(stream, this.cacheKey, {
+            ttl: config.get('caching.ttl', this.req.__domain)
+          })
+        })
     })
-  }).then(stream => {
-    return help.streamToBuffer(stream)
-  })
+    .then(stream => {
+      return help.streamToBuffer(stream)
+    })
 }
 
 /**
@@ -98,10 +141,10 @@ JSHandler.prototype.get = function () {
  *
  * @return {Object} Babel configuration object
  */
-JSHandler.prototype.getBabelConfig = function () {
+JSHandler.prototype.getBabelConfig = function() {
   const query = this.url.query
 
-  let options = {
+  const options = {
     babelrc: false,
     presets: []
   }
@@ -110,7 +153,11 @@ JSHandler.prototype.getBabelConfig = function () {
     options.presets.push(['env', this.getBabelEnvOptions(this.userAgent)])
   }
 
-  if (this.legacyURLOverrides.compress || query.compress === '1' || this.options.compress) {
+  if (
+    this.legacyURLOverrides.compress ||
+    query.compress === '1' ||
+    this.options.compress
+  ) {
     options.presets.push('minify')
   }
 
@@ -123,7 +170,7 @@ JSHandler.prototype.getBabelConfig = function () {
  *
  * @return {Object} Babel targets object
  */
-JSHandler.prototype.getBabelEnvOptions = function (userAgentString) {
+JSHandler.prototype.getBabelEnvOptions = function(userAgentString) {
   const agent = userAgent.parse(userAgentString).toAgent()
 
   // If the agent is "Other", it means we don't have a valid browser
@@ -141,9 +188,8 @@ JSHandler.prototype.getBabelEnvOptions = function (userAgentString) {
 
     return indexes
   }, [])
-  const sanitisedAgent = dotIndexes.length <= 1
-    ? agent
-    : agent.slice(0, dotIndexes[1])
+  const sanitisedAgent =
+    dotIndexes.length <= 1 ? agent : agent.slice(0, dotIndexes[1])
 
   return {
     targets: {
@@ -158,9 +204,11 @@ JSHandler.prototype.getBabelEnvOptions = function (userAgentString) {
  *
  * @return {String} A hash of all the plugins
  */
-JSHandler.prototype.getBabelPluginsHash = function () {
+JSHandler.prototype.getBabelPluginsHash = function() {
   const babelOptions = this.getBabelEnvOptions(this.userAgent)
-  const functions = babelPresetEnv(null, babelOptions).plugins.map(plugin => plugin[0])
+  const functions = babelPresetEnv(null, babelOptions).plugins.map(
+    plugin => plugin[0]
+  )
   const hashSource = functions.reduce((result, functionSource) => {
     if (typeof functionSource === 'function') {
       return result + functionSource.toString()
@@ -180,7 +228,7 @@ JSHandler.prototype.getBabelPluginsHash = function () {
  *
  * @return {String} The content type
  */
-JSHandler.prototype.getContentType = function () {
+JSHandler.prototype.getContentType = function() {
   return 'application/javascript'
 }
 
@@ -189,7 +237,7 @@ JSHandler.prototype.getContentType = function () {
  *
  * @return {String} The filename
  */
-JSHandler.prototype.getFilename = function () {
+JSHandler.prototype.getFilename = function() {
   return this.url.pathname.split('/').slice(-1)[0]
 }
 
@@ -198,7 +246,7 @@ JSHandler.prototype.getFilename = function () {
  *
  * @return {Number} The last modified timestamp
  */
-JSHandler.prototype.getLastModified = function () {
+JSHandler.prototype.getLastModified = function() {
   if (!this.storageHandler || !this.storageHandler.getLastModified) return null
 
   return this.storageHandler.getLastModified()
@@ -211,8 +259,8 @@ JSHandler.prototype.getLastModified = function () {
  * @param  {String} url The URL
  * @return {Object}     A list of parameters and their value
  */
-JSHandler.prototype.getLegacyURLOverrides = function (url) {
-  let overrides = {}
+JSHandler.prototype.getLegacyURLOverrides = function(url) {
+  const overrides = {}
 
   const legacyURLMatch = url.match(/\/js(\/(\d))?/)
 
@@ -232,19 +280,19 @@ JSHandler.prototype.getLegacyURLOverrides = function (url) {
  *
  * @return {Boolean}
  */
-JSHandler.prototype.isTransformEnabled = function () {
+JSHandler.prototype.isTransformEnabled = function() {
   // Currently behind a feature flag.
   if (!config.get('experimental.jsTranspiling', this.req.__domain)) {
     return false
   }
 
-  return (this.url.query.transform || (this.options.transform === true))
+  return this.url.query.transform || this.options.transform === true
 }
 
 /**
  * Sets the base URL (excluding any recipe or route nodes)
  */
-JSHandler.prototype.setBaseUrl = function (baseUrl) {
+JSHandler.prototype.setBaseUrl = function(baseUrl) {
   this.url = url.parse(baseUrl, true)
 }
 
@@ -254,7 +302,7 @@ JSHandler.prototype.setBaseUrl = function (baseUrl) {
  * @param  {Stream} stream The input stream
  * @return {Promise<Stream>}
  */
-JSHandler.prototype.transform = function (stream) {
+JSHandler.prototype.transform = function(stream) {
   let inputCode = ''
 
   return new Promise((resolve, reject) => {
@@ -265,7 +313,8 @@ JSHandler.prototype.transform = function (stream) {
       const outputStream = new Readable()
 
       try {
-        const outputCode = babel.transform(inputCode, this.getBabelConfig()).code
+        const outputCode = babel.transform(inputCode, this.getBabelConfig())
+          .code
 
         outputStream.push(outputCode)
       } catch (err) {
@@ -279,7 +328,7 @@ JSHandler.prototype.transform = function (stream) {
   })
 }
 
-module.exports = function (format, request, handlerData) {
+module.exports = function(format, request, handlerData) {
   return new JSHandler(format, request, handlerData)
 }
 
