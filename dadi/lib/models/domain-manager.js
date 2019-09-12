@@ -1,7 +1,7 @@
 const fs = require('fs-extra')
 const path = require('path')
 
-const DomainManager = function () {
+const DomainManager = function() {
   this.domains = []
 }
 
@@ -11,8 +11,8 @@ const DomainManager = function () {
  * @param {String} domain
  * @param {Object} domainConfig
  */
-DomainManager.prototype.addDomain = function (domain, domainConfig) {
-  let config = require('./../../../config')
+DomainManager.prototype.addDomain = function(domain, domainConfig) {
+  const config = require('./../../../config')
 
   if (!this.getDomain(domain)) {
     config.loadDomainConfig(domain, domainConfig)
@@ -30,8 +30,8 @@ DomainManager.prototype.addDomain = function (domain, domainConfig) {
  *
  * @param {String} domain
  */
-DomainManager.prototype.removeDomain = function (domain) {
-  let config = require('./../../../config')
+DomainManager.prototype.removeDomain = function(domain) {
+  const config = require('./../../../config')
 
   if (this.getDomain(domain)) {
     delete config.domainConfigs[domain]
@@ -46,7 +46,7 @@ DomainManager.prototype.removeDomain = function (domain) {
  * @param  {String} domain
  * @return {Object}
  */
-DomainManager.prototype.getDomain = function (domain) {
+DomainManager.prototype.getDomain = function(domain) {
   if (typeof domain !== 'string') return null
 
   return this.domains.find(item => {
@@ -59,7 +59,7 @@ DomainManager.prototype.getDomain = function (domain) {
  *
  * @return {Array}
  */
-DomainManager.prototype.getDomains = function () {
+DomainManager.prototype.getDomains = function() {
   return this.domains
 }
 
@@ -71,12 +71,12 @@ DomainManager.prototype.getDomains = function () {
  * @param  {String} domainsDirectory - full path of the base domains directory
  * @return {DomainManager}
  */
-DomainManager.prototype.scanDomains = function (domainsDirectory) {
-  let domainsPath = path.resolve(domainsDirectory)
+DomainManager.prototype.scanDomains = function(domainsDirectory) {
+  const domainsPath = path.resolve(domainsDirectory)
 
   try {
     this.domains = fs.readdirSync(domainsPath).reduce((domains, domain) => {
-      let domainPath = path.join(domainsPath, domain)
+      const domainPath = path.join(domainsPath, domain)
 
       if (fs.statSync(domainPath).isDirectory()) {
         domains.push({

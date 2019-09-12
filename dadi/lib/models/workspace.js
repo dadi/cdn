@@ -25,7 +25,7 @@ const domainManager = require('./domain-manager')
     }
   }
 */
-const Workspace = function () {
+const Workspace = function() {
   this.TYPES = {
     plugins: '*.js',
     recipes: '*.json',
@@ -42,7 +42,7 @@ const Workspace = function () {
  *
  * @return {Object} The new workspace
  */
-Workspace.prototype.build = function () {
+Workspace.prototype.build = function() {
   return this.read().then(files => {
     this.workspace = files
 
@@ -56,8 +56,8 @@ Workspace.prototype.build = function () {
  *
  * @return {Array<String>} list of directories created
  */
-Workspace.prototype.createDirectories = function () {
-  let directories = Object.keys(this.TYPES).map(type => {
+Workspace.prototype.createDirectories = function() {
+  const directories = Object.keys(this.TYPES).map(type => {
     return path.resolve(config.get(`paths.${type}`))
   })
 
@@ -83,9 +83,9 @@ Workspace.prototype.createDirectories = function () {
  * @param  {String} item
  * @return {Object}
  */
-Workspace.prototype.get = function (item, domain) {
+Workspace.prototype.get = function(item, domain) {
   if (item !== undefined) {
-    let key = domain ? `${domain}:${item}` : item
+    const key = domain ? `${domain}:${item}` : item
 
     return this.workspace[key]
   }
@@ -99,12 +99,10 @@ Workspace.prototype.get = function (item, domain) {
  *
  * @return {Object}
  */
-Workspace.prototype.read = function () {
-  let directories = []
+Workspace.prototype.read = function() {
+  const directories = []
   let queue = Object.keys(this.TYPES).reduce((queue, type) => {
-    let directoryPath = path.resolve(
-      config.get(`paths.${type}`)
-    )
+    const directoryPath = path.resolve(config.get(`paths.${type}`))
 
     return queue.then(() => {
       return fs.readdir(directoryPath).then(items => {
@@ -123,7 +121,7 @@ Workspace.prototype.read = function () {
         domainManager.getDomains().map(({domain, path: domainPath}) => {
           return Promise.all(
             Object.keys(this.TYPES).map(type => {
-              let typePath = path.resolve(
+              const typePath = path.resolve(
                 domainPath,
                 config.get(`paths.${type}`, domain)
               )
@@ -142,89 +140,89 @@ Workspace.prototype.read = function () {
     })
   }
 
-  return this.createDirectories().then(() => {
-    return queue
-  }).then(() => {
-    return directories.reduce((files, {domain, items, type}) => {
-      items.forEach(file => {
-        const extension = path.extname(file)
-        const baseName = path.basename(file, extension)
-        const fullPath = path.resolve(
-          domain ? `${config.get('multiDomain.directory')}/${domain}` : '',
-          config.get(`paths.${type}`),
-          file
-        )
+  return this.createDirectories()
+    .then(() => {
+      return queue
+    })
+    .then(() => {
+      return directories.reduce((files, {domain, items, type}) => {
+        items.forEach(file => {
+          const extension = path.extname(file)
+          const baseName = path.basename(file, extension)
+          const fullPath = path.resolve(
+            domain ? `${config.get('multiDomain.directory')}/${domain}` : '',
+            config.get(`paths.${type}`),
+            file
+          )
 
-        if (!['.js', '.json'].includes(extension)) return
+          if (!['.js', '.json'].includes(extension)) return
 
-        let source
-        let workspaceKey = baseName
+          let source
+          let workspaceKey = baseName
 
-        if (extension === '.json') {
-          delete require.cache[fullPath]
+          if (extension === '.json') {
+            delete require.cache[fullPath]
 
-          source = require(fullPath)
-        }
+            source = require(fullPath)
+          }
 
-        if (type === 'recipes') {
-          workspaceKey = source.recipe || workspaceKey
-        } else if (type === 'routes') {
-          workspaceKey = source.route || workspaceKey
-        }
+          if (type === 'recipes') {
+            workspaceKey = source.recipe || workspaceKey
+          } else if (type === 'routes') {
+            workspaceKey = source.route || workspaceKey
+          }
 
-        // Prepend workspace key with domain.
-        if (domain) {
-          workspaceKey = `${domain}:${workspaceKey}`
-        }
+          // Prepend workspace key with domain.
+          if (domain) {
+            workspaceKey = `${domain}:${workspaceKey}`
+          }
 
-        if (files[workspaceKey] !== undefined) {
-          throw new Error(`Naming conflict: ${workspaceKey} exists in both '${files[workspaceKey].path}' and '${fullPath}'`)
-        }
+          if (files[workspaceKey] !== undefined) {
+            throw new Error(
+              `Naming conflict: ${workspaceKey} exists in both '${files[workspaceKey].path}' and '${fullPath}'`
+            )
+          }
 
-        files[workspaceKey] = {
-          domain,
-          path: fullPath,
-          source: source,
-          type
-        }
-      })
+          files[workspaceKey] = {
+            domain,
+            path: fullPath,
+            source,
+            type
+          }
+        })
 
-      return files
-    }, {})
-  })
+        return files
+      }, {})
+    })
 }
 
 /**
  * Starts watching workspace files for changes and rebuild the workspace
  * tree when something changes.
  */
-Workspace.prototype.startWatchingFiles = function () {
-  let watchers = {}
+Workspace.prototype.startWatchingFiles = function() {
+  const watchers = {}
 
   // Watch each workspace type.
   Object.keys(this.TYPES).forEach(type => {
-    let directory = path.resolve(
-      config.get(`paths.${type}`)
-    )
+    const directory = path.resolve(config.get(`paths.${type}`))
 
-    watchers[type] = chokidar.watch(
-      `${directory}/${this.TYPES[type]}`,
-      {usePolling: true}
-    ).on('all', (event, filePath) => this.build())
+    watchers[type] = chokidar
+      .watch(`${directory}/${this.TYPES[type]}`, {usePolling: true})
+      .on('all', (event, filePath) => this.build())
   })
 
   // Watch files within domain-level workspace directories.
   domainManager.getDomains().forEach(({domain, path: domainPath}) => {
     Object.keys(this.TYPES).forEach(type => {
-      let directory = path.resolve(
+      const directory = path.resolve(
         domainPath,
         config.get(`paths.${type}`, domain)
       )
 
-      watchers[`${domain}:${type}`] = chokidar.watch(
-        `${directory}/${this.TYPES[type]}`,
-        {usePolling: true}
-      ).on('all', (event, filePath) => this.build())
+      watchers[`${domain}:${type}`] = chokidar
+        .watch(`${directory}/${this.TYPES[type]}`, {usePolling: true})
+        .on('all', (event, filePath) => this.build())
     })
   })
 
@@ -234,7 +232,7 @@ Workspace.prototype.startWatchingFiles = function () {
 /**
  * Stop watching workspace files for changes.
  */
-Workspace.prototype.stopWatchingFiles = function () {
+Workspace.prototype.stopWatchingFiles = function() {
   Object.keys(this.watchers).forEach(key => {
     this.watchers[key].close()
   })

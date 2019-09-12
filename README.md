@@ -4,15 +4,13 @@
 [![Coverage Status](https://coveralls.io/repos/github/dadi/cdn/badge.svg?branch=develop)](https://coveralls.io/github/dadi/cdn?branch=develop)
 [![Build Status](https://travis-ci.org/dadi/cdn.svg?branch=master)](https://travis-ci.org/dadi/cdn)
 [![JavaScript Style Guide](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat-square)](http://standardjs.com/)
-[![Greenkeeper badge](https://badges.greenkeeper.io/dadi/cdn.svg)](https://greenkeeper.io/)
-
 
 ## DADI CDN
 
-* [Overview](#overview)
-* [Requirements](#requirements)
-* [Your First CDN Project](#your-first-cdn-project)
-* [Links](#links)
+- [Overview](#overview)
+- [Requirements](#requirements)
+- [Your First CDN Project](#your-first-cdn-project)
+- [Links](#links)
 
 ## Overview
 
@@ -26,7 +24,7 @@ CDN is part of DADI, a suite of components covering the full development stack, 
 
 ## Requirements
 
-* **[Node.js](https://www.nodejs.org/)** (supported versions: 6.9.2, 6.11.1, 8.9.4)
+- **[Node.js](https://www.nodejs.org/)** (supported versions: 6.9.2, 6.11.1, 8.9.4)
 
 ## Your first CDN project
 
@@ -36,7 +34,7 @@ Ensure you have the required dependencies installed. See the first sections in t
 
 ### Install CDN
 
-All DADI platform microservices are available from [NPM](https://www.npmjs.com/). To add *CDN* to your project as a dependency:
+All DADI platform microservices are available from [NPM](https://www.npmjs.com/). To add _CDN_ to your project as a dependency:
 
 ```bash
 $ cd my-app
@@ -70,8 +68,8 @@ CDN requires a configuration file specific to the application environment. For e
 
 When CDN was installed, a development configuration file was created for you in a `config` folder at your application root. Full configuration documentation can be found at https://docs.dadi.cloud/cdn.
 
-
 ### Run CDN as a service
+
 To run your CDN application in the background as a service, install Forever and Forever Service:
 
 ```bash
@@ -105,7 +103,7 @@ The sample configuration file defines a local filesystem source. The `path` prop
 }
 ```
 
-We'll use the above configuration for an example. With image files in the `images` directory  we can make a request for one to view it in the browser:
+We'll use the above configuration for an example. With image files in the `images` directory we can make a request for one to view it in the browser:
 
 ##### Images available
 
@@ -116,21 +114,22 @@ drwxr-xr-x  4 root  wheel      136 13 Mar 13:02 .
 drwxr-xr-x  4 root  wheel      136 13 Mar 13:01 ..
 -rw-r--r--  1 root  wheel     9396 13 Mar 13:02 92875.jpg
 -rw-r--r--  1 root  wheel  4832710 13 Mar 13:02 92876.jpg
-```  
+```
 
 ##### Browser request
 
 http://127.0.0.1:8001/92875.jpg
 
 ## Links
-* [CDN Documentation](https://docs.dadi.cloud/cdn)
+
+- [CDN Documentation](https://docs.dadi.cloud/cdn)
 
 ## Licence
 
 DADI is a data centric development and delivery stack, built specifically in support of the principles of API first and COPE.
 
 Copyright notice<br />
-(C) 2018 DADI+ Limited <support@dadi.cloud><br />
+(C) 2019 DADI+ Limited <support@dadi.cloud><br />
 All rights reserved
 
 This product is part of DADI.<br />
@@ -150,7 +149,7 @@ them, to determine what licences are applicable.**
 
 DADI is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 The GNU General Public License (GPL) is available at

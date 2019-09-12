@@ -6,11 +6,13 @@ const help = require(__dirname + '/help')
 const app = require(__dirname + '/../../dadi/lib/')
 const fs = require('fs')
 
-let cdnUrl = `http://${config.get('server.host')}:${config.get('server.port')}`
-let configBackup = config.get()
+const cdnUrl = `http://${config.get('server.host')}:${config.get(
+  'server.port'
+)}`
+const configBackup = config.get()
 
-describe('Authentication', function () {
-  let tokenRoute = config.get('auth.tokenUrl')
+describe('Authentication', function() {
+  const tokenRoute = config.get('auth.tokenUrl')
 
   before(done => {
     app.start(err => {
@@ -92,7 +94,9 @@ describe('Authentication', function () {
       })
       .end((err, res) => {
         res.statusCode.should.eql(401)
-        res.headers['www-authenticate'].should.eql('Bearer, error="no_private_key", error_description="No private key configured in auth.privateKey"')
+        res.headers['www-authenticate'].should.eql(
+          'Bearer, error="no_private_key", error_description="No private key configured in auth.privateKey"'
+        )
         done()
       })
   })
@@ -124,7 +128,7 @@ describe('Authentication', function () {
   it('should not allow `/api/flush` request with expired tokens', done => {
     config.set('auth.tokenTtl', 1)
 
-    let _done = err => {
+    const _done = err => {
       config.set('auth.tokenTtl', configBackup.auth.tokenTtl)
 
       done(err)
@@ -135,7 +139,7 @@ describe('Authentication', function () {
         .post('/api/flush')
         .send({pattern: 'test'})
         .set('Authorization', 'Bearer ' + token)
-        .expect(200, (err) => {
+        .expect(200, err => {
           if (err) return _done(err)
 
           setTimeout(() => {
@@ -214,7 +218,7 @@ describe('Authentication', function () {
         .expect('Cache-Control', 'no-store')
         .expect(200)
         .end((err, res) => {
-          let token = res.body.accessToken
+          const token = res.body.accessToken
 
           request(cdnUrl)
             .post('/api/flush')
@@ -314,7 +318,7 @@ describe('Authentication', function () {
       config.set('auth.privateKey', 'privateKey2', 'testdomain.com')
       config.set('auth.tokenTtl', 20000, 'testdomain.com')
 
-      let startTime = Math.floor(Date.now() / 1000)
+      const startTime = Math.floor(Date.now() / 1000)
 
       request(cdnUrl)
         .post(tokenRoute)
@@ -328,42 +332,37 @@ describe('Authentication', function () {
         .expect('Cache-Control', 'no-store')
         .expect(200)
         .end((err, res) => {
-          jwt.verify(
-            res.body.accessToken,
-            'privateKey1',
-            (err, decoded) => {
-              if (err) return done(err)
+          jwt.verify(res.body.accessToken, 'privateKey1', (err, decoded) => {
+            if (err) return done(err)(decoded.exp - startTime).should.eql(10000)
+            decoded.domain.should.eql('localhost')
 
-              (decoded.exp - startTime).should.eql(10000)
-              decoded.domain.should.eql('localhost')
+            request(cdnUrl)
+              .post(tokenRoute)
+              .send({
+                clientId: 'testClient2',
+                secret: 'superSecret2'
+              })
+              .set('host', 'testdomain.com:80')
+              .expect('content-type', 'application/json')
+              .expect('pragma', 'no-cache')
+              .expect('Cache-Control', 'no-store')
+              .expect(200)
+              .end((err, res) => {
+                jwt.verify(
+                  res.body.accessToken,
+                  'privateKey2',
+                  (err, decoded) => {
+                    if (err)
+                      return done(err)(decoded.exp - startTime).should.eql(
+                        20000
+                      )
+                    decoded.domain.should.eql('testdomain.com')
 
-              request(cdnUrl)
-                .post(tokenRoute)
-                .send({
-                  clientId: 'testClient2',
-                  secret: 'superSecret2'
-                })
-                .set('host', 'testdomain.com:80')
-                .expect('content-type', 'application/json')
-                .expect('pragma', 'no-cache')
-                .expect('Cache-Control', 'no-store')
-                .expect(200)
-                .end((err, res) => {
-                  jwt.verify(
-                    res.body.accessToken,
-                    'privateKey2',
-                    (err, decoded) => {
-                      if (err) return done(err)
-
-                      (decoded.exp - startTime).should.eql(20000)
-                      decoded.domain.should.eql('testdomain.com')
-
-                      done()
-                    }
-                  )
-                })
-            }
-          )
+                    done()
+                  }
+                )
+              })
+          })
         })
     })
   })

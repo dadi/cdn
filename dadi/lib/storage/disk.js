@@ -5,8 +5,8 @@ const path = require('path')
 
 const Missing = require(path.join(__dirname, '/missing'))
 
-const DiskStorage = function ({assetType = 'assets', domain, url}) {
-  let assetPath = config.get(`${assetType}.directory.path`, domain)
+const DiskStorage = function({assetType = 'assets', domain, url}) {
+  const assetPath = config.get(`${assetType}.directory.path`, domain)
 
   if (url !== '') {
     this.url = nodeUrl.parse(url, true).pathname
@@ -18,11 +18,11 @@ const DiskStorage = function ({assetType = 'assets', domain, url}) {
   this.path = path.resolve(assetPath)
 }
 
-DiskStorage.prototype.getFullUrl = function () {
+DiskStorage.prototype.getFullUrl = function() {
   return decodeURIComponent(path.join(this.path, this.url))
 }
 
-DiskStorage.prototype.getLastModified = function () {
+DiskStorage.prototype.getLastModified = function() {
   return this.lastModified
 }
 
@@ -30,20 +30,22 @@ DiskStorage.prototype.getLastModified = function () {
  * Scans a directory for files and compares them to the config.defaultFiles array,
  * returning an array of file names that match the defaultFiles array.
  */
-DiskStorage.prototype.getDefaultFile = function () {
+DiskStorage.prototype.getDefaultFile = function() {
   return new Promise((resolve, reject) => {
-    let fullUrl = this.getFullUrl()
+    const fullUrl = this.getFullUrl()
 
     fs.lstat(fullUrl, (err, stats) => {
       if (err) return resolve()
 
       if (stats.isDirectory()) {
-        let defaultFiles = config.get('defaultFiles')
+        const defaultFiles = config.get('defaultFiles')
 
         fs.readdir(fullUrl, (err, files) => {
           if (err) return resolve()
 
-          files = files.filter(file => defaultFiles.includes(path.basename(file)))
+          files = files.filter(file =>
+            defaultFiles.includes(path.basename(file))
+          )
 
           return resolve(files[0] || 'no-default-configured')
         })
@@ -52,13 +54,13 @@ DiskStorage.prototype.getDefaultFile = function () {
   })
 }
 
-DiskStorage.prototype.get = function () {
+DiskStorage.prototype.get = function() {
   return new Promise((resolve, reject) => {
     let wait = Promise.resolve()
 
     // If we're looking at a directory (assumed because no extension),
     // attempt to get a configured default file from the directory
-    let isDirectory = path.parse(this.getFullUrl()).ext === ''
+    const isDirectory = path.parse(this.getFullUrl()).ext === ''
 
     if (isDirectory) {
       wait = this.getDefaultFile()
@@ -71,17 +73,17 @@ DiskStorage.prototype.get = function () {
       }
 
       // attempt to open
-      let stream = fs.createReadStream(this.getFullUrl())
+      const stream = fs.createReadStream(this.getFullUrl())
 
       stream.on('open', () => {
         // check file size
-        let stats = fs.statSync(this.getFullUrl())
-        let fileSize = parseInt(stats.size)
+        const stats = fs.statSync(this.getFullUrl())
+        const fileSize = parseInt(stats.size)
 
         this.lastModified = stats.mtime
 
         if (fileSize === 0) {
-          let err = {
+          const err = {
             statusCode: 404,
             message: 'File size is 0 bytes'
           }
@@ -93,21 +95,25 @@ DiskStorage.prototype.get = function () {
       })
 
       stream.on('error', () => {
-        let err = {
+        const err = {
           statusCode: 404,
           message: 'File not found: ' + this.getFullUrl()
         }
 
-        return new Missing().get({
-          domain: this.domain,
-          isDirectory: isDirectory
-        }).then(stream => {
-          this.notFound = true
-          this.lastModified = new Date()
-          return resolve(stream)
-        }).catch(e => {
-          return reject(err)
-        })
+        return new Missing()
+          .get({
+            domain: this.domain,
+            isDirectory
+          })
+          .then(stream => {
+            this.notFound = true
+            this.lastModified = new Date()
+
+            return resolve(stream)
+          })
+          .catch(e => {
+            return reject(err)
+          })
       })
     })
   })
