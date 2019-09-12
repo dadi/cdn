@@ -48,82 +48,6 @@ describe('Controller', function() {
   })
 
   describe('Options Discovery', function(done) {
-    describe('Legacy URL syntax', () => {
-      it('should extract options from url path if no querystring', function(done) {
-        // spy on the sanitiseOptions method to access the provided arguments
-        const method = sinon.spy(
-          imageHandler.ImageHandler.prototype,
-          'sanitiseOptions'
-        )
-
-        const client = request(cdnUrl)
-
-        client
-          .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
-          .expect(200)
-          .end((err, res) => {
-            imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
-            const options = method.returnValues[0]
-
-            options.quality.should.eql(50)
-            options.width.should.eql(801)
-            options.height.should.eql(478)
-            options.resizeStyle.should.eql('aspectfit')
-            done()
-          })
-      })
-
-      it('should extract options from url path if using legacyURLFormat', function(done) {
-        // spy on the sanitiseOptions method to access the provided arguments
-        const method = sinon.spy(
-          imageHandler.ImageHandler.prototype,
-          'sanitiseOptions'
-        )
-
-        const client = request(cdnUrl)
-
-        client
-          .get('/jpg/50/0/0/801/478/aspectfit/North/0/0/0/0/0/test.jpg')
-          .expect(200)
-          .end((err, res) => {
-            imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
-            const options = method.returnValues[0]
-
-            options.quality.should.eql(50)
-            options.width.should.eql(801)
-            options.height.should.eql(478)
-            options.resizeStyle.should.eql('aspectfit')
-
-            done()
-          })
-      })
-
-      it('should extract options from url path if using legacyURLFormat with missing params', function(done) {
-        // spy on the sanitiseOptions method to access the provided arguments
-        const method = sinon.spy(
-          imageHandler.ImageHandler.prototype,
-          'sanitiseOptions'
-        )
-
-        const client = request(cdnUrl)
-
-        client
-          .get('/jpg/50/0/0/801/478/0/0/0//0/North/0/0/0/0/0/test.jpg')
-          .expect(200)
-          .end((err, res) => {
-            imageHandler.ImageHandler.prototype.sanitiseOptions.restore()
-            const options = method.returnValues[0]
-
-            options.quality.should.eql(50)
-            options.width.should.eql(801)
-            options.height.should.eql(478)
-            options.gravity.should.eql('North')
-
-            done()
-          })
-      })
-    })
-
     it('should extract options from querystring if one is present', function(done) {
       // spy on the sanitiseOptions method to access the provided arguments
       const method = sinon.spy(
@@ -409,20 +333,20 @@ describe('Controller', function() {
     it('should handle uncompressed CSS file if uri is valid', function(done) {
       const client = request(cdnUrl)
 
-      client.get('/css/0/test.css').expect(200, done)
+      client.get('/test.css').expect(200, done)
     })
 
     it('should handle compressed CSS file if uri is valid', function(done) {
       const client = request(cdnUrl)
 
-      client.get('/css/1/test.css').expect(200, done)
+      client.get('/test.css?compress=1').expect(200, done)
     })
 
     it('should handle TTF file if uri is valid', function(done) {
       const client = request(cdnUrl)
 
       client
-        .get('/fonts/test.ttf')
+        .get('/test.ttf')
         .expect('Content-Type', 'font/ttf')
         .expect(200, done)
     })
@@ -431,7 +355,7 @@ describe('Controller', function() {
       const client = request(cdnUrl)
 
       client
-        .get('/fonts/next-level/test.ttf')
+        .get('/next-level/test.ttf')
         .expect('Content-Type', 'font/ttf')
         .expect(200, done)
     })
@@ -441,7 +365,7 @@ describe('Controller', function() {
         config.set('headers.useGzipCompression', false)
 
         request(cdnUrl)
-          .get('/css/0/test.css')
+          .get('/test.css')
           .end((err, res) => {
             res.statusCode.should.eql(200)
             should.not.exist(res.headers['content-encoding'])
@@ -449,7 +373,7 @@ describe('Controller', function() {
             config.set('headers.useGzipCompression', true)
 
             request(cdnUrl)
-              .get('/css/0/test.css')
+              .get('/test.css')
               .set('Accept-Encoding', 'gzip, deflate')
               .end((err, res) => {
                 res.statusCode.should.eql(200)
@@ -474,7 +398,7 @@ describe('Controller', function() {
         config.set('headers.useGzipCompression', true, 'testdomain.com')
 
         request(cdnUrl)
-          .get('/css/0/test.css?cache=false')
+          .get('/test.css?cache=false')
           .set('Host', 'localhost')
           .end((err, res) => {
             res.statusCode.should.eql(200)
@@ -483,7 +407,7 @@ describe('Controller', function() {
             config.set('headers.useGzipCompression', true)
 
             request(cdnUrl)
-              .get('/css/0/test.css?cache=false')
+              .get('/test.css?cache=false')
               .set('Host', 'testdomain.com')
               .end((err, res) => {
                 res.statusCode.should.eql(200)
@@ -663,20 +587,6 @@ describe('Controller', function() {
 
   describe('JavaScript', function() {
     this.timeout(10000)
-
-    describe('legacy URL syntax', () => {
-      it('should handle uncompressed JS file if uri is valid', function(done) {
-        const client = request(cdnUrl)
-
-        client.get('/js/0/test.js').expect(200, done)
-      })
-
-      it('should handle compressed JS file if uri is valid', function(done) {
-        const client = request(cdnUrl)
-
-        client.get('/js/1/test.js').expect(200, done)
-      })
-    })
 
     it('should return JS file', function(done) {
       const client = request(cdnUrl)
@@ -888,318 +798,6 @@ describe('Controller', function() {
   })
 
   describe('Images', function() {
-    describe('Legacy URL syntax', () => {
-      it('should handle test image if image uri is valid', function(done) {
-        const newTestConfig = JSON.parse(testConfigString)
-
-        newTestConfig.images.directory.enabled = true
-        newTestConfig.images.directory.path = './test/images'
-        fs.writeFileSync(
-          config.configPath(),
-          JSON.stringify(newTestConfig, null, 2)
-        )
-
-        config.loadFile(config.configPath())
-
-        const client = request(cdnUrl)
-
-        client
-          .get('/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg')
-          .end((err, res) => {
-            res.statusCode.should.eql(200)
-            done()
-          })
-      })
-
-      it('should handle deep nested test image', function(done) {
-        const newTestConfig = JSON.parse(testConfigString)
-
-        newTestConfig.images.directory.enabled = true
-        newTestConfig.images.directory.path = './test/images'
-        fs.writeFileSync(
-          config.configPath(),
-          JSON.stringify(newTestConfig, null, 2)
-        )
-
-        config.loadFile(config.configPath())
-
-        const client = request(cdnUrl)
-
-        client
-          .get(
-            '/jpg/50/0/0/801/478/aspectfit/North/0/0/0/0/0/next-level/test.jpg'
-          )
-          .end((err, res) => {
-            res.statusCode.should.eql(200)
-            done()
-          })
-      })
-
-      it('should handle test image with missing params', function(done) {
-        const newTestConfig = JSON.parse(testConfigString)
-
-        newTestConfig.images.directory.enabled = true
-        newTestConfig.images.directory.path = './test/images'
-        fs.writeFileSync(
-          config.configPath(),
-          JSON.stringify(newTestConfig, null, 2)
-        )
-
-        config.loadFile(config.configPath())
-
-        const client = request(cdnUrl)
-
-        client
-          .get('/jpg/50/0/0/801/478/0/0/0//0/North/0/0/0/0/0/test.jpg')
-          .end((err, res) => {
-            res.statusCode.should.eql(200)
-            done()
-          })
-      })
-
-      it('should handle deep nested test image with missing params', function(done) {
-        const newTestConfig = JSON.parse(testConfigString)
-
-        newTestConfig.images.directory.enabled = true
-        newTestConfig.images.directory.path = './test/images'
-        fs.writeFileSync(
-          config.configPath(),
-          JSON.stringify(newTestConfig, null, 2)
-        )
-
-        config.loadFile(config.configPath())
-
-        const client = request(cdnUrl)
-
-        client
-          .get(
-            '/jpg/50/0/0/801/478/0/0/0//0/North/0/0/0/0/0/next-level/test.jpg'
-          )
-          .end((err, res) => {
-            res.statusCode.should.eql(200)
-            done()
-          })
-      })
-
-      it('should handle image uri with spaces', function(done) {
-        const newTestConfig = JSON.parse(testConfigString)
-
-        newTestConfig.images.directory.enabled = true
-        newTestConfig.images.directory.path = './test/images'
-        fs.writeFileSync(
-          config.configPath(),
-          JSON.stringify(newTestConfig, null, 2)
-        )
-
-        config.loadFile(config.configPath())
-
-        const client = request(cdnUrl)
-
-        client
-          .get(
-            '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test%20copy.jpg'
-          )
-          .end((err, res) => {
-            res.statusCode.should.eql(200)
-            done()
-          })
-      })
-
-      it('should handle image uri with special characters', function(done) {
-        const newTestConfig = JSON.parse(testConfigString)
-
-        newTestConfig.images.directory.enabled = true
-        newTestConfig.images.directory.path = './test/images'
-        fs.writeFileSync(
-          config.configPath(),
-          JSON.stringify(newTestConfig, null, 2)
-        )
-
-        config.loadFile(config.configPath())
-
-        const client = request(cdnUrl)
-
-        client
-          .get(
-            '/jpg/50/0/0/700/700/0/0/0/1/aspectfit/North/0/0/0/0/0/768px-Rotating_earth_%28huge%29.gif'
-          )
-          .end((err, res) => {
-            res.statusCode.should.eql(200)
-            done()
-          })
-      })
-
-      it('should return a placeholder image if image is not found', function(done) {
-        const newTestConfig = JSON.parse(testConfigString)
-
-        newTestConfig.images.directory.enabled = true
-        newTestConfig.images.directory.path = './test/images'
-
-        newTestConfig.notFound = {
-          images: {
-            enabled: true,
-            path: './test/images/missing.png'
-          }
-        }
-
-        fs.writeFileSync(
-          config.configPath(),
-          JSON.stringify(newTestConfig, null, 2)
-        )
-
-        config.loadFile(config.configPath())
-
-        const client = request(cdnUrl)
-
-        client
-          .get(
-            '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/testxxx.jpg'
-          )
-          .end((err, res) => {
-            res.body.should.be.instanceof(Buffer)
-            res.headers['content-type'].should.eql('image/png')
-            res.statusCode.should.eql(404)
-            done()
-          })
-      })
-
-      it('should return configured statusCode if image is not found', function(done) {
-        const newTestConfig = JSON.parse(testConfigString)
-
-        newTestConfig.images.directory.enabled = true
-        newTestConfig.images.directory.path = './test/images'
-
-        newTestConfig.notFound = {
-          statusCode: 410,
-          images: {
-            enabled: true,
-            path: './test/images/missing.png'
-          }
-        }
-
-        fs.writeFileSync(
-          config.configPath(),
-          JSON.stringify(newTestConfig, null, 2)
-        )
-
-        config.loadFile(config.configPath())
-
-        const client = request(cdnUrl)
-
-        client
-          .get(
-            '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/testxxx.jpg'
-          )
-          .end((err, res) => {
-            res.statusCode.should.eql(410)
-
-            newTestConfig.notFound.statusCode = 404
-            newTestConfig.notFound.images.enabled = false
-            fs.writeFileSync(
-              config.configPath(),
-              JSON.stringify(newTestConfig, null, 2)
-            )
-            config.loadFile(config.configPath())
-
-            done()
-          })
-      })
-
-      it('should return image info when format = JSON', function(done) {
-        const newTestConfig = JSON.parse(testConfigString)
-
-        newTestConfig.images.directory.enabled = true
-        newTestConfig.images.directory.path = './test/images'
-        fs.writeFileSync(
-          config.configPath(),
-          JSON.stringify(newTestConfig, null, 2)
-        )
-
-        config.loadFile(config.configPath())
-
-        const client = request(cdnUrl)
-
-        client.get('/test.jpg?format=json').end((err, res) => {
-          res.statusCode.should.eql(200)
-          const info = res.body
-
-          info.fileName.should.eql('test.jpg')
-          info.format.should.eql('jpg')
-          done()
-        })
-      })
-
-      it('should include EXIF data when format = JSON', function(done) {
-        const newTestConfig = JSON.parse(testConfigString)
-
-        newTestConfig.images.directory.enabled = true
-        newTestConfig.images.directory.path = './test/images'
-        fs.writeFileSync(
-          config.configPath(),
-          JSON.stringify(newTestConfig, null, 2)
-        )
-
-        config.loadFile(config.configPath())
-
-        const client = request(cdnUrl)
-
-        client.get('/dm.jpg?format=json').end((err, res) => {
-          res.statusCode.should.eql(200)
-
-          res.body.density.should.be.Object
-          res.body.density.width.should.be.Number
-          res.body.density.height.should.be.Number
-          res.body.density.unit.should.be.String
-          done()
-        })
-      })
-
-      it('should get image from cache if cache is enabled and cached item exists', function(done) {
-        this.timeout(4000)
-
-        help.clearCache()
-
-        const newTestConfig = JSON.parse(testConfigString)
-
-        newTestConfig.caching.directory.enabled = true
-        newTestConfig.images.directory.enabled = true
-        newTestConfig.images.directory.path = './test/images'
-        fs.writeFileSync(
-          config.configPath(),
-          JSON.stringify(newTestConfig, null, 2)
-        )
-
-        config.loadFile(config.configPath())
-
-        cache.reset()
-
-        const client = request(cdnUrl)
-
-        client
-          .get('/jpg/50/0/0/801/478/0/0/0/1/aspectfit/North/0/0/0/0/0/test.jpg')
-          .end((err, res) => {
-            res.statusCode.should.eql(200)
-
-            res.headers['x-cache'].should.exist
-            res.headers['x-cache'].should.eql('MISS')
-
-            setTimeout(function() {
-              client
-                .get(
-                  '/jpg/50/0/0/801/478/0/0/0/1/aspectfit/North/0/0/0/0/0/test.jpg'
-                )
-                .end((err, res) => {
-                  res.statusCode.should.eql(200)
-
-                  res.headers['x-cache'].should.exist
-                  res.headers['x-cache'].should.eql('HIT')
-                  done()
-                })
-            }, 1000)
-          })
-      })
-    })
-
     it('should return lastModified header for cached items using disk storage', function(done) {
       this.timeout(4000)
 
@@ -1221,26 +819,20 @@ describe('Controller', function() {
 
       const client = request(cdnUrl)
 
-      client
-        .get('/jpg/50/0/0/801/478/0/0/0/1/aspectfit/North/0/0/0/0/0/test.jpg')
-        .end((err, res) => {
-          res.statusCode.should.eql(200)
+      client.get('/test.jpg').end((err, res) => {
+        res.statusCode.should.eql(200)
 
-          res.headers['last-modified'].should.exist
+        res.headers['last-modified'].should.exist
 
-          setTimeout(function() {
-            client
-              .get(
-                '/jpg/50/0/0/801/478/0/0/0/1/aspectfit/North/0/0/0/0/0/test.jpg'
-              )
-              .end((err, res) => {
-                res.statusCode.should.eql(200)
+        setTimeout(function() {
+          client.get('/test.jpg').end((err, res) => {
+            res.statusCode.should.eql(200)
 
-                res.headers['last-modified'].should.exist
-                done()
-              })
-          }, 1000)
-        })
+            res.headers['last-modified'].should.exist
+            done()
+          })
+        }, 1000)
+      })
     })
 
     it('should handle deep nested test image', function(done) {

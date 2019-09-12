@@ -19,15 +19,9 @@ const DEFAULT_UA =
  * @param {Object} req    The request instance
  */
 const JSHandler = function(format, req, {options = {}} = {}) {
-  this.legacyURLOverrides = this.getLegacyURLOverrides(req.url)
-  this.url = url.parse(this.legacyURLOverrides.url || req.url, true)
+  this.url = url.parse(req.url, true)
 
-  const mergedOptions = Object.assign(
-    {},
-    this.url.query,
-    this.legacyURLOverrides,
-    options
-  )
+  const mergedOptions = Object.assign({}, this.url.query, options)
 
   // Normalising boolean values (e.g. true vs. 1 vs. '1').
   this.options = Object.keys(mergedOptions).reduce((result, key) => {
@@ -153,11 +147,7 @@ JSHandler.prototype.getBabelConfig = function() {
     options.presets.push(['env', this.getBabelEnvOptions(this.userAgent)])
   }
 
-  if (
-    this.legacyURLOverrides.compress ||
-    query.compress === '1' ||
-    this.options.compress
-  ) {
+  if (query.compress === '1' || this.options.compress) {
     options.presets.push('minify')
   }
 
@@ -250,29 +240,6 @@ JSHandler.prototype.getLastModified = function() {
   if (!this.storageHandler || !this.storageHandler.getLastModified) return null
 
   return this.storageHandler.getLastModified()
-}
-
-/**
- * Looks for parameters in the URL using legacy syntax
- * (e.g. /js/0/file.js)
- *
- * @param  {String} url The URL
- * @return {Object}     A list of parameters and their value
- */
-JSHandler.prototype.getLegacyURLOverrides = function(url) {
-  const overrides = {}
-
-  const legacyURLMatch = url.match(/\/js(\/(\d))?/)
-
-  if (legacyURLMatch) {
-    if (legacyURLMatch[2]) {
-      overrides.compress = legacyURLMatch[2] === '1'
-    }
-
-    overrides.url = url.slice(legacyURLMatch[0].length)
-  }
-
-  return overrides
 }
 
 /**

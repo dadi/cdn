@@ -63,64 +63,6 @@ describe('JS handler', function() {
     Cache.reset()
   })
 
-  describe('legacy URL syntax', () => {
-    it('reads the correct file from the URL path', () => {
-      const mockJsFile = [
-        'const greeter = name => {',
-        '  return `Hello, ${name}`;',
-        '};'
-      ].join('\n')
-
-      mockDiskStorageGet = sinon
-        .stub(DiskStorage.prototype, 'get')
-        .resolves(makeStream(mockJsFile))
-
-      const jsHandler = new JSHandler('.js', mockRequest('/js/0/foo.js'))
-
-      return jsHandler
-        .get()
-        .then(out => {
-          return out.toString('utf8')
-        })
-        .then(out => {
-          mockCacheGet
-            .getCall(0)
-            .args[0].includes('/foo.js')
-            .should.eql(true)
-
-          out.should.eql(mockJsFile)
-        })
-    })
-
-    it('delivers the compressed JS file', () => {
-      const mockJsFile = [
-        'const greeter = name => {',
-        '  return `Hello, ${name}`;',
-        '};'
-      ].join('\n')
-
-      mockDiskStorageGet = sinon
-        .stub(DiskStorage.prototype, 'get')
-        .resolves(makeStream(mockJsFile))
-
-      const jsHandler = new JSHandler('.js', mockRequest('/js/1/foo.js'))
-
-      return jsHandler
-        .get()
-        .then(out => {
-          return out.toString('utf8')
-        })
-        .then(out => {
-          mockCacheGet
-            .getCall(0)
-            .args[0].includes('/foo.js')
-            .should.eql(true)
-
-          out.should.eql('const greeter=a=>`Hello, ${a}`;')
-        })
-    })
-  })
-
   it('reads the correct file from the URL path', () => {
     const mockJsFile = [
       'const greeter = name => {',

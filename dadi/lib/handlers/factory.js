@@ -22,15 +22,6 @@ function parseUrl(req) {
 function getFormat(req) {
   const parsedPath = parseUrl(req).pathname
 
-  // add default jpg extension
-  // if (path.extname(parsedPath) === '') {
-  //   parsedPath += '.jpg'
-  // }
-
-  if (req.__cdnLegacyURLSyntax) {
-    return parsedPath.split('/').find(Boolean)
-  }
-
   return path
     .extname(parsedPath)
     .replace('.', '')
@@ -42,35 +33,12 @@ const HandlerFactory = function() {}
 HandlerFactory.prototype.create = function(req, mimetype) {
   const parsedUrl = url.parse(req.url, true)
   const pathComponents = parsedUrl.pathname.slice(1).split('/')
-
   const format = mimetype ? mime.getExtension(mimetype) : null
 
-  // version 1 matches a string like /jpg/80/0/0/640/480/ at the beginning of the url pathname
-  const v1pattern = /^\/[a-z]{3,4}\/[0-9]+\/[0-1]+\/[0-1]+\/[0-9]+\/[0-9]+\//gi
-
-  if (
-    v1pattern.test(parsedUrl.pathname) ||
-    /\/(fonts|css|js)/.test(pathComponents[0])
-  ) {
-    req.__cdnLegacyURLSyntax = true
-
-    logger.warn(
-      `'${parsedUrl.pathname}': this request uses a deprecated URL format which will be removed from future versions of DADI CDN. For more information, please visit https://docs.dadi.cloud/cdn/1.11#querystring-url-scheme.`
-    )
-  } else {
-    // ensure the querystring is decoded (removes for eg &amp; entities introduced via XSLT)
-    if (parsedUrl.search) {
-      parsedUrl.search = he.decode(parsedUrl.search)
-      req.url = url.format(parsedUrl)
-    }
-  }
-
-  // Create an image handler if the request uses a legacy URL.
-  if (req.__cdnLegacyURLSyntax) {
-    return this.createFromFormat({
-      format,
-      req
-    })
+  // ensure the querystring is decoded (removes for eg &amp; entities introduced via XSLT)
+  if (parsedUrl.search) {
+    parsedUrl.search = he.decode(parsedUrl.search)
+    req.url = url.format(parsedUrl)
   }
 
   // Check if a workspace file matches the first part of the path.

@@ -182,35 +182,9 @@ ImageHandler.prototype.extractEntropy = function(image, width, height) {
 }
 
 ImageHandler.prototype.get = function() {
-  let assetPath = this.parsedUrl.asset.href
+  const assetPath = this.parsedUrl.asset.href
 
-  // (!) DEPRECATED
-  //
-  // Extend the options object with settings from the legacy URL syntax.
-  if (this.req.__cdnLegacyURLSyntax) {
-    const pathParts = this.parsedUrl.cdn.pathname.split('/')
-    const urlSegments = pathParts.filter((segment, index) => {
-      if (index > 0 && segment === '') {
-        return true
-      }
-
-      if (index < 13 || (index >= 13 && /^[0-1]$/.test(segment))) {
-        return Boolean(segment)
-      }
-
-      return false
-    })
-
-    assetPath = pathParts.slice(urlSegments.length + 1).join('/')
-
-    this.options = Object.assign(
-      {},
-      this.options,
-      getImageOptionsFromLegacyURL(urlSegments)
-    )
-  } else {
-    this.options = Object.assign({}, this.options, this.parsedUrl.cdn.query)
-  }
+  this.options = Object.assign({}, this.options, this.parsedUrl.cdn.query)
 
   // The image only needs processing if there are any manipulation parameters
   // applied.
@@ -1270,38 +1244,6 @@ function getColours(buffer, options) {
       return resolve(colourData)
     })
   })
-}
-
-/**
- * Parses the request URL and returns an options object
- * @param {Array} optionsArray - the options specified in the request URL
- * @returns {object}
- */
-function getImageOptionsFromLegacyURL(optionsArray) {
-  const superLegacyFormatOffset = optionsArray.length === 13 ? 0 : 4
-
-  const options = {
-    format: optionsArray[0],
-    quality: optionsArray[1],
-    trim: optionsArray[2],
-    trimFuzz: optionsArray[3],
-    width: optionsArray[4],
-    height: optionsArray[5],
-    cropX: superLegacyFormatOffset === 0 ? '0' : optionsArray[6],
-    cropY: superLegacyFormatOffset === 0 ? '0' : optionsArray[7],
-    ratio: superLegacyFormatOffset === 0 ? '0' : optionsArray[8],
-    devicePixelRatio: superLegacyFormatOffset === 0 ? '0' : optionsArray[9],
-    resizeStyle: optionsArray[6 + superLegacyFormatOffset],
-    gravity: optionsArray[7 + superLegacyFormatOffset],
-    filter: optionsArray[8 + superLegacyFormatOffset],
-    blur: optionsArray[9 + superLegacyFormatOffset],
-    strip: optionsArray[10 + superLegacyFormatOffset],
-    rotate: optionsArray[11 + superLegacyFormatOffset],
-    flip: optionsArray[12 + superLegacyFormatOffset],
-    progressive: optionsArray[13 + superLegacyFormatOffset]
-  }
-
-  return options
 }
 
 module.exports = ImageHandler
