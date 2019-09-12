@@ -10,9 +10,11 @@ const app = require('./../../dadi/lib/')
 const workspace = require('./../../dadi/lib/models/workspace')
 
 let config = require('./../../config')
-let configBackup = config.get()
-let cdnUrl = `http://${config.get('server.host')}:${config.get('server.port')}`
-let newDomainSubdirectory = path.join(__dirname, '../../domains/xxx-domain')
+const configBackup = config.get()
+const cdnUrl = `http://${config.get('server.host')}:${config.get(
+  'server.port'
+)}`
+const newDomainSubdirectory = path.join(__dirname, '../../domains/xxx-domain')
 let testConfig
 
 const cleanup = (dir, done) => {
@@ -23,14 +25,12 @@ const cleanup = (dir, done) => {
   })
 }
 
-describe('File change monitor', function () {
+describe('File change monitor', function() {
   this.timeout(15000)
 
   describe('Config', () => {
     before(done => {
-      testConfig = JSON.parse(
-        fs.readFileSync(config.configPath()).toString()
-      )
+      testConfig = JSON.parse(fs.readFileSync(config.configPath()).toString())
 
       app.start(err => {
         if (err) return done(err)
@@ -51,7 +51,7 @@ describe('File change monitor', function () {
     })
 
     it('should reload the config when the current config file changes', done => {
-      let configContent = JSON.parse(
+      const configContent = JSON.parse(
         fs.readFileSync(config.configPath()).toString()
       )
 
@@ -76,7 +76,7 @@ describe('File change monitor', function () {
       config.set('multiDomain.enabled', true)
 
       // Get initial domain list
-      let domains = domainManager.getDomains()
+      const domains = domainManager.getDomains()
 
       // Make a new domain directory
       fs.mkdir(newDomainSubdirectory, err => {
@@ -102,52 +102,47 @@ describe('File change monitor', function () {
 
   describe('Workspace', () => {
     it('should reload a recipe when the file changes', done => {
-      let recipePath = path.resolve(
-        'workspace', 'recipes', 'sample-image-recipe.json'
+      const recipePath = path.resolve(
+        'workspace',
+        'recipes',
+        'sample-image-recipe.json'
       )
-      let recipe = require(recipePath)
+      const recipe = require(recipePath)
 
       app.start(err => {
         if (err) return done(err)
 
         setTimeout(() => {
           request(cdnUrl)
-          .get('/sample-image-recipe/test.jpg')
-          .expect(200)
-          .end((err, res) => {
-            res.headers['content-type'].should.eql(
-              'image/png'
-            )
+            .get('/sample-image-recipe/test.jpg')
+            .expect(200)
+            .end((err, res) => {
+              res.headers['content-type'].should.eql('image/png')
 
-            let newRecipe = Object.assign({}, recipe, {
-              settings: {
-                format: 'jpg'
-              }
+              const newRecipe = Object.assign({}, recipe, {
+                settings: {
+                  format: 'jpg'
+                }
+              })
+
+              fs.writeFileSync(recipePath, JSON.stringify(newRecipe, null, 2))
+
+              setTimeout(() => {
+                request(cdnUrl)
+                  .get('/sample-image-recipe/test.jpg')
+                  .expect(200)
+                  .end((err, res) => {
+                    fs.writeFileSync(
+                      recipePath,
+                      JSON.stringify(recipe, null, 2)
+                    )
+
+                    res.headers['content-type'].should.eql('image/jpeg')
+
+                    app.stop(done)
+                  })
+              }, 500)
             })
-
-            fs.writeFileSync(
-              recipePath,
-              JSON.stringify(newRecipe, null, 2)
-            )
-
-            setTimeout(() => {
-              request(cdnUrl)
-                .get('/sample-image-recipe/test.jpg')
-                .expect(200)
-                .end((err, res) => {
-                  fs.writeFileSync(
-                    recipePath,
-                    JSON.stringify(recipe, null, 2)
-                  )
-
-                  res.headers['content-type'].should.eql(
-                    'image/jpeg'
-                  )
-
-                  app.stop(done)
-                })
-            }, 500)
-          })
         }, 500)
       })
     })
@@ -156,7 +151,7 @@ describe('File change monitor', function () {
       config.set('multiDomain.enabled', true)
       config.set('multiDomain.directory', 'domains')
 
-      let recipePath = path.resolve(
+      const recipePath = path.resolve(
         'domains/testdomain.com/workspace/recipes/foobar-recipe-one.json'
       )
 
@@ -178,44 +173,46 @@ describe('File change monitor', function () {
 
               setTimeout(() => {
                 request(cdnUrl)
-                .get('/foobar-recipe-one/test.jpg')
-                .set('host', 'testdomain.com:80')
-                .expect(200)
-                .end((err, res) => {
-                  res.headers['content-type'].should.eql(
-                    'image/png'
-                  )
+                  .get('/foobar-recipe-one/test.jpg')
+                  .set('host', 'testdomain.com:80')
+                  .expect(200)
+                  .end((err, res) => {
+                    res.headers['content-type'].should.eql('image/png')
 
-                  let newRecipe = Object.assign({}, recipe, {
-                    settings: {
-                      format: 'jpg'
-                    }
+                    const newRecipe = Object.assign({}, recipe, {
+                      settings: {
+                        format: 'jpg'
+                      }
+                    })
+
+                    fs.writeFileSync(
+                      recipePath,
+                      JSON.stringify(newRecipe, null, 2)
+                    )
+
+                    setTimeout(() => {
+                      request(cdnUrl)
+                        .get('/foobar-recipe-one/test.jpg')
+                        .set('host', 'testdomain.com:80')
+                        .expect(200)
+                        .end((err, res) => {
+                          res.headers['content-type'].should.eql('image/jpeg')
+
+                          config.set(
+                            'multiDomain.enabled',
+                            configBackup.multiDomain.enabled
+                          )
+                          config.set(
+                            'multiDomain.directory',
+                            configBackup.multiDomain.directory
+                          )
+
+                          done1()
+
+                          app.stop(done)
+                        })
+                    }, 500)
                   })
-
-                  fs.writeFileSync(
-                    recipePath,
-                    JSON.stringify(newRecipe, null, 2)
-                  )
-
-                  setTimeout(() => {
-                    request(cdnUrl)
-                      .get('/foobar-recipe-one/test.jpg')
-                      .set('host', 'testdomain.com:80')
-                      .expect(200)
-                      .end((err, res) => {
-                        res.headers['content-type'].should.eql(
-                          'image/jpeg'
-                        )
-
-                        config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
-                        config.set('multiDomain.directory', configBackup.multiDomain.directory)
-
-                        done1()
-
-                        app.stop(done)
-                      })
-                  }, 500)
-                })
               }, 500)
             })
           })
@@ -224,7 +221,8 @@ describe('File change monitor', function () {
     }).timeout(5000)
 
     it('should reload a route when the file changes', done => {
-      let mobileUA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 10_1 like Mac OS X) AppleWebKit/602.2.14 (KHTML, like Gecko) Version/10.0 Mobile/14B72 Safari/602.1'
+      const mobileUA =
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 10_1 like Mac OS X) AppleWebKit/602.2.14 (KHTML, like Gecko) Version/10.0 Mobile/14B72 Safari/602.1'
 
       help.createTempFile(
         'workspace/recipes/test-recipe-one.json',
@@ -256,13 +254,13 @@ describe('File change monitor', function () {
                   route: 'route-one',
                   branches: [
                     {
-                      'condition': {
-                        'device': 'mobile',
+                      condition: {
+                        device: 'mobile'
                       },
-                      'recipe': 'recipe-one'
+                      recipe: 'recipe-one'
                     },
                     {
-                      'recipe': 'recipe-two'
+                      recipe: 'recipe-two'
                     }
                   ]
                 },
@@ -275,40 +273,40 @@ describe('File change monitor', function () {
 
                     setTimeout(() => {
                       request(cdnUrl)
-                      .get('/route-one/test.jpg')
-                      .set('user-agent', mobileUA)
-                      .expect(200)
-                      .end((err, res) => {
-                        res.headers['content-type'].should.eql(
-                          'image/jpeg'
-                        )
+                        .get('/route-one/test.jpg')
+                        .set('user-agent', mobileUA)
+                        .expect(200)
+                        .end((err, res) => {
+                          res.headers['content-type'].should.eql('image/jpeg')
 
-                        routeContent.branches[0].recipe = 'recipe-two'
-                        routeContent.branches[1].recipe = 'recipe-one'
+                          routeContent.branches[0].recipe = 'recipe-two'
+                          routeContent.branches[1].recipe = 'recipe-one'
 
-                        fs.writeFileSync(
-                          path.resolve('workspace/routes/test-route-one.json'),
-                          JSON.stringify(routeContent, null, 2)
-                        )
+                          fs.writeFileSync(
+                            path.resolve(
+                              'workspace/routes/test-route-one.json'
+                            ),
+                            JSON.stringify(routeContent, null, 2)
+                          )
 
-                        setTimeout(() => {
-                          request(cdnUrl)
-                          .get('/route-one/test.jpg')
-                          .set('user-agent', mobileUA)
-                          .expect(200)
-                          .end((err, res) => {
-                            res.headers['content-type'].should.eql(
-                              'image/png'
-                            )
+                          setTimeout(() => {
+                            request(cdnUrl)
+                              .get('/route-one/test.jpg')
+                              .set('user-agent', mobileUA)
+                              .expect(200)
+                              .end((err, res) => {
+                                res.headers['content-type'].should.eql(
+                                  'image/png'
+                                )
 
-                            done3()
-                            done2()
-                            done1()
-                            
-                            app.stop(done)                            
-                          })                          
-                        }, 500)
-                      })
+                                done3()
+                                done2()
+                                done1()
+
+                                app.stop(done)
+                              })
+                          }, 500)
+                        })
                     }, 500)
                   })
                 }
@@ -320,7 +318,8 @@ describe('File change monitor', function () {
     }).timeout(5000)
 
     it('should reload a route at domain level when the file changes', done => {
-      let mobileUA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 10_1 like Mac OS X) AppleWebKit/602.2.14 (KHTML, like Gecko) Version/10.0 Mobile/14B72 Safari/602.1'
+      const mobileUA =
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 10_1 like Mac OS X) AppleWebKit/602.2.14 (KHTML, like Gecko) Version/10.0 Mobile/14B72 Safari/602.1'
 
       config.set('multiDomain.enabled', true)
       config.set('multiDomain.directory', 'domains')
@@ -355,13 +354,13 @@ describe('File change monitor', function () {
                   route: 'route-one',
                   branches: [
                     {
-                      'condition': {
-                        'device': 'mobile',
+                      condition: {
+                        device: 'mobile'
                       },
-                      'recipe': 'recipe-one'
+                      recipe: 'recipe-one'
                     },
                     {
-                      'recipe': 'recipe-two'
+                      recipe: 'recipe-two'
                     }
                   ]
                 },
@@ -374,45 +373,51 @@ describe('File change monitor', function () {
 
                     setTimeout(() => {
                       request(cdnUrl)
-                      .get('/route-one/test.jpg')
-                      .set('host', 'testdomain.com:80')
-                      .set('user-agent', mobileUA)
-                      .expect(200)
-                      .end((err, res) => {
-                        res.headers['content-type'].should.eql(
-                          'image/jpeg'
-                        )
+                        .get('/route-one/test.jpg')
+                        .set('host', 'testdomain.com:80')
+                        .set('user-agent', mobileUA)
+                        .expect(200)
+                        .end((err, res) => {
+                          res.headers['content-type'].should.eql('image/jpeg')
 
-                        routeContent.branches[0].recipe = 'recipe-two'
-                        routeContent.branches[1].recipe = 'recipe-one'
+                          routeContent.branches[0].recipe = 'recipe-two'
+                          routeContent.branches[1].recipe = 'recipe-one'
 
-                        fs.writeFileSync(
-                          path.resolve('domains/testdomain.com/workspace/routes/test-route-one.json'),
-                          JSON.stringify(routeContent, null, 2)
-                        )
+                          fs.writeFileSync(
+                            path.resolve(
+                              'domains/testdomain.com/workspace/routes/test-route-one.json'
+                            ),
+                            JSON.stringify(routeContent, null, 2)
+                          )
 
-                        setTimeout(() => {
-                          request(cdnUrl)
-                          .get('/route-one/test.jpg')
-                          .set('host', 'testdomain.com:80')
-                          .set('user-agent', mobileUA)
-                          .expect(200)
-                          .end((err, res) => {
-                            res.headers['content-type'].should.eql(
-                              'image/png'
-                            )
+                          setTimeout(() => {
+                            request(cdnUrl)
+                              .get('/route-one/test.jpg')
+                              .set('host', 'testdomain.com:80')
+                              .set('user-agent', mobileUA)
+                              .expect(200)
+                              .end((err, res) => {
+                                res.headers['content-type'].should.eql(
+                                  'image/png'
+                                )
 
-                            config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
-                            config.set('multiDomain.directory', configBackup.multiDomain.directory)
+                                config.set(
+                                  'multiDomain.enabled',
+                                  configBackup.multiDomain.enabled
+                                )
+                                config.set(
+                                  'multiDomain.directory',
+                                  configBackup.multiDomain.directory
+                                )
 
-                            done3()
-                            done2()
-                            done1()
-                            
-                            app.stop(done)                            
-                          })                          
-                        }, 500)
-                      })
+                                done3()
+                                done2()
+                                done1()
+
+                                app.stop(done)
+                              })
+                          }, 500)
+                        })
                     }, 500)
                   })
                 }
@@ -421,6 +426,6 @@ describe('File change monitor', function () {
           )
         }
       )
-    }).timeout(5000)    
+    }).timeout(5000)
   })
 })

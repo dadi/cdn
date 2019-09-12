@@ -9,13 +9,15 @@ const request = require('supertest')
 const should = require('should')
 
 let bearerToken
-let cdnUrl = `http://${config.get('server.host')}:${config.get('server.port')}`
-let configBackup = config.get()
+const cdnUrl = `http://${config.get('server.host')}:${config.get(
+  'server.port'
+)}`
+const configBackup = config.get()
 
-describe('Cache', function () {
+describe('Cache', function() {
   this.timeout(10000)
 
-  describe('Flush', function () {
+  describe('Flush', function() {
     describe('when multi-domain is not enabled', () => {
       beforeEach(done => {
         config.set('caching.directory.enabled', true)
@@ -31,17 +33,19 @@ describe('Cache', function () {
             bearerToken = token
             help.clearCache()
 
-            request(`http://${config.get('server.host')}:${config.get('server.port')}`)
-            .get('/test.jpg?q=50')
-            .expect(200)
-            .end((err, res) => {
-              if (err) return done(err)
+            request(
+              `http://${config.get('server.host')}:${config.get('server.port')}`
+            )
+              .get('/test.jpg?q=50')
+              .expect(200)
+              .end((err, res) => {
+                if (err) return done(err)
 
-              res.headers['x-cache'].should.exist
-              res.headers['x-cache'].should.eql('MISS')
+                res.headers['x-cache'].should.exist
+                res.headers['x-cache'].should.eql('MISS')
 
-              done()
-            })
+                done()
+              })
           })
         })
       })
@@ -51,12 +55,15 @@ describe('Cache', function () {
 
         app.stop(done)
 
-        config.set('caching.directory.enabled', configBackup.caching.directory.enabled)
+        config.set(
+          'caching.directory.enabled',
+          configBackup.caching.directory.enabled
+        )
         config.set('caching.redis.enabled', configBackup.caching.redis.enabled)
-        config.set('multiDomain.enabled', configBackup.multiDomain.enabled)        
+        config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
       })
 
-      it('should not flush cached items that don\'t match the specified path', done => {
+      it("should not flush cached items that don't match the specified path", done => {
         request(cdnUrl)
           .get('/test.jpg?q=70')
           .expect(200)
@@ -199,9 +206,12 @@ describe('Cache', function () {
 
         app.stop(done)
 
-        config.set('caching.directory.enabled', configBackup.caching.directory.enabled)
+        config.set(
+          'caching.directory.enabled',
+          configBackup.caching.directory.enabled
+        )
         config.set('caching.redis.enabled', configBackup.caching.redis.enabled)
-        config.set('multiDomain.enabled', configBackup.multiDomain.enabled)        
+        config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
       })
 
       it('should only flush cached items for the target domain', done => {
@@ -256,14 +266,13 @@ describe('Cache', function () {
 
                                       done()
                                     })
-
                                 })
                             }, 500)
                           })
                       })
                   }, 500)
                 })
-            })          
+            })
         })
       })
 
@@ -319,7 +328,6 @@ describe('Cache', function () {
 
                                       done()
                                     })
-
                                 })
                             }, 500)
                           })
@@ -330,7 +338,7 @@ describe('Cache', function () {
         })
       })
 
-      it('should not flush cached items that don\'t match the specified path', done => {
+      it("should not flush cached items that don't match the specified path", done => {
         help.getBearerToken('localhost', (err, bearerToken) => {
           request(cdnUrl)
             .get('/test.jpg?q=70')
@@ -375,7 +383,7 @@ describe('Cache', function () {
                       }, 500)
                     })
                 })
-            })        
+            })
         })
       })
 

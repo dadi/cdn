@@ -12,17 +12,14 @@ const url = require('url')
  * @param {String} format The extension of the file being handled
  * @param {Object} req    The request instance
  */
-const DefaultHandler = function (format, req, {
-  options = {}
-} = {}) {
+const DefaultHandler = function(format, req, {options = {}} = {}) {
   this.legacyURLOverrides = this.getLegacyURLOverrides(req.url)
   this.options = options
-  this.url = url.parse(
-    this.legacyURLOverrides.url || req.url,
-    true
-  )
+  this.url = url.parse(this.legacyURLOverrides.url || req.url, true)
 
-  this.isExternalUrl = this.url.pathname.indexOf('http://') > 0 || this.url.pathname.indexOf('https://') > 0
+  this.isExternalUrl =
+    this.url.pathname.indexOf('http://') > 0 ||
+    this.url.pathname.indexOf('https://') > 0
 
   this.cache = Cache()
   this.cacheKey = [req.__domain, this.url.href]
@@ -38,46 +35,48 @@ const DefaultHandler = function (format, req, {
  *
  * @return {Promise} A stream with the file
  */
-DefaultHandler.prototype.get = function () {
-  return this.cache.getStream(this.cacheKey, {
-    ttl: config.get('caching.ttl', this.req.__domain)
-  }).then(stream => {
-    if (stream) {
-      this.isCached = true
+DefaultHandler.prototype.get = function() {
+  return this.cache
+    .getStream(this.cacheKey, {
+      ttl: config.get('caching.ttl', this.req.__domain)
+    })
+    .then(stream => {
+      if (stream) {
+        this.isCached = true
 
-      return stream
-    }
-
-    this.storageHandler = this.storageFactory.create(
-      'asset',
-      this.url.href.slice(1),
-      {domain: this.req.__domain}
-    )
-
-    // Aborting the request if full remote URL is required and not enabled.
-    if (
-      this.isExternalUrl &&
-      (
-        !config.get('assets.remote.enabled', this.req.__domain) ||
-        !config.get('assets.remote.allowFullURL', this.req.__domain)
-      )
-    ) {
-      let err = {
-        statusCode: 403,
-        message: 'Loading assets from a full remote URL is not supported by this instance of DADI CDN'
+        return stream
       }
 
-      return Promise.reject(err)
-    }
+      this.storageHandler = this.storageFactory.create(
+        'asset',
+        this.url.href.slice(1),
+        {domain: this.req.__domain}
+      )
 
-    return this.storageHandler.get().then(stream => {
-      return this.cache.cacheFile(stream, this.cacheKey, {
-        ttl: config.get('caching.ttl', this.req.__domain)
+      // Aborting the request if full remote URL is required and not enabled.
+      if (
+        this.isExternalUrl &&
+        (!config.get('assets.remote.enabled', this.req.__domain) ||
+          !config.get('assets.remote.allowFullURL', this.req.__domain))
+      ) {
+        const err = {
+          statusCode: 403,
+          message:
+            'Loading assets from a full remote URL is not supported by this instance of DADI CDN'
+        }
+
+        return Promise.reject(err)
+      }
+
+      return this.storageHandler.get().then(stream => {
+        return this.cache.cacheFile(stream, this.cacheKey, {
+          ttl: config.get('caching.ttl', this.req.__domain)
+        })
       })
     })
-  }).then(stream => {
-    return help.streamToBuffer(stream)
-  })
+    .then(stream => {
+      return help.streamToBuffer(stream)
+    })
 }
 
 /**
@@ -85,7 +84,7 @@ DefaultHandler.prototype.get = function () {
  *
  * @return {String} The content type
  */
-DefaultHandler.prototype.getContentType = function () {
+DefaultHandler.prototype.getContentType = function() {
   let newUrl = this.url.pathname
 
   if (this.storageHandler && this.storageHandler.url !== newUrl) {
@@ -104,7 +103,7 @@ DefaultHandler.prototype.getContentType = function () {
  *
  * @return {String} The filename
  */
-DefaultHandler.prototype.getFilename = function () {
+DefaultHandler.prototype.getFilename = function() {
   return this.url.pathname.split('/').slice(-1)[0]
 }
 
@@ -113,7 +112,7 @@ DefaultHandler.prototype.getFilename = function () {
  *
  * @return {Number} The last modified timestamp
  */
-DefaultHandler.prototype.getLastModified = function () {
+DefaultHandler.prototype.getLastModified = function() {
   if (!this.storageHandler || !this.storageHandler.getLastModified) return null
 
   return this.storageHandler.getLastModified()
@@ -126,8 +125,8 @@ DefaultHandler.prototype.getLastModified = function () {
  * @param  {String} url The URL
  * @return {Object}     A list of parameters and their value
  */
-DefaultHandler.prototype.getLegacyURLOverrides = function (url) {
-  let overrides = {}
+DefaultHandler.prototype.getLegacyURLOverrides = function(url) {
+  const overrides = {}
 
   const legacyURLMatch = url.match(/\/fonts(\/(\d))?/)
 
@@ -141,11 +140,11 @@ DefaultHandler.prototype.getLegacyURLOverrides = function (url) {
 /**
  * Sets the base URL (excluding any recipe or route nodes)
  */
-DefaultHandler.prototype.setBaseUrl = function (baseUrl) {
+DefaultHandler.prototype.setBaseUrl = function(baseUrl) {
   this.url = url.parse(baseUrl, true)
 }
 
-module.exports = function (format, request, handlerData) {
+module.exports = function(format, request, handlerData) {
   return new DefaultHandler(format, request, handlerData)
 }
 

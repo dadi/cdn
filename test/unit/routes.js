@@ -49,7 +49,7 @@ describe('Routes model', () => {
       route._arrayIntersect(array4, array5).should.eql(true)
     })
 
-    it('should transform the first argument in an array if it isn\'t one', () => {
+    it("should transform the first argument in an array if it isn't one", () => {
       const route = new Route(sampleRoute)
 
       route._arrayIntersect('one', ['one', 'two']).should.eql(true)
@@ -62,10 +62,7 @@ describe('Routes model', () => {
 
       route.ip = '123.456.78.9'
 
-      route._getCacheKey().should.eql([
-        undefined,
-        route.ip + sampleRoute.route
-      ])
+      route._getCacheKey().should.eql([undefined, route.ip + sampleRoute.route])
     })
   })
 
@@ -73,10 +70,9 @@ describe('Routes model', () => {
     it('should return a value located at the path described by the `path` argument', () => {
       const route = new Route(sampleRoute)
 
-      route._getPathInObject(
-        'branches.0.condition.network',
-        sampleRoute
-      ).should.eql(sampleRoute.branches[0].condition.network)
+      route
+        ._getPathInObject('branches.0.condition.network', sampleRoute)
+        .should.eql(sampleRoute.branches[0].condition.network)
     })
   })
 
@@ -84,10 +80,9 @@ describe('Routes model', () => {
     it('should return true if the branch has no conditions', () => {
       const route = new Route(sampleRoute)
 
-      return route._matchBranch(sampleRoute.branches[1])
-        .then(match => {
-          match.should.eql(true)
-        })
+      return route._matchBranch(sampleRoute.branches[1]).then(match => {
+        match.should.eql(true)
+      })
     })
 
     it('should return true/false based on whether the branch matches a `device` condition', () => {
@@ -109,7 +104,8 @@ describe('Routes model', () => {
       sinon.stub(route1, 'getDevice').returns('mobile')
       sinon.stub(route2, 'getDevice').returns('desktop')
 
-      return route1._matchBranch(sampleRoute.branches[0])
+      return route1
+        ._matchBranch(sampleRoute.branches[0])
         .then(match => {
           route1.getDevice.restore()
 
@@ -295,6 +291,7 @@ describe('Routes model', () => {
   describe('`getLocation` method', () => {
     it('should return a rejected Promise if Geolocation is not enabled in config', () => {
       const configBackup = config.get('geolocation.enabled')
+
       config.set('geolocation.enabled', false)
 
       const route = new Route(sampleRoute)
@@ -399,9 +396,15 @@ describe('Routes model', () => {
       const route2 = new Route(sampleRoute)
       const route3 = new Route(sampleRoute)
 
-      sinon.stub(route1, 'evaluateBranches').returns(Promise.resolve(branches[0]))
-      sinon.stub(route2, 'evaluateBranches').returns(Promise.resolve(branches[1]))
-      sinon.stub(route3, 'evaluateBranches').returns(Promise.resolve(branches[2]))
+      sinon
+        .stub(route1, 'evaluateBranches')
+        .returns(Promise.resolve(branches[0]))
+      sinon
+        .stub(route2, 'evaluateBranches')
+        .returns(Promise.resolve(branches[1]))
+      sinon
+        .stub(route3, 'evaluateBranches')
+        .returns(Promise.resolve(branches[2]))
 
       return Promise.all([
         route1.processRoute(),
@@ -420,7 +423,7 @@ describe('Routes model', () => {
   })
 
   describe('`setIP` method', () => {
-    it('should save an internal reference of the client\'s IP', () => {
+    it("should save an internal reference of the client's IP", () => {
       const route = new Route(sampleRoute)
       const ip = '123.456.78.9'
 
@@ -433,7 +436,7 @@ describe('Routes model', () => {
   })
 
   describe('`setLanguage` method', () => {
-    it('should save an internal reference of the client\'s language header', () => {
+    it("should save an internal reference of the client's language header", () => {
       const route = new Route(sampleRoute)
       const language = 'de,pt;q=0.8'
 
@@ -446,9 +449,10 @@ describe('Routes model', () => {
   })
 
   describe('`setUserAgent` method', () => {
-    it('should save an internal reference of the client\'s user agent', () => {
+    it("should save an internal reference of the client's user agent", () => {
       const route = new Route(sampleRoute)
-      const userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/603.3.8 (KHTML, like Gecko) Version/10.1.2 Safari/603.3.8'
+      const userAgent =
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/603.3.8 (KHTML, like Gecko) Version/10.1.2 Safari/603.3.8'
 
       should.not.exist(route.userAgent)
 

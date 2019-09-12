@@ -2,14 +2,14 @@ const Cache = require('./../cache')()
 const help = require('./../help')
 const StorageFactory = require('./../storage/factory')
 
-const Plugin = function (req, plugin) {
+const Plugin = function(req, plugin) {
   this.headers = {}
   this.plugin = plugin
   this.req = req
   this.storageFactory = Object.create(StorageFactory)
 }
 
-Plugin.prototype.get = function () {
+Plugin.prototype.get = function() {
   try {
     return Promise.resolve(
       this.plugin({
@@ -25,7 +25,7 @@ Plugin.prototype.get = function () {
       return help.streamToBuffer(stream)
     })
   } catch (err) {
-    let error = new Error(err)
+    const error = new Error(err)
 
     error.message = 'A plugin has thrown a fatal error.'
     error.statusCode = 500
@@ -34,15 +34,15 @@ Plugin.prototype.get = function () {
   }
 }
 
-Plugin.prototype.getContentType = function () {
+Plugin.prototype.getContentType = function() {
   return this.headers['content-type']
 }
 
-Plugin.prototype.getHeader = function (header) {
+Plugin.prototype.getHeader = function(header) {
   return this.headers[header.toLowerCase()]
 }
 
-Plugin.prototype.setHeader = function (header, value) {
+Plugin.prototype.setHeader = function(header, value) {
   this.headers[header.toLowerCase()] = value
 }
 
