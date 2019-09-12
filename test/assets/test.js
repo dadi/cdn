@@ -6,14 +6,20 @@
 	Mauris sem turpis, lacinia eget faucibus vel, vulputate et ante.
  */
 
-var cb = {}
+const cb = {}
+
 cb.tools = {}
-cb.tools.substitute = function (str, arr) {
-  var i, pattern, re, n = arr.length
+cb.tools.substitute = function(str, arr) {
+  let i,
+    pattern,
+    re,
+    n = arr.length
+
   for (i = 0; i < n; i++) {
     pattern = '\\{' + i + '\\}'
     re = new RegExp(pattern, 'g')
     str = str.replace(re, arr[i])
   }
+
   return str
 }

@@ -9,11 +9,13 @@ const request = require('supertest')
 const sinon = require('sinon')
 const should = require('should')
 
-let cdnUrl = `http://${config.get('server.host')}:${config.get('server.port')}`
-let client = request(cdnUrl)
-let configBackup = config.get()
+const cdnUrl = `http://${config.get('server.host')}:${config.get(
+  'server.port'
+)}`
+const client = request(cdnUrl)
+const configBackup = config.get()
 
-describe('Work queue', function () {
+describe('Work queue', function() {
   this.timeout(100000)
 
   beforeEach(done => {
@@ -22,30 +24,31 @@ describe('Work queue', function () {
     config.set('images.directory.enabled', true)
     config.set('images.remote.enabled', false)
 
-    app.start(function () {
-      help.getBearerToken((err, token) => {
-        if (err) return done(err)
-
-        bearerToken = token
-        done()
-      })
-    })    
+    app.start(function() {
+      done()
+    })
   })
 
   afterEach(done => {
     help.clearCache()
     app.stop(done)
 
-    config.set('caching.directory.enabled', configBackup.caching.directory.enabled)
+    config.set(
+      'caching.directory.enabled',
+      configBackup.caching.directory.enabled
+    )
     config.set('caching.redis.enabled', configBackup.caching.redis.enabled)
-    config.set('images.directory.enabled', configBackup.images.directory.enabled)
+    config.set(
+      'images.directory.enabled',
+      configBackup.images.directory.enabled
+    )
     config.set('images.remote.enabled', configBackup.images.remote.enabled)
   })
 
   it('should process the image just once on subsequent requests and render the correct result (5 requests)', () => {
-    let processorSpy = sinon.spy(ImageHandler.prototype, 'process')
-    let numberOfRequests = 5
-    let ops = Array.apply(null, {
+    const processorSpy = sinon.spy(ImageHandler.prototype, 'process')
+    const numberOfRequests = 5
+    const ops = Array.apply(null, {
       length: numberOfRequests
     }).map(() => {
       return help.imagesEqual({
@@ -62,34 +65,34 @@ describe('Work queue', function () {
   })
 
   it('should process the image just once on subsequent requests (50 requests)', () => {
-    let processorSpy = sinon.spy(ImageHandler.prototype, 'process')
-    let numberOfRequests = 50
-    let ops = Array.apply(null, {
+    const processorSpy = sinon.spy(ImageHandler.prototype, 'process')
+    const numberOfRequests = 50
+    const ops = Array.apply(null, {
       length: numberOfRequests
     }).map(() => {
       return new Promise((resolve, reject) => {
         client
-        .get('/original.jpg?format=jpg')
-        .expect(200)
-        .end((err, res) => {
-          if (err) {
-            return reject(err)
-          }
+          .get('/original.jpg?format=jpg')
+          .expect(200)
+          .end((err, res) => {
+            if (err) {
+              return reject(err)
+            }
 
-          resolve(res)
-        })
+            resolve(res)
+          })
       })
     })
 
     return Promise.all(ops).then(results => {
-      results.every(res => {
-        res.statusCode.should.eql(200)
-        res.headers['content-type'].should.eql(
-          'image/jpeg'
-        )
+      results
+        .every(res => {
+          res.statusCode.should.eql(200)
+          res.headers['content-type'].should.eql('image/jpeg')
 
-        return true
-      }).should.eql(true)
+          return true
+        })
+        .should.eql(true)
       processorSpy.callCount.should.eql(1)
       processorSpy.restore()
     })

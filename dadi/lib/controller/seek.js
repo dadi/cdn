@@ -8,16 +8,17 @@ const rangeStream = require('range-stream')
 const parseRange = require('range-parser')
 const sbuff = require('simple-bufferstream')
 
-module.exports = function (req, res, next) {
+module.exports = function(req, res, next) {
   // every new request gets a thin wrapper over the generic function
-  res.sendSeekable = function (stream, config) {
+  res.sendSeekable = function(stream, config) {
     return sendSeekable(stream, config, req, res, next)
   }
+
   next()
 }
 
 // the generic handler for serving up partial streams
-function sendSeekable (stream, config, req, res, next) {
+function sendSeekable(stream, config, req, res, next) {
   if (stream instanceof Buffer) {
     config = config || {}
     config.length = stream.length
@@ -25,7 +26,8 @@ function sendSeekable (stream, config, req, res, next) {
   }
 
   if (!config.length) {
-    let err = new Error('send-seekable requires `length` option')
+    const err = new Error('send-seekable requires `length` option')
+
     return next(err)
   }
 
@@ -39,10 +41,11 @@ function sendSeekable (stream, config, req, res, next) {
   // if this is a partial request
   if (req.headers.range) {
     // parse ranges
-    let ranges = parseRange(config.length, req.headers.range)
+    const ranges = parseRange(config.length, req.headers.range)
 
     if (ranges === -2) {
       res.statusCode = 400
+
       return res.end() // malformed range
     }
 
@@ -50,6 +53,7 @@ function sendSeekable (stream, config, req, res, next) {
       // unsatisfiable range
       res.setHeader('Content-Range', '*/' + config.length)
       res.statusCode = 416
+
       return res.end()
     }
 
@@ -61,13 +65,16 @@ function sendSeekable (stream, config, req, res, next) {
       return next(new Error('send-seekable can only serve single ranges'))
     }
 
-    let start = ranges[0].start
-    let end = ranges[0].end
+    const start = ranges[0].start
+    const end = ranges[0].end
 
     // formatting response
     res.statusCode = 206
-    res.setHeader('Content-Length', (end - start) + 1) // end is inclusive
-    res.setHeader('Content-Range', 'bytes ' + start + '-' + end + '/' + config.length)
+    res.setHeader('Content-Length', end - start + 1) // end is inclusive
+    res.setHeader(
+      'Content-Range',
+      'bytes ' + start + '-' + end + '/' + config.length
+    )
 
     // slicing the stream to partial content
     stream = stream.pipe(rangeStream(start, end))
@@ -75,4 +82,3 @@ function sendSeekable (stream, config, req, res, next) {
 
   return stream.pipe(res)
 }
-

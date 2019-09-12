@@ -6,7 +6,7 @@
   "scripts": {
     "init": "validate-commit-msg",
     "start": "node index.js --node_env=development",
-    "test": "rm -f config/config.test.json && standard 'dadi/**/*.js' && env NODE_ENV=test ./node_modules/.bin/nyc --reporter=lcov -x '**/workspace/**' -x 'test/**' ./node_modules/mocha/bin/_mocha test && ./node_modules/.bin/nyc report",
+    "test": "rm -f config/config.test.json && eslint --ext js,jsx . && prettier --check '**/*.{js,jsx,md,html,css}' && env NODE_ENV=test ./node_modules/.bin/nyc --reporter=lcov -x '**/workspace/**' -x 'test/**' ./node_modules/mocha/bin/_mocha test && ./node_modules/.bin/nyc report",
     "precommit": "node scripts/precommit.js",
     "posttest": "./scripts/coverage.js",
     "snyk-protect": "snyk protect",
@@ -41,7 +41,6 @@
     "fs-extra": "^7.0.1",
     "gifwrap": "^0.7.5",
     "he": "^1.1.0",
-    "husky": "^1.0.1",
     "image-size-stream": "1.1.0",
     "imagemin": "^6.0.0",
     "imagemin-jpegtran": "^6.0.0",
@@ -75,20 +74,25 @@
     "validate-commit-message": "^3.0.1"
   },
   "devDependencies": {
+    "@dadi/eslint-config": "^1.1.0",
+    "@dadi/prettier-config": "^1.1.0",
     "aws-sdk-mock": "^1.5.0",
     "coveralls": "^3.0.1",
     "env-test": "^1.0.0",
+    "eslint": "^6.3.0",
     "fakeredis": "^2.0.0",
     "http-proxy": "^1.16.2",
+    "husky": "^1.3.1",
     "it-each": "^0.3.1",
+    "lint-staged": "^9.2.5",
     "mocha": "^5.2.0",
     "nock": "^9.0.2",
     "nyc": "^14.0.0",
+    "prettier": "^1.18.2",
     "proxyquire": "~2.0.0",
     "redis": "^2.6.3",
     "should": "~13.2.0",
     "sinon": "^4.0.2",
-    "standard": "8.x.x",
     "superagent": "^4.1.0",
     "supertest": "^3.4.2"
   },
@@ -105,5 +109,16 @@
   },
   "author": "DADI <team@dadi.tech>",
   "license": "SEE LICENSE IN GPL.md",
-  "snyk": true
+  "snyk": true,
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js,jsx,md,html,css}": [
+      "prettier --write",
+      "git add"
+    ]
+  }
 }

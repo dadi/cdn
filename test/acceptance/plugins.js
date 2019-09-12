@@ -8,7 +8,9 @@ const should = require('should')
 const sinon = require('sinon')
 const stream = require('stream')
 
-const cdnUrl = `http://${config.get('server.host')}:${config.get('server.port')}`
+const cdnUrl = `http://${config.get('server.host')}:${config.get(
+  'server.port'
+)}`
 const ImageHandler = require(__dirname + '/../../dadi/lib/handlers/image')
 const workspace = require(__dirname + '/../../dadi/lib/models/workspace')
 
@@ -24,7 +26,7 @@ const appActions = {
   stop: done => app.stop(done)
 }
 
-describe('Plugins', function (done) {
+describe('Plugins', function(done) {
   this.timeout(15000)
 
   describe('pre-processing', () => {
@@ -41,18 +43,21 @@ describe('Plugins', function (done) {
             },
             done2 => {
               appActions.start(() => {
-                help.imagesEqual({
-                  base: 'test/images/visual/baseline/measure.png?saturate=0.png',
-                  test: `${cdnUrl}/test-recipe-with-plugin/visual/measure1.png`
-                }).then(match => {
-                  match.should.eql(true)
-
-                  appActions.stop(() => {
-                    done2()
-                    done1()
-                    done()
+                help
+                  .imagesEqual({
+                    base:
+                      'test/images/visual/baseline/measure.png?saturate=0.png',
+                    test: `${cdnUrl}/test-recipe-with-plugin/visual/measure1.png`
                   })
-                })
+                  .then(match => {
+                    match.should.eql(true)
+
+                    appActions.stop(() => {
+                      done2()
+                      done1()
+                      done()
+                    })
+                  })
               })
             }
           )
@@ -62,7 +67,7 @@ describe('Plugins', function (done) {
   })
 
   describe('post-processing', () => {
-    it('should modify the image before it\'s sent to the client', done => {
+    it("should modify the image before it's sent to the client", done => {
       help.createTempFile(
         'workspace/plugins/test-plugin-one.js',
         `module.exports.post = parameters => { parameters.processor.greyscale() }`,
@@ -75,18 +80,21 @@ describe('Plugins', function (done) {
             },
             done2 => {
               appActions.start(() => {
-                help.imagesEqual({
-                  base: 'test/images/visual/baseline/measure.png?saturate=0.png',
-                  test: `${cdnUrl}/test-recipe-with-plugin/visual/measure1.png`
-                }).then(match => {
-                  match.should.eql(true)
-
-                  appActions.stop(() => {
-                    done2()
-                    done1()
-                    done()
+                help
+                  .imagesEqual({
+                    base:
+                      'test/images/visual/baseline/measure.png?saturate=0.png',
+                    test: `${cdnUrl}/test-recipe-with-plugin/visual/measure1.png`
                   })
-                })
+                  .then(match => {
+                    match.should.eql(true)
+
+                    appActions.stop(() => {
+                      done2()
+                      done1()
+                      done()
+                    })
+                  })
               })
             }
           )
@@ -104,17 +112,19 @@ describe('Plugins', function (done) {
         }`,
         done1 => {
           appActions.start(() => {
-            help.imagesEqual({
-              base: 'test/images/test.jpg',
-              test: `${cdnUrl}/test-controller-plugin-one`
-            }).then(match => {
-              match.should.eql(true)
-
-              appActions.stop(() => {
-                done1()
-                done()
+            help
+              .imagesEqual({
+                base: 'test/images/test.jpg',
+                test: `${cdnUrl}/test-controller-plugin-one`
               })
-            })
+              .then(match => {
+                match.should.eql(true)
+
+                appActions.stop(() => {
+                  done1()
+                  done()
+                })
+              })
           })
         }
       )
@@ -146,7 +156,7 @@ describe('Plugins', function (done) {
           })
         }
       )
-    })    
+    })
 
     it('should respond with a 500 if the plugin throws any errors', done => {
       help.createTempFile(
@@ -167,6 +177,6 @@ describe('Plugins', function (done) {
           })
         }
       )
-    })    
+    })
   })
 })

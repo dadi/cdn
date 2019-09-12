@@ -1,66 +1,65 @@
 <!DOCTYPE html>
 <html>
-<head>
-<meta charset="utf-8">
-<title>DADI</title>
+  <head>
+    <meta charset="utf-8" />
+    <title>DADI</title>
 
-<style type="text/css">
-* {
-  margin: 0;
-  padding: 0;
-}
-html {
-  height: 100%;
-}
-body {
-  min-height: 100%;
-  background: #04111d;
-  font-family: 'Courier';
-  display: flex;
-  text-align: center;
-  color: #fff;
-}
+    <style type="text/css">
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        height: 100%;
+      }
+      body {
+        min-height: 100%;
+        background: #04111d;
+        font-family: 'Courier';
+        display: flex;
+        text-align: center;
+        color: #fff;
+      }
 
-#app {
-  min-height: 100%;
-  width: 100%;
-  margin: auto;
-}
-</style>
-</head>
-<body>
-
-<div id="app">
-  <table>
-    <thead>
-      <tr>
-        <th>Status</th>
-        <th>ID</th>
-        <th>IP</th>
-        <th>Location</th>
-        <th>User</th>
-        <th>CPUs</th>
-        <th>Go routines</th>
-        <th>Last active</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>
-          <span class="state state--green">Connected</span>
-          <span class="state state--yellow">Ready</span>
-          <span class="state state--red">{{ i.state }}</span>
-        </td>
-        <td><strong>{{ i.id }}</strong></td>
-        <td>{{ i.address }}</td>
-        <td>{{ i.location }}</td>
-        <td>{{ i.user }}</td>
-        <td>{{ i.num_cpu }}</td>
-        <td>{{ i.num_goroutine }}</td>
-        <td>{{ moment(i.last_active).fromNow() }}</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-</body>
+      #app {
+        min-height: 100%;
+        width: 100%;
+        margin: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <table>
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>ID</th>
+            <th>IP</th>
+            <th>Location</th>
+            <th>User</th>
+            <th>CPUs</th>
+            <th>Go routines</th>
+            <th>Last active</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <span class="state state--green">Connected</span>
+              <span class="state state--yellow">Ready</span>
+              <span class="state state--red">{{ i.state }}</span>
+            </td>
+            <td><strong>{{ i.id }}</strong></td>
+            <td>{{ i.address }}</td>
+            <td>{{ i.location }}</td>
+            <td>{{ i.user }}</td>
+            <td>{{ i.num_cpu }}</td>
+            <td>{{ i.num_goroutine }}</td>
+            <td>{{ moment(i.last_active).fromNow() }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </body>
 </html>

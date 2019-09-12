@@ -9,104 +9,91 @@ const request = require('supertest')
 const app = require(__dirname + '/../../dadi/lib/')
 const Cache = require(__dirname + '/../../dadi/lib/cache')
 const config = require(__dirname + '/../../config')
-const domainManager = require(__dirname + '/../../dadi/lib/models/domain-manager')
+const domainManager = require(__dirname +
+  '/../../dadi/lib/models/domain-manager')
 const help = require(__dirname + '/help')
 
-const cdnUrl = `http://${config.get('server.host')}:${config.get('server.port')}`
+const cdnUrl = `http://${config.get('server.host')}:${config.get(
+  'server.port'
+)}`
 const images = {
-  'localhost': 'test/images/test.jpg',
+  localhost: 'test/images/test.jpg',
   'testdomain.com': 'test/images/dog-w600.jpeg'
 }
 
 const stylesheets = {
-  'localhost': 'test/assets/test.css',
+  localhost: 'test/assets/test.css',
   'testdomain.com': 'test/assets/test.css'
 }
 
 const jsFiles = {
-  'localhost': 'test/assets/test.js',
+  localhost: 'test/assets/test.js',
   'testdomain.com': 'test/assets/test.js'
 }
 
 const txtFiles = {
-  'localhost': 'test/assets/test.txt',
+  localhost: 'test/assets/test.txt',
   'testdomain.com': 'test/assets/test.txt'
 }
 
-let configBackup = config.get()
-let server1 = nock('http://one.somedomain.tech')
+const configBackup = config.get()
+const server1 = nock('http://one.somedomain.tech')
   .get('/test.jpg')
   .times(Infinity)
   .reply(200, (uri, requestBody) => {
-    return fs.createReadStream(
-      path.resolve(images['localhost'])
-    )
+    return fs.createReadStream(path.resolve(images['localhost']))
   })
 
-let server2 = nock('http://two.somedomain.tech')
+const server2 = nock('http://two.somedomain.tech')
   .get('/test.jpg')
   .times(Infinity)
   .reply(200, (uri, requestBody) => {
-    return fs.createReadStream(
-      path.resolve(images['testdomain.com'])
-    )
+    return fs.createReadStream(path.resolve(images['testdomain.com']))
   })
 
-let cssScope1 = nock('http://one.somedomain.tech')
+const cssScope1 = nock('http://one.somedomain.tech')
   .get('/test.css')
   .times(Infinity)
   .reply(200, (uri, requestBody) => {
-    return fs.createReadStream(
-      path.resolve(stylesheets['localhost'])
-    )
+    return fs.createReadStream(path.resolve(stylesheets['localhost']))
   })
 
-let cssScope2 = nock('http://two.somedomain.tech')
+const cssScope2 = nock('http://two.somedomain.tech')
   .get('/test.css')
   .times(Infinity)
   .reply(200, (uri, requestBody) => {
-    return fs.createReadStream(
-      path.resolve(stylesheets['testdomain.com'])
-    )
+    return fs.createReadStream(path.resolve(stylesheets['testdomain.com']))
   })
 
-let jsScope1 = nock('http://one.somedomain.tech')
+const jsScope1 = nock('http://one.somedomain.tech')
   .get('/test.js')
   .times(Infinity)
   .reply(200, (uri, requestBody) => {
-    return fs.createReadStream(
-      path.resolve(jsFiles['localhost'])
-    )
+    return fs.createReadStream(path.resolve(jsFiles['localhost']))
   })
 
-let jsScope2 = nock('http://two.somedomain.tech')
+const jsScope2 = nock('http://two.somedomain.tech')
   .get('/test.js')
   .times(Infinity)
   .reply(200, (uri, requestBody) => {
-    return fs.createReadStream(
-      path.resolve(jsFiles['testdomain.com'])
-    )
+    return fs.createReadStream(path.resolve(jsFiles['testdomain.com']))
   })
 
-let txtScope1 = nock('http://one.somedomain.tech')
+const txtScope1 = nock('http://one.somedomain.tech')
   .get('/test.txt')
   .times(Infinity)
   .reply(200, (uri, requestBody) => {
-    return fs.createReadStream(
-      path.resolve(txtFiles['localhost'])
-    )
+    return fs.createReadStream(path.resolve(txtFiles['localhost']))
   })
 
-let txtScope2 = nock('http://two.somedomain.tech')
+const txtScope2 = nock('http://two.somedomain.tech')
   .get('/test.txt')
   .times(Infinity)
   .reply(200, (uri, requestBody) => {
-    return fs.createReadStream(
-      path.resolve(txtFiles['testdomain.com'])
-    )
+    return fs.createReadStream(path.resolve(txtFiles['testdomain.com']))
   })
 
-describe('Multi-domain', function () {
+describe('Multi-domain', function() {
   describe('if multi-domain is disabled', () => {
     before(done => {
       config.set('multiDomain.enabled', false)
@@ -116,7 +103,7 @@ describe('Multi-domain', function () {
           if (err) return done(err)
 
           setTimeout(done, 500)
-        })  
+        })
       })
     })
 
@@ -124,41 +111,50 @@ describe('Multi-domain', function () {
       config.set('multiDomain.enabled', false)
 
       help.proxyStop().then(() => {
-        app.stop(done)  
+        app.stop(done)
       })
     })
 
     it('should retrieve a remote image from a path specified by a recipe regardless of whether the domain is configured', () => {
-      return help.imagesEqual({
-        base: images['localhost'],
-        test: `${cdnUrl}/sample-image-recipe/test.jpg`
-      }).then(match => {
-        match.should.eql(true)
-        console.log('match :', match);
-        return help.imagesEqual({
+      return help
+        .imagesEqual({
           base: images['localhost'],
-          test: `${help.proxyUrl}/sample-image-recipe/test.jpg?mockdomain=unknowndomain.com`
-        }).then(match => {
-          console.log('match :', match);
-          match.should.eql(true)
+          test: `${cdnUrl}/sample-image-recipe/test.jpg`
         })
-      })
+        .then(match => {
+          match.should.eql(true)
+          console.log('match :', match)
+
+          return help
+            .imagesEqual({
+              base: images['localhost'],
+              test: `${help.proxyUrl}/sample-image-recipe/test.jpg?mockdomain=unknowndomain.com`
+            })
+            .then(match => {
+              console.log('match :', match)
+              match.should.eql(true)
+            })
+        })
     }).timeout(20000)
 
     it('should retrieve a remote image regardless of whether the domain is configured', () => {
-      return help.imagesEqual({
-        base: images['localhost'],
-        test: `${cdnUrl}/test.jpg`
-      }).then(match => {
-        match.should.eql(true)
-
-        return help.imagesEqual({
+      return help
+        .imagesEqual({
           base: images['localhost'],
-          test: `${help.proxyUrl}/test.jpg?mockdomain=unknowndomain.com`
-        }).then(match => {
-          match.should.eql(true)
+          test: `${cdnUrl}/test.jpg`
         })
-      })
+        .then(match => {
+          match.should.eql(true)
+
+          return help
+            .imagesEqual({
+              base: images['localhost'],
+              test: `${help.proxyUrl}/test.jpg?mockdomain=unknowndomain.com`
+            })
+            .then(match => {
+              match.should.eql(true)
+            })
+        })
     }).timeout(20000)
 
     describe('Caching', () => {
@@ -174,14 +170,14 @@ describe('Multi-domain', function () {
         Cache.reset()
 
         config.set('caching.redis.enabled', configBackup.caching.redis.enabled)
-        config.set('caching.directory.enabled', configBackup.caching.directory.enabled)
+        config.set(
+          'caching.directory.enabled',
+          configBackup.caching.directory.enabled
+        )
       })
 
       it('should not include domain name as part of cache key', done => {
-        let cacheSet = sinon.spy(
-          Cache.Cache.prototype,
-          'set'
-        )
+        const cacheSet = sinon.spy(Cache.Cache.prototype, 'set')
 
         request(cdnUrl)
           .get('/test.jpg')
@@ -197,7 +193,10 @@ describe('Multi-domain', function () {
                 .expect(200)
                 .end((err, res) => {
                   res.headers['x-cache'].should.eql('HIT')
-                  cacheSet.getCall(0).args[0].includes('testdomain.com').should.eql(false)
+                  cacheSet
+                    .getCall(0)
+                    .args[0].includes('testdomain.com')
+                    .should.eql(false)
 
                   cacheSet.restore()
 
@@ -206,7 +205,7 @@ describe('Multi-domain', function () {
             }, 1000)
           })
       }).timeout(20000)
-    })    
+    })
   })
 
   describe('if multi-domain is enabled', () => {
@@ -240,13 +239,37 @@ describe('Multi-domain', function () {
     afterEach(done => {
       config.set('images.s3.enabled', configBackup.images.s3.enabled)
 
-      config.set('images.directory.enabled', configBackup.images.directory.enabled, 'localhost')
-      config.set('images.remote.enabled', configBackup.images.remote.enabled, 'localhost')
-      config.set('images.remote.path', configBackup.images.remote.path, 'localhost')
+      config.set(
+        'images.directory.enabled',
+        configBackup.images.directory.enabled,
+        'localhost'
+      )
+      config.set(
+        'images.remote.enabled',
+        configBackup.images.remote.enabled,
+        'localhost'
+      )
+      config.set(
+        'images.remote.path',
+        configBackup.images.remote.path,
+        'localhost'
+      )
 
-      config.set('assets.directory.enabled', configBackup.assets.directory.enabled, 'localhost')
-      config.set('assets.remote.enabled', configBackup.assets.remote.enabled, 'localhost')
-      config.set('assets.remote.path', configBackup.assets.remote.path, 'localhost')
+      config.set(
+        'assets.directory.enabled',
+        configBackup.assets.directory.enabled,
+        'localhost'
+      )
+      config.set(
+        'assets.remote.enabled',
+        configBackup.assets.remote.enabled,
+        'localhost'
+      )
+      config.set(
+        'assets.remote.path',
+        configBackup.assets.remote.path,
+        'localhost'
+      )
 
       config.set('multiDomain.enabled', configBackup.multiDomain.enabled)
       config.set('dadiNetwork.enableConfigurationAPI', false)
@@ -257,19 +280,23 @@ describe('Multi-domain', function () {
     })
 
     it('should retrieve a remote image from the path specified by a recipe at domain level', () => {
-      return help.imagesEqual({
-        base: images['localhost'],
-        test: `${help.proxyUrl}/test-recipe/test.jpg?mockdomain=localhost`
-      }).then(match => {
-        match.should.eql(true)
-
-        return help.imagesEqual({
-          base: images['testdomain.com'],
-          test: `${help.proxyUrl}/test-recipe/test.jpg?mockdomain=testdomain.com`
-        }).then(match => {
-          match.should.eql(true)
+      return help
+        .imagesEqual({
+          base: images['localhost'],
+          test: `${help.proxyUrl}/test-recipe/test.jpg?mockdomain=localhost`
         })
-      })
+        .then(match => {
+          match.should.eql(true)
+
+          return help
+            .imagesEqual({
+              base: images['testdomain.com'],
+              test: `${help.proxyUrl}/test-recipe/test.jpg?mockdomain=testdomain.com`
+            })
+            .then(match => {
+              match.should.eql(true)
+            })
+        })
     }).timeout(20000)
 
     it('should retrieve a local image from the path specified by the domain config', () => {
@@ -277,86 +304,110 @@ describe('Multi-domain', function () {
       config.set('images.directory.path', 'test/images/next-level', 'localhost')
       config.set('images.remote.enabled', false, 'localhost')
 
-      let DiskStorage = require(path.join(__dirname, '../../dadi/lib/storage/disk'))
-      let diskStorage = new DiskStorage({
+      const DiskStorage = require(path.join(
+        __dirname,
+        '../../dadi/lib/storage/disk'
+      ))
+      const diskStorage = new DiskStorage({
         assetType: 'images',
         domain: 'localhost',
-        url: '/test.jpg'}
-      )
+        url: '/test.jpg'
+      })
 
       diskStorage.path.should.eql(path.resolve('./test/images/next-level'))
 
-      return help.imagesEqual({
-        base: images['localhost'],
-        test: `${help.proxyUrl}/test.jpg?mockdomain=localhost`
-      }).then(match => {
-        match.should.eql(true)
-      })
+      return help
+        .imagesEqual({
+          base: images['localhost'],
+          test: `${help.proxyUrl}/test.jpg?mockdomain=localhost`
+        })
+        .then(match => {
+          match.should.eql(true)
+        })
     }).timeout(10000)
 
     it('should retrieve a remote image from the path specified by the domain config', () => {
-      return help.imagesEqual({
-        base: images['localhost'],
-        test: `${help.proxyUrl}/test.jpg?mockdomain=localhost`
-      }).then(match => {
-        match.should.eql(true)
-
-        return help.imagesEqual({
-          base: images['testdomain.com'],
-          test: `${help.proxyUrl}/test.jpg?mockdomain=testdomain.com`
-        }).then(match => {
-          match.should.eql(true)
+      return help
+        .imagesEqual({
+          base: images['localhost'],
+          test: `${help.proxyUrl}/test.jpg?mockdomain=localhost`
         })
-      })
+        .then(match => {
+          match.should.eql(true)
+
+          return help
+            .imagesEqual({
+              base: images['testdomain.com'],
+              test: `${help.proxyUrl}/test.jpg?mockdomain=testdomain.com`
+            })
+            .then(match => {
+              match.should.eql(true)
+            })
+        })
     }).timeout(10000)
 
     it('should retrieve a remote CSS file from the path specified by the domain config', () => {
-      return help.filesEqual({
-        base: stylesheets['localhost'],
-        test: `${help.proxyUrl}/test.css?mockdomain=localhost`
-      }).then(match => {
-        match.should.eql(true)
-
-        return help.filesEqual({
-          base: stylesheets['testdomain.com'],
-          test: `${help.proxyUrl}/test.css?mockdomain=testdomain.com`
-        }).then(match => {
-          match.should.eql(true)
+      return help
+        .filesEqual({
+          base: stylesheets['localhost'],
+          test: `${help.proxyUrl}/test.css?mockdomain=localhost`
         })
-      })
+        .then(match => {
+          match.should.eql(true)
+
+          return help
+            .filesEqual({
+              base: stylesheets['testdomain.com'],
+              test: `${help.proxyUrl}/test.css?mockdomain=testdomain.com`
+            })
+            .then(match => {
+              match.should.eql(true)
+            })
+        })
     }).timeout(10000)
 
     it('should retrieve a remote TXT file from the path specified by the domain config', () => {
-      return help.filesEqual({
-        base: txtFiles['localhost'],
-        test: `${help.proxyUrl}/test.txt?mockdomain=localhost`
-      }).then(match => {
-        match.should.eql(true)
-
-        return help.filesEqual({
-          base: txtFiles['testdomain.com'],
-          test: `${help.proxyUrl}/test.txt?mockdomain=testdomain.com`
-        }).then(match => {
-          match.should.eql(true)
+      return help
+        .filesEqual({
+          base: txtFiles['localhost'],
+          test: `${help.proxyUrl}/test.txt?mockdomain=localhost`
         })
-      })
+        .then(match => {
+          match.should.eql(true)
+
+          return help
+            .filesEqual({
+              base: txtFiles['testdomain.com'],
+              test: `${help.proxyUrl}/test.txt?mockdomain=testdomain.com`
+            })
+            .then(match => {
+              match.should.eql(true)
+            })
+        })
     }).timeout(10000)
 
-    it.skip('should retrieve a remote JS file from the path specified by the domain config', () => {
-      return help.filesEqual({
-        base: jsFiles['localhost'],
-        test: `${help.proxyUrl}/test.js?mockdomain=localhost`
-      }).then(match => {
-        match.should.eql(true)
+    it.skip(
+      'should retrieve a remote JS file from the path specified by the domain config',
+      () => {
+        return help
+          .filesEqual({
+            base: jsFiles['localhost'],
+            test: `${help.proxyUrl}/test.js?mockdomain=localhost`
+          })
+          .then(match => {
+            match.should.eql(true)
 
-        return help.filesEqual({
-          base: jsFiles['testdomain.com'],
-          test: `${help.proxyUrl}/test.js?mockdomain=testdomain.com`
-        }).then(match => {
-          match.should.eql(true)
-        })
-      })
-    }).timeout(10000)
+            return help
+              .filesEqual({
+                base: jsFiles['testdomain.com'],
+                test: `${help.proxyUrl}/test.js?mockdomain=testdomain.com`
+              })
+              .then(match => {
+                match.should.eql(true)
+              })
+          })
+      }
+    ).timeout(10000)
 
     it('should use the images.allowFullURL setting defined at domain level to determine whether or not a request with a full remote URL will be served', done => {
       config.set('images.remote.allowFullURL', true, 'localhost')
@@ -512,7 +563,7 @@ describe('Multi-domain', function () {
       it('should return 201 when adding a single domain', done => {
         config.set('dadiNetwork.enableConfigurationAPI', true)
 
-        let domains = [
+        const domains = [
           {
             domain: 'api-added-domain.com',
             data: {
@@ -531,10 +582,15 @@ describe('Multi-domain', function () {
           .send(domains)
           .end((_err, res) => {
             res.statusCode.should.eql(201)
-            let domainAdded = res.body.domains.includes('api-added-domain.com')
+            const domainAdded = res.body.domains.includes(
+              'api-added-domain.com'
+            )
+
             domainAdded.should.eql(true)
 
-            config.get('images.remote.path', 'api-added-domain.com').should.eql('https://google.com')
+            config
+              .get('images.remote.path', 'api-added-domain.com')
+              .should.eql('https://google.com')
             done()
           })
       })
@@ -542,14 +598,14 @@ describe('Multi-domain', function () {
       it('should return 201 when adding multiple domains', done => {
         config.set('dadiNetwork.enableConfigurationAPI', true)
 
-        let domains = [
+        const domains = [
           {
             domain: 'api-added-domain-one.com',
             data: {
               images: {
                 remote: {
                   path: 'https://google.com'
-                }  
+                }
               }
             }
           },
@@ -572,27 +628,35 @@ describe('Multi-domain', function () {
           .end((_err, res) => {
             res.statusCode.should.eql(201)
 
-            let domainsAdded = res.body.domains.includes('api-added-domain-one.com') &&
-             res.body.domains.includes('api-added-domain-two.com')
+            const domainsAdded =
+              res.body.domains.includes('api-added-domain-one.com') &&
+              res.body.domains.includes('api-added-domain-two.com')
 
             domainsAdded.should.eql(true)
 
-            let addedPath = config.get('images.remote.path', 'api-added-domain-one.com')
+            let addedPath = config.get(
+              'images.remote.path',
+              'api-added-domain-one.com'
+            )
+
             addedPath.should.eql('https://google.com')
 
-            addedPath = config.get('images.remote.path', 'api-added-domain-two.com')
+            addedPath = config.get(
+              'images.remote.path',
+              'api-added-domain-two.com'
+            )
             addedPath.should.eql('https://google.co.uk')
             done()
           })
       })
 
-      it('should return 404 when modifying a domain that doesn\'t exist', done => {
+      it("should return 404 when modifying a domain that doesn't exist", done => {
         config.set('dadiNetwork.enableConfigurationAPI', true)
 
-        let domain = 'api-added-domain.com'
-        let domains = [
+        const domain = 'api-added-domain.com'
+        const domains = [
           {
-            domain: domain,
+            domain,
             data: {
               images: {
                 remote: {
@@ -603,7 +667,7 @@ describe('Multi-domain', function () {
           }
         ]
 
-        let update = {
+        const update = {
           data: {
             images: {
               remote: {
@@ -619,7 +683,8 @@ describe('Multi-domain', function () {
           .send(domains)
           .end((_err, res) => {
             res.statusCode.should.eql(201)
-            let domainAdded = res.body.domains.includes(domain)
+            const domainAdded = res.body.domains.includes(domain)
+
             domainAdded.should.eql(true)
 
             request(cdnUrl)
@@ -636,10 +701,10 @@ describe('Multi-domain', function () {
       it('should return 200 when modifying a domain', done => {
         config.set('dadiNetwork.enableConfigurationAPI', true)
 
-        let domain = 'api-added-domain.com'
-        let domains = [
+        const domain = 'api-added-domain.com'
+        const domains = [
           {
-            domain: domain,
+            domain,
             data: {
               images: {
                 remote: {
@@ -650,7 +715,7 @@ describe('Multi-domain', function () {
           }
         ]
 
-        let update = {
+        const update = {
           data: {
             images: {
               remote: {
@@ -666,10 +731,12 @@ describe('Multi-domain', function () {
           .send(domains)
           .end((_err, res) => {
             res.statusCode.should.eql(201)
-            let domainAdded = res.body.domains.includes(domain)
+            const domainAdded = res.body.domains.includes(domain)
+
             domainAdded.should.eql(true)
 
             let configuredPath = config.get('images.remote.path', domain)
+
             configuredPath.should.eql(domains[0].data.images.remote.path)
 
             request(cdnUrl)
@@ -678,7 +745,8 @@ describe('Multi-domain', function () {
               .send(update)
               .end((_err, res) => {
                 res.statusCode.should.eql(200)
-                let domainAdded = res.body.domains.includes(domain)
+                const domainAdded = res.body.domains.includes(domain)
+
                 domainAdded.should.eql(true)
 
                 configuredPath = config.get('images.remote.path', domain)
@@ -688,10 +756,10 @@ describe('Multi-domain', function () {
           })
       })
 
-      it('should return 404 when deleting a domain that doesn\'t exist', done => {
+      it("should return 404 when deleting a domain that doesn't exist", done => {
         config.set('dadiNetwork.enableConfigurationAPI', true)
 
-        let domain = 'api-added-domain.com'
+        const domain = 'api-added-domain.com'
 
         request(cdnUrl)
           .delete('/_dadi/domains/not-a-domain')
@@ -705,10 +773,10 @@ describe('Multi-domain', function () {
       it('should return 200 when deleting a domain', done => {
         config.set('dadiNetwork.enableConfigurationAPI', true)
 
-        let domain = 'api-added-domain.com'
-        let domains = [
+        const domain = 'api-added-domain.com'
+        const domains = [
           {
-            domain: domain,
+            domain,
             data: {
               images: {
                 remote: {
@@ -725,12 +793,13 @@ describe('Multi-domain', function () {
           .send(domains)
           .end((_err, res) => {
             res.statusCode.should.eql(201)
-            let domainAdded = res.body.domains.includes(domain)
+            const domainAdded = res.body.domains.includes(domain)
+
             domainAdded.should.eql(true)
 
-            let configuredPath = config.get('images.remote.path', domain)
-            configuredPath.should.eql(domains[0].data.images.remote.path)
+            const configuredPath = config.get('images.remote.path', domain)
 
+            configuredPath.should.eql(domains[0].data.images.remote.path)
             ;(typeof domainManager.getDomain(domain)).should.eql('object')
 
             request(cdnUrl)
@@ -738,10 +807,12 @@ describe('Multi-domain', function () {
               .set('Host', 'testdomain.com:80')
               .end((_err, res) => {
                 res.statusCode.should.eql(200)
-                let domainAdded = res.body.domains.includes(domain)
-                domainAdded.should.eql(false)
+                const domainAdded = res.body.domains.includes(domain)
 
-               ;(typeof domainManager.getDomain(domain)).should.eql('undefined')
+                domainAdded.should.eql(false)
+                ;(typeof domainManager.getDomain(domain)).should.eql(
+                  'undefined'
+                )
 
                 done()
               })
@@ -750,7 +821,7 @@ describe('Multi-domain', function () {
     })
 
     describe('when the target domain is not configured', () => {
-      let testDomain = 'unknowndomain.com'
+      const testDomain = 'unknowndomain.com'
 
       it('should return 404 when trying to retrieve a remote image', done => {
         request(cdnUrl)
@@ -758,9 +829,7 @@ describe('Multi-domain', function () {
           .set('Host', `${testDomain}:80`)
           .expect(404)
           .end((err, res) => {
-            res.body.message.should.eql(
-              `Domain not configured: ${testDomain}`
-            )
+            res.body.message.should.eql(`Domain not configured: ${testDomain}`)
 
             done()
           })
@@ -772,9 +841,7 @@ describe('Multi-domain', function () {
           .set('Host', `${testDomain}:80`)
           .expect(404)
           .end((err, res) => {
-            res.body.message.should.eql(
-              `Domain not configured: ${testDomain}`
-            )
+            res.body.message.should.eql(`Domain not configured: ${testDomain}`)
 
             done()
           })
@@ -786,9 +853,7 @@ describe('Multi-domain', function () {
           .set('Host', `${testDomain}:80`)
           .expect(404)
           .end((err, res) => {
-            res.body.message.should.eql(
-              `Domain not configured: ${testDomain}`
-            )
+            res.body.message.should.eql(`Domain not configured: ${testDomain}`)
 
             request(cdnUrl)
               .get('/test.css')
@@ -818,14 +883,14 @@ describe('Multi-domain', function () {
         Cache.reset()
 
         config.set('caching.redis.enabled', configBackup.caching.redis.enabled)
-        config.set('caching.directory.enabled', configBackup.caching.directory.enabled)
+        config.set(
+          'caching.directory.enabled',
+          configBackup.caching.directory.enabled
+        )
       })
 
       it('should include domain name as part of cache key', done => {
-        let cacheSet = sinon.spy(
-          Cache.Cache.prototype,
-          'set'
-        )
+        const cacheSet = sinon.spy(Cache.Cache.prototype, 'set')
 
         request(cdnUrl)
           .get('/test.jpg')
@@ -841,7 +906,10 @@ describe('Multi-domain', function () {
                 .expect(200)
                 .end((err, res) => {
                   res.headers['x-cache'].should.eql('HIT')
-                  cacheSet.getCall(0).args[0].includes('testdomain.com').should.eql(true)
+                  cacheSet
+                    .getCall(0)
+                    .args[0].includes('testdomain.com')
+                    .should.eql(true)
                   cacheSet.restore()
 
                   request(cdnUrl)
