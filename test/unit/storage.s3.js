@@ -50,8 +50,7 @@ describe('Storage', function(done) {
       config.loadFile(config.configPath())
 
       const req = {
-        __cdnLegacyURLSyntax: true,
-        url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
+        url: '/test.jpg'
       }
 
       const settings = config.get('images')
@@ -79,8 +78,7 @@ describe('Storage', function(done) {
       const spy = sinon.spy(factory, 'create')
 
       const req = {
-        __cdnLegacyURLSyntax: true,
-        url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
+        url: '/test.jpg'
       }
 
       // set expected key value
@@ -184,8 +182,7 @@ describe('Storage', function(done) {
       config.loadFile(config.configPath())
 
       const req = {
-        __cdnLegacyURLSyntax: true,
-        url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
+        url: '/test.jpg'
       }
 
       // set expected key value

@@ -3,7 +3,6 @@
 [![npm (scoped)](https://img.shields.io/npm/v/@dadi/cdn.svg?maxAge=10800&style=flat-square)](https://www.npmjs.com/package/@dadi/cdn)
 [![Coverage Status](https://coveralls.io/repos/github/dadi/cdn/badge.svg?branch=develop)](https://coveralls.io/github/dadi/cdn?branch=develop)
 [![Build Status](https://travis-ci.org/dadi/cdn.svg?branch=master)](https://travis-ci.org/dadi/cdn)
-[![JavaScript Style Guide](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat-square)](http://standardjs.com/)
 
 ## DADI CDN
 

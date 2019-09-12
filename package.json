@@ -6,7 +6,8 @@
   "scripts": {
     "init": "validate-commit-msg",
     "start": "node index.js --node_env=development",
-    "test": "rm -f config/config.test.json && eslint --ext js,jsx . && prettier --check '**/*.{js,jsx,md,html,css}' && env NODE_ENV=test ./node_modules/.bin/nyc --reporter=lcov -x '**/workspace/**' -x 'test/**' ./node_modules/mocha/bin/_mocha test && ./node_modules/.bin/nyc report",
+    "test": "rm -f config/config.test.json && eslint --ext js,jsx . && prettier --check '**/*.{js,jsx,md,html,css}' && npm run test:run && ./node_modules/.bin/nyc report",
+    "test:run": "rm -rf cache && env NODE_ENV=test ./node_modules/.bin/nyc --reporter=lcov -x '**/workspace/**' -x 'test/**' ./node_modules/mocha/bin/_mocha test",
     "precommit": "node scripts/precommit.js",
     "posttest": "./scripts/coverage.js",
     "snyk-protect": "snyk protect",

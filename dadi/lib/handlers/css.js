@@ -15,18 +15,15 @@ const url = require('url')
  * @param {Object} req    The request instance
  */
 const CSSHandler = function(format, req, {options = {}} = {}) {
-  this.legacyURLOverrides = this.getLegacyURLOverrides(req.url)
   this.options = options
-  this.url = url.parse(this.legacyURLOverrides.url || req.url, true)
+  this.url = url.parse(req.url, true)
 
   this.isExternalUrl =
     this.url.pathname.indexOf('http://') > 0 ||
     this.url.pathname.indexOf('https://') > 0
 
   this.isCompressed = Boolean(
-    this.options.compress ||
-      this.legacyURLOverrides.compress ||
-      this.url.query.compress === '1'
+    this.options.compress || this.url.query.compress === '1'
   )
 
   this.cache = Cache()
@@ -125,29 +122,6 @@ CSSHandler.prototype.getLastModified = function() {
   if (!this.storageHandler || !this.storageHandler.getLastModified) return null
 
   return this.storageHandler.getLastModified()
-}
-
-/**
- * Looks for parameters in the URL using legacy syntax
- * (e.g. /css/0/file.css)
- *
- * @param  {String} url The URL
- * @return {Object}     A list of parameters and their value
- */
-CSSHandler.prototype.getLegacyURLOverrides = function(url) {
-  const overrides = {}
-
-  const legacyURLMatch = url.match(/^\/css(\/(\d))?/)
-
-  if (legacyURLMatch) {
-    if (legacyURLMatch[2]) {
-      overrides.compress = legacyURLMatch[2] === '1'
-    }
-
-    overrides.url = url.slice(legacyURLMatch[0].length)
-  }
-
-  return overrides
 }
 
 /**

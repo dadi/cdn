@@ -47,8 +47,7 @@ describe('ImageHandler', function(done) {
     const spy = sinon.spy(factory, 'create')
 
     const req = {
-      __cdnLegacyURLSyntax: true,
-      url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
+      url: '/test.jpg'
     }
 
     // set some expected values
@@ -98,9 +97,8 @@ describe('ImageHandler', function(done) {
     const spy = sinon.spy(factory, 'create')
 
     const req = {
-      __cdnLegacyURLSyntax: true,
       headers: {},
-      url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
+      url: '/test.jpg'
     }
 
     // set some expected values
@@ -152,7 +150,6 @@ describe('ImageHandler', function(done) {
     const spy = sinon.spy(factory, 'create')
 
     const req = {
-      __cdnLegacyURLSyntax: false,
       headers: {},
       url: 'static/images/logos/nodejs-new-white-pantone.png'
     }
@@ -204,8 +201,7 @@ describe('ImageHandler', function(done) {
     const spy = sinon.spy(factory, 'create')
 
     const req = {
-      __cdnLegacyURLSyntax: true,
-      url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
+      url: '/test.jpg'
     }
 
     // set some expected values

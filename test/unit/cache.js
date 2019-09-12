@@ -108,8 +108,7 @@ describe('Cache', function(done) {
     cache.reset()
 
     const req = {
-      __cdnLegacyURLSyntax: true,
-      url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
+      url: '/test.jpg'
     }
 
     const im = new imageHandler('jpg', req)

@@ -13,9 +13,8 @@ const url = require('url')
  * @param {Object} req    The request instance
  */
 const DefaultHandler = function(format, req, {options = {}} = {}) {
-  this.legacyURLOverrides = this.getLegacyURLOverrides(req.url)
   this.options = options
-  this.url = url.parse(this.legacyURLOverrides.url || req.url, true)
+  this.url = url.parse(req.url, true)
 
   this.isExternalUrl =
     this.url.pathname.indexOf('http://') > 0 ||
@@ -116,25 +115,6 @@ DefaultHandler.prototype.getLastModified = function() {
   if (!this.storageHandler || !this.storageHandler.getLastModified) return null
 
   return this.storageHandler.getLastModified()
-}
-
-/**
- * Looks for parameters in the URL using legacy syntax
- * (e.g. /fonts/0/file.css)
- *
- * @param  {String} url The URL
- * @return {Object}     A list of parameters and their value
- */
-DefaultHandler.prototype.getLegacyURLOverrides = function(url) {
-  const overrides = {}
-
-  const legacyURLMatch = url.match(/\/fonts(\/(\d))?/)
-
-  if (legacyURLMatch) {
-    overrides.url = url.slice(legacyURLMatch[0].length)
-  }
-
-  return overrides
 }
 
 /**
