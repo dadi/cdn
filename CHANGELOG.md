@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
+## [4.0.0] - 2019-09-23
+
+### Changed
+
+- [#514](https://github.com/dadi/cdn/pull/514): remove support for legacy path-based URL syntax
+
 ## [3.6.2] - 2019-08-23
 
 ### Fixed
