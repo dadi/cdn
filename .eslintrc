@@ -1,0 +1,6 @@
+{
+  "extends": "@dadi",
+  "rules": {
+    "require-atomic-updates": "off"
+  }
+}

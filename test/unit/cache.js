@@ -1,22 +1,22 @@
-var should = require('should')
-var fs = require('fs')
-var path = require('path')
-var sinon = require('sinon')
-var proxyquire = require('proxyquire')
-var redis = require('redis')
-var fakeredis = require('fakeredis')
+const should = require('should')
+const fs = require('fs')
+const path = require('path')
+const sinon = require('sinon')
+const proxyquire = require('proxyquire')
+const redis = require('redis')
+const fakeredis = require('fakeredis')
 
-var Router = require('router')
-var router = Router()
+const Router = require('router')
+const router = Router()
 
-var config
-var cache
-var imageHandler = require(__dirname + '/../../dadi/lib/handlers/image')
+let config
+let cache
+const imageHandler = require(__dirname + '/../../dadi/lib/handlers/image')
 
-var testConfigString
+let testConfigString
 
-describe('Cache', function (done) {
-  beforeEach(function (done) {
+describe('Cache', function(done) {
+  beforeEach(function(done) {
     delete require.cache[__dirname + '/../../dadi/lib/cache']
     cache = require(__dirname + '/../../dadi/lib/cache')
 
@@ -28,92 +28,109 @@ describe('Cache', function (done) {
     done()
   })
 
-  afterEach(function (done) {
+  afterEach(function(done) {
     delete require.cache[__dirname + '/../../dadi/lib/cache']
     fs.writeFileSync(config.configPath(), testConfigString)
     done()
   })
 
-  it('should export an instance', function (done) {
+  it('should export an instance', function(done) {
     cache.should.be.Function
     done()
   })
 
-  it("should cache if the app's directory config settings allow", function (done) {
-    var newTestConfig = JSON.parse(testConfigString)
+  it("should cache if the app's directory config settings allow", function(done) {
+    const newTestConfig = JSON.parse(testConfigString)
+
     newTestConfig.caching.directory.enabled = true
     newTestConfig.caching.redis.enabled = false
-    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+    fs.writeFileSync(
+      config.configPath(),
+      JSON.stringify(newTestConfig, null, 2)
+    )
 
     config.loadFile(config.configPath())
 
     cache.reset()
 
-    var req = {
+    const req = {
       url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
     }
 
-    var im = new imageHandler('jpg', req)
+    const im = new imageHandler('jpg', req)
 
     im.cache.isEnabled().should.eql(true)
 
     done()
   })
 
-  it("should not cache if the app's config settings don't allow", function (done) {
-    var newTestConfig = JSON.parse(testConfigString)
+  it("should not cache if the app's config settings don't allow", function(done) {
+    const newTestConfig = JSON.parse(testConfigString)
+
     newTestConfig.caching.directory.enabled = false
     newTestConfig.caching.redis.enabled = false
-    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+    fs.writeFileSync(
+      config.configPath(),
+      JSON.stringify(newTestConfig, null, 2)
+    )
 
     config.loadFile(config.configPath())
 
     cache.reset()
 
-    var req = {
+    const req = {
       url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
     }
 
-    var imageHandler = proxyquire('../../dadi/lib/handlers/image', {'Cache': cache})
-    var im = new imageHandler('jpg', req)
+    const imageHandler = proxyquire('../../dadi/lib/handlers/image', {
+      Cache: cache
+    })
+    const im = new imageHandler('jpg', req)
 
     im.cache.isEnabled().should.eql(false)
 
     done()
   })
 
-  it('should receive null from cache.getStream() if the caching is disabled', function (done) {
-    var newTestConfig = JSON.parse(testConfigString)
+  it('should receive null from cache.getStream() if the caching is disabled', function(done) {
+    const newTestConfig = JSON.parse(testConfigString)
+
     newTestConfig.caching.directory.enabled = false
     newTestConfig.caching.directory.path = './cache'
 
-    fs.writeFileSync(config.configPath(), JSON.stringify(newTestConfig, null, 2))
+    fs.writeFileSync(
+      config.configPath(),
+      JSON.stringify(newTestConfig, null, 2)
+    )
 
     config.loadFile(config.configPath())
 
     cache.reset()
 
-    var req = {
-      __cdnLegacyURLSyntax: true,
-      url: '/jpg/50/0/0/801/478/0/0/0/2/aspectfit/North/0/0/0/0/0/test.jpg'
+    const req = {
+      url: '/test.jpg'
     }
 
-    var im = new imageHandler('jpg', req)
+    const im = new imageHandler('jpg', req)
 
-    var getStream = sinon.spy(im.cache, 'getStream')
+    const getStream = sinon.spy(im.cache, 'getStream')
 
-    im.get().then(function (stream) {
-      getStream.restore()
+    im.get()
+      .then(function(stream) {
+        getStream.restore()
 
-      var args = getStream.firstCall.args
-      args[0].includes(req.url).should.eql(true)
+        const args = getStream.firstCall.args
 
-      var returnValue = getStream.firstCall.returnValue
-      returnValue.then(err => {
-        should.not.exist(err)
+        args[0].includes(req.url).should.eql(true)
 
-        done()
+        const returnValue = getStream.firstCall.returnValue
+
+        returnValue.then(err => {
+          should.not.exist(err)
+
+          done()
+        })
       })
-    }).catch(console.log)
+      .catch(console.log)
   })
 })

@@ -9,50 +9,53 @@ const request = require('supertest')
 const req = require('request')
 const url = require('url')
 
-let cdnUrl = `http://${config.get('server.host')}:${config.get('server.port')}`
+const cdnUrl = `http://${config.get('server.host')}:${config.get(
+  'server.port'
+)}`
 
 module.exports.cdnUrl = cdnUrl
 
-module.exports.createTempFile = function (filePath, content, options, callback) {
-  return fs.ensureDir(
-    path.dirname(path.resolve(filePath))
-  ).then(() => {
-    if (typeof options === 'function') {
-      callback = options
-      options = {}
-    }
+module.exports.createTempFile = function(filePath, content, options, callback) {
+  return fs
+    .ensureDir(path.dirname(path.resolve(filePath)))
+    .then(() => {
+      if (typeof options === 'function') {
+        callback = options
+        options = {}
+      }
 
-    let serialisedContent = typeof content === 'string'
-      ? content
-      : JSON.stringify(content, null, 2)
+      const serialisedContent =
+        typeof content === 'string' ? content : JSON.stringify(content, null, 2)
 
-    return fs.writeFile(filePath, serialisedContent)
-  }).then(() => {
-    let removeFn = () => fs.removeSync(filePath)
-
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        callback(removeFn, content)
-
-        resolve()
-      }, (options.interval || 0))
+      return fs.writeFile(filePath, serialisedContent)
     })
-  })
+    .then(() => {
+      const removeFn = () => fs.removeSync(filePath)
+
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          callback(removeFn, content)
+
+          resolve()
+        }, options.interval || 0)
+      })
+    })
 }
 
-module.exports.imagesEqual = function ({base, headers, test}) {
-  let fullBasePath = path.resolve(base)
+module.exports.imagesEqual = function({base, headers, test}) {
+  const fullBasePath = path.resolve(base)
 
   if (test.indexOf('/') === 0) {
-    test = `http://${config.get('server.host')}:${config.get('server.port')}${test}`
+    test = `http://${config.get('server.host')}:${config.get(
+      'server.port'
+    )}${test}`
   }
 
-  return Jimp
-    .read(fullBasePath)
+  return Jimp.read(fullBasePath)
     .then(baselineImage => {
       return Jimp.read(test).then(testImage => {
-        let diff = Jimp.diff(baselineImage, testImage, 0.1)
-        let distance = Jimp.distance(baselineImage, testImage)
+        const diff = Jimp.diff(baselineImage, testImage, 0.1)
+        const distance = Jimp.distance(baselineImage, testImage)
 
         if (distance < 0.15 || diff.percent < 0.15) {
           return Promise.resolve(true)
@@ -60,19 +63,22 @@ module.exports.imagesEqual = function ({base, headers, test}) {
 
         return Promise.resolve(false)
       })
-    }).catch(err => {
+    })
+    .catch(err => {
       console.error(err)
     })
 }
 
-module.exports.filesEqual = function ({base, headers, test}) {
-  let fullBasePath = path.resolve(base)
+module.exports.filesEqual = function({base, headers, test}) {
+  const fullBasePath = path.resolve(base)
 
   if (test.indexOf('/') === 0) {
-    test = `http://${config.get('server.host')}:${config.get('server.port')}${test}`
+    test = `http://${config.get('server.host')}:${config.get(
+      'server.port'
+    )}${test}`
   }
 
-  let getFileContents = fileName => {
+  const getFileContents = fileName => {
     return new Promise((resolve, reject) => {
       fs.readFile(fileName, (err, data) => {
         return err ? reject(err) : resolve(data.toString())
@@ -80,11 +86,12 @@ module.exports.filesEqual = function ({base, headers, test}) {
     })
   }
 
-  let getRemoteFileContents = url => {
+  const getRemoteFileContents = url => {
     return new Promise((resolve, reject) => {
-      require('http').get(url, (res) => {
+      require('http').get(url, res => {
         let string = ''
-        res.on('data', (chunk) => {
+
+        res.on('data', chunk => {
           string += chunk.toString()
         })
 
@@ -100,18 +107,21 @@ module.exports.filesEqual = function ({base, headers, test}) {
       return getRemoteFileContents(test).then(testFile => {
         return testFile === baselineFile
       })
-    }).catch(err => {
+    })
+    .catch(err => {
       console.error(err)
     })
 }
 
-module.exports.getBearerToken = function (domain, done) {
+module.exports.getBearerToken = function(domain, done) {
   if (typeof domain === 'function') {
     done = domain
     domain = 'localhost'
   }
 
-  request('http://' + config.get('server.host') + ':' + config.get('server.port'))
+  request(
+    'http://' + config.get('server.host') + ':' + config.get('server.port')
+  )
     .post(config.get('auth.tokenUrl'))
     .set('host', `${domain}:80`)
     .send({
@@ -120,27 +130,31 @@ module.exports.getBearerToken = function (domain, done) {
     })
     .expect(200)
     // .expect('content-type', 'application/json')
-    .end(function (err, res) {
+    .end(function(err, res) {
       if (err) return done(err)
 
-      var bearerToken = res.body.accessToken
+      const bearerToken = res.body.accessToken
+
       should.exist(bearerToken)
       done(null, bearerToken)
     })
 }
 
-module.exports.clearCache = function () {
-  var deleteFolderRecursive = function (filepath) {
+module.exports.clearCache = function() {
+  const deleteFolderRecursive = function(filepath) {
     if (fs.existsSync(filepath) && fs.lstatSync(filepath).isDirectory()) {
-      fs.readdirSync(filepath).forEach(function (file, index) {
-        var curPath = filepath + '/' + file
-        if (fs.lstatSync(curPath).isDirectory()) { // recurse
+      fs.readdirSync(filepath).forEach(function(file, index) {
+        const curPath = filepath + '/' + file
+
+        if (fs.lstatSync(curPath).isDirectory()) {
+          // recurse
           deleteFolderRecursive(curPath)
-        } else { // delete file
+        } else {
+          // delete file
           try {
             fs.unlinkSync(path.resolve(curPath))
           } catch (err) {
-
+            // no-op
           }
         }
       })
@@ -149,17 +163,21 @@ module.exports.clearCache = function () {
       try {
         fs.unlinkSync(filepath)
       } catch (err) {
-
+        // no-op
       }
     }
   }
 
   // for each directory in the cache folder, remove all files then
   // delete the folder
-  fs.stat(config.get('caching.directory.path'), function (err, stats) {
+  fs.stat(config.get('caching.directory.path'), function(err, stats) {
     if (!err) {
-      fs.readdirSync(config.get('caching.directory.path')).forEach(function (dirname) {
-        deleteFolderRecursive(path.join(config.get('caching.directory.path'), dirname))
+      fs.readdirSync(config.get('caching.directory.path')).forEach(function(
+        dirname
+      ) {
+        deleteFolderRecursive(
+          path.join(config.get('caching.directory.path'), dirname)
+        )
       })
     }
   })
@@ -171,13 +189,13 @@ module.exports.clearCache = function () {
 //
 // Example: http://{proxyUrl}/test.jpg?mockdomain=testdomain.com will
 // be forwarded to http://{cdnUrl}/test.jpg with `Host: testdomain.com`.
-let proxyPort = config.get('server.port') + 1
-let proxyUrl = `http://localhost:${proxyPort}`
-let proxy = httpProxy.createProxyServer({})
+const proxyPort = config.get('server.port') + 1
+const proxyUrl = `http://localhost:${proxyPort}`
+const proxy = httpProxy.createProxyServer({})
 
 proxy.on('proxyReq', (proxyReq, req, res, options) => {
-  let parsedUrl = url.parse(req.url, true)
-  let mockDomain = parsedUrl.query.mockdomain
+  const parsedUrl = url.parse(req.url, true)
+  const mockDomain = parsedUrl.query.mockdomain
 
   parsedUrl.search = null
   delete parsedUrl.query.mockdomain
@@ -186,7 +204,7 @@ proxy.on('proxyReq', (proxyReq, req, res, options) => {
   proxyReq.setHeader('Host', mockDomain)
 })
 
-let proxyServer = http.createServer((req, res) => {
+const proxyServer = http.createServer((req, res) => {
   proxy.web(req, res, {
     target: cdnUrl
   })
@@ -203,4 +221,5 @@ module.exports.proxyStop = () => {
     proxyServer.close(resolve)
   })
 }
+
 module.exports.proxyUrl = proxyUrl

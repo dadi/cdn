@@ -11,12 +11,12 @@ const TILE_TYPES = {
   OUTPUT: 'o:'
 }
 
-function getValue (input) {
+function getValue(input) {
   return parseInt(input.substring(2))
 }
 
-const ImageLayoutProcessor = function ({assetStore, cache, req, setHeader}) {
-  let parsedUrl = url.parse(req.url, true)
+const ImageLayoutProcessor = function({assetStore, cache, req, setHeader}) {
+  const parsedUrl = url.parse(req.url, true)
 
   this.cache = cache
   this.assetStore = assetStore
@@ -28,8 +28,8 @@ const ImageLayoutProcessor = function ({assetStore, cache, req, setHeader}) {
   this.newImage = null
 }
 
-ImageLayoutProcessor.prototype.get = function () {
-  let cacheKey = this.req.url
+ImageLayoutProcessor.prototype.get = function() {
+  const cacheKey = this.req.url
 
   return this.cache.get(cacheKey).then(cachedLayout => {
     if (cachedLayout) {
@@ -59,18 +59,30 @@ ImageLayoutProcessor.prototype.get = function () {
             let resizedHeight
 
             if (input.fileName) {
-              let scaleWidth = (600 / input.originalImageSize.naturalWidth)
-              let scaleHeight = (600 / input.originalImageSize.naturalHeight)
-              let scale = Math.max(scaleWidth, scaleHeight)
+              const scaleWidth = 600 / input.originalImageSize.naturalWidth
+              const scaleHeight = 600 / input.originalImageSize.naturalHeight
+              const scale = Math.max(scaleWidth, scaleHeight)
 
-              let calculatedWidth = input.originalImageSize.naturalWidth * scale
-              let calculatedHeight = input.originalImageSize.naturalHeight * scale
-              let sc = Math.max(input.width / calculatedWidth, input.height / calculatedHeight)
+              const calculatedWidth =
+                input.originalImageSize.naturalWidth * scale
+              const calculatedHeight =
+                input.originalImageSize.naturalHeight * scale
+              const sc = Math.max(
+                input.width / calculatedWidth,
+                input.height / calculatedHeight
+              )
+
               resizedWidth = calculatedWidth * sc
               resizedHeight = calculatedHeight * sc
 
-              input.l = resizedWidth === input.width ? 0 : (resizedWidth - input.width) / 2
-              input.t = resizedHeight === input.height ? 0 : (resizedHeight - input.height) / 2
+              input.l =
+                resizedWidth === input.width
+                  ? 0
+                  : (resizedWidth - input.width) / 2
+              input.t =
+                resizedHeight === input.height
+                  ? 0
+                  : (resizedHeight - input.height) / 2
             } else {
               resizedWidth = input.width
               resizedHeight = input.height
@@ -79,7 +91,10 @@ ImageLayoutProcessor.prototype.get = function () {
             // Read the overlay image, resive and composite it on the original
             Jimp.read(obj)
               .then(inputImage => {
-                inputImage.resize(Math.floor(resizedWidth), Math.floor(resizedHeight))
+                inputImage.resize(
+                  Math.floor(resizedWidth),
+                  Math.floor(resizedHeight)
+                )
 
                 this.newImage.blit(
                   inputImage,
@@ -92,66 +107,79 @@ ImageLayoutProcessor.prototype.get = function () {
                 )
 
                 cb()
-              }).catch(err => {
+              })
+              .catch(err => {
                 cb(err)
               })
           }
         }
 
-        let instance = this
+        const instance = this
 
         // Create a blank canvas using the output file dimensions.
-        new Jimp(this.outputFile.width, this.outputFile.height, 0xff0000ff, (_err, image) => {
-          this.newImage = image
+        new Jimp(
+          this.outputFile.width,
+          this.outputFile.height,
+          0xff0000ff,
+          (_err, image) => {
+            this.newImage = image
 
-          let i = 0
+            let i = 0
 
-          this.inputs.forEach((input, index) => {
-            if (input.fileName) {
-              let imageSizeStream = new PassThrough()
-              let imageStream = new PassThrough()
+            this.inputs.forEach((input, index) => {
+              if (input.fileName) {
+                const imageSizeStream = new PassThrough()
+                const imageStream = new PassThrough()
 
-              let concatStream = concat(obj => {
-                return addImage(input, obj, (err) => {
-                  if (err) {
-                    console.log(err)
-                  }
+                const concatStream = concat(obj => {
+                  return addImage(input, obj, err => {
+                    if (err) {
+                      console.log(err)
+                    }
 
-                  if (++i === this.inputs.length) {
-                    return returnImage(instance)
-                  }
-                })
-              })
-
-              streams[index].pipe(imageSizeStream)
-              streams[index].pipe(imageStream)
-
-              return this.getImageSize(imageSizeStream).then(imageInfo => {
-                input.originalImageSize = imageInfo
-                imageStream.pipe(concatStream)
-              })
-            } else if (input.colour) {
-              // Create a colour tile.
-              new Jimp(input.width, input.height, `#${input.colour}`, (_err, image) => {
-                image.getBuffer(Jimp.MIME_PNG, (_err, buffer) => {
-                  addImage(input, buffer, () => {
                     if (++i === this.inputs.length) {
                       return returnImage(instance)
                     }
                   })
                 })
-              })
-            }
-          })
-        })
 
-        function returnImage (instance) {
-          return instance.newImage
-            .getBuffer(instance.getContentType(), (err, outBuffer) => {
-              let cacheStream = new PassThrough()
-              let responseStream = new PassThrough()
+                streams[index].pipe(imageSizeStream)
+                streams[index].pipe(imageStream)
 
-              let bufferStream = new PassThrough()
+                return this.getImageSize(imageSizeStream).then(imageInfo => {
+                  input.originalImageSize = imageInfo
+                  imageStream.pipe(concatStream)
+                })
+              } else if (input.colour) {
+                // Create a colour tile.
+                new Jimp(
+                  input.width,
+                  input.height,
+                  `#${input.colour}`,
+                  (_err, image) => {
+                    image.getBuffer(Jimp.MIME_PNG, (_err, buffer) => {
+                      addImage(input, buffer, () => {
+                        if (++i === this.inputs.length) {
+                          return returnImage(instance)
+                        }
+                      })
+                    })
+                  }
+                )
+              }
+            })
+          }
+        )
+
+        function returnImage(instance) {
+          return instance.newImage.getBuffer(
+            instance.getContentType(),
+            (err, outBuffer) => {
+              const cacheStream = new PassThrough()
+              const responseStream = new PassThrough()
+
+              const bufferStream = new PassThrough()
+
               bufferStream.end(outBuffer)
 
               bufferStream.pipe(cacheStream)
@@ -161,14 +189,15 @@ ImageLayoutProcessor.prototype.get = function () {
               instance.cache.set(cacheStream, cacheKey)
 
               return resolve(responseStream)
-            })
+            }
+          )
         }
       })
     })
   })
 }
 
-ImageLayoutProcessor.prototype.getContentType = function () {
+ImageLayoutProcessor.prototype.getContentType = function() {
   switch (this.format.toLowerCase()) {
     case 'png':
       return 'image/png'
@@ -182,7 +211,7 @@ ImageLayoutProcessor.prototype.getContentType = function () {
   }
 }
 
-ImageLayoutProcessor.prototype.getImageSize = function (stream) {
+ImageLayoutProcessor.prototype.getImageSize = function(stream) {
   return new Promise((resolve, reject) => {
     const size = imagesize()
 
@@ -200,14 +229,14 @@ ImageLayoutProcessor.prototype.getImageSize = function (stream) {
   })
 }
 
-ImageLayoutProcessor.prototype.getFilename = function () {
+ImageLayoutProcessor.prototype.getFilename = function() {
   return this.outputFile.fileName
 }
 
-ImageLayoutProcessor.prototype.getInput = function (type, inputStr) {
+ImageLayoutProcessor.prototype.getInput = function(type, inputStr) {
   const parts = inputStr.split(',')
 
-  let input = {}
+  const input = {}
 
   switch (type) {
     case TILE_TYPES.IMAGE:
@@ -248,13 +277,13 @@ ImageLayoutProcessor.prototype.getInput = function (type, inputStr) {
   return input
 }
 
-ImageLayoutProcessor.prototype.getLastModified = function () {
+ImageLayoutProcessor.prototype.getLastModified = function() {
   if (!this.storageHandler || !this.storageHandler.getLastModified) return null
 
   return this.storageHandler.getLastModified()
 }
 
-ImageLayoutProcessor.prototype.getOutputFile = function (inputStr) {
+ImageLayoutProcessor.prototype.getOutputFile = function(inputStr) {
   const parts = inputStr.split(',')
   const output = {
     fileName: parts[0]
@@ -278,11 +307,13 @@ ImageLayoutProcessor.prototype.getOutputFile = function (inputStr) {
   return output
 }
 
-ImageLayoutProcessor.prototype.processUrl = function (requestPath) {
-  const pathParts = decodeURIComponent(requestPath).replace('/layout/', '').split('|')
+ImageLayoutProcessor.prototype.processUrl = function(requestPath) {
+  const pathParts = decodeURIComponent(requestPath)
+    .replace('/layout/', '')
+    .split('|')
 
   pathParts.forEach(part => {
-    var type = part.substring(0, 2)
+    const type = part.substring(0, 2)
 
     switch (type) {
       case TILE_TYPES.IMAGE:
@@ -298,5 +329,6 @@ ImageLayoutProcessor.prototype.processUrl = function (requestPath) {
 
 module.exports = options => {
   const layoutProcessor = new ImageLayoutProcessor(options)
+
   return layoutProcessor.get()
 }

@@ -2,24 +2,24 @@ const fs = require('fs')
 const path = require('path')
 const config = require(path.join(__dirname, '/../../../config'))
 
-const Missing = function () {}
+const Missing = function() {}
 
-Missing.prototype.get = function ({domain, isDirectory = false}) {
-  let imagePath = config.get('notFound.images.enabled', domain)
+Missing.prototype.get = function({domain, isDirectory = false}) {
+  const imagePath = config.get('notFound.images.enabled', domain)
     ? config.get('notFound.images.path', domain)
     : null
 
   return new Promise((resolve, reject) => {
     if (!imagePath || isDirectory) {
-      return reject({ statusCode: 404 })
+      return reject({statusCode: 404})
     }
 
-    let errorNotFound = {
+    const errorNotFound = {
       statusCode: 404,
       message: `File not found: ${imagePath}`
     }
 
-    let stream = fs.createReadStream(imagePath)
+    const stream = fs.createReadStream(imagePath)
 
     stream.on('open', () => {
       // Check file size.
@@ -28,7 +28,7 @@ Missing.prototype.get = function ({domain, isDirectory = false}) {
           return reject(errorNotFound)
         }
 
-        let fileSize = parseInt(stats.size)
+        const fileSize = parseInt(stats.size)
 
         if (fileSize === 0) {
           return reject({
@@ -47,7 +47,7 @@ Missing.prototype.get = function ({domain, isDirectory = false}) {
   })
 }
 
-module.exports = function () {
+module.exports = function() {
   return new Missing()
 }
 
