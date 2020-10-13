@@ -107,6 +107,7 @@ HandlerFactory.prototype.createFromFormat = function({
       case 'json':
       case 'png':
       case 'webp':
+      case 'svg':
         return resolve(new ImageHandler(format, req, handlerData))
       case 'bin':
         format = 'jpg'
