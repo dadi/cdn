@@ -23,7 +23,7 @@ CDN is part of DADI, a suite of components covering the full development stack, 
 
 ## Requirements
 
-- **[Node.js](https://www.nodejs.org/)** (supported versions: 6.9.2, 6.11.1, 8.9.4)
+- **[Node.js](https://www.nodejs.org/)** (supported versions: 10.16.3 to 14.15.0)
 
 ## Your first CDN project
 
