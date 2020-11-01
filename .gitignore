@@ -28,3 +28,4 @@ workspace/_exif/*
 workspace/_tmp/*
 .vscode/settings.json
 
+images/

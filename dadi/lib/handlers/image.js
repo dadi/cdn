@@ -1061,7 +1061,7 @@ ImageHandler.prototype.process = function(sharpImage, imageBuffer) {
             return resolve(help.streamToBuffer(pluginStream))
           }
 
-          sharpImage.toBuffer({}, (err, buffer, info) => {
+          sharpImage.toBuffer(true, (err, buffer, info) => {
             if (err) return reject(err)
 
             let processBuffer = Promise.resolve(buffer)

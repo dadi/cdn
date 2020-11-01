@@ -11,7 +11,7 @@ const schema = {
   server: {
     host: {
       doc: 'The IP address the application will run on',
-      format: 'ipaddress',
+      format: String,
       default: '0.0.0.0'
     },
     port: {
