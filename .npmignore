@@ -7,6 +7,7 @@ workspace/_exif/
 workspace/_tmp/
 log/
 cache/
+!dadi/lib/cache/index.js
 
 # Config
 config/config.development.json

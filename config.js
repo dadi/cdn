@@ -1,10 +1,13 @@
 const chokidar = require('chokidar')
 const convict = require('convict')
+const convict_format_with_validator = require('convict-format-with-validator')
 const domainManager = require('./dadi/lib/models/domain-manager')
 const fs = require('fs')
 const logger = require('@dadi/logger')
 const objectPath = require('object-path')
 const path = require('path')
+
+convict.addFormats(convict_format_with_validator)
 
 // Define a schema
 const schema = {

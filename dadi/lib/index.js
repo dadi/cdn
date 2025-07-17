@@ -38,11 +38,11 @@ const devConfigPath = path.join(
   '/../../config/config.development.json'
 )
 
-fs.stat(devConfigPath, (err, stats) => {
-  if (err && err.code === 'ENOENT') {
-    fs.writeFileSync(devConfigPath, fs.readFileSync(devConfigPath + '.sample'))
-  }
-})
+// fs.stat(devConfigPath, (err, stats) => {
+//  if (err && err.code === 'ENOENT') {
+//    fs.writeFileSync(devConfigPath, fs.readFileSync(devConfigPath + '.sample'))
+//   }
+// })
 
 const auth = require(path.join(__dirname, '/auth'))
 const Controller = require(path.join(__dirname, '/controller'))
